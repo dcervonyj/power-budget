@@ -46,3 +46,16 @@ jobs:
 
       - name: Lint, typecheck & test
         run: pnpm turbo run lint typecheck test --continue
+
+      - name: Collect coverage reports
+        if: always()
+        run: find . -name 'lcov.info' -not -path '*/node_modules/*' | xargs -I{} echo "{}"
+
+      - name: Upload coverage artefacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            packages/*/coverage/
+          if-no-files-found: ignore
