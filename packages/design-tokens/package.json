@@ -1,0 +1,24 @@
+{
+  "name": "@power-budget/design-tokens",
+  "version": "0.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js",
+    "./css": "./dist/css.js",
+    "./rn": "./dist/rn.js"
+  },
+  "scripts": {
+    "build": "tsc -b && node dist/css.js > dist/tokens.css",
+    "typecheck": "tsc -b --pretty",
+    "lint": "eslint src --max-warnings 0",
+    "test": "vitest run",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.9"
+  }
+}

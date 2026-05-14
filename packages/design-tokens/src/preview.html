@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Power Budget — Design Token Preview</title>
+  <link rel="stylesheet" href="../dist/tokens.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--pb-color-surface-base);
+      color: var(--pb-color-text-primary);
+      font-family: var(--pb-font-family-sans);
+      font-size: var(--pb-font-size-md);
+      line-height: var(--pb-line-height-normal);
+      padding: var(--pb-space-xl);
+      min-height: 100vh;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--pb-space-2xl);
+      padding-bottom: var(--pb-space-lg);
+      border-bottom: 1px solid var(--pb-color-border-subtle);
+    }
+
+    h1 { font-size: var(--pb-font-size-2xl); font-weight: var(--pb-font-weight-bold); }
+    h2 { font-size: var(--pb-font-size-lg); font-weight: var(--pb-font-weight-semibold); margin-bottom: var(--pb-space-md); }
+    h3 { font-size: var(--pb-font-size-sm); font-weight: var(--pb-font-weight-medium); color: var(--pb-color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: var(--pb-space-sm); }
+
+    .badge {
+      background: var(--pb-color-accent-default);
+      color: var(--pb-color-accent-on-accent);
+      font-size: var(--pb-font-size-xs);
+      font-weight: var(--pb-font-weight-semibold);
+      padding: 4px 10px;
+      border-radius: var(--pb-radius-pill);
+    }
+
+    button.theme-toggle {
+      background: var(--pb-color-surface-raised);
+      color: var(--pb-color-text-primary);
+      border: 1px solid var(--pb-color-border-strong);
+      border-radius: var(--pb-radius-md);
+      padding: var(--pb-space-sm) var(--pb-space-lg);
+      font-family: var(--pb-font-family-sans);
+      font-size: var(--pb-font-size-sm);
+      font-weight: var(--pb-font-weight-medium);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button.theme-toggle:hover { background: var(--pb-color-surface-mid); }
+
+    section { margin-bottom: var(--pb-space-3xl); }
+
+    /* Color swatches */
+    .swatch-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: var(--pb-space-sm);
+    }
+    .swatch {
+      border-radius: var(--pb-radius-md);
+      overflow: hidden;
+      border: 1px solid var(--pb-color-border-subtle);
+    }
+    .swatch-color {
+      height: 64px;
+      width: 100%;
+    }
+    .swatch-info {
+      background: var(--pb-color-surface-raised);
+      padding: var(--pb-space-sm);
+    }
+    .swatch-name {
+      font-size: var(--pb-font-size-xs);
+      font-weight: var(--pb-font-weight-medium);
+      color: var(--pb-color-text-primary);
+      word-break: break-all;
+      margin-bottom: 2px;
+    }
+    .swatch-var {
+      font-size: 10px;
+      color: var(--pb-color-text-muted);
+      font-family: monospace;
+      word-break: break-all;
+    }
+
+    /* Spacing scale */
+    .space-list { display: flex; flex-direction: column; gap: var(--pb-space-sm); }
+    .space-row { display: flex; align-items: center; gap: var(--pb-space-md); }
+    .space-bar {
+      background: var(--pb-color-accent-default);
+      height: 16px;
+      border-radius: var(--pb-radius-sm);
+      opacity: 0.8;
+      flex-shrink: 0;
+    }
+    .space-label { font-size: var(--pb-font-size-sm); color: var(--pb-color-text-secondary); font-family: monospace; min-width: 100px; }
+
+    /* Type ramp */
+    .type-list { display: flex; flex-direction: column; gap: var(--pb-space-md); }
+    .type-row { display: flex; align-items: baseline; gap: var(--pb-space-lg); border-bottom: 1px solid var(--pb-color-border-subtle); padding-bottom: var(--pb-space-sm); }
+    .type-label { font-size: var(--pb-font-size-xs); color: var(--pb-color-text-muted); font-family: monospace; min-width: 80px; flex-shrink: 0; }
+    .type-sample { color: var(--pb-color-text-primary); }
+
+    /* Radius */
+    .radius-grid { display: flex; gap: var(--pb-space-lg); flex-wrap: wrap; align-items: flex-end; }
+    .radius-item { display: flex; flex-direction: column; align-items: center; gap: var(--pb-space-sm); }
+    .radius-box {
+      width: 80px;
+      height: 80px;
+      background: var(--pb-color-surface-raised);
+      border: 2px solid var(--pb-color-accent-default);
+    }
+    .radius-label { font-size: var(--pb-font-size-xs); color: var(--pb-color-text-secondary); font-family: monospace; text-align: center; }
+
+    /* Hero gradient preview */
+    .hero-preview {
+      border-radius: var(--pb-radius-lg);
+      height: 120px;
+      background: linear-gradient(135deg, var(--pb-color-hero-bg-start), var(--pb-color-hero-bg-end));
+      border-top: 3px solid var(--pb-color-hero-top-accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: var(--pb-font-weight-bold);
+      font-size: var(--pb-font-size-xl);
+      letter-spacing: -0.01em;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Design Token Preview</h1>
+      <p style="color: var(--pb-color-text-secondary); font-size: var(--pb-font-size-sm); margin-top: 4px;">
+        @power-budget/design-tokens — Arctic Blue palette
+      </p>
+    </div>
+    <div style="display:flex; align-items:center; gap: var(--pb-space-md);">
+      <span class="badge" id="theme-label">Dark</span>
+      <button class="theme-toggle" onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+  </header>
+
+  <section>
+    <h2>Hero Gradient</h2>
+    <div class="hero-preview">Power Budget</div>
+  </section>
+
+  <section>
+    <h2>Colours</h2>
+
+    <h3>Surface</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-surface-base)"></div><div class="swatch-info"><div class="swatch-name">surface-base</div><div class="swatch-var">--pb-color-surface-base</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-surface-raised)"></div><div class="swatch-info"><div class="swatch-name">surface-raised</div><div class="swatch-var">--pb-color-surface-raised</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-surface-mid)"></div><div class="swatch-info"><div class="swatch-name">surface-mid</div><div class="swatch-var">--pb-color-surface-mid</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-surface-overlay)"></div><div class="swatch-info"><div class="swatch-name">surface-overlay</div><div class="swatch-var">--pb-color-surface-overlay</div></div></div>
+    </div>
+
+    <h3 style="margin-top:var(--pb-space-lg)">Border</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-border-subtle)"></div><div class="swatch-info"><div class="swatch-name">border-subtle</div><div class="swatch-var">--pb-color-border-subtle</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-border-strong)"></div><div class="swatch-info"><div class="swatch-name">border-strong</div><div class="swatch-var">--pb-color-border-strong</div></div></div>
+    </div>
+
+    <h3 style="margin-top:var(--pb-space-lg)">Text</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-text-primary)"></div><div class="swatch-info"><div class="swatch-name">text-primary</div><div class="swatch-var">--pb-color-text-primary</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-text-secondary)"></div><div class="swatch-info"><div class="swatch-name">text-secondary</div><div class="swatch-var">--pb-color-text-secondary</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-text-muted)"></div><div class="swatch-info"><div class="swatch-name">text-muted</div><div class="swatch-var">--pb-color-text-muted</div></div></div>
+    </div>
+
+    <h3 style="margin-top:var(--pb-space-lg)">Accent</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-accent-default)"></div><div class="swatch-info"><div class="swatch-name">accent-default</div><div class="swatch-var">--pb-color-accent-default</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-accent-on-accent)"></div><div class="swatch-info"><div class="swatch-name">accent-on-accent</div><div class="swatch-var">--pb-color-accent-on-accent</div></div></div>
+    </div>
+
+    <h3 style="margin-top:var(--pb-space-lg)">Income</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-income-default)"></div><div class="swatch-info"><div class="swatch-name">income-default</div><div class="swatch-var">--pb-color-income-default</div></div></div>
+    </div>
+
+    <h3 style="margin-top:var(--pb-space-lg)">Status</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-status-success)"></div><div class="swatch-info"><div class="swatch-name">status-success</div><div class="swatch-var">--pb-color-status-success</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-status-warning)"></div><div class="swatch-info"><div class="swatch-name">status-warning</div><div class="swatch-var">--pb-color-status-warning</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-status-danger)"></div><div class="swatch-info"><div class="swatch-name">status-danger</div><div class="swatch-var">--pb-color-status-danger</div></div></div>
+    </div>
+
+    <h3 style="margin-top:var(--pb-space-lg)">Hero</h3>
+    <div class="swatch-grid">
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-hero-bg-start)"></div><div class="swatch-info"><div class="swatch-name">hero-bg-start</div><div class="swatch-var">--pb-color-hero-bg-start</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-hero-bg-end)"></div><div class="swatch-info"><div class="swatch-name">hero-bg-end</div><div class="swatch-var">--pb-color-hero-bg-end</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-hero-top-accent)"></div><div class="swatch-info"><div class="swatch-name">hero-top-accent</div><div class="swatch-var">--pb-color-hero-top-accent</div></div></div>
+      <div class="swatch"><div class="swatch-color" style="background:var(--pb-color-hero-sparkline)"></div><div class="swatch-info"><div class="swatch-name">hero-sparkline</div><div class="swatch-var">--pb-color-hero-sparkline</div></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Spacing Scale</h2>
+    <div class="space-list">
+      <div class="space-row"><span class="space-label">xs — 4px</span><div class="space-bar" style="width:4px"></div></div>
+      <div class="space-row"><span class="space-label">sm — 8px</span><div class="space-bar" style="width:8px"></div></div>
+      <div class="space-row"><span class="space-label">md — 12px</span><div class="space-bar" style="width:12px"></div></div>
+      <div class="space-row"><span class="space-label">lg — 16px</span><div class="space-bar" style="width:16px"></div></div>
+      <div class="space-row"><span class="space-label">xl — 24px</span><div class="space-bar" style="width:24px"></div></div>
+      <div class="space-row"><span class="space-label">2xl — 32px</span><div class="space-bar" style="width:32px"></div></div>
+      <div class="space-row"><span class="space-label">3xl — 48px</span><div class="space-bar" style="width:48px"></div></div>
+      <div class="space-row"><span class="space-label">4xl — 64px</span><div class="space-bar" style="width:64px"></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Type Ramp</h2>
+    <div class="type-list">
+      <div class="type-row"><span class="type-label">xs — 12px</span><span class="type-sample" style="font-size:12px">The quick brown fox</span></div>
+      <div class="type-row"><span class="type-label">sm — 14px</span><span class="type-sample" style="font-size:14px">The quick brown fox</span></div>
+      <div class="type-row"><span class="type-label">md — 16px</span><span class="type-sample" style="font-size:16px">The quick brown fox</span></div>
+      <div class="type-row"><span class="type-label">lg — 18px</span><span class="type-sample" style="font-size:18px">The quick brown fox</span></div>
+      <div class="type-row"><span class="type-label">xl — 22px</span><span class="type-sample" style="font-size:22px;font-weight:500">The quick brown fox</span></div>
+      <div class="type-row"><span class="type-label">2xl — 28px</span><span class="type-sample" style="font-size:28px;font-weight:600">The quick brown fox</span></div>
+      <div class="type-row"><span class="type-label">3xl — 36px</span><span class="type-sample" style="font-size:36px;font-weight:700">The quick brown fox</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Border Radius</h2>
+    <div class="radius-grid">
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:6px"></div>
+        <div class="radius-label">sm<br/>6px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:10px"></div>
+        <div class="radius-label">md<br/>10px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:16px"></div>
+        <div class="radius-label">lg<br/>16px</div>
+      </div>
+      <div class="radius-item">
+        <div class="radius-box" style="border-radius:999px; width:100px; height:40px;"></div>
+        <div class="radius-label">pill<br/>999px</div>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      document.getElementById('theme-label').textContent = next === 'dark' ? 'Dark' : 'Light';
+    }
+  </script>
+</body>
+</html>
