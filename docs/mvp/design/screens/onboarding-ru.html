@@ -1,142 +1,252 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Настройка Power Budget</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="../styles.css" />
-</head>
-<body class="onboarding-shell">
-  <header class="topbar" role="banner">
-    <a class="brand" href="../index.html">
-      <span class="brand__mark" aria-hidden="true">P</span>
-      <span>Power Budget</span>
-    </a>
-    <div class="dropdown">
-      <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">RU ▾</button>
-      <div class="dropdown__menu" role="menu">
-        <a class="dropdown__item" role="menuitem" href="onboarding-en.html">🇬🇧 English</a>
-        <a class="dropdown__item" role="menuitem" href="onboarding-uk.html">🇺🇦 Українська</a>
-        <a class="dropdown__item" role="menuitem" href="onboarding-ru.html">🇷🇺 Русский</a>
-        <a class="dropdown__item" role="menuitem" href="onboarding-pl.html">🇵🇱 Polski</a>
-      </div>
-    </div>
-  </header>
-
-  <main>
-    <section class="onboarding-card" aria-labelledby="onb-title">
-      <nav class="steps" aria-label="Шаги настройки">
-        <span class="steps__item steps__item--done"><span class="steps__num">✓</span> Язык</span>
-        <span class="steps__sep">›</span>
-        <span class="steps__item steps__item--active"><span class="steps__num">2</span> Базовая валюта</span>
-        <span class="steps__sep">›</span>
-        <span class="steps__item"><span class="steps__num">3</span> Валюты</span>
-        <span class="steps__sep">›</span>
-        <span class="steps__item"><span class="steps__num">4</span> Банк</span>
-        <span class="steps__sep">›</span>
-        <span class="steps__item"><span class="steps__num">5</span> Первый план</span>
-      </nav>
-
-      <h1 id="onb-title" style="margin-bottom:8px;">Добро пожаловать в Power Budget</h1>
-      <p class="secondary" style="margin-bottom:24px;">Пять быстрых шагов — и первый план готов.</p>
-
-      <h3 class="mb-3">Выберите базовую валюту</h3>
-      <p class="secondary mb-4">Все итоги на панели по умолчанию в этой валюте. Переключать можно когда угодно.</p>
-
-      <div class="grid grid-2 mb-6">
-        <label class="card card--compact" style="display:flex; gap:12px; align-items:center; cursor:pointer; border-color:var(--accent);">
-          <input type="radio" name="base" class="radio" checked />
-          <div>
-            <div style="font-weight:600;">PLN — польский злотый</div>
-            <div class="secondary" style="font-size:12px;">По умолчанию для Польши</div>
-          </div>
-        </label>
-        <label class="card card--compact" style="display:flex; gap:12px; align-items:center; cursor:pointer;">
-          <input type="radio" name="base" class="radio" />
-          <div>
-            <div style="font-weight:600;">EUR — евро</div>
-            <div class="secondary" style="font-size:12px;">Для семей в еврозоне</div>
-          </div>
-        </label>
-        <label class="card card--compact" style="display:flex; gap:12px; align-items:center; cursor:pointer;">
-          <input type="radio" name="base" class="radio" />
-          <div>
-            <div style="font-weight:600;">UAH — украинская гривна</div>
-            <div class="secondary" style="font-size:12px;">По умолчанию для Украины</div>
-          </div>
-        </label>
-        <label class="card card--compact" style="display:flex; gap:12px; align-items:center; cursor:pointer;">
-          <input type="radio" name="base" class="radio" />
-          <div>
-            <div style="font-weight:600;">USD — доллар США</div>
-            <div class="secondary" style="font-size:12px;">Универсальная единица учёта</div>
-          </div>
-        </label>
-      </div>
-
-      <h3 class="mb-3">Интересные валюты</h3>
-      <p class="secondary mb-3">Переключатель на панели будет циклически показывать их.</p>
-      <div class="chips mb-6">
-        <button class="chip chip--selected" type="button">PLN</button>
-        <button class="chip chip--selected" type="button">EUR</button>
-        <button class="chip chip--selected" type="button">UAH</button>
-        <button class="chip chip--selected" type="button">USD</button>
-        <button class="chip" type="button">GBP</button>
-        <button class="chip" type="button">CHF</button>
-        <button class="chip" type="button">CZK</button>
-        <button class="chip" type="button">+ добавить</button>
-      </div>
-
-      <h3 class="mb-3">Опционально: подключите первый банк</h3>
-      <div class="row mb-6" style="gap:12px;">
-        <a class="btn btn--secondary" href="bank-connections.html">
-          <span class="bank-logo bank-logo--pko" style="width:24px;height:24px;font-size:12px;">P</span>
-          Подключить PKO BP
-        </a>
-        <a class="btn btn--secondary" href="bank-connections.html">
-          <span class="bank-logo bank-logo--wise" style="width:24px;height:24px;font-size:12px;">W</span>
-          Подключить Wise
-        </a>
-        <span class="secondary" style="font-size:12px;">или пропустите — можно позже</span>
-      </div>
-
-      <h3 class="mb-3">Опционально: создайте первый план</h3>
-      <div class="grid grid-2 mb-6">
-        <button class="card card--compact" style="text-align:left;cursor:pointer;background:var(--bg-raised);border:1px solid var(--accent);">
-          <strong>Месячный личный план</strong>
-          <p class="secondary" style="font-size:12px; margin-top:4px;">С арендой, продуктами, транспортом, кафе.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Настройка Power Budget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body class="onboarding-shell">
+    <header class="topbar" role="banner">
+      <a class="brand" href="../index.html">
+        <span class="brand__mark" aria-hidden="true">P</span>
+        <span>Power Budget</span>
+      </a>
+      <div class="dropdown">
+        <button
+          class="locale-pill"
+          onclick="toggleMenu(this)"
+          aria-haspopup="menu"
+          aria-expanded="false"
+        >
+          RU ▾
         </button>
-        <button class="card card--compact" style="text-align:left;cursor:pointer;">
-          <strong>Пропустить</strong>
-          <p class="secondary" style="font-size:12px; margin-top:4px;">Начать с пустой панели.</p>
-        </button>
+        <div class="dropdown__menu" role="menu">
+          <a class="dropdown__item" role="menuitem" href="onboarding-en.html"
+            >🇬🇧 English</a
+          >
+          <a class="dropdown__item" role="menuitem" href="onboarding-uk.html"
+            >🇺🇦 Українська</a
+          >
+          <a class="dropdown__item" role="menuitem" href="onboarding-ru.html"
+            >🇷🇺 Русский</a
+          >
+          <a class="dropdown__item" role="menuitem" href="onboarding-pl.html"
+            >🇵🇱 Polski</a
+          >
+        </div>
       </div>
+    </header>
 
-      <div class="row row--between" style="border-top:1px solid var(--border); padding-top:16px;">
-        <button class="btn btn--ghost">← Назад</button>
-        <a class="btn btn--primary btn--lg" href="dashboard-ru.html">Завершить →</a>
-      </div>
-    </section>
-  </main>
+    <main>
+      <section class="onboarding-card" aria-labelledby="onb-title">
+        <nav class="steps" aria-label="Шаги настройки">
+          <span class="steps__item steps__item--done"
+            ><span class="steps__num">✓</span> Язык</span
+          >
+          <span class="steps__sep">›</span>
+          <span class="steps__item steps__item--active"
+            ><span class="steps__num">2</span> Базовая валюта</span
+          >
+          <span class="steps__sep">›</span>
+          <span class="steps__item"
+            ><span class="steps__num">3</span> Валюты</span
+          >
+          <span class="steps__sep">›</span>
+          <span class="steps__item"
+            ><span class="steps__num">4</span> Банк</span
+          >
+          <span class="steps__sep">›</span>
+          <span class="steps__item"
+            ><span class="steps__num">5</span> Первый план</span
+          >
+        </nav>
 
-  <script>
-    function toggleMenu(btn) {
-      const menu = btn.nextElementSibling;
-      const open = menu.dataset.open === 'true';
-      menu.dataset.open = !open;
-      btn.setAttribute('aria-expanded', String(!open));
-    }
-    document.addEventListener('click', (e) => {
-      document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(m => {
-        if (!m.parentElement.contains(e.target)) {
-          m.dataset.open = 'false';
-          m.previousElementSibling.setAttribute('aria-expanded', 'false');
-        }
+        <h1 id="onb-title" style="margin-bottom: 8px">
+          Добро пожаловать в Power Budget
+        </h1>
+        <p class="secondary" style="margin-bottom: 24px">
+          Пять быстрых шагов — и первый план готов.
+        </p>
+
+        <h3 class="mb-3">Выберите базовую валюту</h3>
+        <p class="secondary mb-4">
+          Все итоги на панели по умолчанию в этой валюте. Переключать можно
+          когда угодно.
+        </p>
+
+        <div class="grid grid-2 mb-6">
+          <label
+            class="card card--compact"
+            style="
+              display: flex;
+              gap: 12px;
+              align-items: center;
+              cursor: pointer;
+              border-color: var(--accent);
+            "
+          >
+            <input type="radio" name="base" class="radio" checked />
+            <div>
+              <div style="font-weight: 600">PLN — польский злотый</div>
+              <div class="secondary" style="font-size: 12px">
+                По умолчанию для Польши
+              </div>
+            </div>
+          </label>
+          <label
+            class="card card--compact"
+            style="
+              display: flex;
+              gap: 12px;
+              align-items: center;
+              cursor: pointer;
+            "
+          >
+            <input type="radio" name="base" class="radio" />
+            <div>
+              <div style="font-weight: 600">EUR — евро</div>
+              <div class="secondary" style="font-size: 12px">
+                Для семей в еврозоне
+              </div>
+            </div>
+          </label>
+          <label
+            class="card card--compact"
+            style="
+              display: flex;
+              gap: 12px;
+              align-items: center;
+              cursor: pointer;
+            "
+          >
+            <input type="radio" name="base" class="radio" />
+            <div>
+              <div style="font-weight: 600">UAH — украинская гривна</div>
+              <div class="secondary" style="font-size: 12px">
+                По умолчанию для Украины
+              </div>
+            </div>
+          </label>
+          <label
+            class="card card--compact"
+            style="
+              display: flex;
+              gap: 12px;
+              align-items: center;
+              cursor: pointer;
+            "
+          >
+            <input type="radio" name="base" class="radio" />
+            <div>
+              <div style="font-weight: 600">USD — доллар США</div>
+              <div class="secondary" style="font-size: 12px">
+                Универсальная единица учёта
+              </div>
+            </div>
+          </label>
+        </div>
+
+        <h3 class="mb-3">Интересные валюты</h3>
+        <p class="secondary mb-3">
+          Переключатель на панели будет циклически показывать их.
+        </p>
+        <div class="chips mb-6">
+          <button class="chip chip--selected" type="button">PLN</button>
+          <button class="chip chip--selected" type="button">EUR</button>
+          <button class="chip chip--selected" type="button">UAH</button>
+          <button class="chip chip--selected" type="button">USD</button>
+          <button class="chip" type="button">GBP</button>
+          <button class="chip" type="button">CHF</button>
+          <button class="chip" type="button">CZK</button>
+          <button class="chip" type="button">+ добавить</button>
+        </div>
+
+        <h3 class="mb-3">Опционально: подключите первый банк</h3>
+        <div class="row mb-6" style="gap: 12px">
+          <a class="btn btn--secondary" href="bank-connections.html">
+            <span
+              class="bank-logo bank-logo--pko"
+              style="width: 24px; height: 24px; font-size: 12px"
+              >P</span
+            >
+            Подключить PKO BP
+          </a>
+          <a class="btn btn--secondary" href="bank-connections.html">
+            <span
+              class="bank-logo bank-logo--wise"
+              style="width: 24px; height: 24px; font-size: 12px"
+              >W</span
+            >
+            Подключить Wise
+          </a>
+          <span class="secondary" style="font-size: 12px"
+            >или пропустите — можно позже</span
+          >
+        </div>
+
+        <h3 class="mb-3">Опционально: создайте первый план</h3>
+        <div class="grid grid-2 mb-6">
+          <button
+            class="card card--compact"
+            style="
+              text-align: left;
+              cursor: pointer;
+              background: var(--bg-raised);
+              border: 1px solid var(--accent);
+            "
+          >
+            <strong>Месячный личный план</strong>
+            <p class="secondary" style="font-size: 12px; margin-top: 4px">
+              С арендой, продуктами, транспортом, кафе.
+            </p>
+          </button>
+          <button
+            class="card card--compact"
+            style="text-align: left; cursor: pointer"
+          >
+            <strong>Пропустить</strong>
+            <p class="secondary" style="font-size: 12px; margin-top: 4px">
+              Начать с пустой панели.
+            </p>
+          </button>
+        </div>
+
+        <div
+          class="row row--between"
+          style="border-top: 1px solid var(--border); padding-top: 16px"
+        >
+          <button class="btn btn--ghost">← Назад</button>
+          <a class="btn btn--primary btn--lg" href="dashboard-ru.html"
+            >Завершить →</a
+          >
+        </div>
+      </section>
+    </main>
+
+    <script>
+      function toggleMenu(btn) {
+        const menu = btn.nextElementSibling;
+        const open = menu.dataset.open === "true";
+        menu.dataset.open = !open;
+        btn.setAttribute("aria-expanded", String(!open));
+      }
+      document.addEventListener("click", (e) => {
+        document
+          .querySelectorAll('.dropdown__menu[data-open="true"]')
+          .forEach((m) => {
+            if (!m.parentElement.contains(e.target)) {
+              m.dataset.open = "false";
+              m.previousElementSibling.setAttribute("aria-expanded", "false");
+            }
+          });
       });
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>

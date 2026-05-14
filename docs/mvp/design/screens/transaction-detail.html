@@ -1,162 +1,294 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transaction · Power Budget</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="../styles.css" />
-</head>
-<body>
-  <div class="app">
-    <aside class="sidebar" role="navigation" aria-label="Primary">
-      <a class="brand" href="../index.html">
-        <span class="brand__mark" aria-hidden="true">P</span>
-        <span>Power Budget</span>
-      </a>
-      <nav class="nav">
-        <a class="nav__item" href="dashboard-en.html"><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a>
-        <a class="nav__item" href="plans-list.html"><span class="nav__icon" aria-hidden="true">≡</span> Plans</a>
-        <a class="nav__item nav__item--active" href="transactions.html"><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a>
-        <a class="nav__item" href="bank-connections.html"><span class="nav__icon" aria-hidden="true">🏦</span> Bank Connections</a>
-        <a class="nav__item" href="categories.html"><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a>
-        <a class="nav__item" href="settings.html"><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a>
-      </nav>
-      <div class="sidebar__footer">
-        <span class="avatar avatar--purple">AN</span>
-        <div style="min-width:0;">
-          <div style="font-weight:500;">Anna Nowak</div>
-          <div class="secondary" style="font-size:12px;">Kowalski household</div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Transaction · Power Budget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" role="navigation" aria-label="Primary">
+        <a class="brand" href="../index.html">
+          <span class="brand__mark" aria-hidden="true">P</span>
+          <span>Power Budget</span>
+        </a>
+        <nav class="nav">
+          <a class="nav__item" href="dashboard-en.html"
+            ><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a
+          >
+          <a class="nav__item" href="plans-list.html"
+            ><span class="nav__icon" aria-hidden="true">≡</span> Plans</a
+          >
+          <a class="nav__item nav__item--active" href="transactions.html"
+            ><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a
+          >
+          <a class="nav__item" href="bank-connections.html"
+            ><span class="nav__icon" aria-hidden="true">🏦</span> Bank
+            Connections</a
+          >
+          <a class="nav__item" href="categories.html"
+            ><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a
+          >
+          <a class="nav__item" href="settings.html"
+            ><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a
+          >
+        </nav>
+        <div class="sidebar__footer">
+          <span class="avatar avatar--purple">AN</span>
+          <div style="min-width: 0">
+            <div style="font-weight: 500">Anna Nowak</div>
+            <div class="secondary" style="font-size: 12px">
+              Kowalski household
+            </div>
+          </div>
         </div>
+      </aside>
+
+      <div class="app__main">
+        <header class="topbar" role="banner">
+          <div class="topbar__left">
+            <a class="btn btn--ghost btn--sm" href="transactions.html"
+              >← Back to transactions</a
+            >
+          </div>
+          <div class="topbar__right">
+            <button class="icon-btn" aria-label="Previous transaction">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            <button class="icon-btn" aria-label="Next transaction">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <main class="content content--narrow">
+          <div class="page-header">
+            <div class="page-header__titles">
+              <h1>Apteka Gemini</h1>
+              <p class="page-header__subtitle">PKO BP · May 12, 2026 · 14:23</p>
+            </div>
+            <span class="badge badge--warn">Unplanned</span>
+          </div>
+
+          <div class="card mb-4">
+            <div class="grid grid-2">
+              <div>
+                <div class="secondary" style="font-size: 12px">
+                  Original amount
+                </div>
+                <div
+                  style="
+                    font-size: 28px;
+                    font-weight: 700;
+                    font-variant-numeric: tabular-nums;
+                  "
+                >
+                  PLN 95.00
+                </div>
+              </div>
+              <div>
+                <div class="secondary" style="font-size: 12px">
+                  In base currency
+                </div>
+                <div
+                  style="
+                    font-size: 28px;
+                    font-weight: 700;
+                    font-variant-numeric: tabular-nums;
+                  "
+                >
+                  PLN 95.00
+                </div>
+                <div class="secondary" style="font-size: 12px">
+                  FX 1.000 · same currency
+                </div>
+              </div>
+            </div>
+            <div
+              style="
+                border-top: 1px solid var(--border);
+                margin-top: 24px;
+                padding-top: 16px;
+              "
+              class="stack-sm"
+            >
+              <div class="row row--between">
+                <span class="secondary">Merchant</span
+                ><span>Apteka Gemini</span>
+              </div>
+              <div class="row row--between">
+                <span class="secondary">Raw description</span
+                ><span class="mono">APTEKA GEMINI WARSZAWA PL</span>
+              </div>
+              <div class="row row--between">
+                <span class="secondary">Account</span
+                ><span>PKO BP · 4521 ····</span>
+              </div>
+              <div class="row row--between">
+                <span class="secondary">Owner</span
+                ><span
+                  ><span class="avatar avatar--purple avatar--sm">AN</span> Anna
+                  Nowak</span
+                >
+              </div>
+              <div class="row row--between">
+                <span class="secondary">Imported</span
+                ><span>May 13 · 04:12 (auto-sync)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="suggestion mb-4">
+            <span class="suggestion__icon" aria-hidden="true">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                />
+              </svg>
+            </span>
+            <div style="flex: 1">
+              <strong>Last time Apteka Gemini was mapped to Health</strong>
+              <div class="secondary" style="font-size: 12px">
+                Apr 22 · PLN 64.50 → Health · auto-mapped by Anna
+              </div>
+            </div>
+            <button class="btn btn--primary btn--sm">Map to Health</button>
+          </div>
+
+          <div class="card mb-4">
+            <h3 class="mb-3">Map to planned item</h3>
+            <div class="field mb-3">
+              <input
+                class="input"
+                placeholder="Search planned items…"
+                value=""
+              />
+            </div>
+            <div class="picker">
+              <div class="picker__group-label">May 2026 — Personal</div>
+              <div class="picker__item">
+                <span class="category-icon">🏠</span>
+                <div style="flex: 1">
+                  <strong>Rent</strong>
+                  <div class="picker__item-meta">3,500 / 3,500 zł · 100%</div>
+                </div>
+                <span class="secondary">›</span>
+              </div>
+              <div class="picker__item">
+                <span class="category-icon">🛒</span>
+                <div style="flex: 1">
+                  <strong>Groceries</strong>
+                  <div class="picker__item-meta">1,850 / 2,000 zł · 92%</div>
+                </div>
+                <span class="secondary">›</span>
+              </div>
+              <div class="picker__item picker__item--selected">
+                <span class="category-icon">⚕</span>
+                <div style="flex: 1">
+                  <strong>Health</strong>
+                  <div class="picker__item-meta">
+                    80 / 200 zł · 40% · 120 zł remaining
+                  </div>
+                </div>
+                <span class="success">✓</span>
+              </div>
+              <div class="picker__item">
+                <span class="category-icon">🍽</span>
+                <div style="flex: 1">
+                  <strong>Eating out</strong>
+                  <div class="picker__item-meta">
+                    720 / 600 zł · over budget
+                  </div>
+                </div>
+                <span class="secondary">›</span>
+              </div>
+              <div class="picker__group-label">May 2026 — Household</div>
+              <div class="picker__item">
+                <span class="category-icon">💡</span>
+                <div style="flex: 1">
+                  <strong>Utilities (shared)</strong>
+                  <div class="picker__item-meta">340 / 700 zł · 49%</div>
+                </div>
+                <span class="secondary">›</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-3 mb-4">
+            <button
+              class="card card--compact"
+              style="text-align: left; cursor: pointer"
+            >
+              <strong>Mark as Transfer</strong>
+              <p class="secondary" style="font-size: 12px; margin-top: 4px">
+                Pair with the counterpart leg and exclude from totals.
+              </p>
+            </button>
+            <button
+              class="card card--compact"
+              style="text-align: left; cursor: pointer"
+            >
+              <strong>Ignore</strong>
+              <p class="secondary" style="font-size: 12px; margin-top: 4px">
+                Keeps the record, but it won't affect any plan.
+              </p>
+            </button>
+            <button
+              class="card card--compact"
+              style="text-align: left; cursor: pointer"
+            >
+              <strong>Edit notes</strong>
+              <p class="secondary" style="font-size: 12px; margin-top: 4px">
+                Add a personal note visible only to you.
+              </p>
+            </button>
+          </div>
+
+          <div
+            class="row row--between"
+            style="border-top: 1px solid var(--border); padding-top: 16px"
+          >
+            <button class="btn btn--ghost">Cancel</button>
+            <button class="btn btn--primary btn--lg">Save mapping</button>
+          </div>
+        </main>
       </div>
-    </aside>
-
-    <div class="app__main">
-      <header class="topbar" role="banner">
-        <div class="topbar__left">
-          <a class="btn btn--ghost btn--sm" href="transactions.html">← Back to transactions</a>
-        </div>
-        <div class="topbar__right">
-          <button class="icon-btn" aria-label="Previous transaction"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
-          <button class="icon-btn" aria-label="Next transaction"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
-        </div>
-      </header>
-
-      <main class="content content--narrow">
-        <div class="page-header">
-          <div class="page-header__titles">
-            <h1>Apteka Gemini</h1>
-            <p class="page-header__subtitle">PKO BP · May 12, 2026 · 14:23</p>
-          </div>
-          <span class="badge badge--warn">Unplanned</span>
-        </div>
-
-        <div class="card mb-4">
-          <div class="grid grid-2">
-            <div>
-              <div class="secondary" style="font-size:12px;">Original amount</div>
-              <div style="font-size:28px; font-weight:700; font-variant-numeric:tabular-nums;">PLN 95.00</div>
-            </div>
-            <div>
-              <div class="secondary" style="font-size:12px;">In base currency</div>
-              <div style="font-size:28px; font-weight:700; font-variant-numeric:tabular-nums;">PLN 95.00</div>
-              <div class="secondary" style="font-size:12px;">FX 1.000 · same currency</div>
-            </div>
-          </div>
-          <div style="border-top:1px solid var(--border); margin-top:24px; padding-top:16px;" class="stack-sm">
-            <div class="row row--between"><span class="secondary">Merchant</span><span>Apteka Gemini</span></div>
-            <div class="row row--between"><span class="secondary">Raw description</span><span class="mono">APTEKA GEMINI WARSZAWA PL</span></div>
-            <div class="row row--between"><span class="secondary">Account</span><span>PKO BP · 4521 ····</span></div>
-            <div class="row row--between"><span class="secondary">Owner</span><span><span class="avatar avatar--purple avatar--sm">AN</span> Anna Nowak</span></div>
-            <div class="row row--between"><span class="secondary">Imported</span><span>May 13 · 04:12 (auto-sync)</span></div>
-          </div>
-        </div>
-
-        <div class="suggestion mb-4">
-          <span class="suggestion__icon" aria-hidden="true">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          </span>
-          <div style="flex:1;">
-            <strong>Last time Apteka Gemini was mapped to Health</strong>
-            <div class="secondary" style="font-size:12px;">Apr 22 · PLN 64.50 → Health · auto-mapped by Anna</div>
-          </div>
-          <button class="btn btn--primary btn--sm">Map to Health</button>
-        </div>
-
-        <div class="card mb-4">
-          <h3 class="mb-3">Map to planned item</h3>
-          <div class="field mb-3">
-            <input class="input" placeholder="Search planned items…" value="" />
-          </div>
-          <div class="picker">
-            <div class="picker__group-label">May 2026 — Personal</div>
-            <div class="picker__item">
-              <span class="category-icon">🏠</span>
-              <div style="flex:1;">
-                <strong>Rent</strong>
-                <div class="picker__item-meta">3,500 / 3,500 zł · 100%</div>
-              </div>
-              <span class="secondary">›</span>
-            </div>
-            <div class="picker__item">
-              <span class="category-icon">🛒</span>
-              <div style="flex:1;">
-                <strong>Groceries</strong>
-                <div class="picker__item-meta">1,850 / 2,000 zł · 92%</div>
-              </div>
-              <span class="secondary">›</span>
-            </div>
-            <div class="picker__item picker__item--selected">
-              <span class="category-icon">⚕</span>
-              <div style="flex:1;">
-                <strong>Health</strong>
-                <div class="picker__item-meta">80 / 200 zł · 40% · 120 zł remaining</div>
-              </div>
-              <span class="success">✓</span>
-            </div>
-            <div class="picker__item">
-              <span class="category-icon">🍽</span>
-              <div style="flex:1;">
-                <strong>Eating out</strong>
-                <div class="picker__item-meta">720 / 600 zł · over budget</div>
-              </div>
-              <span class="secondary">›</span>
-            </div>
-            <div class="picker__group-label">May 2026 — Household</div>
-            <div class="picker__item">
-              <span class="category-icon">💡</span>
-              <div style="flex:1;">
-                <strong>Utilities (shared)</strong>
-                <div class="picker__item-meta">340 / 700 zł · 49%</div>
-              </div>
-              <span class="secondary">›</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-3 mb-4">
-          <button class="card card--compact" style="text-align:left;cursor:pointer;">
-            <strong>Mark as Transfer</strong>
-            <p class="secondary" style="font-size:12px; margin-top:4px;">Pair with the counterpart leg and exclude from totals.</p>
-          </button>
-          <button class="card card--compact" style="text-align:left;cursor:pointer;">
-            <strong>Ignore</strong>
-            <p class="secondary" style="font-size:12px; margin-top:4px;">Keeps the record, but it won't affect any plan.</p>
-          </button>
-          <button class="card card--compact" style="text-align:left;cursor:pointer;">
-            <strong>Edit notes</strong>
-            <p class="secondary" style="font-size:12px; margin-top:4px;">Add a personal note visible only to you.</p>
-          </button>
-        </div>
-
-        <div class="row row--between" style="border-top:1px solid var(--border); padding-top:16px;">
-          <button class="btn btn--ghost">Cancel</button>
-          <button class="btn btn--primary btn--lg">Save mapping</button>
-        </div>
-      </main>
     </div>
-  </div>
-</body>
+  </body>
 </html>

@@ -1,353 +1,549 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Settings · Power Budget</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="../styles.css" />
-</head>
-<body>
-  <div class="app">
-    <aside class="sidebar" role="navigation" aria-label="Primary">
-      <a class="brand" href="../index.html">
-        <span class="brand__mark" aria-hidden="true">P</span>
-        <span>Power Budget</span>
-      </a>
-      <nav class="nav">
-        <a class="nav__item" href="dashboard-en.html"><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a>
-        <a class="nav__item" href="plans-list.html"><span class="nav__icon" aria-hidden="true">≡</span> Plans</a>
-        <a class="nav__item" href="transactions.html"><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a>
-        <a class="nav__item" href="bank-connections.html"><span class="nav__icon" aria-hidden="true">🏦</span> Bank Connections</a>
-        <a class="nav__item" href="categories.html"><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a>
-        <a class="nav__item nav__item--active" href="settings.html"><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a>
-      </nav>
-      <div class="sidebar__footer">
-        <span class="avatar avatar--purple">AN</span>
-        <div style="min-width:0;">
-          <div style="font-weight:500;">Anna Nowak</div>
-          <div class="secondary" style="font-size:12px;">Kowalski household</div>
-        </div>
-      </div>
-    </aside>
-
-    <div class="app__main">
-      <header class="topbar" role="banner">
-        <div class="topbar__left">
-          <h1 style="font-size:18px;">Settings</h1>
-        </div>
-        <div class="topbar__right">
-          <span class="avatar avatar--purple">AN</span>
-        </div>
-      </header>
-
-      <main class="content content--narrow">
-        <div class="page-header">
-          <div class="page-header__titles">
-            <h1>Settings</h1>
-            <p class="page-header__subtitle">Manage your profile, language, currencies, notifications, and security.</p>
-          </div>
-        </div>
-
-        <nav class="tabs" role="tablist" aria-label="Settings sections">
-          <button class="tab tab--active" role="tab" aria-selected="true" onclick="showTab(this,'profile')">Profile</button>
-          <button class="tab" role="tab" aria-selected="false" onclick="showTab(this,'language')">Language</button>
-          <button class="tab" role="tab" aria-selected="false" onclick="showTab(this,'currencies')">Currencies</button>
-          <button class="tab" role="tab" aria-selected="false" onclick="showTab(this,'notifications')">Notifications</button>
-          <button class="tab" role="tab" aria-selected="false" onclick="showTab(this,'security')">Security</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings · Power Budget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" role="navigation" aria-label="Primary">
+        <a class="brand" href="../index.html">
+          <span class="brand__mark" aria-hidden="true">P</span>
+          <span>Power Budget</span>
+        </a>
+        <nav class="nav">
+          <a class="nav__item" href="dashboard-en.html"
+            ><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a
+          >
+          <a class="nav__item" href="plans-list.html"
+            ><span class="nav__icon" aria-hidden="true">≡</span> Plans</a
+          >
+          <a class="nav__item" href="transactions.html"
+            ><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a
+          >
+          <a class="nav__item" href="bank-connections.html"
+            ><span class="nav__icon" aria-hidden="true">🏦</span> Bank
+            Connections</a
+          >
+          <a class="nav__item" href="categories.html"
+            ><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a
+          >
+          <a class="nav__item nav__item--active" href="settings.html"
+            ><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a
+          >
         </nav>
+        <div class="sidebar__footer">
+          <span class="avatar avatar--purple">AN</span>
+          <div style="min-width: 0">
+            <div style="font-weight: 500">Anna Nowak</div>
+            <div class="secondary" style="font-size: 12px">
+              Kowalski household
+            </div>
+          </div>
+        </div>
+      </aside>
 
-        <section class="tab-panel tab-panel--active" id="profile" role="tabpanel">
-          <div class="card stack">
-            <div class="row" style="gap:16px;">
-              <span class="avatar avatar--purple avatar--lg" style="width:64px; height:64px; font-size:22px; flex-basis:64px;">AN</span>
-              <div>
-                <h3>Anna Nowak</h3>
-                <div class="secondary">Member of Kowalski household since January 2026</div>
-              </div>
-              <button class="btn btn--secondary" style="margin-left:auto;">Change avatar</button>
-            </div>
-            <div class="grid grid-2">
-              <div class="field">
-                <label class="field__label" for="name">Full name</label>
-                <input class="input" id="name" value="Anna Nowak" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="email">Email</label>
-                <input class="input" id="email" value="anna@household.pl" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="role">Role</label>
-                <select class="select" id="role">
-                  <option>Owner</option>
-                  <option>Partner</option>
-                </select>
-              </div>
-              <div class="field">
-                <label class="field__label" for="timezone">Time zone</label>
-                <select class="select" id="timezone">
-                  <option>Europe/Warsaw (CEST)</option>
-                  <option>Europe/Kyiv (EEST)</option>
-                  <option>UTC</option>
-                </select>
-              </div>
-            </div>
-            <div class="row row--end">
-              <button class="btn btn--ghost">Cancel</button>
-              <button class="btn btn--primary">Save changes</button>
+      <div class="app__main">
+        <header class="topbar" role="banner">
+          <div class="topbar__left">
+            <h1 style="font-size: 18px">Settings</h1>
+          </div>
+          <div class="topbar__right">
+            <span class="avatar avatar--purple">AN</span>
+          </div>
+        </header>
+
+        <main class="content content--narrow">
+          <div class="page-header">
+            <div class="page-header__titles">
+              <h1>Settings</h1>
+              <p class="page-header__subtitle">
+                Manage your profile, language, currencies, notifications, and
+                security.
+              </p>
             </div>
           </div>
 
-          <div class="card mt-4">
-            <h3 class="mb-3">Household</h3>
-            <div class="row" style="gap:12px;">
-              <span class="avatar avatar--purple">AN</span>
-              <div style="flex:1;">
-                <strong>Anna Nowak</strong> <span class="badge badge--accent">Owner</span>
-                <div class="secondary" style="font-size:12px;">anna@household.pl</div>
-              </div>
-            </div>
-            <div class="row mt-3" style="gap:12px;">
-              <span class="avatar avatar--green">MK</span>
-              <div style="flex:1;">
-                <strong>Marek Kowalski</strong> <span class="badge">Partner</span>
-                <div class="secondary" style="font-size:12px;">marek@household.pl</div>
-              </div>
-              <button class="btn btn--ghost btn--sm">Manage</button>
-            </div>
-            <button class="btn btn--secondary mt-4">+ Invite partner</button>
-          </div>
+          <nav class="tabs" role="tablist" aria-label="Settings sections">
+            <button
+              class="tab tab--active"
+              role="tab"
+              aria-selected="true"
+              onclick="showTab(this, 'profile')"
+            >
+              Profile
+            </button>
+            <button
+              class="tab"
+              role="tab"
+              aria-selected="false"
+              onclick="showTab(this, 'language')"
+            >
+              Language
+            </button>
+            <button
+              class="tab"
+              role="tab"
+              aria-selected="false"
+              onclick="showTab(this, 'currencies')"
+            >
+              Currencies
+            </button>
+            <button
+              class="tab"
+              role="tab"
+              aria-selected="false"
+              onclick="showTab(this, 'notifications')"
+            >
+              Notifications
+            </button>
+            <button
+              class="tab"
+              role="tab"
+              aria-selected="false"
+              onclick="showTab(this, 'security')"
+            >
+              Security
+            </button>
+          </nav>
 
-          <div class="card mt-4">
-            <h3 class="mb-3">Data</h3>
-            <div class="row" style="gap:12px;">
-              <button class="btn btn--secondary">Export all data (GDPR)</button>
-              <button class="btn btn--danger" style="margin-left:auto;">Delete account</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="tab-panel" id="language" role="tabpanel">
-          <div class="card">
-            <h3 class="mb-3">Display language</h3>
-            <p class="secondary mb-4">Switching is instant. Numbers and dates also follow the chosen language.</p>
-            <div class="grid grid-2">
-              <label class="card card--compact row" style="gap:12px; cursor:pointer; border-color:var(--accent);">
-                <input type="radio" name="lang" class="radio" />
+          <section
+            class="tab-panel tab-panel--active"
+            id="profile"
+            role="tabpanel"
+          >
+            <div class="card stack">
+              <div class="row" style="gap: 16px">
+                <span
+                  class="avatar avatar--purple avatar--lg"
+                  style="
+                    width: 64px;
+                    height: 64px;
+                    font-size: 22px;
+                    flex-basis: 64px;
+                  "
+                  >AN</span
+                >
                 <div>
-                  <strong>English</strong>
-                  <div class="secondary" style="font-size:12px;">12,000.00 · PLN 12,000.00</div>
+                  <h3>Anna Nowak</h3>
+                  <div class="secondary">
+                    Member of Kowalski household since January 2026
+                  </div>
                 </div>
-              </label>
-              <label class="card card--compact row" style="gap:12px; cursor:pointer;">
-                <input type="radio" name="lang" class="radio" />
-                <div>
-                  <strong>Українська</strong>
-                  <div class="secondary" style="font-size:12px;">12 000,00 · 12 000,00 zł</div>
-                </div>
-              </label>
-              <label class="card card--compact row" style="gap:12px; cursor:pointer;">
-                <input type="radio" name="lang" class="radio" />
-                <div>
-                  <strong>Русский</strong>
-                  <div class="secondary" style="font-size:12px;">12 000,00 · 12 000,00 zł</div>
-                </div>
-              </label>
-              <label class="card card--compact row" style="gap:12px; cursor:pointer;">
-                <input type="radio" name="lang" class="radio" checked />
-                <div>
-                  <strong>Polski</strong>
-                  <div class="secondary" style="font-size:12px;">12 000,00 · 12 000,00 zł</div>
-                </div>
-              </label>
-            </div>
-          </div>
-          <div class="card mt-4">
-            <h3 class="mb-3">Email language</h3>
-            <p class="secondary mb-3">Emails are sent in your display language by default.</p>
-            <label class="row" style="gap:8px;">
-              <input type="checkbox" class="checkbox" checked />
-              <span>Match my display language</span>
-            </label>
-          </div>
-        </section>
-
-        <section class="tab-panel" id="currencies" role="tabpanel">
-          <div class="card">
-            <h3 class="mb-3">Base currency</h3>
-            <p class="secondary mb-4">All aggregations roll up to this currency. Daily FX captured per day.</p>
-            <select class="select" style="max-width:320px;">
-              <option>PLN — Polish złoty (default)</option>
-              <option>EUR — Euro</option>
-              <option>UAH — Ukrainian hryvnia</option>
-              <option>USD — US dollar</option>
-            </select>
-          </div>
-          <div class="card mt-4">
-            <h3 class="mb-3">Interesting currencies</h3>
-            <p class="secondary mb-3">The dashboard currency pill cycles through these.</p>
-            <div class="chips">
-              <button class="chip chip--selected" type="button">PLN</button>
-              <button class="chip chip--selected" type="button">EUR</button>
-              <button class="chip chip--selected" type="button">UAH</button>
-              <button class="chip chip--selected" type="button">USD</button>
-              <button class="chip" type="button">GBP</button>
-              <button class="chip" type="button">CHF</button>
-              <button class="chip" type="button">CZK</button>
-              <button class="chip" type="button">+ add</button>
-            </div>
-          </div>
-          <div class="card mt-4">
-            <h3 class="mb-3">FX rate source</h3>
-            <p class="secondary mb-3">Daily mid-market rates from European Central Bank. Visible on each transaction.</p>
-            <div class="row gap-3 secondary" style="font-size:12px;">
-              <span>Last update: today, 09:00 CET</span>
-              <span>·</span>
-              <a href="#">View today's rates</a>
-            </div>
-          </div>
-        </section>
-
-        <section class="tab-panel" id="notifications" role="tabpanel">
-          <div class="card">
-            <h3 class="mb-3">Email notifications</h3>
-            <p class="secondary mb-4">No push notifications in MVP — only email.</p>
-
-            <div class="row row--between" style="padding:12px 0; border-bottom:1px solid var(--border);">
-              <div>
-                <strong>Bank reconnect reminder</strong>
-                <div class="secondary" style="font-size:12px;">7 days, 1 day, and on the day consent expires.</div>
+                <button class="btn btn--secondary" style="margin-left: auto">
+                  Change avatar
+                </button>
               </div>
-              <label class="toggle"><input type="checkbox" checked /><span class="toggle__slider"></span></label>
-            </div>
-
-            <div class="row row--between" style="padding:12px 0; border-bottom:1px solid var(--border);">
-              <div>
-                <strong>Weekly summary digest</strong>
-                <div class="secondary" style="font-size:12px;">Every Monday at 8:00 in your time zone.</div>
+              <div class="grid grid-2">
+                <div class="field">
+                  <label class="field__label" for="name">Full name</label>
+                  <input class="input" id="name" value="Anna Nowak" />
+                </div>
+                <div class="field">
+                  <label class="field__label" for="email">Email</label>
+                  <input class="input" id="email" value="anna@household.pl" />
+                </div>
+                <div class="field">
+                  <label class="field__label" for="role">Role</label>
+                  <select class="select" id="role">
+                    <option>Owner</option>
+                    <option>Partner</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field__label" for="timezone">Time zone</label>
+                  <select class="select" id="timezone">
+                    <option>Europe/Warsaw (CEST)</option>
+                    <option>Europe/Kyiv (EEST)</option>
+                    <option>UTC</option>
+                  </select>
+                </div>
               </div>
-              <label class="toggle"><input type="checkbox" checked /><span class="toggle__slider"></span></label>
+              <div class="row row--end">
+                <button class="btn btn--ghost">Cancel</button>
+                <button class="btn btn--primary">Save changes</button>
+              </div>
             </div>
 
-            <div style="padding:12px 0; border-bottom:1px solid var(--border);">
+            <div class="card mt-4">
+              <h3 class="mb-3">Household</h3>
+              <div class="row" style="gap: 12px">
+                <span class="avatar avatar--purple">AN</span>
+                <div style="flex: 1">
+                  <strong>Anna Nowak</strong>
+                  <span class="badge badge--accent">Owner</span>
+                  <div class="secondary" style="font-size: 12px">
+                    anna@household.pl
+                  </div>
+                </div>
+              </div>
+              <div class="row mt-3" style="gap: 12px">
+                <span class="avatar avatar--green">MK</span>
+                <div style="flex: 1">
+                  <strong>Marek Kowalski</strong>
+                  <span class="badge">Partner</span>
+                  <div class="secondary" style="font-size: 12px">
+                    marek@household.pl
+                  </div>
+                </div>
+                <button class="btn btn--ghost btn--sm">Manage</button>
+              </div>
+              <button class="btn btn--secondary mt-4">+ Invite partner</button>
+            </div>
+
+            <div class="card mt-4">
+              <h3 class="mb-3">Data</h3>
+              <div class="row" style="gap: 12px">
+                <button class="btn btn--secondary">
+                  Export all data (GDPR)
+                </button>
+                <button class="btn btn--danger" style="margin-left: auto">
+                  Delete account
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="language" role="tabpanel">
+            <div class="card">
+              <h3 class="mb-3">Display language</h3>
+              <p class="secondary mb-4">
+                Switching is instant. Numbers and dates also follow the chosen
+                language.
+              </p>
+              <div class="grid grid-2">
+                <label
+                  class="card card--compact row"
+                  style="
+                    gap: 12px;
+                    cursor: pointer;
+                    border-color: var(--accent);
+                  "
+                >
+                  <input type="radio" name="lang" class="radio" />
+                  <div>
+                    <strong>English</strong>
+                    <div class="secondary" style="font-size: 12px">
+                      12,000.00 · PLN 12,000.00
+                    </div>
+                  </div>
+                </label>
+                <label
+                  class="card card--compact row"
+                  style="gap: 12px; cursor: pointer"
+                >
+                  <input type="radio" name="lang" class="radio" />
+                  <div>
+                    <strong>Українська</strong>
+                    <div class="secondary" style="font-size: 12px">
+                      12 000,00 · 12 000,00 zł
+                    </div>
+                  </div>
+                </label>
+                <label
+                  class="card card--compact row"
+                  style="gap: 12px; cursor: pointer"
+                >
+                  <input type="radio" name="lang" class="radio" />
+                  <div>
+                    <strong>Русский</strong>
+                    <div class="secondary" style="font-size: 12px">
+                      12 000,00 · 12 000,00 zł
+                    </div>
+                  </div>
+                </label>
+                <label
+                  class="card card--compact row"
+                  style="gap: 12px; cursor: pointer"
+                >
+                  <input type="radio" name="lang" class="radio" checked />
+                  <div>
+                    <strong>Polski</strong>
+                    <div class="secondary" style="font-size: 12px">
+                      12 000,00 · 12 000,00 zł
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+            <div class="card mt-4">
+              <h3 class="mb-3">Email language</h3>
+              <p class="secondary mb-3">
+                Emails are sent in your display language by default.
+              </p>
+              <label class="row" style="gap: 8px">
+                <input type="checkbox" class="checkbox" checked />
+                <span>Match my display language</span>
+              </label>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="currencies" role="tabpanel">
+            <div class="card">
+              <h3 class="mb-3">Base currency</h3>
+              <p class="secondary mb-4">
+                All aggregations roll up to this currency. Daily FX captured per
+                day.
+              </p>
+              <select class="select" style="max-width: 320px">
+                <option>PLN — Polish złoty (default)</option>
+                <option>EUR — Euro</option>
+                <option>UAH — Ukrainian hryvnia</option>
+                <option>USD — US dollar</option>
+              </select>
+            </div>
+            <div class="card mt-4">
+              <h3 class="mb-3">Interesting currencies</h3>
+              <p class="secondary mb-3">
+                The dashboard currency pill cycles through these.
+              </p>
+              <div class="chips">
+                <button class="chip chip--selected" type="button">PLN</button>
+                <button class="chip chip--selected" type="button">EUR</button>
+                <button class="chip chip--selected" type="button">UAH</button>
+                <button class="chip chip--selected" type="button">USD</button>
+                <button class="chip" type="button">GBP</button>
+                <button class="chip" type="button">CHF</button>
+                <button class="chip" type="button">CZK</button>
+                <button class="chip" type="button">+ add</button>
+              </div>
+            </div>
+            <div class="card mt-4">
+              <h3 class="mb-3">FX rate source</h3>
+              <p class="secondary mb-3">
+                Daily mid-market rates from European Central Bank. Visible on
+                each transaction.
+              </p>
+              <div class="row gap-3 secondary" style="font-size: 12px">
+                <span>Last update: today, 09:00 CET</span>
+                <span>·</span>
+                <a href="#">View today's rates</a>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="notifications" role="tabpanel">
+            <div class="card">
+              <h3 class="mb-3">Email notifications</h3>
+              <p class="secondary mb-4">
+                No push notifications in MVP — only email.
+              </p>
+
+              <div
+                class="row row--between"
+                style="padding: 12px 0; border-bottom: 1px solid var(--border)"
+              >
+                <div>
+                  <strong>Bank reconnect reminder</strong>
+                  <div class="secondary" style="font-size: 12px">
+                    7 days, 1 day, and on the day consent expires.
+                  </div>
+                </div>
+                <label class="toggle"
+                  ><input type="checkbox" checked /><span
+                    class="toggle__slider"
+                  ></span
+                ></label>
+              </div>
+
+              <div
+                class="row row--between"
+                style="padding: 12px 0; border-bottom: 1px solid var(--border)"
+              >
+                <div>
+                  <strong>Weekly summary digest</strong>
+                  <div class="secondary" style="font-size: 12px">
+                    Every Monday at 8:00 in your time zone.
+                  </div>
+                </div>
+                <label class="toggle"
+                  ><input type="checkbox" checked /><span
+                    class="toggle__slider"
+                  ></span
+                ></label>
+              </div>
+
+              <div
+                style="padding: 12px 0; border-bottom: 1px solid var(--border)"
+              >
+                <div class="row row--between mb-3">
+                  <div>
+                    <strong>Over-budget alert</strong>
+                    <div class="secondary" style="font-size: 12px">
+                      Triggered when a planned item crosses a threshold.
+                    </div>
+                  </div>
+                  <label class="toggle"
+                    ><input type="checkbox" checked /><span
+                      class="toggle__slider"
+                    ></span
+                  ></label>
+                </div>
+                <div class="grid grid-2" style="max-width: 480px">
+                  <div class="field">
+                    <label class="field__label" for="thr-soft"
+                      >First warning</label
+                    >
+                    <div class="input-group">
+                      <input class="input" id="thr-soft" value="80" />
+                      <span class="input-group__addon">%</span>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label class="field__label" for="thr-hard"
+                      >Over-budget</label
+                    >
+                    <div class="input-group">
+                      <input class="input" id="thr-hard" value="100" />
+                      <span class="input-group__addon">%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row row--between" style="padding: 12px 0">
+                <div>
+                  <strong>Product updates</strong>
+                  <div class="secondary" style="font-size: 12px">
+                    New features, releases. We email at most once a month.
+                  </div>
+                </div>
+                <label class="toggle"
+                  ><input type="checkbox" /><span class="toggle__slider"></span
+                ></label>
+              </div>
+            </div>
+          </section>
+
+          <section class="tab-panel" id="security" role="tabpanel">
+            <div class="card">
+              <h3 class="mb-3">Password</h3>
+              <div class="grid grid-2">
+                <div class="field">
+                  <label class="field__label" for="cur-pw"
+                    >Current password</label
+                  >
+                  <input class="input" id="cur-pw" type="password" />
+                </div>
+                <div class="field">
+                  <label class="field__label" for="new-pw">New password</label>
+                  <input class="input" id="new-pw" type="password" />
+                </div>
+              </div>
+              <div class="row row--end mt-3">
+                <button class="btn btn--primary">Update password</button>
+              </div>
+            </div>
+
+            <div class="card mt-4">
               <div class="row row--between mb-3">
-                <div>
-                  <strong>Over-budget alert</strong>
-                  <div class="secondary" style="font-size:12px;">Triggered when a planned item crosses a threshold.</div>
-                </div>
-                <label class="toggle"><input type="checkbox" checked /><span class="toggle__slider"></span></label>
+                <h3>Two-factor authentication</h3>
+                <span class="badge badge--success">Enabled</span>
               </div>
-              <div class="grid grid-2" style="max-width:480px;">
-                <div class="field">
-                  <label class="field__label" for="thr-soft">First warning</label>
-                  <div class="input-group">
-                    <input class="input" id="thr-soft" value="80" />
-                    <span class="input-group__addon">%</span>
+              <p class="secondary mb-3">
+                Required while any bank is connected. We use TOTP (authenticator
+                app).
+              </p>
+              <div class="row gap-3">
+                <button class="btn btn--secondary">Show recovery codes</button>
+                <button class="btn btn--secondary">Reset 2FA</button>
+              </div>
+            </div>
+
+            <div class="card mt-4">
+              <h3 class="mb-3">Active sessions</h3>
+              <div class="stack-sm">
+                <div
+                  class="row row--between"
+                  style="padding: 8px 0; border-bottom: 1px solid var(--border)"
+                >
+                  <div>
+                    <strong>Mac · Safari</strong>
+                    <span class="badge badge--success" style="margin-left: 8px"
+                      >This device</span
+                    >
+                    <div class="secondary" style="font-size: 12px">
+                      Warsaw, Poland · last used now
+                    </div>
                   </div>
+                  <button class="btn btn--ghost btn--sm" disabled>
+                    Active
+                  </button>
                 </div>
-                <div class="field">
-                  <label class="field__label" for="thr-hard">Over-budget</label>
-                  <div class="input-group">
-                    <input class="input" id="thr-hard" value="100" />
-                    <span class="input-group__addon">%</span>
+                <div
+                  class="row row--between"
+                  style="padding: 8px 0; border-bottom: 1px solid var(--border)"
+                >
+                  <div>
+                    <strong>iPhone 15 · Power Budget app</strong>
+                    <div class="secondary" style="font-size: 12px">
+                      Warsaw, Poland · 2 hours ago
+                    </div>
                   </div>
+                  <button class="btn btn--danger btn--sm">Sign out</button>
+                </div>
+                <div class="row row--between" style="padding: 8px 0">
+                  <div>
+                    <strong>Chrome · Windows</strong>
+                    <div class="secondary" style="font-size: 12px">
+                      Kraków, Poland · 4 days ago
+                    </div>
+                  </div>
+                  <button class="btn btn--danger btn--sm">Sign out</button>
                 </div>
               </div>
             </div>
 
-            <div class="row row--between" style="padding:12px 0;">
-              <div>
-                <strong>Product updates</strong>
-                <div class="secondary" style="font-size:12px;">New features, releases. We email at most once a month.</div>
-              </div>
-              <label class="toggle"><input type="checkbox" /><span class="toggle__slider"></span></label>
+            <div class="card mt-4">
+              <h3 class="mb-3">Audit log</h3>
+              <p class="secondary mb-3">
+                Recent security &amp; data events on this account.
+              </p>
+              <ul
+                class="secondary"
+                style="
+                  padding-left: 20px;
+                  margin: 0;
+                  line-height: 1.8;
+                  font-size: 12px;
+                "
+              >
+                <li>
+                  May 13 · Plan "May 2026 — Personal" edited by Anna (Health:
+                  200 → 250 zł)
+                </li>
+                <li>May 10 · Wise OAuth re-authorized</li>
+                <li>May 5 · New session: iPhone 15 (Warsaw)</li>
+                <li>May 1 · 2FA verified — bank connection accessed</li>
+                <li>Apr 28 · mBank connection expired (90-day PSD2)</li>
+              </ul>
             </div>
-          </div>
-        </section>
-
-        <section class="tab-panel" id="security" role="tabpanel">
-          <div class="card">
-            <h3 class="mb-3">Password</h3>
-            <div class="grid grid-2">
-              <div class="field">
-                <label class="field__label" for="cur-pw">Current password</label>
-                <input class="input" id="cur-pw" type="password" />
-              </div>
-              <div class="field">
-                <label class="field__label" for="new-pw">New password</label>
-                <input class="input" id="new-pw" type="password" />
-              </div>
-            </div>
-            <div class="row row--end mt-3">
-              <button class="btn btn--primary">Update password</button>
-            </div>
-          </div>
-
-          <div class="card mt-4">
-            <div class="row row--between mb-3">
-              <h3>Two-factor authentication</h3>
-              <span class="badge badge--success">Enabled</span>
-            </div>
-            <p class="secondary mb-3">Required while any bank is connected. We use TOTP (authenticator app).</p>
-            <div class="row gap-3">
-              <button class="btn btn--secondary">Show recovery codes</button>
-              <button class="btn btn--secondary">Reset 2FA</button>
-            </div>
-          </div>
-
-          <div class="card mt-4">
-            <h3 class="mb-3">Active sessions</h3>
-            <div class="stack-sm">
-              <div class="row row--between" style="padding:8px 0; border-bottom:1px solid var(--border);">
-                <div>
-                  <strong>Mac · Safari</strong> <span class="badge badge--success" style="margin-left:8px;">This device</span>
-                  <div class="secondary" style="font-size:12px;">Warsaw, Poland · last used now</div>
-                </div>
-                <button class="btn btn--ghost btn--sm" disabled>Active</button>
-              </div>
-              <div class="row row--between" style="padding:8px 0; border-bottom:1px solid var(--border);">
-                <div>
-                  <strong>iPhone 15 · Power Budget app</strong>
-                  <div class="secondary" style="font-size:12px;">Warsaw, Poland · 2 hours ago</div>
-                </div>
-                <button class="btn btn--danger btn--sm">Sign out</button>
-              </div>
-              <div class="row row--between" style="padding:8px 0;">
-                <div>
-                  <strong>Chrome · Windows</strong>
-                  <div class="secondary" style="font-size:12px;">Kraków, Poland · 4 days ago</div>
-                </div>
-                <button class="btn btn--danger btn--sm">Sign out</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card mt-4">
-            <h3 class="mb-3">Audit log</h3>
-            <p class="secondary mb-3">Recent security &amp; data events on this account.</p>
-            <ul class="secondary" style="padding-left:20px; margin:0; line-height:1.8; font-size:12px;">
-              <li>May 13 · Plan "May 2026 — Personal" edited by Anna (Health: 200 → 250 zł)</li>
-              <li>May 10 · Wise OAuth re-authorized</li>
-              <li>May 5 · New session: iPhone 15 (Warsaw)</li>
-              <li>May 1 · 2FA verified — bank connection accessed</li>
-              <li>Apr 28 · mBank connection expired (90-day PSD2)</li>
-            </ul>
-          </div>
-        </section>
-      </main>
+          </section>
+        </main>
+      </div>
     </div>
-  </div>
 
-  <script>
-    function showTab(btn, id) {
-      document.querySelectorAll('.tab').forEach(t => { t.classList.remove('tab--active'); t.setAttribute('aria-selected', 'false'); });
-      btn.classList.add('tab--active');
-      btn.setAttribute('aria-selected', 'true');
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('tab-panel--active'));
-      document.getElementById(id).classList.add('tab-panel--active');
-    }
-  </script>
-</body>
+    <script>
+      function showTab(btn, id) {
+        document.querySelectorAll(".tab").forEach((t) => {
+          t.classList.remove("tab--active");
+          t.setAttribute("aria-selected", "false");
+        });
+        btn.classList.add("tab--active");
+        btn.setAttribute("aria-selected", "true");
+        document
+          .querySelectorAll(".tab-panel")
+          .forEach((p) => p.classList.remove("tab-panel--active"));
+        document.getElementById(id).classList.add("tab-panel--active");
+      }
+    </script>
+  </body>
 </html>

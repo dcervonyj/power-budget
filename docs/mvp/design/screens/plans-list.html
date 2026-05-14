@@ -1,220 +1,279 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plans · Power Budget</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="../styles.css" />
-</head>
-<body>
-  <div class="app">
-    <aside class="sidebar" role="navigation" aria-label="Primary">
-      <a class="brand" href="../index.html">
-        <span class="brand__mark" aria-hidden="true">P</span>
-        <span>Power Budget</span>
-      </a>
-      <nav class="nav">
-        <a class="nav__item" href="dashboard-en.html"><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a>
-        <a class="nav__item nav__item--active" href="plans-list.html"><span class="nav__icon" aria-hidden="true">≡</span> Plans</a>
-        <a class="nav__item" href="transactions.html"><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a>
-        <a class="nav__item" href="bank-connections.html"><span class="nav__icon" aria-hidden="true">🏦</span> Bank Connections</a>
-        <a class="nav__item" href="categories.html"><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a>
-        <a class="nav__item" href="settings.html"><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a>
-      </nav>
-      <div class="sidebar__footer">
-        <span class="avatar avatar--purple">AN</span>
-        <div style="min-width:0;">
-          <div style="font-weight:500;">Anna Nowak</div>
-          <div class="secondary" style="font-size:12px;">Kowalski household</div>
-        </div>
-      </div>
-    </aside>
-
-    <div class="app__main">
-      <header class="topbar" role="banner">
-        <div class="topbar__left">
-          <div class="search">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            <input placeholder="Search plans…" aria-label="Search plans" />
-          </div>
-        </div>
-        <div class="topbar__right">
-          <button class="locale-pill" aria-label="Language">EN ▾</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Plans · Power Budget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" role="navigation" aria-label="Primary">
+        <a class="brand" href="../index.html">
+          <span class="brand__mark" aria-hidden="true">P</span>
+          <span>Power Budget</span>
+        </a>
+        <nav class="nav">
+          <a class="nav__item" href="dashboard-en.html"
+            ><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a
+          >
+          <a class="nav__item nav__item--active" href="plans-list.html"
+            ><span class="nav__icon" aria-hidden="true">≡</span> Plans</a
+          >
+          <a class="nav__item" href="transactions.html"
+            ><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a
+          >
+          <a class="nav__item" href="bank-connections.html"
+            ><span class="nav__icon" aria-hidden="true">🏦</span> Bank
+            Connections</a
+          >
+          <a class="nav__item" href="categories.html"
+            ><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a
+          >
+          <a class="nav__item" href="settings.html"
+            ><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a
+          >
+        </nav>
+        <div class="sidebar__footer">
           <span class="avatar avatar--purple">AN</span>
-        </div>
-      </header>
-
-      <main class="content">
-        <div class="page-header">
-          <div class="page-header__titles">
-            <h1>Plans</h1>
-            <p class="page-header__subtitle">Personal and household plans across all periods.</p>
+          <div style="min-width: 0">
+            <div style="font-weight: 500">Anna Nowak</div>
+            <div class="secondary" style="font-size: 12px">
+              Kowalski household
+            </div>
           </div>
-          <a class="btn btn--primary" href="plan-editor.html">+ Create new plan</a>
         </div>
+      </aside>
 
-        <div class="filter-bar">
-          <button class="chip chip--selected" type="button">All</button>
-          <button class="chip" type="button">Personal</button>
-          <button class="chip" type="button">Household</button>
-          <button class="chip" type="button">Active</button>
-          <button class="chip" type="button">Past</button>
-          <span style="margin-left:auto;" class="secondary">7 plans</span>
-        </div>
+      <div class="app__main">
+        <header class="topbar" role="banner">
+          <div class="topbar__left">
+            <div class="search">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <input placeholder="Search plans…" aria-label="Search plans" />
+            </div>
+          </div>
+          <div class="topbar__right">
+            <button class="locale-pill" aria-label="Language">EN ▾</button>
+            <span class="avatar avatar--purple">AN</span>
+          </div>
+        </header>
 
-        <div class="grid grid-auto">
-          <a class="plan-card" href="dashboard-en.html">
-            <div class="plan-card__head">
-              <div>
-                <div class="plan-card__name">May 2026 — Personal</div>
-                <div class="plan-card__dates">Monthly · May 1 – 31</div>
-              </div>
-              <span class="badge badge--accent">Active</span>
+        <main class="content">
+          <div class="page-header">
+            <div class="page-header__titles">
+              <h1>Plans</h1>
+              <p class="page-header__subtitle">
+                Personal and household plans across all periods.
+              </p>
             </div>
-            <div class="row">
-              <span class="badge">Personal</span>
-              <span class="badge">Monthly</span>
-            </div>
-            <div class="plan-card__numbers">
-              <div>
-                <div class="secondary" style="font-size:12px;">Spent / Planned</div>
-                <div class="plan-card__amount">7 030 / 7 420 zł</div>
-              </div>
-              <div class="ring" style="--pct:95; --col:var(--warn);"><div class="ring__inner">95%</div></div>
-            </div>
-          </a>
+            <a class="btn btn--primary" href="plan-editor.html"
+              >+ Create new plan</a
+            >
+          </div>
 
-          <a class="plan-card" href="dashboard-en.html">
-            <div class="plan-card__head">
-              <div>
-                <div class="plan-card__name">May 2026 — Household</div>
-                <div class="plan-card__dates">Monthly · May 1 – 31</div>
-              </div>
-              <span class="badge badge--accent">Active</span>
-            </div>
-            <div class="row">
-              <span class="badge">Household</span>
-              <span class="badge">Monthly</span>
-            </div>
-            <div class="plan-card__numbers">
-              <div>
-                <div class="secondary" style="font-size:12px;">Spent / Planned</div>
-                <div class="plan-card__amount">5 240 / 8 100 zł</div>
-              </div>
-              <div class="ring" style="--pct:65; --col:var(--success);"><div class="ring__inner">65%</div></div>
-            </div>
-          </a>
+          <div class="filter-bar">
+            <button class="chip chip--selected" type="button">All</button>
+            <button class="chip" type="button">Personal</button>
+            <button class="chip" type="button">Household</button>
+            <button class="chip" type="button">Active</button>
+            <button class="chip" type="button">Past</button>
+            <span style="margin-left: auto" class="secondary">7 plans</span>
+          </div>
 
-          <a class="plan-card" href="plan-editor.html">
-            <div class="plan-card__head">
-              <div>
-                <div class="plan-card__name">Vacation Jul 10–24</div>
-                <div class="plan-card__dates">Custom · 14 days</div>
+          <div class="grid grid-auto">
+            <a class="plan-card" href="dashboard-en.html">
+              <div class="plan-card__head">
+                <div>
+                  <div class="plan-card__name">May 2026 — Personal</div>
+                  <div class="plan-card__dates">Monthly · May 1 – 31</div>
+                </div>
+                <span class="badge badge--accent">Active</span>
               </div>
-              <span class="badge">Upcoming</span>
-            </div>
-            <div class="row">
-              <span class="badge">Household</span>
-              <span class="badge">Custom</span>
-            </div>
-            <div class="plan-card__numbers">
-              <div>
-                <div class="secondary" style="font-size:12px;">Budget</div>
-                <div class="plan-card__amount">4 200 zł</div>
+              <div class="row">
+                <span class="badge">Personal</span>
+                <span class="badge">Monthly</span>
               </div>
-              <div class="ring" style="--pct:0; --col:var(--accent);"><div class="ring__inner">—</div></div>
-            </div>
-          </a>
+              <div class="plan-card__numbers">
+                <div>
+                  <div class="secondary" style="font-size: 12px">
+                    Spent / Planned
+                  </div>
+                  <div class="plan-card__amount">7 030 / 7 420 zł</div>
+                </div>
+                <div class="ring" style="--pct: 95; --col: var(--warn)">
+                  <div class="ring__inner">95%</div>
+                </div>
+              </div>
+            </a>
 
-          <a class="plan-card" href="#">
-            <div class="plan-card__head">
-              <div>
-                <div class="plan-card__name">Week 19 — Groceries</div>
-                <div class="plan-card__dates">Weekly · May 6 – 12</div>
+            <a class="plan-card" href="dashboard-en.html">
+              <div class="plan-card__head">
+                <div>
+                  <div class="plan-card__name">May 2026 — Household</div>
+                  <div class="plan-card__dates">Monthly · May 1 – 31</div>
+                </div>
+                <span class="badge badge--accent">Active</span>
               </div>
-              <span class="badge badge--success">Closed</span>
-            </div>
-            <div class="row">
-              <span class="badge">Personal</span>
-              <span class="badge">Weekly</span>
-            </div>
-            <div class="plan-card__numbers">
-              <div>
-                <div class="secondary" style="font-size:12px;">Final / Planned</div>
-                <div class="plan-card__amount">420 / 500 zł</div>
+              <div class="row">
+                <span class="badge">Household</span>
+                <span class="badge">Monthly</span>
               </div>
-              <div class="ring" style="--pct:84; --col:var(--warn);"><div class="ring__inner">84%</div></div>
-            </div>
-          </a>
+              <div class="plan-card__numbers">
+                <div>
+                  <div class="secondary" style="font-size: 12px">
+                    Spent / Planned
+                  </div>
+                  <div class="plan-card__amount">5 240 / 8 100 zł</div>
+                </div>
+                <div class="ring" style="--pct: 65; --col: var(--success)">
+                  <div class="ring__inner">65%</div>
+                </div>
+              </div>
+            </a>
 
-          <a class="plan-card" href="#">
-            <div class="plan-card__head">
-              <div>
-                <div class="plan-card__name">April 2026 — Personal</div>
-                <div class="plan-card__dates">Monthly · Apr 1 – 30</div>
+            <a class="plan-card" href="plan-editor.html">
+              <div class="plan-card__head">
+                <div>
+                  <div class="plan-card__name">Vacation Jul 10–24</div>
+                  <div class="plan-card__dates">Custom · 14 days</div>
+                </div>
+                <span class="badge">Upcoming</span>
               </div>
-              <span class="badge">Past</span>
-            </div>
-            <div class="row">
-              <span class="badge">Personal</span>
-              <span class="badge">Monthly</span>
-            </div>
-            <div class="plan-card__numbers">
-              <div>
-                <div class="secondary" style="font-size:12px;">Final / Planned</div>
-                <div class="plan-card__amount">6 940 / 7 200 zł</div>
+              <div class="row">
+                <span class="badge">Household</span>
+                <span class="badge">Custom</span>
               </div>
-              <div class="ring" style="--pct:96; --col:var(--warn);"><div class="ring__inner">96%</div></div>
-            </div>
-          </a>
+              <div class="plan-card__numbers">
+                <div>
+                  <div class="secondary" style="font-size: 12px">Budget</div>
+                  <div class="plan-card__amount">4 200 zł</div>
+                </div>
+                <div class="ring" style="--pct: 0; --col: var(--accent)">
+                  <div class="ring__inner">—</div>
+                </div>
+              </div>
+            </a>
 
-          <a class="plan-card" href="#">
-            <div class="plan-card__head">
-              <div>
-                <div class="plan-card__name">April 2026 — Household</div>
-                <div class="plan-card__dates">Monthly · Apr 1 – 30</div>
+            <a class="plan-card" href="#">
+              <div class="plan-card__head">
+                <div>
+                  <div class="plan-card__name">Week 19 — Groceries</div>
+                  <div class="plan-card__dates">Weekly · May 6 – 12</div>
+                </div>
+                <span class="badge badge--success">Closed</span>
               </div>
-              <span class="badge">Past</span>
-            </div>
-            <div class="row">
-              <span class="badge">Household</span>
-              <span class="badge">Monthly</span>
-            </div>
-            <div class="plan-card__numbers">
-              <div>
-                <div class="secondary" style="font-size:12px;">Final / Planned</div>
-                <div class="plan-card__amount">7 820 / 8 000 zł</div>
+              <div class="row">
+                <span class="badge">Personal</span>
+                <span class="badge">Weekly</span>
               </div>
-              <div class="ring" style="--pct:98; --col:var(--warn);"><div class="ring__inner">98%</div></div>
-            </div>
-          </a>
+              <div class="plan-card__numbers">
+                <div>
+                  <div class="secondary" style="font-size: 12px">
+                    Final / Planned
+                  </div>
+                  <div class="plan-card__amount">420 / 500 zł</div>
+                </div>
+                <div class="ring" style="--pct: 84; --col: var(--warn)">
+                  <div class="ring__inner">84%</div>
+                </div>
+              </div>
+            </a>
 
-          <a class="plan-card" href="#">
-            <div class="plan-card__head">
-              <div>
-                <div class="plan-card__name">Christmas 2025</div>
-                <div class="plan-card__dates">Custom · Dec 15 – Jan 5</div>
+            <a class="plan-card" href="#">
+              <div class="plan-card__head">
+                <div>
+                  <div class="plan-card__name">April 2026 — Personal</div>
+                  <div class="plan-card__dates">Monthly · Apr 1 – 30</div>
+                </div>
+                <span class="badge">Past</span>
               </div>
-              <span class="badge">Past</span>
-            </div>
-            <div class="row">
-              <span class="badge">Household</span>
-              <span class="badge">Custom</span>
-            </div>
-            <div class="plan-card__numbers">
-              <div>
-                <div class="secondary" style="font-size:12px;">Final / Planned</div>
-                <div class="plan-card__amount">3 480 / 3 000 zł</div>
+              <div class="row">
+                <span class="badge">Personal</span>
+                <span class="badge">Monthly</span>
               </div>
-              <div class="ring" style="--pct:100; --col:var(--danger);"><div class="ring__inner">116%</div></div>
-            </div>
-          </a>
-        </div>
-      </main>
+              <div class="plan-card__numbers">
+                <div>
+                  <div class="secondary" style="font-size: 12px">
+                    Final / Planned
+                  </div>
+                  <div class="plan-card__amount">6 940 / 7 200 zł</div>
+                </div>
+                <div class="ring" style="--pct: 96; --col: var(--warn)">
+                  <div class="ring__inner">96%</div>
+                </div>
+              </div>
+            </a>
+
+            <a class="plan-card" href="#">
+              <div class="plan-card__head">
+                <div>
+                  <div class="plan-card__name">April 2026 — Household</div>
+                  <div class="plan-card__dates">Monthly · Apr 1 – 30</div>
+                </div>
+                <span class="badge">Past</span>
+              </div>
+              <div class="row">
+                <span class="badge">Household</span>
+                <span class="badge">Monthly</span>
+              </div>
+              <div class="plan-card__numbers">
+                <div>
+                  <div class="secondary" style="font-size: 12px">
+                    Final / Planned
+                  </div>
+                  <div class="plan-card__amount">7 820 / 8 000 zł</div>
+                </div>
+                <div class="ring" style="--pct: 98; --col: var(--warn)">
+                  <div class="ring__inner">98%</div>
+                </div>
+              </div>
+            </a>
+
+            <a class="plan-card" href="#">
+              <div class="plan-card__head">
+                <div>
+                  <div class="plan-card__name">Christmas 2025</div>
+                  <div class="plan-card__dates">Custom · Dec 15 – Jan 5</div>
+                </div>
+                <span class="badge">Past</span>
+              </div>
+              <div class="row">
+                <span class="badge">Household</span>
+                <span class="badge">Custom</span>
+              </div>
+              <div class="plan-card__numbers">
+                <div>
+                  <div class="secondary" style="font-size: 12px">
+                    Final / Planned
+                  </div>
+                  <div class="plan-card__amount">3 480 / 3 000 zł</div>
+                </div>
+                <div class="ring" style="--pct: 100; --col: var(--danger)">
+                  <div class="ring__inner">116%</div>
+                </div>
+              </div>
+            </a>
+          </div>
+        </main>
+      </div>
     </div>
-  </div>
-</body>
+  </body>
 </html>
