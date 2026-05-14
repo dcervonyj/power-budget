@@ -1,0 +1,90 @@
+{
+  "name": "@power-budget/shared-app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./contract": {
+      "types": "./dist/contract/index.d.ts",
+      "import": "./dist/contract/index.mjs",
+      "require": "./dist/contract/index.cjs"
+    },
+    "./infrastructure": {
+      "types": "./dist/infrastructure/index.d.ts",
+      "import": "./dist/infrastructure/index.mjs",
+      "require": "./dist/infrastructure/index.cjs"
+    },
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "import": "./dist/auth/index.mjs",
+      "require": "./dist/auth/index.cjs"
+    },
+    "./bank": {
+      "types": "./dist/bank/index.d.ts",
+      "import": "./dist/bank/index.mjs",
+      "require": "./dist/bank/index.cjs"
+    },
+    "./transactions": {
+      "types": "./dist/transactions/index.d.ts",
+      "import": "./dist/transactions/index.mjs",
+      "require": "./dist/transactions/index.cjs"
+    },
+    "./plans": {
+      "types": "./dist/plans/index.d.ts",
+      "import": "./dist/plans/index.mjs",
+      "require": "./dist/plans/index.cjs"
+    },
+    "./categories": {
+      "types": "./dist/categories/index.d.ts",
+      "import": "./dist/categories/index.mjs",
+      "require": "./dist/categories/index.cjs"
+    },
+    "./currency": {
+      "types": "./dist/currency/index.d.ts",
+      "import": "./dist/currency/index.mjs",
+      "require": "./dist/currency/index.cjs"
+    },
+    "./notifications": {
+      "types": "./dist/notifications/index.d.ts",
+      "import": "./dist/notifications/index.mjs",
+      "require": "./dist/notifications/index.cjs"
+    },
+    "./dashboard": {
+      "types": "./dist/dashboard/index.d.ts",
+      "import": "./dist/dashboard/index.mjs",
+      "require": "./dist/dashboard/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "axios": "^1",
+    "mobx": "^6",
+    "mobx-react-lite": "^3",
+    "react": "^18"
+  },
+  "peerDependencies": {
+    "react": "^18"
+  },
+  "devDependencies": {
+    "@types/react": "^18",
+    "tsup": "^8.0.0"
+  }
+}
