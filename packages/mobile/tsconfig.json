@@ -1,10 +1,21 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "rootDir": "src",
-    "outDir": "dist"
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-native",
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@mobile/*": ["./src/*"],
+      "@power-budget/core": ["../../packages/core/src/index.ts"],
+      "@power-budget/core/*": ["../../packages/core/src/*"],
+      "@power-budget/shared-app": ["../../packages/shared-app/src/index.ts"],
+      "@power-budget/shared-app/*": ["../../packages/shared-app/src/*"]
+    }
   },
-  "include": ["src/**/*"],
-  "references": [{ "path": "../core" }]
+  "include": ["src", "index.ts", "app.json"]
 }
