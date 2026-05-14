@@ -22,7 +22,8 @@ The architecture is shaped by four constraints from the PRD:
 | Backend       | NestJS + TypeScript                                     | First-class module/DI system maps cleanly to clean-architecture layers; broad ecosystem. |
 | Web           | React + Vite + TypeScript                               | Vite for fast dev; React because it shares mental model with mobile.                     |
 | Mobile        | React Native + Expo + TypeScript                        | Single codebase with web for shared hooks; EAS Build/Submit handles iOS pipeline.        |
-| Shared        | `@power-budget/core` (workspace package)                | One source of truth for domain types and pure logic. No I/O, no React, no Nest.          |
+| Shared (domain) | `@power-budget/core` (workspace package)                | One source of truth for domain types and pure logic. No I/O, no React, no Nest.          |
+| Shared (app)    | `@power-budget/shared-app` (workspace package)          | All platform-agnostic frontend application logic: MobX ReactiveViews, use cases, selectors, API adapters, context factories. Shared between web and mobile. |
 | Database      | PostgreSQL 16                                           | Relational data, strong constraints, JSONB where needed, mature multi-tenancy patterns.  |
 | ORM           | Drizzle ORM                                             | TypeScript-native, SQL-first, zero runtime overhead. Justified in §5.1.                  |
 | Jobs          | Redis + BullMQ                                          | Per-connection queues, retries, scheduling — fits sync model exactly.                    |
@@ -164,7 +165,7 @@ MobX + `clean-architecture-reactive` was chosen over Redux Toolkit + RTK Query b
 
 ### Frontend feature-module layout
 
-Each feature (`auth`, `bankConnections`, `transactions`, `plans`, `categories`, `fx`, `dashboard`) follows the same layout inside `packages/web/src/` and `packages/mobile/src/`:
+Each feature (`auth`, `bankConnections`, `transactions`, `plans`, `categories`, `fx`, `dashboard`) follows the same layout inside `packages/shared-app/src/`. `packages/web` and `packages/mobile` contain only the `ui/content/` layer (React DOM or React Native components) and platform-specific infrastructure adapters. This structure eliminates the need to write application logic twice.
 
 ```
 <feature>/
@@ -196,7 +197,31 @@ Each feature (`auth`, `bankConnections`, `transactions`, `plans`, `categories`, 
 
 The package-level `infrastructure/` folder holds cross-feature singletons: `ApiClient` (the `HttpClient` implementation), `SecureTokenStore`, and the i18n loader. Cross-feature event types live in `src/contract/events/` (types only, zero logic).
 
-### Naming conventions
+**What lives where:**
+
+| Sub-directory | Package |
+|---|---|
+| `application/` (state, selectors, reactions, use cases, ports) | `@power-budget/shared-app` |
+| `api/` (mapper, Http*Repo adapters) | `@power-budget/shared-app` |
+| `config/` (`create*Context()`, `*Context.ts`) | `@power-budget/shared-app` |
+| `ui/connect/connector.ts` | `@power-budget/shared-app` |
+| `ui/content/` (React DOM components) | `packages/web` only |
+| `ui/content/` (React Native components) | `packages/mobile` only |
+| `infrastructure/` (ApiClient, token store) | `@power-budget/shared-app` for ApiClient; per-platform for token storage adapter |
+
+### `NavigationPort` — decoupled navigation
+
+Use cases that trigger navigation (e.g. `LoginWithPasswordUseCase` redirecting to TOTP enrolment) must inject a `NavigationPort` rather than importing React Router or React Navigation directly. The web app supplies `ReactRouterNavigationAdapter implements NavigationPort`; the mobile app supplies `ReactNavigationAdapter implements NavigationPort`. The port interface lives in `packages/shared-app/src/infrastructure/navigation/`.
+
+```ts
+export interface NavigationPort {
+  navigate(route: AppRoute): void;
+  replace(route: AppRoute): void;
+  goBack(): void;
+}
+```
+
+`AppRoute` is a discriminated union of all typed routes (feature-module folder defines its routes; `shared-app/src/contract/routes.ts` aggregates them).
 
 All naming follows `docs/code-style.md` and `docs/README.md §5` in the reference repo:
 
@@ -279,6 +304,23 @@ power-budget/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
+│   ├── shared-app/                # @power-budget/shared-app — platform-agnostic FE logic
+│   │   ├── src/
+│   │   │   ├── contract/          # cross-feature event types + AppRoute union (zero logic)
+│   │   │   ├── infrastructure/
+│   │   │   │   ├── mobx/          # MobXReactiveView, connect() HOC, createContext helper
+│   │   │   │   ├── api-client/    # ApiClient (HttpClient impl) + auth interceptor
+│   │   │   │   └── navigation/    # NavigationPort interface
+│   │   │   ├── auth/              # application/ + api/ + config/ + ui/connect/
+│   │   │   ├── bankConnections/   # application/ + api/ + config/ + ui/connect/
+│   │   │   ├── transactions/      # application/ + api/ + config/ + ui/connect/
+│   │   │   ├── plans/             # application/ + api/ + config/ + ui/connect/
+│   │   │   ├── categories/        # application/ + api/ + config/ + ui/connect/
+│   │   │   ├── fx/                # application/ + api/ + config/ + ui/connect/
+│   │   │   ├── dashboard/         # application/ + api/ + config/ + ui/connect/
+│   │   │   └── notifications/     # application/ + api/ + config/ + ui/connect/
+│   │   └── package.json
+│   │
 │   ├── backend/                   # NestJS API + worker
 │   │   ├── src/
 │   │   │   ├── domain/            # domain services, port interfaces (no I/O)
@@ -289,35 +331,31 @@ power-budget/
 │   │   │   └── main.ts
 │   │   └── drizzle/               # schema + migrations
 │   │
-│   ├── web/                       # React + Vite
+│   ├── web/                       # React + Vite — UI layer only
 │   │   ├── src/
-│   │   │   ├── contract/          # cross-feature event types (zero logic)
-│   │   │   ├── infrastructure/    # ApiClient (HttpClient impl), localStorage adapter, i18n loader
-│   │   │   ├── shared/            # cross-feature UI components, generic ports
-│   │   │   ├── auth/              # feature module (see §3 feature-module layout)
-│   │   │   ├── bankConnections/   # feature module
-│   │   │   ├── transactions/      # feature module
-│   │   │   ├── plans/             # feature module
-│   │   │   ├── categories/        # feature module
-│   │   │   ├── fx/                # feature module
-│   │   │   ├── dashboard/         # feature module
-│   │   │   ├── notifications/     # feature module
+│   │   │   ├── infrastructure/    # LocalStorageTokenStore, ReactRouterNavigationAdapter
+│   │   │   ├── auth/ui/content/   # React DOM components for each feature
+│   │   │   ├── bankConnections/ui/content/
+│   │   │   ├── transactions/ui/content/
+│   │   │   ├── plans/ui/content/
+│   │   │   ├── categories/ui/content/
+│   │   │   ├── fx/ui/content/
+│   │   │   ├── dashboard/ui/content/
+│   │   │   ├── notifications/ui/content/
 │   │   │   └── main.tsx
 │   │   └── public/locales/        # en/uk/ru/pl JSON
 │   │
-│   └── mobile/                    # React Native + Expo
-│       ├── src/                   # same feature-module layout as web
-│       │   ├── contract/
-│       │   ├── infrastructure/    # ApiClient, expo-secure-store adapter, i18n loader
-│       │   ├── shared/
-│       │   ├── auth/
-│       │   ├── bankConnections/
-│       │   ├── transactions/
-│       │   ├── plans/
-│       │   ├── categories/
-│       │   ├── fx/
-│       │   ├── dashboard/
-│       │   ├── notifications/
+│   └── mobile/                    # React Native + Expo — UI layer only
+│       ├── src/
+│       │   ├── infrastructure/    # ExpoSecureStoreTokenStore, ReactNavigationAdapter
+│       │   ├── auth/ui/content/   # RN components for each feature
+│       │   ├── bankConnections/ui/content/
+│       │   ├── transactions/ui/content/
+│       │   ├── plans/ui/content/
+│       │   ├── categories/ui/content/
+│       │   ├── fx/ui/content/
+│       │   ├── dashboard/ui/content/
+│       │   ├── notifications/ui/content/
 │       │   └── App.tsx
 │       └── assets/locales/
 │
@@ -352,9 +390,30 @@ Contents:
 
 **`packages/backend`** — NestJS. Hosts the API and the worker. Imports `@power-budget/core`. Banned: importing from `web/` or `mobile/`.
 
-**`packages/web`** — React + Vite. Imports `@power-budget/core`. Banned: importing from `backend/` (it talks to backend over HTTP). Each business domain is a self-contained feature module following the layout in §3. The `infrastructure/` folder holds the `FetchHttpClient`, `LocalStorageTokenStore`, and i18n loader. Feature modules communicate via a typed event bus in `src/contract/events/`.
+**`@power-budget/shared-app`** — all platform-agnostic frontend application logic, shared by web and mobile. Imports `@power-budget/core` and `mobx`. Banned: importing from `backend/` (talks over HTTP), importing any React Native or DOM-specific modules directly (those live in the `ui/content/` layer of each consumer package). Depends on React (for `createContext` and the `connect()` HOC) but **not** on `react-dom` or `react-native` — these are peer dependencies resolved differently per platform.
 
-**`packages/mobile`** — React Native + Expo. Imports `@power-budget/core`. Banned: importing from `web/` or `backend/`. Follows the same feature-module layout as web. `infrastructure/` uses `expo-secure-store` instead of `localStorage`. Components that don't depend on DOM/React Native primitives can be hoisted to a `packages/ui-kit` if/when justified — not in MVP.
+Contents per feature:
+- `application/` — `State<Source, Computed>`, selectors, reactions, use-case classes (all pure TS)
+- `api/` — `Http*Repo` adapters, mappers (use injected `HttpClient`, no direct `fetch`/`axios`)
+- `config/` — `create*Context()` factories, `*Context` types (use React `createContext`)
+- `ui/connect/` — `Connector<FeatureContext>` (uses MobX `observer()` via `connect()`)
+- `infrastructure/` — `MobXReactiveView`, `connect()` HOC, `ApiClient`, `NavigationPort` interface
+
+**`packages/web`** — thin UI layer. Imports `@power-budget/shared-app`. Contains only:
+- `ui/content/` components for each feature (React DOM: `div`, `input`, etc.)
+- `infrastructure/LocalStorageTokenStore implements SecureTokenStore`
+- `infrastructure/ReactRouterNavigationAdapter implements NavigationPort`
+- React Router 6 route definitions
+- Vite config, `main.tsx`, SPA shell
+
+**`packages/mobile`** — thin UI layer. Imports `@power-budget/shared-app`. Contains only:
+- `ui/content/` components for each feature (React Native: `View`, `Text`, etc.)
+- `infrastructure/ExpoSecureStoreTokenStore implements SecureTokenStore`
+- `infrastructure/ReactNavigationAdapter implements NavigationPort`
+- React Navigation setup
+- Biometrics, deep linking, Expo config, `App.tsx`
+
+Non-UI code is already extracted to `@power-budget/shared-app`; a `packages/ui-kit` for shared design-system components may be added in v2.
 
 ### Why a separate `core` package, not just a `shared/` folder
 

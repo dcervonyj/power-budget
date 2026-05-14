@@ -134,13 +134,14 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 4 — depends on Waves 1–3
 
-| ID      | Title                                   | Area    |
-| ------- | --------------------------------------- | ------- |
-| INF-005 | GitHub Actions CI                       | Infra   |
-| BE-001  | Scaffold `packages/backend` (NestJS)    | Backend |
-| BE-003  | Core domain types — IDs + value objects | Backend |
-| WEB-001 | Scaffold `packages/web` (Vite+React+TS) | Web     |
-| MOB-001 | Scaffold `packages/mobile` (Expo+RN+TS) | Mobile  |
+| ID      | Title                                          | Area    |
+| ------- | ---------------------------------------------- | ------- |
+| INF-005 | GitHub Actions CI                              | Infra   |
+| INF-015 | Scaffold `packages/shared-app` + Metro spike   | Infra   |
+| BE-001  | Scaffold `packages/backend` (NestJS)           | Backend |
+| BE-003  | Core domain types — IDs + value objects        | Backend |
+| WEB-001 | Scaffold `packages/web` (thin UI wrapper)      | Web     |
+| MOB-001 | Scaffold `packages/mobile` (thin UI wrapper)   | Mobile  |
 
 ### Wave 5
 
@@ -362,6 +363,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Infra
 - **Effort**: S (~1d)
+- **Status**: ✅ Done
 - **Description**: Root ESLint config with TS support, `no-restricted-imports` rule scaffold (used by `@power-budget/core` to ban Node/React/I/O imports per ARCHITECTURE.md §4), Prettier, lint-staged + husky pre-commit hook. Add `react-intl/no-literal-string` placeholder (enabled later in I18N-002).
 - **Blocked by**: INF-002
 - **Blocks**: BE-001, WEB-001, MOB-001
@@ -374,6 +376,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Infra
 - **Effort**: S (~1d)
+- **Status**: ✅ Done
 - **Description**: `docker-compose.yml` at repo root spinning up Postgres 16, Redis 7, and a SMTP catcher (Mailpit). Wired with named volumes. Includes a `.env.example` and `pnpm dev:db` script. Per ARCHITECTURE.md §4 and §10.
 - **Blocked by**: INF-002
 - **Blocks**: INF-008, BE-005, BE-019, BE-029
@@ -417,6 +420,22 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 - **Acceptance criteria**:
   - `.github/dependabot.yml` committed.
   - Secret scanning visible as enabled in repo settings.
+
+#### INF-015: Scaffold `packages/shared-app` + validate Metro resolver
+
+- **Area**: Infra
+- **Effort**: S (~1d)
+- **Description**: Create `packages/shared-app` (`@power-budget/shared-app`) — the new package that holds all platform-agnostic frontend application logic (MobX ReactiveViews, use cases, selectors, API adapters, context factories, `NavigationPort` interface, `AppRoute` typed route union). This is the first step before any feature code is written on either web or mobile. The task has two deliverables: (1) the package scaffold with the full folder tree for all 8 feature modules (empty barrels, same structure as `@power-budget/core` for domain modules), `package.json` with `mobx`, `axios`, `react` as dependencies, and a `tsup` dual-build config; (2) a Metro resolver validation: add `@power-budget/shared-app` as a dependency of `packages/mobile`, run `expo export --platform ios` (or a Metro bundle dry-run), and confirm no symlink resolution errors. Per ARCHITECTURE.md §4 (`shared-app` description).
+- **Blocked by**: INF-002, INF-003, BE-002
+- **Blocks**: WEB-001, MOB-001, WEB-003, MOB-003, WEB-004
+- **Acceptance criteria**:
+  - `packages/shared-app/` exists with the full folder tree: 8 feature directories each containing `application/`, `api/`, `config/`, `ui/connect/`, plus top-level `infrastructure/` and `contract/`.
+  - `pnpm -F @power-budget/shared-app build` emits dual ESM+CJS+`.d.ts`.
+  - `pnpm -F @power-budget/shared-app typecheck` passes.
+  - `import { createAuthContext } from '@power-budget/shared-app'` resolves in a throwaway file under `packages/web/src/`.
+  - Metro resolves `@power-budget/shared-app` in a dry-run Expo bundle without `Unable to resolve module` errors.
+  - `NavigationPort` interface is committed in `src/infrastructure/navigation/NavigationPort.ts`.
+  - `AppRoute` discriminated union is stubbed in `src/contract/routes.ts`.
 
 #### INF-008: Drizzle ORM tooling & migration scaffolding
 
@@ -521,6 +540,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: S (~1d)
+- **Status**: ✅ Done
 - **Description**: Create `packages/core` per ARCHITECTURE.md §4 — `package.json` with empty `dependencies: {}`, `tsconfig.json`, `src/{domain,logic,ids}.ts` empty stubs, ESLint `no-restricted-imports` rule banning React, NestJS, Drizzle, axios, Node fs/crypto. Compile via `tsc` to ESM.
 - **Blocked by**: INF-002, INF-003
 - **Blocks**: BE-003 and every package that imports core
@@ -966,13 +986,14 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Web
 - **Effort**: S (~1d)
-- **Description**: Bootstrap Vite + React 18 + TypeScript app with the four-layer split per ARCHITECTURE.md §4 (`domain/`, `application/`, `infrastructure/`, `presentation/`). Add `vite.config.ts`, env handling, SPA HTML shell. Re-export `@power-budget/core` types from `src/domain/`.
-- **Blocked by**: INF-002, INF-003, BE-002
+- **Description**: Bootstrap Vite + React 18 + TypeScript app as a **thin UI wrapper** per ARCHITECTURE.md §4. Add `vite.config.ts`, env handling, SPA HTML shell, React Router 6 skeleton, and `@web/*` path alias. The package contains only `ui/content/` components and platform-specific adapters (`LocalStorageTokenStore`, `ReactRouterNavigationAdapter`). Application logic lives in `@power-budget/shared-app` (INF-015). Re-exports `@power-budget/core` domain types from `src/domain/`.
+- **Blocked by**: INF-002, INF-003, BE-002, INF-015
 - **Blocks**: WEB-002, WEB-003, INF-011, INF-014
 - **Acceptance criteria**:
   - `pnpm --filter web dev` boots on a local port.
   - `vite build` produces a static bundle.
-  - Folder split enforced via ESLint `no-restricted-imports` (presentation can't import infrastructure directly, etc.).
+  - `import { createAuthContext } from '@power-budget/shared-app'` resolves successfully.
+  - No use-case or ReactiveView code in `packages/web/src/` (belongs in `shared-app`).
 
 #### WEB-002: Routing + protected-route wrapper
 
@@ -989,12 +1010,12 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 #### WEB-003: MobX + ReactiveView wiring
 
 - **Area**: Web
-- **Effort**: S (~1d)
-- **Description**: Install MobX + the `clean-architecture-reactive` pattern into `packages/web`. Create the `src/infrastructure/mobx/` base: `MobXReactiveView<S>` implementation, `connect()` HOC (wraps any component with MobX `observer()`), and a `createContext<C>()` helper for typed React contexts. Wire base `ApiClient` (axios instance) as an injectable `HttpClient` implementation with auth interceptor + refresh-token rotation. No feature-specific state yet — this task delivers the plumbing that every feature's `createXxxContext()` will use. Per ARCHITECTURE.md §3 and §4.
-- **Blocked by**: WEB-001
+- **Effort**: XS (~0.5d)
+- **Description**: Wire `@power-budget/shared-app`'s `MobXReactiveView`, `connect()` HOC, and `ApiClient` into `packages/web`. This task adds only the web-specific wiring: `LocalStorageTokenStore`, `ReactRouterNavigationAdapter`, and the top-level React context providers (`<Auth>`, `<Dashboard>`, etc.) that compose the shared context factories from `shared-app`. Per ARCHITECTURE.md §3 and §4. Most of the MobX plumbing ships in INF-015.
+- **Blocked by**: WEB-001, INF-015
 - **Blocks**: WEB-004, every feature context task
 - **Acceptance criteria**:
-  - `MobXReactiveView<{ source: S; computed: C }>` is observable; `connect(ComponentFn, connector)` produces an `observer`-wrapped component.
+  - All `shared-app` context factories are wired to platform-specific adapters (token store, navigation) and provided at the app root.
   - `ApiClient` handles 401 → refresh → retry; second 401 dispatches logout via the `AuthView`.
   - Tokens persisted to `localStorage` via `LocalStorageTokenStore implements SecureTokenStore`.
   - No Redux / RTK packages in `package.json`.
@@ -1003,11 +1024,11 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Web
 - **Effort**: S (~1d)
-- **Description**: Use `openapi-typescript` to generate request/response types from `openapi.json` (produced by BE-038). Each `Http*Repo` adapter in `src/*/api/` imports from the generated types. Build step fails when the OpenAPI spec and the adapter types drift. Per ARCHITECTURE.md §3 adapters pattern.
+- **Description**: Use `openapi-typescript` to generate request/response types from `openapi.json` (produced by BE-038). The generated types and `Http*Repo` adapters in `shared-app/src/*/api/` import from them. Build step fails when the OpenAPI spec and adapter types drift. The `pnpm codegen` script runs from `packages/shared-app`.
 - **Blocked by**: WEB-003, BE-038
 - **Blocks**: WEB-005, WEB-008, WEB-010, WEB-012, WEB-013
 - **Acceptance criteria**:
-  - `pnpm --filter web codegen` regenerates types from the spec.
+  - `pnpm --filter @power-budget/shared-app codegen` regenerates types from the spec.
   - Type mismatch between an endpoint and its consuming adapter is a TS error.
   - No hand-written DTO types duplicating the OpenAPI contract.
 
@@ -1225,12 +1246,14 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Mobile
 - **Effort**: M (~2d)
-- **Description**: Bootstrap Expo (managed workflow) with TypeScript per ARCHITECTURE.md §4. Four-layer split (`domain/`, `application/`, `infrastructure/`, `presentation/`). EAS configuration; iOS bundle id; Expo Updates wired. Re-export `@power-budget/core` types.
-- **Blocked by**: INF-002, INF-003, BE-002
+- **Description**: Bootstrap React Native + Expo as a **thin UI wrapper** per ARCHITECTURE.md §4. Add `app.json`, Metro config with `watchFolders` for the workspace symlinks (validated in INF-015). The package contains only `ui/content/` RN components and platform-specific adapters (`ExpoSecureStoreTokenStore`, `ReactNavigationAdapter`). Application logic lives in `@power-budget/shared-app` (INF-015).
+- **Blocked by**: INF-002, INF-003, BE-002, INF-015
 - **Blocks**: MOB-002, MOB-003, INF-014
 - **Acceptance criteria**:
   - `pnpm --filter mobile start` opens Metro for iOS simulator.
   - `eas build --platform ios --profile development` succeeds.
+  - Metro resolves `@power-budget/shared-app` without crashing.
+  - No use-case or ReactiveView code in `packages/mobile/src/`.
 
 #### MOB-002: React Navigation stack + tabs
 
@@ -1246,9 +1269,9 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 #### MOB-003: MobX + ReactiveView wiring (mobile)
 
 - **Area**: Mobile
-- **Effort**: S (~1d)
-- **Description**: Mirror WEB-003 for `packages/mobile`. Install MobX + `clean-architecture-reactive` pattern. `MobXReactiveView<S>`, `connect()` HOC, `createContext<C>()` helper — all identical to web because they are pure TypeScript and portable. Wire `ApiClient` (axios) with auth interceptor. Tokens go to `ExpoSecureStoreTokenStore implements SecureTokenStore` (backed by `expo-secure-store` — see MOB-004). Per ARCHITECTURE.md §3 and §4.
-- **Blocked by**: MOB-001, BE-038
+- **Effort**: XS (~0.5d)
+- **Description**: Wire `@power-budget/shared-app` into `packages/mobile`. Add `ExpoSecureStoreTokenStore`, `ReactNavigationAdapter`, and the top-level React Native providers wrapping the shared context factories. Validate Metro resolver for `@power-budget/shared-app` in the Expo bundle (INF-015 proves the Metro config — this task wires it for mobile's feature scope).
+- **Blocked by**: MOB-001, BE-038, INF-015
 - **Blocks**: every API-consuming screen
 - **Acceptance criteria**:
   - `MobXReactiveView` boots in the Expo RN runtime (no DOM dependency).
