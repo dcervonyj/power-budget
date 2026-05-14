@@ -23,11 +23,11 @@
 | Backend               | 38      |
 | Web                   | 22      |
 | Mobile (RN)           | 14      |
-| Design                | 7       |
+| Design                | 8       |
 | i18n / Content        | 7       |
 | QA                    | 9       |
 | Security / Cross-cut. | 9       |
-| **TOTAL**             | **120** |
+| **TOTAL**             | **121** |
 
 ### Effort totals (person-days, midpoint of band)
 
@@ -35,11 +35,11 @@
 - Backend: ~108 d
 - Web: ~52 d
 - Mobile: ~35 d
-- Design: ~12 d
+- Design: ~13 d
 - i18n / Content: ~16 d
 - QA: ~22 d
 - Security / Cross-cutting: ~22 d
-- **Total: ~292 person-days** for a single senior dev going solo end-to-end.
+- **Total: ~293 person-days** for a single senior dev going solo end-to-end.
 
 ### Critical-path length (calendar)
 
@@ -130,6 +130,7 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | DES-005 | Dashboard visuals                                | Design  |
 | DES-006 | Categories + privacy visuals                     | Design  |
 | DES-007 | Empty / loading / error illustration kit         | Design  |
+| DES-008 | Light / Dark Theme Switching — toggle + persist  | Design  |
 
 ### Wave 4 — depends on Waves 1–3
 
@@ -151,9 +152,9 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | BE-004   | Core entity types (Plan, Transaction, …) | Backend |
 | BE-010   | Core locale-aware formatters             | Backend |
 | WEB-002  | Routing + protected-route wrapper        | Web     |
-| WEB-003  | RTK store + API client                   | Web     |
+| WEB-003  | MobX + ReactiveView wiring               | Web     |
 | MOB-002  | React Navigation                         | Mobile  |
-| MOB-003  | RTK store + API client (mobile)          | Mobile  |
+| MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  |
 | MOB-013  | Notification routing layer (placeholder) | Mobile  |
 | I18N-001 | String-extraction infrastructure         | i18n    |
 | QA-001   | Vitest unit-test setup                   | QA      |
@@ -334,6 +335,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Infra
 - **Effort**: XS (~0.5d)
+- **Status**: ✅ Done
 - **Description**: Stand up the `power-budget` GitHub repo, set default branch to `main`, configure branch protection (require PR + green CI). No code yet — just the container. Reference ARCHITECTURE.md §10 (CI: GitHub Actions).
 - **Blocked by**: none
 - **Blocks**: INF-002, INF-003, INF-007
@@ -346,6 +348,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Infra
 - **Effort**: S (~1d)
+- **Status**: ✅ Done — [PR #1](https://github.com/dcervonyj/power-budget/pull/1)
 - **Description**: Initialise the monorepo per ARCHITECTURE.md §4 — `pnpm-workspace.yaml`, `turbo.json` with `lint`, `typecheck`, `test`, `build` pipelines, root `package.json`, root `tsconfig.base.json`. Empty `packages/` directory layout.
 - **Blocked by**: INF-001
 - **Blocks**: INF-003, INF-004, BE-001, WEB-001, MOB-001, SHARED scaffolds
@@ -407,6 +410,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Infra
 - **Effort**: XS (~0.5d)
+- **Status**: ✅ Done — [PR #2](https://github.com/dcervonyj/power-budget/pull/2)
 - **Description**: Enable GitHub Dependabot for npm (weekly), GitHub Actions (monthly). Enable secret scanning + push-protection. Per SEC plan in ARCHITECTURE.md §6.
 - **Blocked by**: INF-001
 - **Blocks**: SEC-009
@@ -982,28 +986,30 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
   - Deep link is preserved across the redirect.
   - Route boundaries lazy-load chunked screens.
 
-#### WEB-003: Redux Toolkit + RTK Query store wiring
+#### WEB-003: MobX + ReactiveView wiring
 
 - **Area**: Web
 - **Effort**: S (~1d)
-- **Description**: Single RTK store under `src/application/store.ts` per ARCHITECTURE.md §5.1 "State and ORM picks". Wire base `apiClient` (axios) + auth interceptor with refresh-token rotation. Set up RTK Query base `power-budget` API slice with cache tags placeholder.
+- **Description**: Install MobX + the `clean-architecture-reactive` pattern into `packages/web`. Create the `src/infrastructure/mobx/` base: `MobXReactiveView<S>` implementation, `connect()` HOC (wraps any component with MobX `observer()`), and a `createContext<C>()` helper for typed React contexts. Wire base `ApiClient` (axios instance) as an injectable `HttpClient` implementation with auth interceptor + refresh-token rotation. No feature-specific state yet — this task delivers the plumbing that every feature's `createXxxContext()` will use. Per ARCHITECTURE.md §3 and §4.
 - **Blocked by**: WEB-001
-- **Blocks**: WEB-004, every API slice
+- **Blocks**: WEB-004, every feature context task
 - **Acceptance criteria**:
-  - Store devtools visible in dev.
-  - 401 from API triggers refresh + retry; second 401 logs out.
-  - Tokens persisted to `localStorage`.
+  - `MobXReactiveView<{ source: S; computed: C }>` is observable; `connect(ComponentFn, connector)` produces an `observer`-wrapped component.
+  - `ApiClient` handles 401 → refresh → retry; second 401 dispatches logout via the `AuthView`.
+  - Tokens persisted to `localStorage` via `LocalStorageTokenStore implements SecureTokenStore`.
+  - No Redux / RTK packages in `package.json`.
 
 #### WEB-004: Typed API client generated from OpenAPI
 
 - **Area**: Web
 - **Effort**: S (~1d)
-- **Description**: Use `openapi-typescript` (or similar) to generate types from `openapi.json` (from BE-038). RTK Query endpoints typed against generated types. Build step fails when API and client drift.
+- **Description**: Use `openapi-typescript` to generate request/response types from `openapi.json` (produced by BE-038). Each `Http*Repo` adapter in `src/*/api/` imports from the generated types. Build step fails when the OpenAPI spec and the adapter types drift. Per ARCHITECTURE.md §3 adapters pattern.
 - **Blocked by**: WEB-003, BE-038
 - **Blocks**: WEB-005, WEB-008, WEB-010, WEB-012, WEB-013
 - **Acceptance criteria**:
-  - `pnpm --filter web codegen` regenerates types.
-  - Type mismatch between an endpoint and its consumer is a TS error.
+  - `pnpm --filter web codegen` regenerates types from the spec.
+  - Type mismatch between an endpoint and its consuming adapter is a TS error.
+  - No hand-written DTO types duplicating the OpenAPI contract.
 
 #### WEB-005: Auth screens — Login, Signup, Magic-link, OAuth callback
 
@@ -1033,7 +1039,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Web
 - **Effort**: M (~2d)
-- **Description**: Per PRD §4.1 onboarding: confirm language → base currency → interesting currencies → connect first bank (optional) → create first plan (optional). State held in a slice; skippable steps.
+- **Description**: Per PRD §4.1 onboarding: confirm language → base currency → interesting currencies → connect first bank (optional) → create first plan (optional). State held in an `OnboardingReactiveView`; skippable steps.
 - **Blocked by**: WEB-005, WEB-016, BE-028
 - **Blocks**: none
 - **Acceptance criteria**:
@@ -1237,16 +1243,18 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
   - Tab + stack navigation works on iOS simulator.
   - Protected-route guard mirrors web behaviour.
 
-#### MOB-003: RTK store + API client + typed endpoints
+#### MOB-003: MobX + ReactiveView wiring (mobile)
 
 - **Area**: Mobile
 - **Effort**: S (~1d)
-- **Description**: Mobile-specific RTK store under `src/application/store.ts`. Reuses RTK Query endpoints generated from OpenAPI (BE-038) — endpoint definitions identical, only persistence layer differs.
+- **Description**: Mirror WEB-003 for `packages/mobile`. Install MobX + `clean-architecture-reactive` pattern. `MobXReactiveView<S>`, `connect()` HOC, `createContext<C>()` helper — all identical to web because they are pure TypeScript and portable. Wire `ApiClient` (axios) with auth interceptor. Tokens go to `ExpoSecureStoreTokenStore implements SecureTokenStore` (backed by `expo-secure-store` — see MOB-004). Per ARCHITECTURE.md §3 and §4.
 - **Blocked by**: MOB-001, BE-038
 - **Blocks**: every API-consuming screen
 - **Acceptance criteria**:
-  - Store boots; auth interceptor handles 401 refresh-and-retry.
-  - Same RTK Query tag invalidation as web.
+  - `MobXReactiveView` boots in the Expo RN runtime (no DOM dependency).
+  - `connect()` wraps an RN component with `observer()`; tapping a button that calls a use case causes only the connected fields to re-render.
+  - Auth interceptor handles 401 refresh-and-retry on the mobile network stack.
+  - No Redux / RTK packages in `package.json`.
 
 #### MOB-004: Secure storage for tokens — `expo-secure-store`
 
@@ -1377,13 +1385,14 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Design
 - **Effort**: M (~2d)
-- **Description**: Extract design tokens (colours, spacing scale, type ramp, radii, shadows, breakpoints) from `docs/mvp/design/` into CSS custom properties for web and a parallel TS object for RN. Single source via a `tokens.json` generated to both formats.
+- **Status**: ✅ Done — [PR #3](https://github.com/dcervonyj/power-budget/pull/3)
+- **Description**: Extract design tokens (colours, spacing scale, type ramp, radii, shadows, breakpoints) from `docs/mvp/design-arctic/` into CSS custom properties for web and a parallel TS object for RN. Single source via a `tokens.ts` file generated to both formats. **Arctic Blue palette** (option 22, approved) is the authoritative source.
 - **Blocked by**: none
 - **Blocks**: WEB-005, MOB-005, every styled component
 - **Acceptance criteria**:
-  - `tokens.json` is the canonical source; web + RN exports derived.
-  - Light + dark variants exposed (dark optional in MVP).
-  - Token names align between web and RN.
+  - `tokens.ts` / `themes.ts` is the canonical source; web CSS and RN objects are generated from it.
+  - Both **dark and light** themes fully implemented in MVP — no stubs.
+  - Token names align between web CSS variables (`--pb-…`) and RN camelCase object.
 
 #### DES-002: Component library scaffold — Button, Input, Select, Modal
 
@@ -1447,6 +1456,19 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 - **Blocks**: WEB-022, MOB-010, MOB-011
 - **Acceptance criteria**:
   - One illustration per state; all in single SVG file with tokenised colours.
+
+#### DES-008: Light / Dark Theme Switching — toggle, persistence, no-FOUC
+
+- **Area**: Design
+- **Effort**: S (~1d)
+- **Description**: Wire the runtime light/dark theme toggle into the web and mobile apps. Web: `data-theme` attribute on `<html>`, `localStorage` persistence, no-FOUC inline script in `index.html`, `ThemeProvider` React context, `useTheme()` hook, `ThemeToggle` button. Mobile: `ThemeProvider` context swaps `RnTheme` object from `DES-001`, `AsyncStorage` persistence, `Appearance` system-preference fallback. Detailed plan: `docs/mvp/plans/DES-008-theme-switching.md`.
+- **Blocked by**: DES-001, DES-002
+- **Blocks**: WEB-005 (layout shell needs toggle), MOB-005 (mobile shell needs ThemeProvider)
+- **Acceptance criteria**:
+  - No FOUC on web reload with saved preference.
+  - Theme persists across reloads (web) and app backgrounding (mobile).
+  - System `prefers-color-scheme` is honoured on first load (no saved pref).
+  - `ThemeToggle` accessible in sidebar footer (web) and Settings screen (mobile).
 
 ---
 

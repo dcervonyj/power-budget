@@ -26,7 +26,7 @@ The architecture is shaped by four constraints from the PRD:
 | Database      | PostgreSQL 16                                           | Relational data, strong constraints, JSONB where needed, mature multi-tenancy patterns.  |
 | ORM           | Drizzle ORM                                             | TypeScript-native, SQL-first, zero runtime overhead. Justified in §5.1.                  |
 | Jobs          | Redis + BullMQ                                          | Per-connection queues, retries, scheduling — fits sync model exactly.                    |
-| State (FE)    | Redux Toolkit + RTK Query                               | Single explicit store across web and mobile. Justified in §5.1.                          |
+| State (FE)    | MobX + `clean-architecture-reactive`                    | Reactive feature-module state; `ReactiveView<State<S,C>>` with explicit use-case mutations. Justified in §5.1. |
 | Bank — PKO    | GoCardless Bank Account Data API                        | Free PSD2 AISP licence; PKO BP supported; sandbox available.                             |
 | Bank — Wise   | Wise Personal API (direct)                              | Free, account-holder API; no aggregator needed.                                          |
 | FX            | ECB daily reference rates                               | Free, authoritative, daily; cached locally.                                              |
@@ -118,11 +118,11 @@ flowchart LR
 
 ## 3. Clean Architecture Reference
 
-Source: [`dcervonyj/clean-architecture-reactive`](https://github.com/dcervonyj/clean-architecture-reactive) — a TypeScript library for reactive state management built on MobX, but designed so that consumer code never imports MobX. We borrow its **layering, naming and dependency-rule discipline**, not the MobX runtime.
+Source: [`dcervonyj/clean-architecture-reactive`](https://github.com/dcervonyj/clean-architecture-reactive) — a TypeScript library for reactive state management built on MobX, and an accompanying frontend architecture guide (`docs/`). We adopt the **full pattern** — layering, naming, dependency rule, code style, MobX runtime, and the `ReactiveView` abstraction — for both frontend packages. The backend is NestJS-native but follows the same layering and naming discipline.
 
 ### Layering and dependency rule
 
-The repo splits into exactly two layers:
+The reference repo splits into exactly two layers:
 
 - `src/base/` — pure TypeScript interfaces. Zero dependencies on MobX, React, or anything I/O. This is the **port** layer.
 - `src/react-mobx/` — concrete implementations of those interfaces using MobX + React. This is the **adapter** layer.
@@ -133,33 +133,135 @@ The rule is stated explicitly in `CLAUDE.md`:
 
 We adopt the same direction for our backend (Domain ← Application ← Infrastructure / Presentation) and frontend (Domain ← Application ← Infrastructure ← Presentation). Concretely: code under `packages/core/` and the backend `domain/` directory must never import from `infrastructure/`, `presentation/`, NestJS, React, or any I/O library.
 
-### Folder structure
+### Reactive state on the frontend
 
-The reference uses one folder per layer at the package root and a flat file layout within. We borrow this for `@power-budget/core` and apply a richer four-layer split inside the backend (because backends do more I/O than a state library). See §4.
+Every frontend feature owns a single `ReactiveView<State<Source, Computed>>` instance (backed by `MobXReactiveView`). The state is split into two type-level-distinct halves:
 
-### Naming
+- **Source state** — the mutable part. Use cases write here via `view.update({...})`.
+- **Computed state** — derived values calculated automatically by `Selector` classes registered on the view. Never assigned directly.
 
-From `src/base/ReactiveView.ts`, `src/base/Selector.ts`, `src/base/UpdatableArray.ts`: **no `I` prefix on interfaces**. The interface is the canonical name; the implementation gets a tech prefix:
+```ts
+// State type for a feature (e.g. plans)
+type PlansSourceState = { plans: Plan[]; isLoading: boolean; };
+type PlansComputedState = { activePlanCount: number; };
+type PlansState = State<PlansSourceState, PlansComputedState>;
+
+// Use case writes to the view
+class GetPlansUseCase {
+    constructor(
+        private readonly view: ReactiveView<PlansState>,
+        private readonly repo: PlanRepo,
+    ) {}
+    async execute(householdId: HouseholdId): Promise<void> {
+        this.view.update({ isLoading: true });
+        const plans = await this.repo.list({ householdId });
+        this.view.update({ plans, isLoading: false });
+    }
+}
+```
+
+MobX + `clean-architecture-reactive` was chosen over Redux Toolkit + RTK Query because: (a) `ReactiveView` gives fine-grained, transparent reactivity — components re-render only on the exact fields they read; (b) source and computed state are type-level distinct, eliminating a class of "you mutated derived state" bugs; (c) mutations are always explicit — every `view.update()` originates from a use case, never from a component or a hook; (d) the `ReactiveView` interface is framework-agnostic — the MobX backend can be swapped by implementing the interface.
+
+### Frontend feature-module layout
+
+Each feature (`auth`, `bankConnections`, `transactions`, `plans`, `categories`, `fx`, `dashboard`) follows the same layout inside `packages/web/src/` and `packages/mobile/src/`:
 
 ```
-base/ReactiveView.ts              →  interface ReactiveView<T> { ... }
-react-mobx/MobXReactiveView.ts    →  class MobXReactiveView<T> implements ReactiveView<T>
+<feature>/
+  application/
+    models/        # Plain TS types, enums, discriminated unions
+    ports/         # Interfaces — *Repository, *Presenter, *Publisher, *Subscriber
+    state/         # <Feature>SourceState.ts, <Feature>ComputedState.ts, <Feature>State.ts
+    selectors/     # <Subject>Selector.ts — implements Selector<State, T>
+    reactions/     # <Cause>Reaction.ts — implements Reaction<State, T>
+    use-cases/     # Flat — one <Verb><Noun>UseCase.ts per operation
+  api/
+    models/        # Server DTOs
+    mapper/        # <Subject>Mapper.ts
+    repository/    # Http<Subject>Repository.ts adapters
+  repository/      # LocalStorage*, InMemory*, MobX* adapters
+  config/
+    <Feature>.tsx              # React provider component (composition root host)
+    <Feature>Context.ts        # create<Feature>Context() function + <Feature>Context type
+    <Feature>ContextConfig.ts  # External config interface
+  presentation/
+    presenters/    # <Subject>Presenter.ts — pure formatting
+  ui/
+    connect/
+      connector.ts             # Connector<FeatureContext> instance
+      <Feature>Context.ts      # Type the connector uses (matches config/)
+    content/                   # Top-level feature components (<Feature>Content.tsx, etc.)
+  index.ts                     # Public barrel re-exports
 ```
 
-We follow this exactly. `BankConnectorPort`, `TransactionRepo`, `FxRateProvider` are interfaces. Their implementations are `GoCardlessBankConnector`, `DrizzleTransactionRepo`, `EcbFxRateProvider`.
+The package-level `infrastructure/` folder holds cross-feature singletons: `ApiClient` (the `HttpClient` implementation), `SecureTokenStore`, and the i18n loader. Cross-feature event types live in `src/contract/events/` (types only, zero logic).
 
-### TypeScript style
+### Naming conventions
 
-From `CLAUDE.md` and the README:
+All naming follows `docs/code-style.md` and `docs/README.md §5` in the reference repo:
 
-- No `@action` decorator syntax; use explicit registration. We translate this as: **no implicit DI magic**. NestJS providers are explicit, not via decorator-only autowiring of fields. Reading `tsconfig.json` (no `experimentalDecorators: true`) confirms the project sidesteps decorator metadata entirely.
-- Compile-time enforcement of invariants where possible (the `Without<>` constraint that prevents `Source` and `Computed` key overlap, `Selectors<FullState>` mapped type that requires one selector per computed key). We mirror this by using **branded types** for IDs (`UserId`, `HouseholdId`) and **exhaustive `switch` over discriminated unions** for domain enums.
-- `lodash-es` only, never `lodash`. We follow the same rule.
-- Mutations are **explicit actions**, never ambient. In our terms: every state mutation on the frontend goes through an RTK Toolkit reducer; every backend mutation goes through a use case.
+| Concept | Pattern | Example |
+|---|---|---|
+| Port (interface) | PascalCase noun, **no `I` prefix** | `PlanRepo`, `DueDatePresenter`, `BankConnectorPort` |
+| HTTP implementation | `Http<Port>` | `HttpPlanRepo` |
+| Storage implementation | `LocalStorage<Port>` / `InMemory<Port>` / `MobX<Port>` / `Drizzle<Port>` | `DrizzleTransactionRepo`, `InMemoryFxRateRepo` |
+| Use case (frontend) | `<Verb><Noun>UseCase` | `GetTransactionsUseCase`, `MapTransactionUseCase` |
+| Use case (backend) | `<Verb><Noun>UseCase` | `RegisterUserUseCase`, `IngestBankTransactionsUseCase` |
+| Lifecycle use case | `Open<Feature>UseCase`, `Close<Feature>UseCase` | `OpenDashboardUseCase` |
+| Selector | `<Subject>Selector` | `ActivePlanCountSelector`, `VisibleTransactionsSelector` |
+| Reaction | `<Cause>Reaction` | `HouseholdChangedReaction` |
+| Mapper | `<Subject>Mapper` | `TransactionMapper` |
+| Presenter port | `<Subject>Presenter` | `MoneyPresenter`, `DueDatePresenter` |
+| State types | `<Feature>SourceState`, `<Feature>ComputedState`, `<Feature>State` | `PlansSourceState`, `PlansState` |
+| Composition root fn | `create<Feature>Context` | `createDashboardContext` |
+| Composition root type | `<Feature>Context` | `DashboardContext` |
+| Provider component | `<Feature>.tsx` | `Dashboard.tsx` |
+| Props type | `Props<ComponentName>` | `PropsDashboardContent`, `PropsPlansHeader` |
+| Publisher port | `<Event>Publisher` | `TransactionMappedPublisher` |
+| Subscriber port | `<Event>Subscriber` | `TransactionMappedSubscriber` |
+| Test file | `<ClassName>.test.ts` | `GetTransactionsUseCase.test.ts` |
+| Class file | PascalCase | `HttpPlanRepo.ts`, `MapTransactionUseCase.ts` |
+| Non-class module | camelCase | `connector.ts`, `defaultPlansSourceState.ts` |
+| Folder | kebab-case | `use-cases/`, `api/repository/` |
 
-### What we keep, what we drop
+> **No `*Helper`, `*Utils`, `*Manager`, `*Service` names.** Place logic in the role that fits: a use case, selector, mapper, or presenter.
 
-We keep: layering, dependency direction, naming, port-first design, branded types, pure domain layer, explicit mutation. We drop: MobX runtime, `ReactiveView` abstraction (RTK gives us this on the frontend and Nest's request scope on the backend). The discipline is the import; the library is not.
+### TypeScript style rules
+
+These rules apply across the entire codebase (backend and frontend) and are enforced by ESLint + code review.
+
+1. **No `I` prefix.** Interfaces are plain PascalCase nouns. The implementation carries the tech prefix.
+2. **No `let`.** If a variable needs reassignment, extract a private method that returns the final value via `const`, or use a ternary.
+3. **No `any`.** Use `unknown` and narrow, or fix the type.
+4. **No `as` type assertions** unless genuinely unavoidable (third-party API boundary). Add a comment explaining why; scope it as narrowly as possible.
+5. **No `*Helper`, `*Utils`, `*Manager`, `*Service` names.** Place logic in a use case, selector, mapper, or presenter.
+6. **Always braces on `if`/`else`** — never single-line `if (x) doThing();`.
+7. **Blank line before `return`** unless it is the only statement in the block.
+8. **Public methods before private** in a class. Layout: `constructor` → public methods → private methods.
+9. **No arrow functions inside method bodies.** Extract as named `private` methods. Trivial single-expression callbacks like `(x) => x.id` are fine inline.
+10. **Nullable types, `??`, and `as` are smell signals.** They usually mean the domain model can be improved with a discriminated union. Use `T | null` only when `null` is a genuine domain value (e.g. "no due date"), not as a stand-in for "not yet loaded".
+11. **Path aliases for cross-layer imports.** Never use relative `../../` across layer boundaries. Use `@web/*` / `@mobile/*` aliases (mapping to `./src/*`).
+12. **Components contain no logic.** If a component has more than rendering + prop-passing, lift to a use case / selector / presenter.
+13. **Props type name: `Props<ComponentName>`.** e.g. `PropsDashboardContent`. No `I` prefix, no `IProps`, no trailing `Props` alone.
+14. **Test mocks: never `any()` matchers or `as any`.** Use `vitest-mock-extended` and pass the exact expected argument.
+
+### What we adopt from the reference repo
+
+| From `clean-architecture-reactive` | In power-budget |
+|---|---|
+| `src/base/` → port layer | `application/` in every feature (frontend) + `domain/` (backend) |
+| `src/react-mobx/` → adapter layer | `api/`, `repository/`, `infrastructure/` |
+| `State<Source, Computed>` type | used in every frontend feature state file |
+| `MobXReactiveView` | the state container for every frontend feature |
+| `Selector<FullState, T>` | computed-state derivation in `application/selectors/` |
+| `Reaction<FullState, T>` | side-effect triggers in `application/reactions/` |
+| `MobXReactiveConnector` | the `Connector` class in `ui/connect/connector.ts` per feature |
+| Naming: no `I` prefix | enforced everywhere |
+| Naming: `UseCase` suffix | enforced for all use cases |
+| Naming: `Props<ComponentName>` | enforced for all React component prop types |
+| TypeScript style rules (§6 of reference guide) | enforced via ESLint + code review |
+| `lodash-es` only | `lodash-es` only, never `lodash` |
+| No `experimentalDecorators` | absent from `tsconfig.base.json` |
 
 ---
 
@@ -189,19 +291,33 @@ power-budget/
 │   │
 │   ├── web/                       # React + Vite
 │   │   ├── src/
-│   │   │   ├── domain/            # re-exports from @power-budget/core
-│   │   │   ├── application/       # RTK slices + RTK Query endpoints
-│   │   │   ├── infrastructure/    # API client, localStorage, i18n loader
-│   │   │   ├── presentation/      # screens, components
+│   │   │   ├── contract/          # cross-feature event types (zero logic)
+│   │   │   ├── infrastructure/    # ApiClient (HttpClient impl), localStorage adapter, i18n loader
+│   │   │   ├── shared/            # cross-feature UI components, generic ports
+│   │   │   ├── auth/              # feature module (see §3 feature-module layout)
+│   │   │   ├── bankConnections/   # feature module
+│   │   │   ├── transactions/      # feature module
+│   │   │   ├── plans/             # feature module
+│   │   │   ├── categories/        # feature module
+│   │   │   ├── fx/                # feature module
+│   │   │   ├── dashboard/         # feature module
+│   │   │   ├── notifications/     # feature module
 │   │   │   └── main.tsx
 │   │   └── public/locales/        # en/uk/ru/pl JSON
 │   │
 │   └── mobile/                    # React Native + Expo
-│       ├── src/                   # same four-layer split as web
-│       │   ├── domain/
-│       │   ├── application/
-│       │   ├── infrastructure/
-│       │   ├── presentation/
+│       ├── src/                   # same feature-module layout as web
+│       │   ├── contract/
+│       │   ├── infrastructure/    # ApiClient, expo-secure-store adapter, i18n loader
+│       │   ├── shared/
+│       │   ├── auth/
+│       │   ├── bankConnections/
+│       │   ├── transactions/
+│       │   ├── plans/
+│       │   ├── categories/
+│       │   ├── fx/
+│       │   ├── dashboard/
+│       │   ├── notifications/
 │       │   └── App.tsx
 │       └── assets/locales/
 │
@@ -236,9 +352,9 @@ Contents:
 
 **`packages/backend`** — NestJS. Hosts the API and the worker. Imports `@power-budget/core`. Banned: importing from `web/` or `mobile/`.
 
-**`packages/web`** — React + Vite. Imports `@power-budget/core`. Banned: importing from `backend/` (it talks to backend over HTTP).
+**`packages/web`** — React + Vite. Imports `@power-budget/core`. Banned: importing from `backend/` (it talks to backend over HTTP). Each business domain is a self-contained feature module following the layout in §3. The `infrastructure/` folder holds the `FetchHttpClient`, `LocalStorageTokenStore`, and i18n loader. Feature modules communicate via a typed event bus in `src/contract/events/`.
 
-**`packages/mobile`** — React Native + Expo. Imports `@power-budget/core`. Banned: importing from `web/` or `backend/`. Components that don't depend on DOM/React Native primitives can be hoisted to a `packages/ui-kit` if/when justified — not in MVP.
+**`packages/mobile`** — React Native + Expo. Imports `@power-budget/core`. Banned: importing from `web/` or `backend/`. Follows the same feature-module layout as web. `infrastructure/` uses `expo-secure-store` instead of `localStorage`. Components that don't depend on DOM/React Native primitives can be hoisted to a `packages/ui-kit` if/when justified — not in MVP.
 
 ### Why a separate `core` package, not just a `shared/` folder
 
@@ -267,7 +383,7 @@ Each domain is documented with the same template: purpose, core concepts, backen
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `User`, `Household`, `Session`, `TotpSecret`, `HouseholdInvite` entities; `PasswordHashing`, `TotpVerifier` domain services as interfaces; `HouseholdInvariants` (single household per user in MVP).
-- **Application layer.** Use cases — `RegisterUser`, `LoginWithPassword`, `RequestMagicLink`, `ConsumeMagicLink`, `LoginWithGoogle`, `EnableTotp`, `VerifyTotp`, `CreateHousehold`, `InviteToHousehold`, `AcceptInvite`, `UpdateLocalePreference`, `GetCurrentUser`. Each depends only on ports.
+- **Application layer.** Use cases — `RegisterUserUseCase`, `LoginWithPasswordUseCase`, `RequestMagicLinkUseCase`, `ConsumeMagicLinkUseCase`, `LoginWithGoogleUseCase`, `EnableTotpUseCase`, `VerifyTotpUseCase`, `CreateHouseholdUseCase`, `InviteToHouseholdUseCase`, `AcceptInviteUseCase`, `UpdateLocalePreferenceUseCase`, `GetCurrentUserUseCase`. Each depends only on ports.
 - **Infrastructure layer.** `DrizzleUserRepo` (UserRepo port), `DrizzleHouseholdRepo`, `Argon2PasswordHashing` (PasswordHashing port), `Otplib​TotpVerifier`, `GoogleOauthClient` (OAuthProviderPort), `JwtAccessTokenIssuer`, `RedisRefreshTokenStore`.
 - **Presentation layer.** REST:
   - `POST /auth/register` — body `{ email, password, locale? }` → `{ userId }` + verification mail.
@@ -288,8 +404,9 @@ Each domain is documented with the same template: purpose, core concepts, backen
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `User`, `Household`, `LocaleCode`.
-- **Application layer.** RTK slice `auth` (tokens, current user, household), RTK Query endpoints under `authApi` (login, refresh, profile). Tokens persisted in `localStorage` (web) / `expo-secure-store` (mobile). Auto-refresh interceptor.
-- **Infrastructure.** `ApiClient` (axios instance with auth interceptor + token rotation), `SecureTokenStore` adapter.
+- **State.** `State<AuthSourceState, AuthComputedState>` where source holds `currentUser`, `household`, `tokens`, `isLoading`; computed holds `isAuthenticated`, `hasBankConnections` (drives TOTP requirement).
+- **Application layer.** `ReactiveView<AuthState>` owned by `createAuthContext()`. Use cases: `LoginWithPasswordUseCase`, `RegisterUserUseCase`, `RequestMagicLinkUseCase`, `ConsumeMagicLinkUseCase`, `LoginWithGoogleUseCase`, `EnableTotpUseCase`, `VerifyTotpUseCase`, `CreateHouseholdUseCase`, `AcceptInviteUseCase`, `GetCurrentUserUseCase`, `UpdateLocalePreferenceUseCase`, `OpenAuthUseCase` / `CloseAuthUseCase`. Each constructor-injects the view and the relevant port interfaces. Tokens persisted via `SecureTokenStore` port (`LocalStorageTokenStore` on web, `ExpoSecureStoreTokenStore` on mobile).
+- **Adapters.** `HttpUserRepo implements UserRepo`, `HttpAuthRepo implements AuthRepo`. `ApiClient` (the `HttpClient` implementation) has an auth interceptor that calls `RotateTokenUseCase` on 401.
 - **Presentation.** Screens: `LoginScreen`, `RegisterScreen`, `MagicLinkScreen`, `OAuthCallbackScreen`, `TotpEnrollmentScreen`, `OnboardingFlow` (5-step from PRD §4.1), `ProfileScreen`, `HouseholdScreen`, `AcceptInviteScreen`.
 
 **Key ports.**
@@ -332,7 +449,7 @@ export interface RefreshTokenStore {
 
 **State and ORM picks (decided once, reused everywhere).**
 
-- **State management: Redux Toolkit + RTK Query.** Chosen over Zustand and TanStack Query because (a) RTK Query gives normalised cache, tag-based invalidation, and optimistic updates out of the box, which exactly fits the planned/actual/mapping invalidation graph; (b) a single store across web and mobile reduces cognitive load; (c) RTK reducers are explicit actions, in keeping with the reference repo's "no ambient mutation" rule. The shared slices live in a thin `packages/web/src/application/` and `packages/mobile/src/application/` — duplicated intentionally because routing and persistence differ; the underlying domain types come from `@power-budget/core`.
+- **State management: MobX + `clean-architecture-reactive`.** Each frontend feature owns a single `MobXReactiveView<State<Source, Computed>>` instance. MobX + ReactiveView was chosen because: (a) `observer()` (via `connect()`) gives fine-grained, render-exact reactivity — only the component that reads a specific state field re-renders when it changes; (b) source and computed state are type-level distinct, eliminating a class of "you mutated derived state" bugs; (c) every `view.update()` must originate from a use case, enforcing the "no ambient mutation" rule structurally; (d) the `ReactiveView` interface is backend-agnostic — MobX is an interchangeable detail. Feature state does not cross feature boundaries; cross-feature communication goes through typed event channels (`src/contract/events/`) and `*Publisher`/`*Subscriber` ports.
 - **ORM / persistence: Drizzle ORM.** Chosen over Prisma because (a) zero runtime, no separate engine binary — important for cold-start on Fly.io / serverless; (b) SQL-first migrations as code, no `prisma db push` magic; (c) types derived from schema, no `@prisma/client` generation step; (d) raw SQL escape hatch for the materialised view used by the dashboard. Prisma's nicer migrate UX is not worth the size and operational cost for an MVP.
 
 **Cross-domain dependencies.** Authentication owns the `User` and `Household` entities; every other domain reads `householdId` from the authenticated session and uses it as a tenant filter. No domain depends on auth internals beyond a `RequestContext` value object (`{ userId, householdId, locale }`).
@@ -361,7 +478,7 @@ export interface RefreshTokenStore {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `BankConnection`, `BankAccount`, `Consent`, `SyncRun` entities. Domain service `ConsentExpiryPolicy` that knows the reminder schedule (7d / 1d / on-expiry — PRD §4.10). `BankConnectorPort` interface (see below) plus provider-agnostic `RawTransaction` DTO.
-- **Application layer.** Use cases — `InitiateBankConnection`, `CompleteBankConsent`, `ListUserConnections`, `RefreshConnection` (on-demand), `ScheduleConnectionSync`, `RunConnectionSync`, `DisconnectBank`, `ReconnectBank` (preserves history per PRD §4.2). Depend on `BankConnectorRegistry` and `BankConnectionRepo` ports.
+- **Application layer.** Use cases — `InitiateBankConnectionUseCase`, `CompleteBankConsentUseCase`, `ListUserConnectionsUseCase`, `RefreshConnectionUseCase` (on-demand), `ScheduleConnectionSyncUseCase`, `RunConnectionSyncUseCase`, `DisconnectBankUseCase`, `ReconnectBankUseCase` (preserves history per PRD §4.2). Depend on `BankConnectorRegistry` and `BankConnectionRepo` ports.
 - **Infrastructure layer.** `GoCardlessBankConnector implements BankConnectorPort` (uses official OpenAPI client; encrypts the consent token at rest using the user's DEK — see §6). `WiseBankConnector implements BankConnectorPort` (uses Wise REST API directly; user pastes their Wise API token during connect). `BankConnectorRegistry` resolves a `BankConnectorPort` by `BankProvider`. `DrizzleBankConnectionRepo`, `DrizzleSyncRunRepo`. BullMQ scheduler enqueues `sync-connection` every 4 h + after consent completion.
 - **Presentation layer.** REST:
   - `GET /banks` → catalogue (provider + bank + supported countries + max history).
@@ -376,9 +493,10 @@ export interface RefreshTokenStore {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `BankConnection`, `BankAccount`, `ConsentLifecycle`.
-- **Application layer.** RTK slice `bankConnections`; RTK Query `bankApi` with tags `BankConnection`, `BankAccount`; consent-redirect handling via a dedicated `oauth-callback` route that captures the provider token and posts to `/complete`.
-- **Infrastructure.** Same `ApiClient` as auth; no provider-specific code on the client. The "consent screen" is a hosted page on the bank's side — the app only handles redirect-back.
-- **Presentation.** Screens: `BankConnectionsList`, `AddBankFlow` (pick provider → pick bank → choose history → consent → review accounts), `ReconnectBanner` (global; appears when `consent.expiresAt < now + 7d`), `SyncStatusChip` (last synced N minutes ago).
+- **State.** `State<BankConnectionsSourceState, BankConnectionsComputedState>` where source holds `connections`, `isLoading`; computed holds `expiringConnections` (consent expiry < 7 d), `syncingConnectionIds`.
+- **Application layer.** `ReactiveView<BankConnectionsState>` owned by `createBankConnectionsContext()`. Use cases: `ListConnectionsUseCase`, `InitiateBankConnectionUseCase`, `CompleteBankConsentUseCase` (called after OAuth redirect-back), `RefreshConnectionUseCase` (on-demand sync), `DisconnectBankUseCase`, `ReconnectBankUseCase`. Selector `ExpiringConnectionsSelector` drives `ReconnectBanner`.
+- **Adapters.** `HttpBankConnectionRepo implements BankConnectionRepo`. No provider-specific code on the client — the consent screen is hosted on the bank's side; the app only handles redirect-back.
+- **Presentation.** Screens: `BankConnectionsList`, `AddBankFlow` (pick provider → pick bank → choose history → consent → review accounts), `ReconnectBanner` (global; appears when `expiringConnections.length > 0`), `SyncStatusChip` (last synced N minutes ago).
 
 **Key ports.**
 
@@ -463,7 +581,7 @@ export interface SyncRunRepo {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `Transaction`, `TransactionMapping`, `Transfer`, `IngestBatch`. Domain service `IdempotentIngest` (combines `(account_id, external_id)` and `source = manual` semantics). Domain service `MappingSuggestion` (pure; takes prior mappings + new transaction → optional planned item).
-- **Application layer.** Use cases — `IngestBankTransactions` (called by worker; idempotent), `CreateManualTransaction`, `UpdateTransactionNotes`, `MapTransaction`, `UnmapTransaction`, `MarkAsTransfer`, `LinkTransferCounterpart`, `IgnoreTransaction`, `BulkMap`, `BulkMarkAsTransfer`, `ListTransactions` (paginated, filterable per PRD §4.3).
+- **Application layer.** Use cases — `IngestBankTransactionsUseCase` (called by worker; idempotent), `CreateManualTransactionUseCase`, `UpdateTransactionNotesUseCase`, `MapTransactionUseCase`, `UnmapTransactionUseCase`, `MarkAsTransferUseCase`, `LinkTransferCounterpartUseCase`, `IgnoreTransactionUseCase`, `BulkMapUseCase`, `BulkMarkAsTransferUseCase`, `ListTransactionsUseCase` (paginated, filterable per PRD §4.3).
 - **Infrastructure layer.** `DrizzleTransactionRepo`, `DrizzleMappingRepo`, `DrizzleTransferRepo`. Worker `BankSyncProcessor` invokes `BankConnectorPort.fetchTransactions`, normalises into `RawTransaction`, then calls `IngestBankTransactions`. Materialised-view refresh trigger fires on every mapping change (deferred — actual refresh is debounced 250 ms in the worker).
 - **Presentation layer.** REST:
   - `GET /transactions?accountId=&from=&to=&category=&mapped=&source=&q=&cursor=` — paginated.
@@ -477,8 +595,9 @@ export interface SyncRunRepo {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `Transaction`, `TransactionMapping`, `Transfer`, `Money`.
-- **Application layer.** RTK Query `transactionsApi` with tags `Transaction`, `Mapping`, `PlanActuals`. Optimistic updates for map/unmap so the dashboard reflects the change before the server roundtrip; rollback on error. Cursor-based infinite scroll.
-- **Infrastructure.** API client; no local SQLite cache in MVP (mobile relies on RTK Query cache + persisted store).
+- **State.** `State<TransactionsSourceState, TransactionsComputedState>` where source holds `transactions` (cursor-paginated), `isLoading`, `activeMappingTarget`; computed holds `unmappedCount`, `totalsByCategory`.
+- **Application layer.** `ReactiveView<TransactionsState>` owned by `createTransactionsContext()`. Use cases: `ListTransactionsUseCase`, `LoadMoreTransactionsUseCase` (cursor pagination), `MapTransactionUseCase` (optimistic — updates source state before server round-trip; rolls back on error), `UnmapTransactionUseCase`, `MarkAsTransferUseCase`, `UnmarkTransferUseCase`, `AddManualTransactionUseCase`, `EditManualTransactionUseCase`, `DeleteManualTransactionUseCase`, `BulkMapTransactionsUseCase`, `SuggestMappingsUseCase`.
+- **Adapters.** `HttpTransactionRepo implements TransactionRepo`, `HttpMappingRepo implements MappingRepo`.
 - **Presentation.** Screens: `TransactionsList`, `TransactionDetail`, `MappingModal` (pick plan → planned item; suggestions float to top), `BulkActionBar`, `ManualTransactionForm`, `TransferMarkModal`.
 
 **Key ports.**
@@ -551,7 +670,7 @@ export interface TransferRepo {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `Plan`, `PlannedItem`, `PlannedItemVersion` entities. Domain service `PlanCloning` (clones structure: categories + amounts, fresh period). Domain service `LeftoverCalculator` (delegates to core `computeLeftover`). Invariant: in MVP at most one active plan of each `(type, periodKind)` per user/household at a time — except `custom`, which has no such limit.
-- **Application layer.** Use cases — `CreatePlan`, `UpdatePlan`, `ClonePlanFromPrevious`, `ArchivePlan`, `ListActivePlans`, `GetPlanDashboard` (returns the `PlanActualsView`), `AddPlannedItem`, `UpdatePlannedItem` (writes a `PlannedItemVersion`), `RemovePlannedItem`, `GetPlannedItemHistory`, `ClosePeriodSnapshot` (called by scheduled job at period end).
+- **Application layer.** Use cases — `CreatePlanUseCase`, `UpdatePlanUseCase`, `ClonePlanFromPreviousUseCase`, `ArchivePlanUseCase`, `ListActivePlansUseCase`, `GetPlanDashboardUseCase` (returns the `PlanActualsView`), `AddPlannedItemUseCase`, `UpdatePlannedItemUseCase` (writes a `PlannedItemVersion`), `RemovePlannedItemUseCase`, `GetPlannedItemHistoryUseCase`, `ClosePeriodSnapshotUseCase` (called by scheduled job at period end).
 - **Infrastructure layer.** `DrizzlePlanRepo`, `DrizzlePlannedItemRepo`, `DrizzlePlannedItemVersionRepo`. Materialised view `v_plan_actuals(plan_id, planned_item_id, actual_minor)` refreshed by trigger or worker. Scheduled job `close-periods` runs daily at 00:30 UTC.
 - **Presentation layer.** REST:
   - `GET /plans?active=true&date=` → list.
@@ -568,9 +687,10 @@ export interface TransferRepo {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `Plan`, `PlannedItem`, `PlannedItemVersion`, `PlanActualsView`, `LeftoverEntry`.
-- **Application layer.** RTK Query `plansApi` with tags `Plan`, `PlanActuals`, `PlannedItemHistory`. Mapping changes invalidate `PlanActuals` for the affected plan only.
-- **Infrastructure.** None plan-specific.
-- **Presentation.** Screens: `PlansList`, `PlanEditor`, `Dashboard` (consumes `GET /plans/:id/dashboard` — the home screen per PRD §4.11), `PlannedItemHistoryDrawer`, `ClonePlanModal`, `CustomPeriodPicker`.
+- **State.** `State<PlansSourceState, PlansComputedState>` where source holds `plans`, `activePlan`, `plannedItems`, `actualsView`, `isLoading`; computed holds `totalPlannedIncome`, `totalPlannedExpenses`, `balance`.
+- **Application layer.** `ReactiveView<PlansState>` owned by `createPlansContext()`. Use cases: `ListPlansUseCase`, `CreatePlanUseCase`, `UpdatePlanUseCase`, `ArchivePlanUseCase`, `ClonePlanUseCase`, `AddPlannedItemUseCase`, `UpdatePlannedItemUseCase`, `RemovePlannedItemUseCase`, `GetPlanDashboardUseCase` (fetches `PlanActualsView`; result stored in source state), `RecomputePlanActualsUseCase`, `GetPlannedItemHistoryUseCase`. Selector `PlanTotalsSelector` derives income/expense/balance from `PlansComputedState`.
+- **Adapters.** `HttpPlanRepo implements PlanRepo`, `HttpPlannedItemRepo implements PlannedItemRepo`.
+- **Presentation.** Screens: `PlansList`, `PlanEditor`, `Dashboard` (home screen per PRD §4.11), `PlannedItemHistoryDrawer`, `ClonePlanModal`, `CustomPeriodPicker`.
 
 **Key ports.**
 
@@ -630,7 +750,7 @@ export interface PlanActualsReader {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `Category`, `CategoryPrivacy`, `CategoryAggregate` types. Pure function `aggregateByCategoryWithPrivacy` in `@power-budget/core` is the single place the privacy rule is implemented. Invariant: category names are unique-per-household when not archived.
-- **Application layer.** Use cases — `ListCategories`, `CreateCategory`, `RenameCategory`, `ArchiveCategory`, `SetCategoryPrivacy`, `GetHouseholdCategoryAggregate` (returns `CategoryAggregate[]` for viewer X looking at category C; applies privacy).
+- **Application layer.** Use cases — `ListCategoriesUseCase`, `CreateCategoryUseCase`, `RenameCategoryUseCase`, `ArchiveCategoryUseCase`, `SetCategoryPrivacyUseCase`, `GetHouseholdCategoryAggregateUseCase` (returns `CategoryAggregate[]` for viewer X looking at category C; applies privacy).
 - **Infrastructure layer.** `DrizzleCategoryRepo`, `DrizzleCategoryPrivacyRepo`. Seed migration installs default categories in all four locales (storing a `seedKey` to allow translation updates without renaming user-created rows).
 - **Presentation layer.** REST:
   - `GET /categories` → list (own household).
@@ -643,8 +763,9 @@ export interface PlanActualsReader {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `Category`, `CategoryPrivacy`, `CategoryAggregate`.
-- **Application layer.** RTK Query `categoriesApi`. `Category` is referenced by every plan and transaction screen; cached aggressively.
-- **Infrastructure.** None category-specific.
+- **State.** `State<CategoriesSourceState, CategoriesComputedState>` where source holds `categories`, `privacyMap`, `isLoading`; computed holds `activeCategoriesById` (lookup map used by other features).
+- **Application layer.** `ReactiveView<CategoriesState>` owned by `createCategoriesContext()`. Use cases: `ListCategoriesUseCase`, `CreateCategoryUseCase`, `UpdateCategoryUseCase`, `ArchiveCategoryUseCase`, `SetCategoryPrivacyUseCase`, `GetCategoryPrivacyUseCase`. `activeCategoriesById` is exposed via `CategoriesSelector` to plan and transaction features (passed as a dependency, not shared store).
+- **Adapters.** `HttpCategoryRepo implements CategoryRepo`, `HttpCategoryPrivacyRepo implements CategoryPrivacyRepo`.
 - **Presentation.** Screens: `CategoriesScreen` (list + privacy toggle per row), `CategoryPickerModal`, `HouseholdCategoryDrillIn` (renders to the level allowed by the partner — total bar, total+counts, or full list).
 
 **Key ports.**
@@ -679,7 +800,7 @@ export interface HouseholdCategoryAggregateReader {
 
 **Open questions.**
 
-1. **Privacy demotion.** _Recommendation:_ lowering privacy (e.g. `full_detail → total_only`) takes effect immediately and applies retroactively to the partner's UI cache (cache invalidation via RTK Query tag). No historical-view loophole.
+1. **Privacy demotion.** _Recommendation:_ lowering privacy (e.g. `full_detail → total_only`) takes effect immediately and applies retroactively to the partner's UI (the `CategoriesUseCase` refetch after `SetCategoryPrivacyUseCase` updates source state). No historical-view loophole.
 2. **Custom-category translations.** _Recommendation:_ per PRD §4.9, user-entered names are stored as entered; only `seedKey`-marked defaults are localised at read time.
 3. **Archive semantics.** _Recommendation:_ archived categories remain visible in historical transactions and dashboards but are hidden from new-item pickers.
 4. **Bulk-rename of seeded categories.** _Recommendation:_ the user can rename a seeded category; doing so detaches it from its `seedKey` (no auto-update on locale change).
@@ -699,7 +820,7 @@ export interface HouseholdCategoryAggregateReader {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `Currency`, `Money`, `FxRate`, `FxRateTable` value objects. Pure functions `convertMoney(money, target, table)` and `convertMoneyAsOf(money, target, date, repo)`. `FxRateProvider` port.
-- **Application layer.** Use cases — `UpdateCurrencyPreferences`, `GetCurrencyPreferences`, `GetFxRate` (on-demand convert via API), `IngestEcbDailyRates` (called by scheduled job).
+- **Application layer.** Use cases — `UpdateCurrencyPreferencesUseCase`, `GetCurrencyPreferencesUseCase`, `GetFxRateUseCase` (on-demand convert via API), `IngestEcbDailyRatesUseCase` (called by scheduled job).
 - **Infrastructure layer.** `EcbFxRateProvider implements FxRateProvider` (parses the daily ECB XML `eurofxref-daily.xml`; derives non-EUR pairs by cross-rate against EUR). `DrizzleFxRateRepo`. BullMQ `cron(0 16 * * 1-5)` for ECB (rates publish ~16:00 CET on weekdays). Today's rate is used until the next publication; weekend rates carry Friday forward.
 - **Presentation layer.** REST:
   - `GET /currencies` → supported list.
@@ -709,9 +830,10 @@ export interface HouseholdCategoryAggregateReader {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `Currency`, `Money`, `FxRate`, `FxRateTable`.
-- **Application layer.** RTK Query `fxApi` (date-indexed cache, infinite stale time per date — rates never change for past dates). A selector `selectMoneyView(money, viewerCurrency)` performs conversion entirely client-side using cached rates.
-- **Infrastructure.** None FX-specific.
-- **Presentation.** Component `MoneyView` — renders amount in original + cycles through interesting currencies on tap. Shows the rate source and date in a tooltip.
+- **State.** `State<FxSourceState, FxComputedState>` where source holds `ratesByDate` (date-keyed `FxRateTable` entries; infinite stale time — past rates never change), `viewerCurrency`.
+- **Application layer.** `ReactiveView<FxState>` owned by `createFxContext()`. Use cases: `EnsureRatesLoadedUseCase` (lazy-fetches the table for a given date if absent from source state). Selector `FxConversionSelector` wraps `convertMoney()` from `@power-budget/core` — called client-side using cached rates; never triggers a network request on its own.
+- **Adapters.** `HttpFxRateRepo implements FxRateRepo`.
+- **Presentation.** Component `MoneyView` — renders amount in original currency; cycles through interesting currencies on tap; shows rate source and date in a tooltip.
 
 **Key ports.**
 
@@ -761,7 +883,7 @@ export interface CurrencyPreferencesRepo {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `NotificationEvent`, `NotificationKind`, `NotificationPayload<K>` discriminated union. `NotificationChannel` port. `TemplateRenderer` port. Domain service `OverBudgetDetector` (pure: takes plan actuals → set of crossed-threshold events).
-- **Application layer.** Use cases — `EnqueueNotification` (writes to outbox in the producing transaction), `DispatchNotification` (called by worker; idempotent on `id`), `EvaluateOverBudget` (called after every mapping change for affected plan), `RunWeeklyDigest` (Monday 08:00 user-local; aggregates last week's actuals), `RunReconnectReminders` (daily; emits 7d / 1d / on-expiry per connection). `OptInWeeklyDigest`, `SetOverBudgetThresholds`.
+- **Application layer.** Use cases — `EnqueueNotificationUseCase` (writes to outbox in the producing transaction), `DispatchNotificationUseCase` (called by worker; idempotent on `id`), `EvaluateOverBudgetUseCase` (called after every mapping change for affected plan), `RunWeeklyDigestUseCase` (Monday 08:00 user-local; aggregates last week's actuals), `RunReconnectRemindersUseCase` (daily; emits 7d / 1d / on-expiry per connection). `OptInWeeklyDigestUseCase`, `SetOverBudgetThresholdsUseCase`.
 - **Infrastructure layer.** `ResendEmailChannel implements NotificationChannel` (Resend API; falls back to SES with the same port). `Mjml​TemplateRenderer implements TemplateRenderer` (MJML → HTML; ICU vars). `DrizzleNotificationOutboxRepo`. BullMQ consumer `notification-dispatch` with exponential backoff.
 - **Presentation layer.** REST:
   - `GET /me/notification-preferences`.
@@ -771,8 +893,9 @@ export interface CurrencyPreferencesRepo {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `NotificationKind`, `NotificationPreferences`.
-- **Application layer.** RTK Query `notificationsApi` for preferences only (no in-app inbox in MVP).
-- **Infrastructure.** None notification-specific.
+- **State.** `State<NotificationsSourceState, NotificationsComputedState>` where source holds `preferences`, `isLoading`; no in-app inbox in MVP (backend-only delivery).
+- **Application layer.** `ReactiveView<NotificationsState>` owned by `createNotificationsContext()`. Use cases: `GetNotificationPreferencesUseCase`, `UpdateNotificationPreferencesUseCase`.
+- **Adapters.** `HttpNotificationPreferencesRepo implements NotificationPreferencesRepo`.
 - **Presentation.** `NotificationPreferencesScreen` — digest opt-in, threshold sliders.
 
 **Key ports.**
@@ -827,7 +950,7 @@ export interface NotificationOutboxRepo {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `LocaleCode`, `MessageKey`, `RenderedString`. `MessageBundleLoader` port. Pure function `formatMoney(money, locale)` and `formatDate(date, locale)` from `@power-budget/core`.
-- **Application layer.** Use cases — `ResolveLocaleForUser` (used by all email-rendering paths), `ListSupportedLocales`. Notifications and validation-error responses route through `TemplateRenderer` (see §5.7) which loads via `MessageBundleLoader`.
+- **Application layer.** Use cases — `ResolveLocaleForUserUseCase` (used by all email-rendering paths), `ListSupportedLocalesUseCase`. Notifications and validation-error responses route through `TemplateRenderer` (see §5.7) which loads via `MessageBundleLoader`.
 - **Infrastructure layer.** `FileMessageBundleLoader` reads `assets/locales/<code>.json` at startup; hot-reload in dev. CI lint step verifies key parity across all bundles and rejects PRs with missing keys.
 - **Presentation layer.** REST:
   - `GET /locales` → supported.
@@ -836,8 +959,10 @@ export interface NotificationOutboxRepo {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `LocaleCode`, `FormatProfile`.
-- **Application layer.** RTK slice `locale` with `currentLocale`. Effect on slice change: re-instantiates the i18n provider and persists to `localStorage` / `expo-secure-store`, and `PATCH /me` to sync server-side preference (best-effort).
-- **Infrastructure.** `react-intl` (web + mobile — works in both). Bundles loaded eagerly for the four MVP locales (small enough). `LocaleResolver` runs once on startup. `Intl.NumberFormat` / `Intl.DateTimeFormat` for formatting (built into JS runtimes).
+- **State.** `State<LocaleSourceState, LocaleComputedState>` where source holds `currentLocale`; computed holds `messages` (the loaded ICU bundle). Persisted to `localStorage` / `expo-secure-store`.
+- **Application layer.** `ReactiveView<LocaleState>` owned by `createLocaleContext()`. Use cases: `ChangeLocaleUseCase` (updates source state, loads bundle via `MessageBundleLoader`, persists, calls `PATCH /me` best-effort to sync server-side preference). `LocaleInitReaction` runs on startup to resolve locale from device/stored preference and call `ChangeLocaleUseCase`.
+- **Adapters.** `WebMessageBundleLoader` / `ExpoMessageBundleLoader` implements `MessageBundleLoader`. Bundles loaded eagerly for the four MVP locales (small enough).
+- **Infrastructure.** `react-intl` (web + mobile). `Intl.NumberFormat` / `Intl.DateTimeFormat` for formatting (built into JS runtimes).
 - **Presentation.** `LocaleSwitcher` in Settings. Every component uses `<FormattedMessage id="..." />` or the `useIntl()` hook — never inline strings. ESLint rule `react-intl/no-literal-string` enforces this.
 
 **Key ports.**
@@ -882,7 +1007,7 @@ export interface FormatProfileProvider {
 **Backend — Clean Architecture.**
 
 - **Domain layer.** `PlanActualsView`, `LeftoverEntry`, `UnplannedTotals` types in `@power-budget/core`. Pure function `computePlanActuals(plan, plannedItems, transactions, mappings, transfers, fxTable): PlanActualsView` — the canonical algorithm. Transfers and `ignored` transactions are excluded. The same function runs both server-side (for the materialised view fallback path) and in tests.
-- **Application layer.** Use case `GetPlanDashboard(planId, viewerUserId)` — verifies household scope, reads the materialised view, layers FX conversion + leftover snapshots, returns `PlanActualsView`. Use case `RecomputePlanActuals(planId)` — invoked by worker on mapping changes.
+- **Application layer.** Use case `GetPlanDashboardUseCase(planId, viewerUserId)` — verifies household scope, reads the materialised view, layers FX conversion + leftover snapshots, returns `PlanActualsView`. Use case `RecomputePlanActualsUseCase(planId)` — invoked by worker on mapping changes.
 - **Infrastructure layer.** `DrizzlePlanActualsReader` queries `v_plan_actuals`; a `refresh-plan-actuals` BullMQ job recomputes on debounce. Postgres `INSERT INTO ... ON CONFLICT` upsert keeps the view consistent without `REFRESH MATERIALIZED VIEW` overhead.
 - **Presentation layer.** REST:
   - `GET /plans/:id/dashboard` → `PlanActualsView`.
@@ -892,8 +1017,9 @@ export interface FormatProfileProvider {
 **Frontend — Clean Architecture.**
 
 - **Domain types** from `@power-budget/core`: `PlanActualsView`, `LeftoverEntry`.
-- **Application layer.** RTK Query `dashboardApi` with tag `PlanActuals` invalidated by mapping changes and plan edits. The currency switcher is a local component state (no server roundtrip — FX rates already in cache).
-- **Infrastructure.** None dashboard-specific.
+- **State.** `State<DashboardSourceState, DashboardComputedState>` where source holds `actualsView`, `isLoading`; computed holds `currencySwitcherMoney` (client-only — FX conversion using `FxConversionSelector` from the FX feature context; no server round-trip).
+- **Application layer.** `ReactiveView<DashboardState>` owned by `createDashboardContext()`. Use cases: `LoadDashboardUseCase` (fetches `PlanActualsView` from `GET /plans/:id/dashboard`), `SwitchDashboardCurrencyUseCase` (updates viewer's selected display currency; pure source-state mutation). `DashboardRefreshReaction` subscribes to mapping-change events from the transactions feature contract channel and re-triggers `LoadDashboardUseCase` automatically.
+- **Adapters.** `HttpDashboardRepo implements DashboardRepo`.
 - **Presentation.** Screen `Dashboard` (the home), components `PlanHeader`, `IncomeSection`, `ExpenseSection` (with `ProgressBar` red/amber/green), `UnplannedSection`, `LeftoverBucket`, `BottomLine` (with `MoneyView` switcher), `HistoryDrawer` (lazy-loads `GET /plans/:id/items/:itemId/history`).
 
 **Key ports.**
@@ -939,7 +1065,7 @@ export interface HouseholdDashboardReader {
 **Backend.**
 
 - **Domain layer.** `AuditEvent` and `HouseholdScope` value objects. Domain service `AuditLogger` port (every use case takes one and writes one event per state change). `EncryptedString` value object + `Encryption` port (`encrypt`, `decrypt`).
-- **Application layer.** Cross-cutting use cases — `ExportHouseholdData`, `DeleteHousehold` (GDPR — soft-delete with 30 d hold then hard-delete), `RotateUserDek` (re-encrypts all `EncryptedString` columns for the user; runs as a background job).
+- **Application layer.** Cross-cutting use cases — `ExportHouseholdDataUseCase`, `DeleteHouseholdUseCase` (GDPR — soft-delete with 30 d hold then hard-delete), `RotateUserDekUseCase` (re-encrypts all `EncryptedString` columns for the user; runs as a background job).
 - **Infrastructure layer.** `DrizzleAuditEventRepo` (single `audit_log` table; INSERT-only role). `AwsKmsEncryption` or `EnvKekEncryption` implementations of `Encryption`. Postgres Row-Level Security policies on all tenant tables as defence-in-depth (see §6).
 - **Presentation layer.** REST:
   - `POST /me/data-export` → `{ exportId }`; result fetched via `GET /me/data-export/:id` (signed URL).
@@ -948,7 +1074,7 @@ export interface HouseholdDashboardReader {
 
 **Frontend.**
 
-- **Application layer.** RTK Query `meApi` (`exportData`, `requestDeletion`); `auditApi` for the dashboard history-drawer.
+- **Application layer.** Use cases: `ExportHouseholdDataUseCase` (initiates export job, polls `GET /me/data-export/:id/status`), `RequestAccountDeletionUseCase`, `GetAuditLogUseCase`. No dedicated global state — results are local to the screen.
 - **Presentation.** Screens `DataAndPrivacyScreen` (export, delete), `AuditLogDrawer` (already used by Plans).
 
 **Key ports.**
@@ -1230,7 +1356,7 @@ sequenceDiagram
 
 **Sprint 8 — Notifications + privacy + audit UI.** Email channel (Resend) + MJML templates in 4 locales. Reconnect / over-budget / weekly digest. Per-category privacy enforcement and household drill-in. Audit-log drawer wired into plan items. _Deliverable:_ all notification tests in PRD §11 pass; partner can see Groceries at chosen privacy level.
 
-**Sprint 9 — Mobile parity (iOS).** Expo bootstrap; reuse RTK slices via the shared application layer pattern; mobile-specific navigation; secure storage adapter; locale resolution from device. Auth + dashboard + transactions + mapping on mobile. _Deliverable:_ TestFlight build with the core user stories from PRD §5 working.
+**Sprint 9 — Mobile parity (iOS).** Expo bootstrap; reuse feature-module application layers via the shared `@power-budget/core` and per-feature context pattern; mobile-specific navigation; secure storage adapter; locale resolution from device. Auth + dashboard + transactions + mapping on mobile. _Deliverable:_ TestFlight build with the core user stories from PRD §5 working.
 
 **Sprint 10 — Hardening, GDPR, deploy.** Data export + delete endpoints. RLS policies enabled in staging then prod. Observability stack live (metrics + alerts). Production deployment on Fly.io + Neon + Upstash. Manual QA pass against all 16 PRD user stories in all four locales. _Deliverable:_ Production MVP, first real planning month begins.
 

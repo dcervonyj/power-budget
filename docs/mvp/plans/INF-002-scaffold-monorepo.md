@@ -40,7 +40,7 @@ This task lays down the physical shape of the repository described in ARCHITECTU
 - Dependabot + secret scanning — **INF-007**.
 - Turborepo remote cache configuration on GitHub-hosted cache — INF-005.
 - Any production deployment config (Fly.io, Neon, Upstash, Cloudflare Pages) — **INF-009 / INF-010 / INF-011**.
-- Internationalization runtime, MJML, RTK, Drizzle, NestJS dependencies — installed by the package-owning tasks.
+- Internationalization runtime, MJML, MobX, Drizzle, NestJS dependencies — installed by the package-owning tasks.
 
 ## 3. Files to create / modify
 
