@@ -20,6 +20,7 @@ export interface Transaction {
   readonly merchantName: string | null;
   readonly bookedAt: IsoDate;
   readonly createdAt: IsoDateTime;
+  readonly ignored?: boolean;
 }
 
 export interface Mapping {
