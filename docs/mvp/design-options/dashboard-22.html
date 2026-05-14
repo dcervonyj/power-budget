@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 22: Arctic Dark</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:           #07080e;
+        --s1:           #0c0d16;
+        --s2:           #12131e;
+        --s3:           #181928;
+        --s4:           #1e2030;
+        --border:       rgba(255,255,255,0.065);
+        --border2:      rgba(255,255,255,0.11);
+
+        --teal:         #4ab8e8;
+        --teal-dim:     rgba(74,184,232,0.5);
+        --teal-bg:      rgba(74,184,232,0.09);
+        --teal-border:  rgba(74,184,232,0.22);
+        --teal-glow:    rgba(74,184,232,0.14);
+
+        --gold:         #8898c8;
+        --gold-dim:     rgba(136,152,200,0.55);
+        --gold-bg:      rgba(136,152,200,0.09);
+        --gold-border:  rgba(136,152,200,0.22);
+
+        --violet:       #8070cc;
+        --sky:          #4890c8;
+        --sage:         #5ca86e;
+
+        --success:      #4aa870;
+        --success-bg:   rgba(74,168,112,0.09);
+        --warn:         #c98c38;
+        --warn-bg:      rgba(201,140,56,0.09);
+        --danger:       #c04848;
+        --danger-bg:    rgba(192,72,72,0.09);
+
+        --text:         #e6e0d8;
+        --dim:          rgba(230,224,216,0.52);
+        --muted:        rgba(230,224,216,0.28);
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ─── TOPBAR ─────────────────────────────────────────────────────────── */
+      .topbar {
+        background: var(--bg);
+        border-bottom: 1px solid var(--border);
+        padding: 0 28px;
+        height: 52px;
+        display: flex; align-items: center; justify-content: space-between;
+        position: sticky; top: 0; z-index: 100;
+      }
+      .logo { font-size: 15px; font-weight: 800; letter-spacing: -0.4px; }
+      .logo em { color: var(--teal); font-style: normal; }
+      .topbar-right { display: flex; align-items: center; gap: 10px; }
+      .lang-group { display: flex; gap: 1px; }
+      .lang-btn {
+        font-size: 11px; font-weight: 500; padding: 4px 8px; border-radius: 5px;
+        cursor: pointer; color: var(--muted);
+      }
+      .lang-btn.active { background: var(--s2); color: var(--dim); border: 1px solid var(--border); }
+      .avatar {
+        width: 30px; height: 30px; border-radius: 50%;
+        background: var(--teal-bg); border: 1px solid var(--teal-border);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 700; color: var(--teal);
+      }
+
+      /* ─── PAGE ────────────────────────────────────────────────────────────── */
+      .page { max-width: 1060px; margin: 0 auto; padding: 24px 20px 64px; }
+
+      /* ─── PLAN HEADER ─────────────────────────────────────────────────────── */
+      .plan-header {
+        display: flex; align-items: center; justify-content: space-between; gap: 16px;
+        margin-bottom: 14px;
+      }
+      .plan-name {
+        font-size: 22px; font-weight: 700; letter-spacing: -0.6px; margin-bottom: 7px;
+      }
+      .plan-chips { display: flex; gap: 5px; flex-wrap: wrap; }
+      .chip {
+        font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 999px;
+        background: var(--s2); border: 1px solid var(--border2); color: var(--dim);
+      }
+      .chip-teal { background: var(--teal-bg); border-color: var(--teal-border); color: var(--teal); }
+      .ph-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+      .plans-btn { font-size: 12px; font-weight: 500; color: var(--dim); cursor: pointer; }
+      .days-pill {
+        display: flex; align-items: baseline; gap: 5px;
+        padding: 7px 16px; border-radius: 999px;
+        background: var(--s2); border: 1px solid var(--border2);
+      }
+      .days-num {
+        font-size: 22px; font-weight: 800; letter-spacing: -0.8px; line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .days-lbl { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+      /* ─── STATS ROW ───────────────────────────────────────────────────────── */
+      .stats-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.4fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .stat-card {
+        background: linear-gradient(155deg, var(--s2) 0%, var(--s1) 100%);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 20px 22px 18px;
+        position: relative;
+        overflow: hidden;
+      }
+      .stat-card.hero {
+        background: linear-gradient(150deg, #101e30 0%, #0a1020 50%, #07080e 100%);
+        border-color: var(--teal-border);
+        border-top: 2px solid var(--teal);
+      }
+      .stat-card.hero::before {
+        content: '';
+        position: absolute; top: -50px; right: -30px;
+        width: 160px; height: 160px;
+        background: radial-gradient(circle, var(--teal-glow) 0%, transparent 68%);
+        pointer-events: none;
+      }
+      .stat-label {
+        font-size: 10px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.09em; color: var(--muted); margin-bottom: 8px;
+      }
+      .stat-value {
+        font-size: 36px; font-weight: 800; letter-spacing: -1.5px; line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat-value.hero-num {
+        font-size: 52px; letter-spacing: -2px; color: var(--teal);
+      }
+      .stat-value span { font-size: 14px; font-weight: 400; color: var(--muted); margin-left: 2px; }
+      .stat-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
+      .stat-bar-wrap { margin-top: 12px; height: 5px; border-radius: 999px; background: var(--s3); overflow: hidden; }
+      .stat-bar { height: 100%; border-radius: 999px; }
+      .sparkline-wrap { margin-top: 10px; }
+
+      /* ─── MAIN LAYOUT ─────────────────────────────────────────────────────── */
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 292px;
+        gap: 12px;
+        align-items: start;
+      }
+
+      /* ─── CARD ────────────────────────────────────────────────────────────── */
+      .card {
+        background: var(--s1);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      .card + .card { margin-top: 12px; }
+      .card-header {
+        padding: 14px 20px 12px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .card-title {
+        font-size: 10px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.09em; color: var(--muted);
+      }
+      .card-meta { font-size: 12px; color: var(--muted); }
+
+      /* ─── TABLE ROWS ──────────────────────────────────────────────────────── */
+      .trow {
+        display: grid; padding: 12px 20px; align-items: center;
+        border-bottom: 1px solid var(--border); font-size: 13px;
+      }
+      .trow:last-child { border-bottom: none; }
+      .trow:hover { background: rgba(255,255,255,0.016); }
+      .thead { background: rgba(255,255,255,0.013); padding-top: 7px; padding-bottom: 7px; }
+      .th { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+
+      /* ─── INCOME ROW ──────────────────────────────────────────────────────── */
+      .inc-row { grid-template-columns: 1fr 108px 120px 50px 84px 32px; gap: 12px; align-items: center; }
+      .col-name { font-weight: 500; }
+      .col-r { text-align: right; font-variant-numeric: tabular-nums; }
+      .col-pct { text-align: right; font-weight: 600; font-size: 12px; font-variant-numeric: tabular-nums; }
+
+      /* Ring */
+      .ring-cell { display: flex; justify-content: flex-end; align-items: center; }
+
+      /* Pill */
+      .pill {
+        display: inline-block; font-size: 10px; font-weight: 600;
+        padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+      }
+      .p-ok   { background: var(--success-bg); color: var(--success); }
+      .p-warn { background: var(--warn-bg); color: var(--warn); }
+      .p-muted { background: rgba(255,255,255,0.05); color: var(--muted); }
+
+      /* ─── EXPENSE ROW ─────────────────────────────────────────────────────── */
+      .exp-row { grid-template-columns: 18px 1fr 150px 88px 80px 52px; gap: 12px; align-items: center; }
+      .col-icon { font-size: 14px; text-align: center; }
+      .bar-wrap { display: flex; flex-direction: column; justify-content: center; }
+      .bar-track { height: 6px; border-radius: 999px; background: var(--s3); overflow: hidden; }
+      .bar-fill { height: 100%; border-radius: 999px; }
+      .over-badge { font-size: 10px; display: block; margin-top: 3px; }
+
+      .row-over {
+        background: rgba(192,72,72,0.045);
+        border-left: 2px solid var(--danger) !important;
+        padding-left: 18px;
+      }
+
+      /* ─── SIDEBAR ─────────────────────────────────────────────────────────── */
+      .sc {
+        background: var(--s1);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px 20px;
+      }
+      .sc + .sc { margin-top: 12px; }
+      .sc-label {
+        font-size: 10px; font-weight: 600; text-transform: uppercase;
+        letter-spacing: 0.09em; color: var(--muted); margin-bottom: 10px;
+      }
+      .hdiv { height: 1px; background: var(--border); margin: 14px 0; }
+
+      .curr-row { display: flex; gap: 4px; flex-wrap: wrap; }
+      .curr-btn {
+        font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 8px;
+        cursor: pointer; background: var(--s2); border: 1px solid var(--border); color: var(--muted);
+      }
+      .curr-btn.active { color: var(--teal); border-color: var(--teal-border); background: var(--teal-bg); }
+      .curr-note { font-size: 11px; color: var(--muted); margin-top: 8px; line-height: 1.6; }
+
+      .big-val {
+        font-size: 28px; font-weight: 700; letter-spacing: -0.8px;
+        font-variant-numeric: tabular-nums;
+      }
+      .big-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+      .unpl-row {
+        display: flex; justify-content: space-between;
+        padding: 8px 0; border-bottom: 1px solid var(--border);
+        font-size: 12px; color: var(--dim);
+        font-variant-numeric: tabular-nums;
+      }
+      .unpl-row:last-child { border-bottom: none; }
+
+      /* ─── SYNC ────────────────────────────────────────────────────────────── */
+      .sync-bar {
+        background: var(--s1); border: 1px solid var(--border); border-radius: 10px;
+        padding: 9px 16px; display: flex; align-items: center; gap: 8px;
+        font-size: 11px; color: var(--muted); margin-top: 12px;
+      }
+      .sync-dot {
+        width: 6px; height: 6px; border-radius: 50%; background: var(--success);
+        flex-shrink: 0; animation: pulse 2.8s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+      .sync-link { color: var(--teal); cursor: pointer; margin-left: auto; font-weight: 500; }
+
+      /* ─── BAR ANIMATION ───────────────────────────────────────────────────── */
+      @keyframes barIn { from { width: 0 !important; } }
+      .bar-fill, .stat-bar { animation: barIn 0.7s cubic-bezier(0.4,0,0.2,1) both; }
+      .bar-fill:nth-child(1) { animation-delay: 0.05s; }
+      .stat-bar:nth-child(1) { animation-delay: 0s; }
+
+      /* ─── RESPONSIVE ──────────────────────────────────────────────────────── */
+      @media (max-width: 820px) {
+        .layout { grid-template-columns: 1fr; }
+        .stats-row { grid-template-columns: 1fr 1fr; }
+        .stat-card.hero { grid-column: 1 / -1; }
+      }
+      @media (max-width: 540px) {
+        .stats-row { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="logo">Power<em>Budget</em></div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+
+      <!-- PLAN HEADER -->
+      <div class="plan-header">
+        <div>
+          <div class="plan-name">May 2026 — Household</div>
+          <div class="plan-chips">
+            <span class="chip chip-teal">Household</span>
+            <span class="chip">May 1 – 31, 2026</span>
+            <span class="chip">1 alert</span>
+          </div>
+        </div>
+        <div class="ph-right">
+          <span class="plans-btn">+2 plans ↓</span>
+          <div class="days-pill">
+            <span class="days-num">17</span>
+            <span class="days-lbl">days left</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STATS ROW -->
+      <div class="stats-row">
+
+        <!-- Income received -->
+        <div class="stat-card">
+          <div class="stat-label">Income received</div>
+          <div class="stat-value" style="color:var(--gold)">13,500 <span>PLN</span></div>
+          <div class="stat-sub">of 16,200 planned · 83% in</div>
+          <div class="stat-bar-wrap">
+            <div class="stat-bar" style="width:83%;background:linear-gradient(90deg,#4858a0,var(--gold))"></div>
+          </div>
+        </div>
+
+        <!-- Expenses -->
+        <div class="stat-card">
+          <div class="stat-label">Expenses spent</div>
+          <div class="stat-value">7,180 <span>PLN</span></div>
+          <div class="stat-sub">of 7,180 budgeted · 1 over-budget</div>
+          <div class="stat-bar-wrap">
+            <div class="stat-bar" style="width:100%;background:linear-gradient(90deg,var(--warn),var(--danger))"></div>
+          </div>
+        </div>
+
+        <!-- Net result — HERO -->
+        <div class="stat-card hero">
+          <div class="stat-label">Net result · May 2026</div>
+          <div class="stat-value hero-num">+2,098 <span>PLN</span></div>
+          <div class="stat-sub" style="color:var(--teal-dim)">Income exceeds expenses — month on track</div>
+          <!-- Sparkline -->
+          <svg class="sparkline-wrap" width="100%" height="32" viewBox="0 0 240 32" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="spkGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="rgba(74,184,232,0.18)"/>
+                <stop offset="100%" stop-color="rgba(74,184,232,0)"/>
+              </linearGradient>
+            </defs>
+            <!-- Area fill -->
+            <path d="M0,28 L28,24 L60,25 L92,18 L124,20 L152,13 L180,15 L210,9 L240,6 L240,32 L0,32 Z"
+              fill="url(#spkGrad)"/>
+            <!-- Line -->
+            <polyline
+              points="0,28 28,24 60,25 92,18 124,20 152,13 180,15 210,9 240,6"
+              fill="none" stroke="var(--teal)" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+          </svg>
+        </div>
+
+      </div>
+
+      <!-- MAIN LAYOUT -->
+      <div class="layout">
+
+        <!-- LEFT: Income + Expenses -->
+        <div>
+
+          <!-- INCOME CARD -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Expected Income</span>
+              <span class="card-meta">13,500 / 16,200 PLN &nbsp;·&nbsp; 2,700 pending</span>
+            </div>
+            <div class="trow inc-row thead">
+              <span class="th">Instrument</span>
+              <span class="th col-r">Planned</span>
+              <span class="th col-r">Received</span>
+              <span class="th col-r">%</span>
+              <span class="th col-r">Status</span>
+              <span></span>
+            </div>
+
+            <!-- Salary: 100% -->
+            <div class="trow inc-row">
+              <span class="col-name">💼 Salary</span>
+              <span class="col-r" style="color:var(--muted)">12,000 PLN</span>
+              <span class="col-r" style="font-weight:700;color:var(--gold)">12,000 PLN</span>
+              <span class="col-pct" style="color:var(--gold)">100%</span>
+              <span class="col-r"><span class="pill p-ok">Received</span></span>
+              <div class="ring-cell">
+                <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                  <circle cx="14" cy="14" r="10.5" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="10.5" fill="none" stroke="var(--gold)" stroke-width="2.5"
+                    stroke-dasharray="66 66" stroke-dashoffset="0" stroke-linecap="round"
+                    transform="rotate(-90 14 14)"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Freelance: 50% -->
+            <div class="trow inc-row">
+              <span class="col-name">💻 Freelance</span>
+              <span class="col-r" style="color:var(--muted)">3,000 PLN</span>
+              <span class="col-r" style="font-weight:700;color:var(--warn)">1,500 PLN</span>
+              <span class="col-pct" style="color:var(--warn)">50%</span>
+              <span class="col-r"><span class="pill p-warn">In progress</span></span>
+              <div class="ring-cell">
+                <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                  <circle cx="14" cy="14" r="10.5" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="10.5" fill="none" stroke="var(--warn)" stroke-width="2.5"
+                    stroke-dasharray="33 66" stroke-dashoffset="0" stroke-linecap="round"
+                    transform="rotate(-90 14 14)"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Rental: 0% -->
+            <div class="trow inc-row">
+              <span class="col-name">🏡 Side rental</span>
+              <span class="col-r" style="color:var(--muted)">1,200 PLN</span>
+              <span class="col-r" style="color:var(--muted)">—</span>
+              <span class="col-pct" style="color:var(--muted)">0%</span>
+              <span class="col-r"><span class="pill p-muted">Pending</span></span>
+              <div class="ring-cell">
+                <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                  <circle cx="14" cy="14" r="10.5" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="2.5"/>
+                </svg>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- EXPENSES CARD -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Planned Expenses</span>
+              <span class="card-meta">7,180 / 7,180 PLN &nbsp;·&nbsp; 1 over budget</span>
+            </div>
+            <div class="trow exp-row thead">
+              <span></span>
+              <span class="th">Category</span>
+              <span class="th">Progress</span>
+              <span class="th col-r">Spent</span>
+              <span class="th col-r">Budget</span>
+              <span class="th col-r">%</span>
+            </div>
+
+            <!-- Rent: 100% teal -->
+            <div class="trow exp-row">
+              <span class="col-icon">🏠</span>
+              <span class="col-name">Rent</span>
+              <div class="bar-wrap">
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#2a78c0,var(--teal))"></div>
+                </div>
+              </div>
+              <span class="col-r" style="font-weight:600;color:var(--teal)">3,500 PLN</span>
+              <span class="col-r" style="color:var(--muted)">3,500</span>
+              <span class="col-pct" style="color:var(--teal)">100%</span>
+            </div>
+
+            <!-- Groceries: 82% gold -->
+            <div class="trow exp-row">
+              <span class="col-icon">🛒</span>
+              <span class="col-name">Groceries</span>
+              <div class="bar-wrap">
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:82%;background:linear-gradient(90deg,#4858a0,var(--gold))"></div>
+                </div>
+              </div>
+              <span class="col-r" style="font-weight:600;color:var(--gold)">1,640 PLN</span>
+              <span class="col-r" style="color:var(--muted)">2,000</span>
+              <span class="col-pct" style="color:var(--gold)">82%</span>
+            </div>
+
+            <!-- Utilities: 90% violet -->
+            <div class="trow exp-row">
+              <span class="col-icon">⚡</span>
+              <span class="col-name">Utilities</span>
+              <div class="bar-wrap">
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:90%;background:linear-gradient(90deg,#5048a8,var(--violet))"></div>
+                </div>
+              </div>
+              <span class="col-r" style="font-weight:600;color:var(--violet)">540 PLN</span>
+              <span class="col-r" style="color:var(--muted)">600</span>
+              <span class="col-pct" style="color:var(--violet)">90%</span>
+            </div>
+
+            <!-- Transport: 54% sky -->
+            <div class="trow exp-row">
+              <span class="col-icon">🚌</span>
+              <span class="col-name">Transport</span>
+              <div class="bar-wrap">
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:54%;background:linear-gradient(90deg,#286090,var(--sky))"></div>
+                </div>
+              </div>
+              <span class="col-r" style="font-weight:600;color:var(--sky)">215 PLN</span>
+              <span class="col-r" style="color:var(--muted)">400</span>
+              <span class="col-pct" style="color:var(--sky)">54%</span>
+            </div>
+
+            <!-- Eating Out: 144% danger — OVER BUDGET -->
+            <div class="trow exp-row row-over">
+              <span class="col-icon">🍽️</span>
+              <span class="col-name">Eating Out
+                <span class="over-badge" style="color:var(--danger)">↑ 220 PLN over budget</span>
+              </span>
+              <div class="bar-wrap">
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#882828,var(--danger))"></div>
+                </div>
+              </div>
+              <span class="col-r" style="font-weight:600;color:var(--danger)">720 PLN</span>
+              <span class="col-r" style="color:var(--muted)">500</span>
+              <span class="col-pct" style="color:var(--danger)">144%</span>
+            </div>
+
+            <!-- Subscriptions: 100% sage -->
+            <div class="trow exp-row">
+              <span class="col-icon">📱</span>
+              <span class="col-name">Subscriptions</span>
+              <div class="bar-wrap">
+                <div class="bar-track">
+                  <div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#3a7848,var(--sage))"></div>
+                </div>
+              </div>
+              <span class="col-r" style="font-weight:600;color:var(--sage)">180 PLN</span>
+              <span class="col-r" style="color:var(--muted)">180</span>
+              <span class="col-pct" style="color:var(--sage)">100%</span>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SIDEBAR -->
+        <div>
+
+          <!-- CURRENCY -->
+          <div class="sc">
+            <div class="sc-label">Display Currency</div>
+            <div class="curr-row">
+              <span class="curr-btn active">PLN</span>
+              <span class="curr-btn">EUR</span>
+              <span class="curr-btn">UAH</span>
+              <span class="curr-btn">USD</span>
+            </div>
+            <div class="curr-note">≈ EUR 491 &nbsp;·&nbsp; USD 529<br>UAH 20,351</div>
+          </div>
+
+          <!-- SAVINGS -->
+          <div class="sc">
+            <div class="sc-label">Projected Savings</div>
+            <div class="big-val" style="color:var(--gold)">425 <span style="font-size:13px;font-weight:400;color:var(--muted)">PLN</span></div>
+            <div class="big-sub">Cumulative this year: 3,847 PLN</div>
+            <div class="hdiv"></div>
+            <div style="font-size:11px;color:var(--muted)">Auto-transfer on May 31</div>
+          </div>
+
+          <!-- UNPLANNED -->
+          <div class="sc">
+            <div class="sc-label">Unplanned Transactions</div>
+            <div class="unpl-row">
+              <span>📌 Expenses</span>
+              <span style="font-weight:600;color:var(--danger)">−487 PLN</span>
+            </div>
+            <div class="unpl-row">
+              <span>🎁 Income</span>
+              <span style="font-weight:600;color:var(--success)">+250 PLN</span>
+            </div>
+            <div class="unpl-row">
+              <span style="color:var(--muted);font-size:11px">Net impact</span>
+              <span style="font-weight:600;color:var(--danger)">−237 PLN</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- SYNC BAR -->
+      <div class="sync-bar">
+        <div class="sync-dot"></div>
+        <span>Last synced 4 minutes ago · PKO BP, Wise</span>
+        <div class="sync-link">Refresh →</div>
+      </div>
+
+    </main>
+  </body>
+</html>

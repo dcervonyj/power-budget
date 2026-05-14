@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="sidebar-brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <nav class="nav">
+      <a class="nav__item" href="dashboard-en.html"><span class="nav__icon">▣</span> Dashboard</a>
+      <a class="nav__item nav__item--active" href="plans-list.html"><span class="nav__icon">≡</span> Plans</a>
+      <a class="nav__item" href="transactions.html"><span class="nav__icon">↔</span> Transactions</a>
+      <a class="nav__item" href="bank-connections.html"><span class="nav__icon">🏦</span> Bank Connections</a>
+      <a class="nav__item" href="categories.html"><span class="nav__icon">⊞</span> Categories</a>
+      <a class="nav__item" href="settings.html"><span class="nav__icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar-user">
+        <span class="avatar avatar--purple">AN</span>
+        <div>
+          <div style="font-weight:600;font-size:13px">Anna Nowak</div>
+          <div style="font-size:11px;color:var(--text-muted)">Kowalski household</div>
+        </div>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()">☀️ Light mode</button>
+    </div>
+  </aside>
+  <div class="app__main">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search transactions, plans…" aria-label="Search"/>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="dropdown">
+          <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">EN ▾</button>
+          <div class="dropdown__menu" role="menu">
+            <a class="dropdown__item" href="dashboard-en.html">🇬🇧 English</a>
+            <a class="dropdown__item" href="dashboard-pl.html">🇵🇱 Polski</a>
+            <a class="dropdown__item" href="dashboard-uk.html">🇺🇦 Українська</a>
+            <a class="dropdown__item" href="dashboard-ru.html">🇷🇺 Русский</a>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <span class="avatar avatar--purple">AN</span>
+      </div>
+    </header>
+    <main class="content">
+      <div class="page-header">
+        <div class="page-header__titles">
+          <h1>Plans</h1>
+        </div>
+        <a class="btn btn--primary" href="plan-editor.html">＋ New plan</a>
+      </div>
+
+      <div class="filter-bar">
+        <button class="chip chip--selected">All</button>
+        <button class="chip">Personal</button>
+        <button class="chip">Household</button>
+        <button class="chip">Active</button>
+        <button class="chip">Past</button>
+        <span class="muted" style="font-size:12px;margin-left:8px">5 plans</span>
+      </div>
+
+      <div class="grid-auto grid" style="gap:16px">
+
+        <!-- Plan 1: May 2026 Personal (active) -->
+        <div class="plan-card">
+          <div class="plan-card__header">
+            <div>
+              <div class="plan-card__title">May 2026</div>
+              <div class="plan-card__meta">Personal · May 1 – 31</div>
+            </div>
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--s3)" stroke-width="3"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--accent)" stroke-width="3"
+                stroke-dasharray="100.53" stroke-dashoffset="5.03"
+                stroke-linecap="round" transform="rotate(-90 20 20)"/>
+              <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">95%</text>
+            </svg>
+          </div>
+          <div class="plan-card__amounts">PLN 7,030 / 7,420 spent</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="badge badge--success">Active</span>
+            <a href="dashboard-en.html" style="font-size:12px;color:var(--accent)">View dashboard →</a>
+          </div>
+        </div>
+
+        <!-- Plan 2: Apr 2026 Personal (completed) -->
+        <div class="plan-card">
+          <div class="plan-card__header">
+            <div>
+              <div class="plan-card__title">Apr 2026</div>
+              <div class="plan-card__meta">Personal · Apr 1 – 30</div>
+            </div>
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--s3)" stroke-width="3"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--success)" stroke-width="3"
+                stroke-dasharray="100.53" stroke-dashoffset="6.03"
+                stroke-linecap="round" transform="rotate(-90 20 20)"/>
+              <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">94%</text>
+            </svg>
+          </div>
+          <div class="plan-card__amounts">PLN 6,800 / 7,200 spent</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="badge badge--accent">Completed</span>
+            <a href="#" style="font-size:12px;color:var(--accent)">View plan →</a>
+          </div>
+        </div>
+
+        <!-- Plan 3: Mar 2026 Personal (completed) -->
+        <div class="plan-card">
+          <div class="plan-card__header">
+            <div>
+              <div class="plan-card__title">Mar 2026</div>
+              <div class="plan-card__meta">Personal · Mar 1 – 31</div>
+            </div>
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--s3)" stroke-width="3"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--success)" stroke-width="3"
+                stroke-dasharray="100.53" stroke-dashoffset="4.02"
+                stroke-linecap="round" transform="rotate(-90 20 20)"/>
+              <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">96%</text>
+            </svg>
+          </div>
+          <div class="plan-card__amounts">PLN 7,100 / 7,400 spent</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="badge badge--accent">Completed</span>
+            <a href="#" style="font-size:12px;color:var(--accent)">View plan →</a>
+          </div>
+        </div>
+
+        <!-- Plan 4: May 2026 Household (active) -->
+        <div class="plan-card">
+          <div class="plan-card__header">
+            <div>
+              <div class="plan-card__title">May 2026 Household</div>
+              <div class="plan-card__meta">Household · May 1 – 31</div>
+            </div>
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--s3)" stroke-width="3"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--sky)" stroke-width="3"
+                stroke-dasharray="100.53" stroke-dashoffset="14.07"
+                stroke-linecap="round" transform="rotate(-90 20 20)"/>
+              <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">86%</text>
+            </svg>
+          </div>
+          <div class="plan-card__amounts">PLN 12,400 / 14,500 spent</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="badge badge--success">Active</span>
+            <a href="dashboard-en.html" style="font-size:12px;color:var(--accent)">View dashboard →</a>
+          </div>
+        </div>
+
+        <!-- Plan 5: Vacation Jul 10-24 (upcoming) -->
+        <div class="plan-card">
+          <div class="plan-card__header">
+            <div>
+              <div class="plan-card__title">Vacation Jul 10–24</div>
+              <div class="plan-card__meta">Custom · Jul 10 – 24, 2026</div>
+            </div>
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--s3)" stroke-width="3"/>
+              <circle cx="20" cy="20" r="16" fill="none" stroke="var(--warn)" stroke-width="3"
+                stroke-dasharray="100.53" stroke-dashoffset="100.53"
+                stroke-linecap="round" transform="rotate(-90 20 20)"/>
+              <text x="20" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="var(--text)">0%</text>
+            </svg>
+          </div>
+          <div class="plan-card__amounts">PLN 0 / 3,200 budget</div>
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <span class="badge badge--warn">Upcoming</span>
+            <a href="plan-editor.html" style="font-size:12px;color:var(--accent)">Edit plan →</a>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

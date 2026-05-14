@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Two-factor auth — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<button onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200" class="btn btn--secondary btn--sm">☀️ Light mode</button>
+<div class="auth-shell">
+  <section class="auth-card">
+    <a class="auth-card__brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <h1>Two-factor authentication</h1>
+    <p class="auth-card__lede">Enter the 6-digit code from your authenticator app.</p>
+
+    <div class="totp-input">
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code">
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+      <input type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+    </div>
+
+    <button class="btn btn--primary btn--block" onclick="window.location='dashboard-en.html'" style="margin-bottom:12px">Verify</button>
+    <div style="text-align:center;margin-bottom:8px">
+      <a href="#" style="font-size:13px">Use a recovery code</a>
+    </div>
+    <div class="auth-card__footer">
+      <a href="auth-login.html">← Back to sign in</a>
+    </div>
+  </section>
+</div>
+<script>
+  document.querySelectorAll('.totp-input input').forEach(function(inp, i, all){
+    inp.addEventListener('input', function(){
+      if(inp.value.length===1 && i<all.length-1) all[i+1].focus();
+    });
+    inp.addEventListener('keydown', function(e){
+      if(e.key==='Backspace' && inp.value==='' && i>0) all[i-1].focus();
+    });
+  });
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+    document.querySelectorAll('button[onclick="toggleTheme()"]').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

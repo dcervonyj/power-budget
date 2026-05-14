@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Панель — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="sidebar-brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <nav class="nav">
+      <a class="nav__item nav__item--active" href="dashboard-ru.html"><span class="nav__icon">▣</span> Панель</a>
+      <a class="nav__item" href="plans-list.html"><span class="nav__icon">≡</span> Планы</a>
+      <a class="nav__item" href="transactions.html"><span class="nav__icon">↔</span> Транзакции</a>
+      <a class="nav__item" href="bank-connections.html"><span class="nav__icon">🏦</span> Банки</a>
+      <a class="nav__item" href="categories.html"><span class="nav__icon">⊞</span> Категории</a>
+      <a class="nav__item" href="settings.html"><span class="nav__icon">⚙</span> Настройки</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar-user">
+        <span class="avatar avatar--purple">АН</span>
+        <div>
+          <div style="font-weight:600;font-size:13px">Анна Новак</div>
+          <div style="font-size:11px;color:var(--text-muted)">Хозяйство Ковальских</div>
+        </div>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()">☀️ Светлая тема</button>
+    </div>
+  </aside>
+  <div class="app__main">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Поиск транзакций, планов…" aria-label="Поиск"/>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="dropdown">
+          <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">RU ▾</button>
+          <div class="dropdown__menu" role="menu">
+            <a class="dropdown__item" href="dashboard-en.html">🇬🇧 English</a>
+            <a class="dropdown__item" href="dashboard-pl.html">🇵🇱 Polski</a>
+            <a class="dropdown__item" href="dashboard-uk.html">🇺🇦 Українська</a>
+            <a class="dropdown__item" href="dashboard-ru.html">🇷🇺 Русский</a>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="Уведомления">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <span class="avatar avatar--purple">АН</span>
+      </div>
+    </header>
+    <main class="content">
+      <div class="plan-header">
+        <div class="plan-header__title">
+          <span class="plan-name">Май 2026 — Личный</span>
+          <div class="plan-chips">
+            <span class="badge">Личный</span>
+            <span class="badge">1 – 31 мая 2026</span>
+            <span class="badge badge--warn">17 дней осталось</span>
+          </div>
+        </div>
+        <div class="row" style="gap:10px">
+          <div class="days-pill">
+            <span class="days-num">17</span>
+            <span class="days-lbl">дней</span>
+          </div>
+          <a class="btn btn--secondary btn--sm" href="plan-editor.html">✎ Редактировать</a>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Полученные доходы</div>
+          <div class="stat-value" style="color:var(--income)">13 800 PLN</div>
+          <div class="stat-sub">из 14 500 PLN запланированных · 95%</div>
+          <div class="stat-bar"><div class="stat-bar__fill progress__bar--income" style="width:95%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Расходы</div>
+          <div class="stat-value">7 030 PLN</div>
+          <div class="stat-sub">из 7 420 PLN бюджета · 95%</div>
+          <div class="stat-bar"><div class="stat-bar__fill progress__bar--warn" style="width:95%"></div></div>
+        </div>
+        <div class="stat-card stat-card--hero">
+          <div class="stat-label" style="color:var(--hero-muted)">Чистый результат · май 2026</div>
+          <div class="stat-value stat-value--hero">+480 PLN</div>
+          <div class="stat-sub" style="color:var(--hero-muted)">Доходы превышают расходы</div>
+          <div class="sparkline-wrap">
+            <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="spark-fill-ru" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--hero-spark-fill-start)"/>
+                  <stop offset="100%" stop-color="transparent"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,35 L25,30 L50,28 L75,22 L100,18 L125,15 L150,12 L175,10 L200,8" fill="none" stroke="var(--hero-sparkline)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M0,35 L25,30 L50,28 L75,22 L100,18 L125,15 L150,12 L175,10 L200,8 L200,40 L0,40 Z" fill="url(#spark-fill-ru)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi__label">Полученные доходы</div>
+          <div class="kpi__value">13 800 PLN</div>
+          <div class="kpi__delta">95% из 14 500 PLN цели</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Расходы</div>
+          <div class="kpi__value">7 030 PLN</div>
+          <div class="kpi__delta">из 7 420 PLN бюджета</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Прогноз остатка</div>
+          <div class="kpi__value success">+480 PLN</div>
+          <div class="kpi__delta">доходы − расходы</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Накоплено всего</div>
+          <div class="kpi__value">4 720 PLN</div>
+          <div class="kpi__delta kpi__delta--positive">▲ 480 PLN в этом месяце</div>
+        </div>
+      </div>
+
+      <div class="dash-layout">
+        <div>
+          <div class="card" style="margin-bottom:12px">
+            <div class="card__header">
+              <div class="card__title">Источники доходов</div>
+              <span class="badge badge--income">2 из 2 активных</span>
+            </div>
+            <div class="card__body">
+              <div class="line-item">
+                <div class="line-item__icon">💼</div>
+                <div class="line-item__main"><div class="line-item__title">Зарплата · Анна</div><div class="line-item__sub">PKO BP</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar progress__bar--income" style="width:100%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--income)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>12 000 PLN</strong> <span class="sub">/ 12 000</span><div><span class="badge badge--success">Получено</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item">
+                <div class="line-item__icon">💻</div>
+                <div class="line-item__main"><div class="line-item__title">Фриланс · Марек</div><div class="line-item__sub">Wise</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar progress__bar--income" style="width:72%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--income)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="19.35" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>1 800 PLN</strong> <span class="sub">/ 2 500</span><div><span class="badge badge--warn">Частичное</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card__header">
+              <div class="card__title">Категории расходов</div>
+              <span class="badge">8 категорий</span>
+            </div>
+            <div class="card__body">
+              <div class="line-item">
+                <div class="line-item__icon">🏠</div>
+                <div class="line-item__main"><div class="line-item__title">Аренда</div><div class="line-item__sub">Жильё</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar progress__bar--warn" style="width:100%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>3 500 PLN</strong> <span class="sub">/ 3 500</span><div><span class="badge">100%</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item">
+                <div class="line-item__icon">🛒</div>
+                <div class="line-item__main"><div class="line-item__title">Продукты</div><div class="line-item__sub">Еда</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar" style="width:92%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="5.53" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>1 850 PLN</strong> <span class="sub">/ 2 000</span><div><span class="badge">92%</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item">
+                <div class="line-item__icon">🚇</div>
+                <div class="line-item__main"><div class="line-item__title">Транспорт</div><div class="line-item__sub">Передвижение</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar" style="width:84%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="11.06" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>420 PLN</strong> <span class="sub">/ 500</span><div><span class="badge">84%</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item line-item--over">
+                <div class="line-item__icon">🍕</div>
+                <div class="line-item__main"><div class="line-item__title">Рестораны</div><div class="line-item__sub">Питание вне дома</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar progress__bar--danger" style="width:100%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--danger)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>320 PLN</strong> <span class="sub">/ 280</span><div><span class="badge badge--danger">+40 PLN сверх</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item">
+                <div class="line-item__icon">💊</div>
+                <div class="line-item__main"><div class="line-item__title">Здоровье</div><div class="line-item__sub">Медицина</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar" style="width:93%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="4.84" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>280 PLN</strong> <span class="sub">/ 300</span><div><span class="badge">93%</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item">
+                <div class="line-item__icon">🎬</div>
+                <div class="line-item__main"><div class="line-item__title">Развлечения</div><div class="line-item__sub">Досуг</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar progress__bar--warn" style="width:100%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="0" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>250 PLN</strong> <span class="sub">/ 250</span><div><span class="badge">100%</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item">
+                <div class="line-item__icon">👕</div>
+                <div class="line-item__main"><div class="line-item__title">Одежда</div><div class="line-item__sub">Мода</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar" style="width:70%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="20.73" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>210 PLN</strong> <span class="sub">/ 300</span><div><span class="badge">70%</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+              <div class="line-item">
+                <div class="line-item__icon">📱</div>
+                <div class="line-item__main"><div class="line-item__title">Подписки</div><div class="line-item__sub">Цифровые</div></div>
+                <div class="line-item__bar"><div class="progress"><div class="progress__bar" style="width:69%"></div></div></div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28"><circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/><circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-dasharray="69.1" stroke-dashoffset="21.42" stroke-linecap="round" transform="rotate(-90 14 14)"/></svg>
+                <div class="line-item__amounts"><strong>200 PLN</strong> <span class="sub">/ 290</span><div><span class="badge">69%</span></div></div>
+                <button class="line-item__history"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="sc">
+            <div class="sc-label">Отображаемая валюта</div>
+            <div class="curr-row">
+              <button class="curr-btn active">PLN</button>
+              <button class="curr-btn">EUR</button>
+              <button class="curr-btn">UAH</button>
+              <button class="curr-btn">USD</button>
+            </div>
+            <div class="curr-note">Курсы на 14 мая 2026</div>
+          </div>
+          <div class="sc">
+            <div class="sc-label">Прогноз накоплений</div>
+            <div class="big-val" style="color:var(--success)">+5 200 PLN</div>
+            <div class="big-sub">после завершения плана</div>
+            <div class="hdiv"></div>
+            <div class="sc-label">Незапланированные расходы</div>
+            <div class="unpl-row"><span>Amazon</span><span>−149 PLN</span></div>
+            <div class="unpl-row"><span>Такси</span><span>−76 PLN</span></div>
+            <div class="unpl-row"><span>Банкомат</span><span>−200 PLN</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sync-bar">
+        <span class="sync-dot"></span>
+        <span>Синхронизировано 4 мин назад · PKO BP, Wise</span>
+        <a class="sync-link" href="#">Синхронизировать</a>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Светлая тема':'🌙 Тёмная тема';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

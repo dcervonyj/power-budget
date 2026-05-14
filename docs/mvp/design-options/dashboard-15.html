@@ -1,0 +1,518 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 15: Cyberpunk Rings (09 + 10)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=VT323&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg: #0d0017;
+        --surface: #110020;
+        --surface2: #150028;
+        --border: rgba(255,255,255,0.05);
+        --border2: rgba(255,255,255,0.1);
+        --cyan: #00f5ff;
+        --cyan-dim: rgba(0,245,255,0.5);
+        --pink: #ff2d7a;
+        --pink-dim: rgba(255,45,122,0.5);
+        --green: #39ff90;
+        --green-dim: rgba(57,255,144,0.5);
+        --text: #c8d8f0;
+        --text-dim: rgba(200,216,240,0.5);
+        --text-muted: rgba(200,216,240,0.3);
+        --glow-cyan:  0 0 10px rgba(0,245,255,0.7), 0 0 24px rgba(0,245,255,0.2);
+        --glow-pink:  0 0 10px rgba(255,45,122,0.7), 0 0 24px rgba(255,45,122,0.2);
+        --glow-green: 0 0 8px rgba(57,255,144,0.6), 0 0 18px rgba(57,255,144,0.15);
+        /* Ring colors */
+        --r-rent: #00f5ff;
+        --r-groceries: #ff8c42;
+        --r-utilities: #c084fc;
+        --r-transport: #39ff90;
+        --r-eating: #ff2d7a;
+        --r-subs: #fbbf24;
+        --r-income: #00f5ff;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        min-height: 100vh;
+        background-image:
+          radial-gradient(ellipse 60% 40% at 15% 10%, rgba(0,150,255,0.1) 0%, transparent 55%),
+          radial-gradient(ellipse 50% 35% at 85% 90%, rgba(200,0,150,0.1) 0%, transparent 50%),
+          repeating-linear-gradient(0deg, transparent, transparent 60px,
+            rgba(0,245,255,0.015) 60px, rgba(0,245,255,0.015) 61px),
+          repeating-linear-gradient(90deg, transparent, transparent 60px,
+            rgba(0,245,255,0.015) 60px, rgba(0,245,255,0.015) 61px);
+      }
+
+      /* CRT SCANLINES */
+      body::before {
+        content: "";
+        position: fixed; inset: 0;
+        background: repeating-linear-gradient(
+          0deg, transparent, transparent 2px,
+          rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px
+        );
+        pointer-events: none; z-index: 999;
+      }
+
+      /* GLITCH */
+      .glitch { position: relative; display: inline-block; }
+      .glitch::before {
+        content: attr(data-text); position: absolute; left: 2px; top: 0;
+        color: var(--cyan); clip: rect(0,900px,0,0); animation: glitch1 5s infinite linear; opacity: 0.8;
+      }
+      .glitch::after {
+        content: attr(data-text); position: absolute; left: -2px; top: 0;
+        color: var(--pink); clip: rect(0,900px,0,0); animation: glitch2 5s infinite linear; opacity: 0.8;
+      }
+      @keyframes glitch1 {
+        0%,93%,100% { clip:rect(0,0,0,0); }
+        94% { clip:rect(4px,900px,6px,0); }
+        95% { clip:rect(14px,900px,16px,0); }
+        96% { clip:rect(8px,900px,10px,0); }
+      }
+      @keyframes glitch2 {
+        0%,93%,100% { clip:rect(0,0,0,0); }
+        94% { clip:rect(10px,900px,12px,0); }
+        95% { clip:rect(2px,900px,4px,0); }
+        96% { clip:rect(18px,900px,20px,0); }
+      }
+
+      /* TOPBAR */
+      .topbar {
+        background: rgba(13,0,23,0.94);
+        border-bottom: 1px solid rgba(0,245,255,0.2);
+        box-shadow: 0 1px 10px rgba(0,245,255,0.1);
+        padding: 0 20px; height: 48px;
+        display: flex; align-items: center; justify-content: space-between;
+        position: sticky; top: 0; z-index: 100;
+      }
+      .logo {
+        font-family: "VT323", monospace; font-size: 24px; color: var(--cyan);
+        letter-spacing: 0.1em; text-transform: uppercase; text-shadow: var(--glow-cyan);
+      }
+      .logo span { color: var(--pink); text-shadow: var(--glow-pink); }
+      .topbar-right { display: flex; align-items: center; gap: 10px; }
+      .lang-group { display: flex; gap: 2px; }
+      .lang-btn {
+        font-size: 11px; font-weight: 600; padding: 4px 8px; cursor: pointer;
+        color: var(--text-muted); border: 1px solid transparent; border-radius: 4px;
+      }
+      .lang-btn.active {
+        color: var(--cyan); border-color: rgba(0,245,255,0.3);
+        background: rgba(0,245,255,0.07); text-shadow: 0 0 6px rgba(0,245,255,0.5);
+      }
+      .avatar {
+        width: 34px; height: 34px;
+        border: 1px solid rgba(0,245,255,0.4); border-radius: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-family: "VT323", monospace; font-size: 16px; color: var(--cyan);
+        text-shadow: var(--glow-cyan);
+        box-shadow: 0 0 8px rgba(0,245,255,0.2), inset 0 0 6px rgba(0,245,255,0.08);
+      }
+
+      /* PAGE */
+      .page { max-width: 1000px; margin: 0 auto; padding: 20px 16px 60px; }
+
+      /* PLAN HEADER */
+      .plan-header {
+        background: var(--surface);
+        border: 1px solid rgba(0,245,255,0.2);
+        box-shadow: 0 0 12px rgba(0,245,255,0.08), inset 0 0 8px rgba(0,245,255,0.02);
+        padding: 14px 18px; margin-bottom: 16px;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .plan-id {
+        font-family: "VT323", monospace; font-size: 26px; color: var(--cyan);
+        letter-spacing: 0.1em; text-shadow: var(--glow-cyan);
+      }
+      .plan-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+      .plan-metas { display: flex; gap: 20px; }
+      .pm { font-size: 11px; }
+      .pm .lbl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+      .pm .val { font-weight: 600; }
+      .pm .val.c { color: var(--cyan); text-shadow: 0 0 6px rgba(0,245,255,0.4); }
+      .pm .val.p { color: var(--pink); text-shadow: 0 0 6px rgba(255,45,122,0.4); }
+
+      /* DAYS RING (standalone) */
+      .days-ring-wrap { position: relative; width: 80px; height: 80px; }
+      .days-ring-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+      .days-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+      .days-center .dn { font-family: "VT323", monospace; font-size: 32px; color: var(--cyan); text-shadow: var(--glow-cyan); line-height: 1; }
+      .days-center .dl { font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+      /* MAIN LAYOUT */
+      .main-layout { display: grid; grid-template-columns: 260px 1fr; gap: 16px; margin-bottom: 16px; }
+
+      /* RING PANEL */
+      .ring-panel {
+        background: var(--surface);
+        border: 1px solid rgba(0,245,255,0.2);
+        box-shadow: 0 0 16px rgba(0,245,255,0.07);
+        padding: 18px;
+        position: relative; overflow: hidden;
+      }
+      .ring-panel::before {
+        content: "";
+        position: absolute; inset: 0; pointer-events: none;
+        background: repeating-linear-gradient(
+          0deg, transparent, transparent 2px,
+          rgba(0,0,0,0.14) 2px, rgba(0,0,0,0.14) 4px
+        );
+      }
+      .rp-label {
+        font-family: "VT323", monospace; font-size: 14px; color: var(--cyan);
+        letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 14px;
+        text-shadow: var(--glow-cyan); position: relative;
+      }
+      .rings-canvas { position: relative; width: 220px; height: 220px; margin: 0 auto; }
+      .rings-canvas svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+      .rings-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      .rc-val { font-family: "VT323", monospace; font-size: 40px; color: var(--cyan); text-shadow: var(--glow-cyan); line-height: 1; }
+      .rc-sub { font-size: 10px; color: var(--text-dim); font-family: "Space Grotesk", sans-serif; margin-top: 2px; }
+      .rc-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-family: "Space Grotesk", sans-serif; }
+
+      /* RIGHT PANEL */
+      .right-panel { display: flex; flex-direction: column; gap: 12px; }
+
+      /* INCOME SECTION */
+      .panel {
+        background: var(--surface);
+        border: 1px solid rgba(255,255,255,0.07);
+      }
+      .panel-header {
+        background: var(--surface2);
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        padding: 6px 12px;
+        font-family: "VT323", monospace; font-size: 15px; color: var(--cyan);
+        letter-spacing: 0.1em; text-transform: uppercase;
+        text-shadow: var(--glow-cyan);
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .ph-right { font-family: "Space Grotesk", sans-serif; font-size: 10px; color: var(--text-dim); text-shadow: none; }
+      .panel-body { padding: 4px 0; }
+
+      /* ROWS */
+      .row {
+        display: grid; padding: 5px 12px; align-items: center;
+        font-size: 12px; border-bottom: 1px solid rgba(255,255,255,0.04);
+      }
+      .row:last-child { border-bottom: none; }
+      .row:hover { background: rgba(0,245,255,0.03); }
+      .row-head {
+        background: var(--surface2); padding: 3px 12px;
+        font-size: 9px; color: var(--cyan); font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        border-bottom: 1px solid rgba(0,245,255,0.15); opacity: 0.7;
+      }
+      .inc-row { grid-template-columns: 1fr 90px 80px 50px 60px; gap: 8px; }
+      .col-name { color: var(--text); font-weight: 500; }
+      .col-planned { color: var(--text-dim); text-align: right; }
+      .col-received { text-align: right; font-weight: 600; }
+      .col-pct { text-align: right; font-weight: 700; }
+      .col-status { text-align: right; }
+
+      .stag {
+        font-size: 9px; font-weight: 700; padding: 1px 6px;
+        text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+        border-radius: 2px;
+      }
+      .st-cyan { color: var(--cyan); border: 1px solid rgba(0,245,255,0.3); text-shadow: 0 0 4px rgba(0,245,255,0.5); }
+      .st-pink { color: var(--pink); border: 1px solid rgba(255,45,122,0.3); }
+      .st-green { color: var(--green); border: 1px solid rgba(57,255,144,0.3); text-shadow: 0 0 4px rgba(57,255,144,0.5); }
+      .st-orange { color: #ff8c42; border: 1px solid rgba(255,140,66,0.3); }
+      .st-dim { color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
+
+      /* RINGS LEGEND */
+      .ring-row { display: grid; grid-template-columns: 10px 1fr 80px 55px 46px 20px; gap: 8px; padding: 5px 12px; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.04); }
+      .ring-row:last-child { border-bottom: none; }
+      .ring-dot { width: 10px; height: 10px; border-radius: 50%; }
+      .ring-name { font-size: 12px; }
+      .ring-over { font-size: 9px; display: block; }
+      .ring-spent { font-size: 12px; font-weight: 700; text-align: right; }
+      .ring-budget { font-size: 11px; color: var(--text-dim); text-align: right; }
+      .ring-pct { font-size: 11px; font-weight: 700; text-align: right; }
+      .ring-expand { font-size: 12px; color: var(--text-muted); cursor: pointer; text-align: center; }
+
+      /* NET PANEL */
+      .net-panel {
+        background: var(--surface);
+        border: 1px solid rgba(57,255,144,0.2);
+        box-shadow: 0 0 12px rgba(57,255,144,0.07);
+        padding: 14px 18px; margin-bottom: 12px;
+        display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center;
+      }
+      .net-label { font-family: "VT323", monospace; font-size: 14px; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+      .net-value { font-family: "VT323", monospace; font-size: 52px; color: var(--green); text-shadow: var(--glow-green); line-height: 1; letter-spacing: -1px; }
+      .net-breakdown { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
+      .curr-group { display: flex; gap: 4px; }
+      .curr-btn { padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); border-radius: 3px; }
+      .curr-btn.active { color: var(--cyan); border-color: rgba(0,245,255,0.4); background: rgba(0,245,255,0.08); text-shadow: 0 0 4px rgba(0,245,255,0.5); }
+      .block-bar-wrap .bbl { font-family: "VT323", monospace; font-size: 22px; color: var(--cyan); letter-spacing: 2px; text-shadow: var(--glow-cyan); }
+      .block-bar-wrap .bbl-sub { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+      /* SYNC */
+      .sync-row {
+        background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+        padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+        font-size: 11px; color: var(--text-dim);
+      }
+      .sync-dot {
+        width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+        box-shadow: var(--glow-green); flex-shrink: 0;
+        animation: blink 2s step-end infinite;
+      }
+      @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+      .sync-link { color: var(--cyan); cursor: pointer; font-weight: 600; margin-left: auto; text-shadow: 0 0 6px rgba(0,245,255,0.4); }
+
+      @media (max-width: 680px) {
+        .main-layout { grid-template-columns: 1fr; }
+        .rings-canvas { width: 180px; height: 180px; }
+        .net-panel { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo glitch" data-text="POWER▸BUDGET">POWER<span>▸BUDGET</span></div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- PLAN HEADER -->
+      <div class="plan-header">
+        <div>
+          <div class="plan-id">MAY-2026-HH</div>
+          <div class="plan-sub">May 2026 — Household &nbsp;·&nbsp; 01 May – 31 May</div>
+        </div>
+        <div class="plan-metas">
+          <div class="pm"><div class="lbl">INCOME PLAN</div><div class="val c">16,200 PLN</div></div>
+          <div class="pm"><div class="lbl">EXP PLAN</div><div class="val p">7,180 PLN</div></div>
+          <div class="pm"><div class="lbl">TYPE</div><div class="val">HOUSEHOLD</div></div>
+        </div>
+        <div class="days-ring-wrap">
+          <svg viewBox="0 0 80 80" width="80" height="80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(0,245,255,0.1)" stroke-width="5"/>
+            <circle cx="40" cy="40" r="34" fill="none" stroke="var(--cyan)" stroke-width="5"
+              stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="96"
+              style="filter:drop-shadow(0 0 5px rgba(0,245,255,0.7))"/>
+            <!-- Crosshair marks -->
+            <line x1="40" y1="2" x2="40" y2="10" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+            <line x1="40" y1="70" x2="40" y2="78" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+            <line x1="2" y1="40" x2="10" y2="40" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+            <line x1="70" y1="40" x2="78" y2="40" stroke="rgba(0,245,255,0.3)" stroke-width="1"/>
+          </svg>
+          <div class="days-center">
+            <div class="dn">17</div>
+            <div class="dl">DAYS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN LAYOUT -->
+      <div class="main-layout">
+        <!-- RING PANEL (left) -->
+        <div class="ring-panel">
+          <div class="rp-label">EXPENSE_RINGS.EXE</div>
+          <!-- Concentric rings — same geometry as design 10 -->
+          <!-- r: 96,80,64,48,32,16 -->
+          <div class="rings-canvas">
+            <svg viewBox="0 0 220 220" width="220" height="220">
+              <!-- Tracks -->
+              <circle cx="110" cy="110" r="96" fill="none" stroke="rgba(0,245,255,0.07)" stroke-width="11"/>
+              <circle cx="110" cy="110" r="80" fill="none" stroke="rgba(255,140,66,0.07)" stroke-width="11"/>
+              <circle cx="110" cy="110" r="64" fill="none" stroke="rgba(192,132,252,0.07)" stroke-width="11"/>
+              <circle cx="110" cy="110" r="48" fill="none" stroke="rgba(57,255,144,0.07)" stroke-width="11"/>
+              <circle cx="110" cy="110" r="32" fill="none" stroke="rgba(255,45,122,0.07)" stroke-width="11"/>
+              <circle cx="110" cy="110" r="16" fill="none" stroke="rgba(251,191,36,0.07)" stroke-width="9"/>
+
+              <!-- Rent 100% — cyan -->
+              <circle cx="110" cy="110" r="96" fill="none" stroke="var(--r-rent)" stroke-width="11"
+                stroke-linecap="round" stroke-dasharray="603.2" stroke-dashoffset="0"
+                style="filter:drop-shadow(0 0 6px rgba(0,245,255,0.8))"/>
+
+              <!-- Groceries 82% -->
+              <circle cx="110" cy="110" r="80" fill="none" stroke="var(--r-groceries)" stroke-width="11"
+                stroke-linecap="round" stroke-dasharray="502.7" stroke-dashoffset="90.5"/>
+
+              <!-- Utilities 90% — violet -->
+              <circle cx="110" cy="110" r="64" fill="none" stroke="var(--r-utilities)" stroke-width="11"
+                stroke-linecap="round" stroke-dasharray="402.1" stroke-dashoffset="40.2"
+                style="filter:drop-shadow(0 0 4px rgba(192,132,252,0.5))"/>
+
+              <!-- Transport 54% — green -->
+              <circle cx="110" cy="110" r="48" fill="none" stroke="var(--r-transport)" stroke-width="11"
+                stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="138.7"
+                style="filter:drop-shadow(0 0 3px rgba(57,255,144,0.5))"/>
+
+              <!-- Eating Out 144% — pink/danger -->
+              <circle cx="110" cy="110" r="32" fill="none" stroke="var(--r-eating)" stroke-width="11"
+                stroke-linecap="round" stroke-dasharray="201.1" stroke-dashoffset="0"
+                style="filter:drop-shadow(0 0 8px rgba(255,45,122,0.9))"/>
+
+              <!-- Subscriptions 100% — amber -->
+              <circle cx="110" cy="110" r="16" fill="none" stroke="var(--r-subs)" stroke-width="9"
+                stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="0"
+                style="filter:drop-shadow(0 0 4px rgba(251,191,36,0.6))"/>
+            </svg>
+            <div class="rings-center">
+              <div class="rc-lbl">SPENT</div>
+              <div class="rc-val">6795</div>
+              <div class="rc-sub">of 7,180 PLN</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="right-panel">
+          <!-- INCOME -->
+          <div class="panel">
+            <div class="panel-header">INCOME_FEED <span class="ph-right">PLAN: 16,200 PLN</span></div>
+            <div class="row-head inc-row">
+              <span>INSTRUMENT</span>
+              <span style="text-align:right">PLANNED</span>
+              <span style="text-align:right">RECEIVED</span>
+              <span style="text-align:right">%</span>
+              <span style="text-align:right">STATUS</span>
+            </div>
+            <div class="panel-body">
+              <div class="row inc-row">
+                <span class="col-name">💼 Salary</span>
+                <span class="col-planned">12,000 PLN</span>
+                <span class="col-received" style="color:var(--green);text-shadow:0 0 5px rgba(57,255,144,0.5)">12,000 PLN</span>
+                <span class="col-pct" style="color:var(--green)">100%</span>
+                <span class="col-status"><span class="stag st-green">RCVD</span></span>
+              </div>
+              <div class="row inc-row">
+                <span class="col-name">💻 Freelance</span>
+                <span class="col-planned">3,000 PLN</span>
+                <span class="col-received" style="color:#ff8c42">1,500 PLN</span>
+                <span class="col-pct" style="color:#ff8c42">50%</span>
+                <span class="col-status"><span class="stag st-orange">PROG</span></span>
+              </div>
+              <div class="row inc-row">
+                <span class="col-name">🏡 Side rental</span>
+                <span class="col-planned">1,200 PLN</span>
+                <span class="col-received" style="color:var(--text-muted)">0 PLN</span>
+                <span class="col-pct" style="color:var(--text-muted)">0%</span>
+                <span class="col-status"><span class="stag st-dim">PEND</span></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- EXPENSE LEGEND -->
+          <div class="panel" style="flex:1">
+            <div class="panel-header">EXP_RINGS_LEGEND <span class="ph-right">7,180 budget · 6,795 spent</span></div>
+            <div class="row-head ring-row" style="font-size:9px;color:var(--cyan);text-transform:uppercase;letter-spacing:0.06em;background:var(--surface2);border-bottom:1px solid rgba(0,245,255,0.15)">
+              <span></span>
+              <span>CATEGORY</span>
+              <span style="text-align:right">SPENT</span>
+              <span style="text-align:right">BUDGET</span>
+              <span style="text-align:right">%</span>
+              <span></span>
+            </div>
+            <div class="panel-body">
+              <div class="ring-row">
+                <div class="ring-dot" style="background:var(--r-rent);box-shadow:0 0 5px rgba(0,245,255,0.7)"></div>
+                <div class="ring-name">🏠 Rent</div>
+                <div class="ring-spent" style="color:var(--r-rent)">3,500</div>
+                <div class="ring-budget">/ 3,500</div>
+                <div class="ring-pct" style="color:var(--r-rent)">100%</div>
+                <div class="ring-expand">↗</div>
+              </div>
+              <div class="ring-row">
+                <div class="ring-dot" style="background:var(--r-groceries)"></div>
+                <div class="ring-name">🛒 Groceries</div>
+                <div class="ring-spent" style="color:var(--r-groceries)">1,640</div>
+                <div class="ring-budget">/ 2,000</div>
+                <div class="ring-pct" style="color:var(--r-groceries)">82%</div>
+                <div class="ring-expand">↗</div>
+              </div>
+              <div class="ring-row">
+                <div class="ring-dot" style="background:var(--r-utilities);box-shadow:0 0 4px rgba(192,132,252,0.5)"></div>
+                <div class="ring-name">⚡ Utilities</div>
+                <div class="ring-spent" style="color:var(--r-utilities)">540</div>
+                <div class="ring-budget">/ 600</div>
+                <div class="ring-pct" style="color:var(--r-utilities)">90%</div>
+                <div class="ring-expand">↗</div>
+              </div>
+              <div class="ring-row">
+                <div class="ring-dot" style="background:var(--r-transport);box-shadow:0 0 3px rgba(57,255,144,0.5)"></div>
+                <div class="ring-name">🚌 Transport</div>
+                <div class="ring-spent" style="color:var(--r-transport)">215</div>
+                <div class="ring-budget">/ 400</div>
+                <div class="ring-pct" style="color:var(--r-transport)">54%</div>
+                <div class="ring-expand">↗</div>
+              </div>
+              <div class="ring-row" style="background:rgba(255,45,122,0.07);border-left:2px solid var(--pink);box-shadow:0 0 8px rgba(255,45,122,0.1)">
+                <div class="ring-dot" style="background:var(--r-eating);box-shadow:0 0 7px rgba(255,45,122,0.9)"></div>
+                <div class="ring-name">🍽️ Eating Out<span class="ring-over" style="color:var(--pink)">▲ +220 OVER</span></div>
+                <div class="ring-spent" style="color:var(--pink);text-shadow:var(--glow-pink)">720</div>
+                <div class="ring-budget">/ 500</div>
+                <div class="ring-pct" style="color:var(--pink)">144%</div>
+                <div class="ring-expand">↗</div>
+              </div>
+              <div class="ring-row">
+                <div class="ring-dot" style="background:var(--r-subs);box-shadow:0 0 4px rgba(251,191,36,0.5)"></div>
+                <div class="ring-name">📱 Subscriptions</div>
+                <div class="ring-spent" style="color:var(--r-subs)">180</div>
+                <div class="ring-budget">/ 180</div>
+                <div class="ring-pct" style="color:var(--r-subs)">100%</div>
+                <div class="ring-expand">↗</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NET PANEL -->
+      <div class="net-panel">
+        <div>
+          <div class="net-label">NET RESULT</div>
+          <div class="net-value">+2,098 PLN</div>
+          <div class="net-breakdown">Income 16,700 − Expenses 14,602 PLN</div>
+        </div>
+        <div class="block-bar-wrap">
+          <div class="bbl">■■■■■■■□□□</div>
+          <div class="bbl-sub">72% within plan</div>
+        </div>
+        <div>
+          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">CURRENCY</div>
+          <div class="curr-group">
+            <span class="curr-btn active">PLN</span>
+            <span class="curr-btn">EUR</span>
+            <span class="curr-btn">UAH</span>
+            <span class="curr-btn">USD</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px">EUR 491 · USD 529</div>
+        </div>
+      </div>
+
+      <!-- SYNC -->
+      <div class="sync-row">
+        <div class="sync-dot"></div>
+        <span>LAST SYNC: 4 MIN AGO &nbsp;·&nbsp; PKO BP, WISE</span>
+        <div class="sync-link">[ REFRESH_NOW ]</div>
+      </div>
+    </main>
+  </body>
+</html>

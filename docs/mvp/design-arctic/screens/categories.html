@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Categories — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="sidebar-brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <nav class="nav">
+      <a class="nav__item" href="dashboard-en.html"><span class="nav__icon">▣</span> Dashboard</a>
+      <a class="nav__item" href="plans-list.html"><span class="nav__icon">≡</span> Plans</a>
+      <a class="nav__item" href="transactions.html"><span class="nav__icon">↔</span> Transactions</a>
+      <a class="nav__item" href="bank-connections.html"><span class="nav__icon">🏦</span> Bank Connections</a>
+      <a class="nav__item nav__item--active" href="categories.html"><span class="nav__icon">⊞</span> Categories</a>
+      <a class="nav__item" href="settings.html"><span class="nav__icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar-user">
+        <span class="avatar avatar--purple">AN</span>
+        <div>
+          <div style="font-weight:600;font-size:13px">Anna Nowak</div>
+          <div style="font-size:11px;color:var(--text-muted)">Kowalski household</div>
+        </div>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()">☀️ Light mode</button>
+    </div>
+  </aside>
+  <div class="app__main">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search transactions, plans…" aria-label="Search"/>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="dropdown">
+          <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">EN ▾</button>
+          <div class="dropdown__menu" role="menu">
+            <a class="dropdown__item" href="dashboard-en.html">🇬🇧 English</a>
+            <a class="dropdown__item" href="dashboard-pl.html">🇵🇱 Polski</a>
+            <a class="dropdown__item" href="dashboard-uk.html">🇺🇦 Українська</a>
+            <a class="dropdown__item" href="dashboard-ru.html">🇷🇺 Русский</a>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <span class="avatar avatar--purple">AN</span>
+      </div>
+    </header>
+    <main class="content">
+      <div class="page-header">
+        <div class="page-header__titles">
+          <h1>Categories</h1>
+        </div>
+        <button class="btn btn--primary">＋ Add category</button>
+      </div>
+
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:50px">Emoji</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>Color</th>
+              <th class="num">Budget/month</th>
+              <th style="width:100px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-size:20px">💼</td>
+              <td style="font-weight:500">Salary</td>
+              <td><span class="badge badge--income">Income</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#4868b8;vertical-align:middle"></span></td>
+              <td class="num" style="color:var(--text-muted)">—</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">💻</td>
+              <td style="font-weight:500">Freelance</td>
+              <td><span class="badge badge--income">Income</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#6050b8;vertical-align:middle"></span></td>
+              <td class="num" style="color:var(--text-muted)">—</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">🏠</td>
+              <td style="font-weight:500">Rent</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#7080a0;vertical-align:middle"></span></td>
+              <td class="num">PLN 3,500</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">🛒</td>
+              <td style="font-weight:500">Groceries</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#3a9858;vertical-align:middle"></span></td>
+              <td class="num">PLN 2,000</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">🚇</td>
+              <td style="font-weight:500">Transport</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#3880b8;vertical-align:middle"></span></td>
+              <td class="num">PLN 500</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">🍕</td>
+              <td style="font-weight:500">Eating Out</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#b07020;vertical-align:middle"></span></td>
+              <td class="num">PLN 280</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">💊</td>
+              <td style="font-weight:500">Healthcare</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#b83030;vertical-align:middle"></span></td>
+              <td class="num">PLN 300</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">🎬</td>
+              <td style="font-weight:500">Entertainment</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#6050b8;vertical-align:middle"></span></td>
+              <td class="num">PLN 250</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">👕</td>
+              <td style="font-weight:500">Clothing</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#b83070;vertical-align:middle"></span></td>
+              <td class="num">PLN 300</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-size:20px">📱</td>
+              <td style="font-weight:500">Subscriptions</td>
+              <td><span class="badge">Expense</span></td>
+              <td><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#2a8a88;vertical-align:middle"></span></td>
+              <td class="num">PLN 290</td>
+              <td>
+                <div class="row" style="gap:4px">
+                  <button class="btn btn--ghost btn--sm">Edit</button>
+                  <button class="btn btn--danger btn--sm">Del</button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

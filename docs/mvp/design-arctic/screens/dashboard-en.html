@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="sidebar-brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <nav class="nav">
+      <a class="nav__item nav__item--active" href="dashboard-en.html"><span class="nav__icon">▣</span> Dashboard</a>
+      <a class="nav__item" href="plans-list.html"><span class="nav__icon">≡</span> Plans</a>
+      <a class="nav__item" href="transactions.html"><span class="nav__icon">↔</span> Transactions</a>
+      <a class="nav__item" href="bank-connections.html"><span class="nav__icon">🏦</span> Bank Connections</a>
+      <a class="nav__item" href="categories.html"><span class="nav__icon">⊞</span> Categories</a>
+      <a class="nav__item" href="settings.html"><span class="nav__icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar-user">
+        <span class="avatar avatar--purple">AN</span>
+        <div>
+          <div style="font-weight:600;font-size:13px">Anna Nowak</div>
+          <div style="font-size:11px;color:var(--text-muted)">Kowalski household</div>
+        </div>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()">☀️ Light mode</button>
+    </div>
+  </aside>
+  <div class="app__main">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search transactions, plans…" aria-label="Search"/>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="dropdown">
+          <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">EN ▾</button>
+          <div class="dropdown__menu" role="menu">
+            <a class="dropdown__item" href="dashboard-en.html">🇬🇧 English</a>
+            <a class="dropdown__item" href="dashboard-pl.html">🇵🇱 Polski</a>
+            <a class="dropdown__item" href="dashboard-uk.html">🇺🇦 Українська</a>
+            <a class="dropdown__item" href="dashboard-ru.html">🇷🇺 Русский</a>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <span class="avatar avatar--purple">AN</span>
+      </div>
+    </header>
+    <main class="content">
+      <!-- Plan header -->
+      <div class="plan-header">
+        <div class="plan-header__title">
+          <span class="plan-name">May 2026 — Personal</span>
+          <div class="plan-chips">
+            <span class="badge">Personal</span>
+            <span class="badge">May 1 – 31, 2026</span>
+            <span class="badge badge--warn">17 days left</span>
+          </div>
+        </div>
+        <div class="row" style="gap:10px">
+          <div class="days-pill">
+            <span class="days-num">17</span>
+            <span class="days-lbl">days left</span>
+          </div>
+          <a class="btn btn--secondary btn--sm" href="plan-editor.html">✎ Edit plan</a>
+        </div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Income received</div>
+          <div class="stat-value" style="color:var(--income)">PLN 13,800</div>
+          <div class="stat-sub">of 14,500 planned · 95% received</div>
+          <div class="stat-bar"><div class="stat-bar__fill progress__bar--income" style="width:95%"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Spent so far</div>
+          <div class="stat-value">PLN 7,030</div>
+          <div class="stat-sub">of 7,420 budgeted · 95% spent</div>
+          <div class="stat-bar"><div class="stat-bar__fill progress__bar--warn" style="width:95%"></div></div>
+        </div>
+        <div class="stat-card stat-card--hero">
+          <div class="stat-label" style="color:var(--hero-muted)">Net result · May 2026</div>
+          <div class="stat-value stat-value--hero">+PLN 480</div>
+          <div class="stat-sub" style="color:var(--hero-muted)">Income exceeds expenses — on track</div>
+          <div class="sparkline-wrap">
+            <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="var(--hero-spark-fill-start)"/>
+                  <stop offset="100%" stop-color="transparent"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,35 L25,30 L50,28 L75,22 L100,18 L125,15 L150,12 L175,10 L200,8" fill="none" stroke="var(--hero-sparkline)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M0,35 L25,30 L50,28 L75,22 L100,18 L125,15 L150,12 L175,10 L200,8 L200,40 L0,40 Z" fill="url(#spark-fill)"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI grid -->
+      <div class="kpi-grid">
+        <div class="kpi">
+          <div class="kpi__label">Income received</div>
+          <div class="kpi__value">PLN 13,800</div>
+          <div class="kpi__delta">95% of PLN 14,500 target</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Spent</div>
+          <div class="kpi__value">PLN 7,030</div>
+          <div class="kpi__delta">of PLN 7,420 budgeted</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">Projected leftover</div>
+          <div class="kpi__value success">+PLN 480</div>
+          <div class="kpi__delta">income − expenses</div>
+        </div>
+        <div class="kpi">
+          <div class="kpi__label">All-time saved</div>
+          <div class="kpi__value">PLN 4,720</div>
+          <div class="kpi__delta kpi__delta--positive">▲ PLN 480 this month</div>
+        </div>
+      </div>
+
+      <!-- Dash layout -->
+      <div class="dash-layout">
+        <!-- Left column -->
+        <div>
+          <!-- Income card -->
+          <div class="card" style="margin-bottom:12px">
+            <div class="card__header">
+              <div>
+                <div class="card__title">Income sources</div>
+              </div>
+              <span class="badge badge--income">2 of 2 active</span>
+            </div>
+            <div class="card__body">
+              <!-- Salary -->
+              <div class="line-item">
+                <div class="line-item__icon">💼</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Salary · Anna</div>
+                  <div class="line-item__sub">PKO BP</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar progress__bar--income" style="width:100%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--income)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="0"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 12,000</strong> <span class="sub">/ 12,000</span>
+                  <div><span class="badge badge--success">Received</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Freelance -->
+              <div class="line-item">
+                <div class="line-item__icon">💻</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Freelance · Marek</div>
+                  <div class="line-item__sub">Wise</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar progress__bar--income" style="width:72%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--income)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="19.35"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 1,800</strong> <span class="sub">/ 2,500</span>
+                  <div><span class="badge badge--warn">Partial</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expenses card -->
+          <div class="card">
+            <div class="card__header">
+              <div class="card__title">Expense categories</div>
+              <span class="badge">8 categories</span>
+            </div>
+            <div class="card__body">
+              <!-- Rent 100% -->
+              <div class="line-item">
+                <div class="line-item__icon">🏠</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Rent</div>
+                  <div class="line-item__sub">Housing</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar progress__bar--warn" style="width:100%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--warn)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="0"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 3,500</strong> <span class="sub">/ 3,500</span>
+                  <div><span class="badge">100%</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Groceries 92% -->
+              <div class="line-item">
+                <div class="line-item__icon">🛒</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Groceries</div>
+                  <div class="line-item__sub">Food</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar" style="width:92%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="5.53"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 1,850</strong> <span class="sub">/ 2,000</span>
+                  <div><span class="badge">92%</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Transport 84% -->
+              <div class="line-item">
+                <div class="line-item__icon">🚇</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Transport</div>
+                  <div class="line-item__sub">Getting around</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar" style="width:84%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="11.06"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 420</strong> <span class="sub">/ 500</span>
+                  <div><span class="badge">84%</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Eating Out 114% OVER -->
+              <div class="line-item line-item--over">
+                <div class="line-item__icon">🍕</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Eating Out</div>
+                  <div class="line-item__sub">Restaurants</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar progress__bar--danger" style="width:100%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--danger)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="0"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 320</strong> <span class="sub">/ 280</span>
+                  <div><span class="badge badge--danger">+PLN 40 over</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Healthcare 93% -->
+              <div class="line-item">
+                <div class="line-item__icon">💊</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Healthcare</div>
+                  <div class="line-item__sub">Medical</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar" style="width:93%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="4.84"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 280</strong> <span class="sub">/ 300</span>
+                  <div><span class="badge">93%</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Entertainment 100% -->
+              <div class="line-item">
+                <div class="line-item__icon">🎬</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Entertainment</div>
+                  <div class="line-item__sub">Leisure</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar progress__bar--warn" style="width:100%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--warn)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="0"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 250</strong> <span class="sub">/ 250</span>
+                  <div><span class="badge">100%</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Clothing 70% -->
+              <div class="line-item">
+                <div class="line-item__icon">👕</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Clothing</div>
+                  <div class="line-item__sub">Fashion</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar" style="width:70%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="20.73"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 210</strong> <span class="sub">/ 300</span>
+                  <div><span class="badge">70%</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+              <!-- Subscriptions 69% -->
+              <div class="line-item">
+                <div class="line-item__icon">📱</div>
+                <div class="line-item__main">
+                  <div class="line-item__title">Subscriptions</div>
+                  <div class="line-item__sub">Digital</div>
+                </div>
+                <div class="line-item__bar">
+                  <div class="progress"><div class="progress__bar" style="width:69%"></div></div>
+                </div>
+                <svg class="line-item__ring" width="28" height="28" viewBox="0 0 28 28">
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--s3)" stroke-width="2.5"/>
+                  <circle cx="14" cy="14" r="11" fill="none" stroke="var(--success)" stroke-width="2.5"
+                    stroke-dasharray="69.1" stroke-dashoffset="21.42"
+                    stroke-linecap="round" transform="rotate(-90 14 14)"/>
+                </svg>
+                <div class="line-item__amounts">
+                  <strong>PLN 200</strong> <span class="sub">/ 290</span>
+                  <div><span class="badge">69%</span></div>
+                </div>
+                <button class="line-item__history" title="History">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right column -->
+        <div>
+          <!-- Currency switcher -->
+          <div class="sc">
+            <div class="sc-label">Display currency</div>
+            <div class="curr-row">
+              <button class="curr-btn active">PLN</button>
+              <button class="curr-btn">EUR</button>
+              <button class="curr-btn">UAH</button>
+              <button class="curr-btn">USD</button>
+            </div>
+            <div class="curr-note">Rates as of May 14, 2026</div>
+          </div>
+
+          <!-- Projected savings -->
+          <div class="sc">
+            <div class="sc-label">Projected savings</div>
+            <div class="big-val" style="color:var(--success)">+PLN 5,200</div>
+            <div class="big-sub">after this plan ends</div>
+            <div class="hdiv"></div>
+            <div class="sc-label">Unplanned spending</div>
+            <div class="unpl-row"><span>Amazon</span><span>−PLN 149</span></div>
+            <div class="unpl-row"><span>Taxi</span><span>−PLN 76</span></div>
+            <div class="unpl-row"><span>ATM cash</span><span>−PLN 200</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sync bar -->
+      <div class="sync-bar">
+        <span class="sync-dot"></span>
+        <span>Synced 4 min ago · PKO BP, Wise</span>
+        <a class="sync-link" href="#">Sync now</a>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>
