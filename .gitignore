@@ -7,3 +7,9 @@
 
 # Logs
 *.log
+
+# Build outputs and dependencies
+node_modules/
+dist/
+.turbo/
+*.tsbuildinfo
