@@ -1,0 +1,31 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`formatDate > also accepts Date object 1`] = `"20 Mar 2024"`;
+
+exports[`formatDate > en snapshot 1`] = `"15 Jan 2024"`;
+
+exports[`formatDate > pl snapshot 1`] = `"15 sty 2024"`;
+
+exports[`formatDate > ru snapshot 1`] = `"15 янв. 2024 г."`;
+
+exports[`formatDate > uk snapshot 1`] = `"15 січ. 2024 р."`;
+
+exports[`formatMoney > EUR en snapshot 1`] = `"€10.99"`;
+
+exports[`formatMoney > UAH uk snapshot 1`] = `"9 999,00 ₴"`;
+
+exports[`formatMoney > en snapshot 1`] = `"PLN 1,000.00"`;
+
+exports[`formatMoney > pl snapshot 1`] = `"1000,00 zł"`;
+
+exports[`formatMoney > ru snapshot 1`] = `"1 000,00 PLN"`;
+
+exports[`formatMoney > uk snapshot 1`] = `"1 000,00 PLN"`;
+
+exports[`formatNumber > en snapshot — integer 1`] = `"1,234,567"`;
+
+exports[`formatNumber > pl snapshot — decimal 1`] = `"1234,56"`;
+
+exports[`formatNumber > ru snapshot 1`] = `"1 000 000"`;
+
+exports[`formatNumber > uk snapshot 1`] = `"99,9"`;
