@@ -134,14 +134,14 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 4 — depends on Waves 1–3
 
-| ID      | Title                                          | Area    |
-| ------- | ---------------------------------------------- | ------- |
-| INF-005 | GitHub Actions CI                              | Infra   |
-| INF-015 | Scaffold `packages/shared-app` + Metro spike   | Infra   |
-| BE-001  | Scaffold `packages/backend` (NestJS)           | Backend |
-| BE-003  | Core domain types — IDs + value objects        | Backend |
-| WEB-001 | Scaffold `packages/web` (thin UI wrapper)      | Web     |
-| MOB-001 | Scaffold `packages/mobile` (thin UI wrapper)   | Mobile  |
+| ID      | Title                                          | Area    | Status |
+| ------- | ---------------------------------------------- | ------- | ------ |
+| INF-005 | GitHub Actions CI                              | Infra   | ✅ Done (PR #10) |
+| INF-015 | Scaffold `packages/shared-app` + Metro spike   | Infra   | ✅ Done (PR #12) |
+| BE-001  | Scaffold `packages/backend` (NestJS)           | Backend | ✅ Done (PR #11) |
+| BE-003  | Core domain types — IDs + value objects        | Backend | ✅ Done (PR #15) |
+| WEB-001 | Scaffold `packages/web` (thin UI wrapper)      | Web     | ✅ Done (PR #18) |
+| MOB-001 | Scaffold `packages/mobile` (thin UI wrapper)   | Mobile  | ✅ Done (PR #19) |
 
 ### Wave 5
 
