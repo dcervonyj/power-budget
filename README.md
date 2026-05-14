@@ -2,6 +2,10 @@
 
 A multi-currency household budgeting app that links real bank transactions to a plan.
 
+## Getting started
+
+See [docs/local-setup.md](docs/local-setup.md) for prerequisites and first-time setup.
+
 ## Prerequisites
 
 - Node.js 22 (use `nvm use` or `corepack`)
