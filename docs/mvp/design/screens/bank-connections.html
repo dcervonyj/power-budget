@@ -1,170 +1,285 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Bank connections · Power Budget</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="../styles.css" />
-</head>
-<body>
-  <div class="app">
-    <aside class="sidebar" role="navigation" aria-label="Primary">
-      <a class="brand" href="../index.html">
-        <span class="brand__mark" aria-hidden="true">P</span>
-        <span>Power Budget</span>
-      </a>
-      <nav class="nav">
-        <a class="nav__item" href="dashboard-en.html"><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a>
-        <a class="nav__item" href="plans-list.html"><span class="nav__icon" aria-hidden="true">≡</span> Plans</a>
-        <a class="nav__item" href="transactions.html"><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a>
-        <a class="nav__item nav__item--active" href="bank-connections.html"><span class="nav__icon" aria-hidden="true">🏦</span> Bank Connections</a>
-        <a class="nav__item" href="categories.html"><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a>
-        <a class="nav__item" href="settings.html"><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a>
-      </nav>
-      <div class="sidebar__footer">
-        <span class="avatar avatar--purple">AN</span>
-        <div style="min-width:0;">
-          <div style="font-weight:500;">Anna Nowak</div>
-          <div class="secondary" style="font-size:12px;">Kowalski household</div>
-        </div>
-      </div>
-    </aside>
-
-    <div class="app__main">
-      <header class="topbar" role="banner">
-        <div class="topbar__left">
-          <h1 style="font-size:18px;">Bank connections</h1>
-        </div>
-        <div class="topbar__right">
-          <button class="locale-pill" aria-label="Language">EN ▾</button>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bank connections · Power Budget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" role="navigation" aria-label="Primary">
+        <a class="brand" href="../index.html">
+          <span class="brand__mark" aria-hidden="true">P</span>
+          <span>Power Budget</span>
+        </a>
+        <nav class="nav">
+          <a class="nav__item" href="dashboard-en.html"
+            ><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a
+          >
+          <a class="nav__item" href="plans-list.html"
+            ><span class="nav__icon" aria-hidden="true">≡</span> Plans</a
+          >
+          <a class="nav__item" href="transactions.html"
+            ><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a
+          >
+          <a class="nav__item nav__item--active" href="bank-connections.html"
+            ><span class="nav__icon" aria-hidden="true">🏦</span> Bank
+            Connections</a
+          >
+          <a class="nav__item" href="categories.html"
+            ><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a
+          >
+          <a class="nav__item" href="settings.html"
+            ><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a
+          >
+        </nav>
+        <div class="sidebar__footer">
           <span class="avatar avatar--purple">AN</span>
-        </div>
-      </header>
-
-      <main class="content">
-        <div class="page-header">
-          <div class="page-header__titles">
-            <h1>Bank connections</h1>
-            <p class="page-header__subtitle">PSD2-licensed connections. Tokens are encrypted at rest; no raw credentials.</p>
+          <div style="min-width: 0">
+            <div style="font-weight: 500">Anna Nowak</div>
+            <div class="secondary" style="font-size: 12px">
+              Kowalski household
+            </div>
           </div>
-          <button class="btn btn--primary" onclick="document.getElementById('add-bank-modal').hidden=false">+ Add bank</button>
         </div>
+      </aside>
 
-        <div class="banner banner--warn mb-4">
-          <span class="banner__icon" aria-hidden="true">⚠</span>
-          <div>
-            <div class="banner__title">PKO consent expires in 7 days</div>
-            <div style="font-size:12px; color:var(--text-secondary);">Re-consent now to keep transactions syncing without interruption.</div>
+      <div class="app__main">
+        <header class="topbar" role="banner">
+          <div class="topbar__left">
+            <h1 style="font-size: 18px">Bank connections</h1>
           </div>
-          <button class="btn btn--primary btn--sm banner__action">Re-consent</button>
-        </div>
+          <div class="topbar__right">
+            <button class="locale-pill" aria-label="Language">EN ▾</button>
+            <span class="avatar avatar--purple">AN</span>
+          </div>
+        </header>
 
-        <div class="stack">
-          <div class="bank-card">
-            <div class="bank-logo bank-logo--pko" aria-hidden="true">PKO</div>
+        <main class="content">
+          <div class="page-header">
+            <div class="page-header__titles">
+              <h1>Bank connections</h1>
+              <p class="page-header__subtitle">
+                PSD2-licensed connections. Tokens are encrypted at rest; no raw
+                credentials.
+              </p>
+            </div>
+            <button
+              class="btn btn--primary"
+              onclick="document.getElementById('add-bank-modal').hidden = false"
+            >
+              + Add bank
+            </button>
+          </div>
+
+          <div class="banner banner--warn mb-4">
+            <span class="banner__icon" aria-hidden="true">⚠</span>
             <div>
-              <strong>PKO Bank Polski</strong>
-              <div class="bank-card__meta">
-                <span class="dot dot--warn"></span> Re-consent in 7 days · last synced 12 min ago
-              </div>
-              <div class="bank-card__meta" style="margin-top:4px;">
-                3 accounts · Anna: PLN current · Marek: PLN current · Joint: PLN savings
+              <div class="banner__title">PKO consent expires in 7 days</div>
+              <div style="font-size: 12px; color: var(--text-secondary)">
+                Re-consent now to keep transactions syncing without
+                interruption.
               </div>
             </div>
-            <div class="bank-card__actions">
-              <button class="btn btn--secondary btn--sm">↻ Refresh</button>
-              <button class="btn btn--ghost btn--sm">⋯</button>
+            <button class="btn btn--primary btn--sm banner__action">
+              Re-consent
+            </button>
+          </div>
+
+          <div class="stack">
+            <div class="bank-card">
+              <div class="bank-logo bank-logo--pko" aria-hidden="true">PKO</div>
+              <div>
+                <strong>PKO Bank Polski</strong>
+                <div class="bank-card__meta">
+                  <span class="dot dot--warn"></span> Re-consent in 7 days ·
+                  last synced 12 min ago
+                </div>
+                <div class="bank-card__meta" style="margin-top: 4px">
+                  3 accounts · Anna: PLN current · Marek: PLN current · Joint:
+                  PLN savings
+                </div>
+              </div>
+              <div class="bank-card__actions">
+                <button class="btn btn--secondary btn--sm">↻ Refresh</button>
+                <button class="btn btn--ghost btn--sm">⋯</button>
+              </div>
+            </div>
+
+            <div class="bank-card">
+              <div class="bank-logo bank-logo--wise" aria-hidden="true">
+                Wise
+              </div>
+              <div>
+                <strong>Wise Multi-Currency</strong>
+                <div class="bank-card__meta">
+                  <span class="dot dot--success"></span> Healthy · last synced 4
+                  min ago
+                </div>
+                <div class="bank-card__meta" style="margin-top: 4px">
+                  4 jars · EUR · USD · GBP · UAH
+                </div>
+              </div>
+              <div class="bank-card__actions">
+                <button class="btn btn--secondary btn--sm">↻ Refresh</button>
+                <button class="btn btn--ghost btn--sm">⋯</button>
+              </div>
+            </div>
+
+            <div class="bank-card" style="opacity: 0.7">
+              <div class="bank-logo bank-logo--mbank" aria-hidden="true">
+                mB
+              </div>
+              <div>
+                <strong
+                  >mBank Polska
+                  <span class="badge" style="margin-left: 8px"
+                    >Disconnected</span
+                  ></strong
+                >
+                <div class="bank-card__meta">
+                  <span class="dot dot--danger"></span> Consent expired Apr 28 ·
+                  history kept read-only
+                </div>
+                <div class="bank-card__meta" style="margin-top: 4px">
+                  1 account · PLN current (closed in app)
+                </div>
+              </div>
+              <div class="bank-card__actions">
+                <button class="btn btn--primary btn--sm">Reconnect</button>
+                <button class="btn btn--ghost btn--sm">⋯</button>
+              </div>
             </div>
           </div>
 
-          <div class="bank-card">
-            <div class="bank-logo bank-logo--wise" aria-hidden="true">Wise</div>
-            <div>
-              <strong>Wise Multi-Currency</strong>
-              <div class="bank-card__meta">
-                <span class="dot dot--success"></span> Healthy · last synced 4 min ago
-              </div>
-              <div class="bank-card__meta" style="margin-top:4px;">
-                4 jars · EUR · USD · GBP · UAH
-              </div>
-            </div>
-            <div class="bank-card__actions">
-              <button class="btn btn--secondary btn--sm">↻ Refresh</button>
-              <button class="btn btn--ghost btn--sm">⋯</button>
-            </div>
+          <div class="card mt-6">
+            <h3 class="mb-3">How syncing works</h3>
+            <ul
+              class="secondary"
+              style="padding-left: 20px; margin: 0; line-height: 1.8"
+            >
+              <li>
+                Transactions are pulled in the background every hour and on
+                demand via <strong>Refresh</strong>.
+              </li>
+              <li>
+                PKO BP consent must be re-confirmed every 90 days (PSD2
+                regulation). We email you 7 and 1 day before expiry.
+              </li>
+              <li>
+                Disconnecting keeps history read-only — you won't lose past
+                mappings.
+              </li>
+              <li>
+                Two-factor authentication is required while any bank is
+                connected.
+              </li>
+            </ul>
           </div>
-
-          <div class="bank-card" style="opacity:0.7;">
-            <div class="bank-logo bank-logo--mbank" aria-hidden="true">mB</div>
-            <div>
-              <strong>mBank Polska <span class="badge" style="margin-left:8px;">Disconnected</span></strong>
-              <div class="bank-card__meta">
-                <span class="dot dot--danger"></span> Consent expired Apr 28 · history kept read-only
-              </div>
-              <div class="bank-card__meta" style="margin-top:4px;">
-                1 account · PLN current (closed in app)
-              </div>
-            </div>
-            <div class="bank-card__actions">
-              <button class="btn btn--primary btn--sm">Reconnect</button>
-              <button class="btn btn--ghost btn--sm">⋯</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card mt-6">
-          <h3 class="mb-3">How syncing works</h3>
-          <ul class="secondary" style="padding-left:20px; margin:0; line-height:1.8;">
-            <li>Transactions are pulled in the background every hour and on demand via <strong>Refresh</strong>.</li>
-            <li>PKO BP consent must be re-confirmed every 90 days (PSD2 regulation). We email you 7 and 1 day before expiry.</li>
-            <li>Disconnecting keeps history read-only — you won't lose past mappings.</li>
-            <li>Two-factor authentication is required while any bank is connected.</li>
-          </ul>
-        </div>
-      </main>
-    </div>
-  </div>
-
-  <div class="modal-backdrop" id="add-bank-modal" hidden>
-    <div class="modal" role="dialog" aria-labelledby="add-bank-title" aria-modal="true">
-      <header class="modal__header">
-        <h3 id="add-bank-title">Add a bank</h3>
-        <button class="icon-btn" onclick="document.getElementById('add-bank-modal').hidden=true" aria-label="Close">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </header>
-      <div class="modal__body">
-        <p class="secondary mb-4">Pick a bank to connect. You'll be redirected to confirm consent.</p>
-        <div class="stack">
-          <button class="card card--compact row" style="cursor:pointer; gap:12px; text-align:left;">
-            <div class="bank-logo bank-logo--pko" style="width:40px; height:40px; font-size:14px;">PKO</div>
-            <div style="flex:1;">
-              <strong>PKO Bank Polski</strong>
-              <div class="secondary" style="font-size:12px;">Personal &amp; joint accounts in PLN</div>
-            </div>
-            <span class="secondary">›</span>
-          </button>
-          <button class="card card--compact row" style="cursor:pointer; gap:12px; text-align:left;">
-            <div class="bank-logo bank-logo--wise" style="width:40px; height:40px; font-size:14px;">W</div>
-            <div style="flex:1;">
-              <strong>Wise</strong>
-              <div class="secondary" style="font-size:12px;">Multi-currency: EUR · USD · GBP · UAH and more</div>
-            </div>
-            <span class="secondary">›</span>
-          </button>
-          <div class="card card--compact" style="border-style:dashed; text-align:center; color:var(--text-secondary);">
-            <strong>More banks coming in v2</strong>
-            <p style="font-size:12px; margin-top:4px;">Monobank (Ukraine), mBank, Revolut, and others.</p>
-          </div>
-        </div>
+        </main>
       </div>
-      <footer class="modal__footer">
-        <button class="btn btn--ghost" onclick="document.getElementById('add-bank-modal').hidden=true">Cancel</button>
-      </footer>
     </div>
-  </div>
-</body>
+
+    <div class="modal-backdrop" id="add-bank-modal" hidden>
+      <div
+        class="modal"
+        role="dialog"
+        aria-labelledby="add-bank-title"
+        aria-modal="true"
+      >
+        <header class="modal__header">
+          <h3 id="add-bank-title">Add a bank</h3>
+          <button
+            class="icon-btn"
+            onclick="document.getElementById('add-bank-modal').hidden = true"
+            aria-label="Close"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </header>
+        <div class="modal__body">
+          <p class="secondary mb-4">
+            Pick a bank to connect. You'll be redirected to confirm consent.
+          </p>
+          <div class="stack">
+            <button
+              class="card card--compact row"
+              style="cursor: pointer; gap: 12px; text-align: left"
+            >
+              <div
+                class="bank-logo bank-logo--pko"
+                style="width: 40px; height: 40px; font-size: 14px"
+              >
+                PKO
+              </div>
+              <div style="flex: 1">
+                <strong>PKO Bank Polski</strong>
+                <div class="secondary" style="font-size: 12px">
+                  Personal &amp; joint accounts in PLN
+                </div>
+              </div>
+              <span class="secondary">›</span>
+            </button>
+            <button
+              class="card card--compact row"
+              style="cursor: pointer; gap: 12px; text-align: left"
+            >
+              <div
+                class="bank-logo bank-logo--wise"
+                style="width: 40px; height: 40px; font-size: 14px"
+              >
+                W
+              </div>
+              <div style="flex: 1">
+                <strong>Wise</strong>
+                <div class="secondary" style="font-size: 12px">
+                  Multi-currency: EUR · USD · GBP · UAH and more
+                </div>
+              </div>
+              <span class="secondary">›</span>
+            </button>
+            <div
+              class="card card--compact"
+              style="
+                border-style: dashed;
+                text-align: center;
+                color: var(--text-secondary);
+              "
+            >
+              <strong>More banks coming in v2</strong>
+              <p style="font-size: 12px; margin-top: 4px">
+                Monobank (Ukraine), mBank, Revolut, and others.
+              </p>
+            </div>
+          </div>
+        </div>
+        <footer class="modal__footer">
+          <button
+            class="btn btn--ghost"
+            onclick="document.getElementById('add-bank-modal').hidden = true"
+          >
+            Cancel
+          </button>
+        </footer>
+      </div>
+    </div>
+  </body>
 </html>

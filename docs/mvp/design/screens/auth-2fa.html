@@ -1,81 +1,210 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Two-factor authentication · Power Budget</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
-  <link rel="stylesheet" href="../styles.css" />
-</head>
-<body>
-  <main class="auth-shell">
-    <section class="auth-card auth-card--wide" id="verify-state" aria-labelledby="auth-title">
-      <a class="auth-card__brand" href="../index.html">
-        <span class="brand__mark" aria-hidden="true">P</span>
-        <span>Power Budget</span>
-      </a>
-      <h1 id="auth-title">Two-factor authentication</h1>
-      <p class="auth-card__lede">Enter the 6-digit code from your authenticator app.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Two-factor authentication · Power Budget</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    />
+    <link rel="stylesheet" href="../styles.css" />
+  </head>
+  <body>
+    <main class="auth-shell">
+      <section
+        class="auth-card auth-card--wide"
+        id="verify-state"
+        aria-labelledby="auth-title"
+      >
+        <a class="auth-card__brand" href="../index.html">
+          <span class="brand__mark" aria-hidden="true">P</span>
+          <span>Power Budget</span>
+        </a>
+        <h1 id="auth-title">Two-factor authentication</h1>
+        <p class="auth-card__lede">
+          Enter the 6-digit code from your authenticator app.
+        </p>
 
-      <div class="totp-input" role="group" aria-label="Verification code">
-        <input type="text" inputmode="numeric" maxlength="1" value="4" aria-label="Digit 1" />
-        <input type="text" inputmode="numeric" maxlength="1" value="8" aria-label="Digit 2" />
-        <input type="text" inputmode="numeric" maxlength="1" value="2" aria-label="Digit 3" />
-        <input type="text" inputmode="numeric" maxlength="1" value="9" aria-label="Digit 4" />
-        <input type="text" inputmode="numeric" maxlength="1" value="1" aria-label="Digit 5" />
-        <input type="text" inputmode="numeric" maxlength="1" value="" aria-label="Digit 6" />
-      </div>
-
-      <button class="btn btn--primary btn--block btn--lg" onclick="window.location.href='dashboard-en.html'">Verify and continue</button>
-
-      <p class="auth-card__footer">
-        Can't access your authenticator? <a href="#">Use a recovery code</a>
-      </p>
-      <p class="auth-card__footer" style="margin-top:8px;">
-        New here? <a href="#" onclick="document.getElementById('verify-state').hidden=true; document.getElementById('setup-state').hidden=false; return false;">Set up 2FA →</a>
-      </p>
-    </section>
-
-    <section class="auth-card auth-card--wide" id="setup-state" hidden aria-labelledby="setup-title">
-      <a class="auth-card__brand" href="../index.html">
-        <span class="brand__mark" aria-hidden="true">P</span>
-        <span>Power Budget</span>
-      </a>
-      <h1 id="setup-title">Set up 2FA</h1>
-      <p class="auth-card__lede">Required before connecting a bank. We recommend 1Password, Bitwarden, or Authy.</p>
-
-      <ol class="stack" style="padding-left:20px; color:var(--text-secondary);">
-        <li>Scan the QR code below with your authenticator app.</li>
-        <li>Enter the 6-digit code your app generates.</li>
-        <li>Save the recovery codes somewhere safe.</li>
-      </ol>
-
-      <div class="qr-placeholder" role="img" aria-label="QR code for two-factor setup"></div>
-
-      <div class="field" style="margin-bottom:16px;">
-        <label class="field__label" for="manual">Or enter this secret manually</label>
-        <div class="input-group">
-          <input class="input" id="manual" value="JBSWY3DPEHPK3PXPGAYDM" readonly />
-          <span class="input-group__addon">Copy</span>
+        <div class="totp-input" role="group" aria-label="Verification code">
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            value="4"
+            aria-label="Digit 1"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            value="8"
+            aria-label="Digit 2"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            value="2"
+            aria-label="Digit 3"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            value="9"
+            aria-label="Digit 4"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            value="1"
+            aria-label="Digit 5"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            value=""
+            aria-label="Digit 6"
+          />
         </div>
-      </div>
 
-      <div class="totp-input" role="group" aria-label="Setup verification code">
-        <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 1" />
-        <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 2" />
-        <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 3" />
-        <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 4" />
-        <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 5" />
-        <input type="text" inputmode="numeric" maxlength="1" aria-label="Digit 6" />
-      </div>
+        <button
+          class="btn btn--primary btn--block btn--lg"
+          onclick="window.location.href = 'dashboard-en.html'"
+        >
+          Verify and continue
+        </button>
 
-      <div class="row" style="margin-top:16px;">
-        <button class="btn btn--ghost" onclick="document.getElementById('setup-state').hidden=true; document.getElementById('verify-state').hidden=false;">Back</button>
-        <button class="btn btn--primary" style="margin-left:auto;" onclick="window.location.href='dashboard-en.html'">Activate 2FA</button>
-      </div>
-    </section>
-  </main>
-</body>
+        <p class="auth-card__footer">
+          Can't access your authenticator? <a href="#">Use a recovery code</a>
+        </p>
+        <p class="auth-card__footer" style="margin-top: 8px">
+          New here?
+          <a
+            href="#"
+            onclick="
+              document.getElementById('verify-state').hidden = true;
+              document.getElementById('setup-state').hidden = false;
+              return false;
+            "
+            >Set up 2FA →</a
+          >
+        </p>
+      </section>
+
+      <section
+        class="auth-card auth-card--wide"
+        id="setup-state"
+        hidden
+        aria-labelledby="setup-title"
+      >
+        <a class="auth-card__brand" href="../index.html">
+          <span class="brand__mark" aria-hidden="true">P</span>
+          <span>Power Budget</span>
+        </a>
+        <h1 id="setup-title">Set up 2FA</h1>
+        <p class="auth-card__lede">
+          Required before connecting a bank. We recommend 1Password, Bitwarden,
+          or Authy.
+        </p>
+
+        <ol
+          class="stack"
+          style="padding-left: 20px; color: var(--text-secondary)"
+        >
+          <li>Scan the QR code below with your authenticator app.</li>
+          <li>Enter the 6-digit code your app generates.</li>
+          <li>Save the recovery codes somewhere safe.</li>
+        </ol>
+
+        <div
+          class="qr-placeholder"
+          role="img"
+          aria-label="QR code for two-factor setup"
+        ></div>
+
+        <div class="field" style="margin-bottom: 16px">
+          <label class="field__label" for="manual"
+            >Or enter this secret manually</label
+          >
+          <div class="input-group">
+            <input
+              class="input"
+              id="manual"
+              value="JBSWY3DPEHPK3PXPGAYDM"
+              readonly
+            />
+            <span class="input-group__addon">Copy</span>
+          </div>
+        </div>
+
+        <div
+          class="totp-input"
+          role="group"
+          aria-label="Setup verification code"
+        >
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            aria-label="Digit 1"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            aria-label="Digit 2"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            aria-label="Digit 3"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            aria-label="Digit 4"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            aria-label="Digit 5"
+          />
+          <input
+            type="text"
+            inputmode="numeric"
+            maxlength="1"
+            aria-label="Digit 6"
+          />
+        </div>
+
+        <div class="row" style="margin-top: 16px">
+          <button
+            class="btn btn--ghost"
+            onclick="
+              document.getElementById('setup-state').hidden = true;
+              document.getElementById('verify-state').hidden = false;
+            "
+          >
+            Back
+          </button>
+          <button
+            class="btn btn--primary"
+            style="margin-left: auto"
+            onclick="window.location.href = 'dashboard-en.html'"
+          >
+            Activate 2FA
+          </button>
+        </div>
+      </section>
+    </main>
+  </body>
 </html>
