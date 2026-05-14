@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 02: Bento Grid</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f0eef8;
+        --surface: #ffffff;
+        --surface2: #f8f7fc;
+        --border: rgba(0, 0, 0, 0.06);
+        --ink: #1a1625;
+        --ink2: #5b5572;
+        --ink3: #9990b8;
+        --accent: #7c5cbf;
+        --accent-light: #ede9f8;
+        --success: #22c55e;
+        --success-light: #dcfce7;
+        --warn: #f59e0b;
+        --warn-light: #fef3c7;
+        --danger: #ef4444;
+        --danger-light: #fee2e2;
+        --radius: 20px;
+        --radius-sm: 12px;
+        --shadow:
+          0 2px 16px rgba(100, 80, 160, 0.08),
+          0 0 0 1px rgba(100, 80, 160, 0.05);
+        --shadow-lg:
+          0 8px 40px rgba(100, 80, 160, 0.14),
+          0 0 0 1px rgba(100, 80, 160, 0.06);
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+
+      /* TOP BAR */
+      .topbar {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 0 28px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 1px 8px rgba(100, 80, 160, 0.06);
+      }
+      .logo {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        color: var(--ink);
+      }
+      .logo span {
+        color: var(--accent);
+      }
+      .topbar-center {
+        background: var(--accent-light);
+        border-radius: 999px;
+        padding: 6px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .topbar-center .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .lang-group {
+        display: flex;
+        gap: 6px;
+      }
+      .lang-btn {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--ink3);
+      }
+      .lang-btn.active {
+        background: var(--ink);
+        color: white;
+      }
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7c5cbf, #a78bfa);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: white;
+        box-shadow: 0 2px 8px rgba(124, 92, 191, 0.4);
+      }
+
+      /* PAGE */
+      .page {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 24px 60px;
+      }
+
+      /* PLAN STRIP */
+      .plan-strip {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 20px 24px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        box-shadow: var(--shadow);
+      }
+      .plan-left {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .plan-name {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+      .plan-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--ink2);
+      }
+      .type-badge {
+        background: var(--accent-light);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+      }
+      .plan-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .days-chip {
+        background: linear-gradient(135deg, #7c5cbf, #a78bfa);
+        color: white;
+        border-radius: var(--radius-sm);
+        padding: 12px 20px;
+        text-align: center;
+      }
+      .days-chip .num {
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -1px;
+      }
+      .days-chip .lbl {
+        font-size: 11px;
+        font-weight: 500;
+        opacity: 0.8;
+        margin-top: 2px;
+      }
+      .switcher-chip {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+        cursor: pointer;
+      }
+
+      /* BENTO GRID */
+      .bento {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .bento-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 22px;
+        box-shadow: var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+      .bento-card.wide {
+        grid-column: span 2;
+      }
+      .bento-card.full {
+        grid-column: span 3;
+      }
+      .bento-card.tall {
+        grid-row: span 2;
+      }
+
+      .card-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink3);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+
+      /* INCOME CARD */
+      .income-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .income-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .income-bar-wrap {
+        flex: 1;
+      }
+      .income-bar-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      .income-bar-track {
+        height: 6px;
+        background: var(--bg);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .income-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+      .income-chip {
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      /* EXPENSES CARD */
+      .exp-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+      }
+      .exp-item:last-child {
+        border-bottom: none;
+      }
+      .exp-icon {
+        font-size: 18px;
+        width: 32px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .exp-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .exp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 4px;
+      }
+      .exp-name {
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .exp-amounts {
+        font-size: 12px;
+        color: var(--ink2);
+        white-space: nowrap;
+      }
+      .exp-bar-track {
+        height: 5px;
+        background: var(--bg);
+        border-radius: 999px;
+        overflow: visible;
+        position: relative;
+      }
+      .exp-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        position: relative;
+        max-width: 100%;
+      }
+      .exp-pct {
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .exp-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .exp-btn {
+        font-size: 14px;
+        color: var(--ink3);
+        cursor: pointer;
+      }
+
+      /* BIG NUMBER CARDS */
+      .big-number {
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        line-height: 1;
+        margin: 8px 0 4px;
+      }
+      .sub-text {
+        font-size: 12px;
+        color: var(--ink2);
+      }
+
+      /* SAVINGS CARD */
+      .savings-card {
+        background: linear-gradient(135deg, #1a1625 0%, #2d1f4e 100%);
+        color: white;
+      }
+      .savings-card .card-label {
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .savings-card .big-number {
+        color: #a78bfa;
+      }
+      .savings-card .sub-text {
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+      /* NET CARD */
+      .net-card-bento {
+        background: linear-gradient(135deg, #0f7f5c 0%, #22c55e 100%);
+        color: white;
+      }
+      .net-card-bento .card-label {
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .net-card-bento .big-number {
+        color: white;
+        font-size: 44px;
+      }
+      .net-card-bento .sub-text {
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      /* CURRENCY PILLS */
+      .curr-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+        flex-wrap: wrap;
+      }
+      .curr-p {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 5px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        color: rgba(255, 255, 255, 0.7);
+      }
+      .curr-p.active {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+
+      /* UNPLANNED CARDS */
+      .unplanned-exp {
+        background: #fff7ed;
+        border: 1.5px solid #fed7aa;
+      }
+      .unplanned-inc {
+        background: #f0fdf4;
+        border: 1.5px solid #bbf7d0;
+      }
+
+      /* SPARKLINE */
+      .spark-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        margin-top: 14px;
+      }
+      .spark-bar {
+        width: 10px;
+        border-radius: 3px 3px 0 0;
+        background: rgba(167, 139, 250, 0.4);
+      }
+      .spark-bar.hi {
+        background: #a78bfa;
+      }
+
+      /* SYNC */
+      .sync-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--ink3);
+        padding: 10px 0 0;
+      }
+      .sync-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+        flex-shrink: 0;
+      }
+      .sync-link {
+        color: var(--accent);
+        cursor: pointer;
+      }
+
+      @media (max-width: 700px) {
+        .bento {
+          grid-template-columns: 1fr;
+        }
+        .bento-card.wide,
+        .bento-card.full,
+        .bento-card.tall {
+          grid-column: span 1;
+          grid-row: span 1;
+        }
+        .plan-strip {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">Power<span>Budget</span></div>
+      <div class="topbar-center">
+        <span class="dot"></span>
+        May 2026 — Household
+      </div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- PLAN STRIP -->
+      <div class="plan-strip">
+        <div class="plan-left">
+          <div class="plan-name">May 2026 — Household</div>
+          <div class="plan-meta">
+            <span class="type-badge">Household</span>
+            May 1 – May 31, 2026
+          </div>
+        </div>
+        <div class="plan-right">
+          <div class="days-chip">
+            <div class="num">17</div>
+            <div class="lbl">days left</div>
+          </div>
+          <div class="switcher-chip">+2 active plans ↓</div>
+        </div>
+      </div>
+
+      <!-- BENTO GRID -->
+      <div class="bento">
+        <!-- INCOME — wide -->
+        <div class="bento-card wide">
+          <div class="card-label">Expected Income</div>
+
+          <div class="income-item">
+            <div style="font-size: 18px">💼</div>
+            <div class="income-bar-wrap">
+              <div class="income-bar-label">
+                <span style="font-weight: 600">Salary</span>
+                <span style="color: var(--success); font-weight: 700"
+                  >12,000 / 12,000 PLN</span
+                >
+              </div>
+              <div class="income-bar-track">
+                <div
+                  class="income-bar-fill"
+                  style="width: 100%; background: var(--success)"
+                ></div>
+              </div>
+            </div>
+            <span class="income-chip" style="color: var(--success)">100%</span>
+          </div>
+
+          <div class="income-item">
+            <div style="font-size: 18px">💻</div>
+            <div class="income-bar-wrap">
+              <div class="income-bar-label">
+                <span style="font-weight: 600">Freelance</span>
+                <span style="color: var(--warn); font-weight: 700"
+                  >1,500 / 3,000 PLN</span
+                >
+              </div>
+              <div class="income-bar-track">
+                <div
+                  class="income-bar-fill"
+                  style="width: 50%; background: var(--warn)"
+                ></div>
+              </div>
+            </div>
+            <span class="income-chip" style="color: var(--warn)">50%</span>
+          </div>
+
+          <div class="income-item">
+            <div style="font-size: 18px">🏡</div>
+            <div class="income-bar-wrap">
+              <div class="income-bar-label">
+                <span style="font-weight: 600">Side rental</span>
+                <span style="color: var(--ink3); font-weight: 700"
+                  >0 / 1,200 PLN</span
+                >
+              </div>
+              <div class="income-bar-track">
+                <div
+                  class="income-bar-fill"
+                  style="width: 0%; background: var(--ink3)"
+                ></div>
+              </div>
+            </div>
+            <span class="income-chip" style="color: var(--ink3)">Pending</span>
+          </div>
+        </div>
+
+        <!-- DAYS (already in plan strip) — Net card small -->
+        <div class="bento-card net-card-bento">
+          <div class="card-label">Period Net</div>
+          <div class="big-number">+2,098</div>
+          <div class="sub-text">PLN this month</div>
+          <div class="curr-row">
+            <div class="curr-p active">PLN</div>
+            <div class="curr-p">€491</div>
+            <div class="curr-p">$529</div>
+            <div class="curr-p">₴20.4k</div>
+          </div>
+        </div>
+
+        <!-- EXPENSES — full width -->
+        <div class="bento-card full">
+          <div class="card-label">Planned Expenses</div>
+          <div
+            style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px"
+          >
+            <div class="exp-item">
+              <div class="exp-icon">🏠</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Rent</span>
+                  <span class="exp-amounts" style="color: var(--success)"
+                    >3,500 / 3,500 PLN</span
+                  >
+                </div>
+                <div class="exp-bar-track">
+                  <div
+                    class="exp-bar-fill"
+                    style="width: 100%; background: var(--success)"
+                  ></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--success)">✓</div>
+              <div class="exp-actions">
+                <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+              </div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">🛒</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Groceries</span>
+                  <span class="exp-amounts" style="color: var(--warn)"
+                    >1,640 / 2,000 PLN</span
+                  >
+                </div>
+                <div class="exp-bar-track">
+                  <div
+                    class="exp-bar-fill"
+                    style="width: 82%; background: var(--warn)"
+                  ></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--warn)">82%</div>
+              <div class="exp-actions">
+                <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+              </div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">⚡</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Utilities</span>
+                  <span class="exp-amounts" style="color: var(--warn)"
+                    >540 / 600 PLN</span
+                  >
+                </div>
+                <div class="exp-bar-track">
+                  <div
+                    class="exp-bar-fill"
+                    style="width: 90%; background: var(--warn)"
+                  ></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--warn)">90%</div>
+              <div class="exp-actions">
+                <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+              </div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">🚌</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Transport</span>
+                  <span class="exp-amounts">215 / 400 PLN</span>
+                </div>
+                <div class="exp-bar-track">
+                  <div
+                    class="exp-bar-fill"
+                    style="width: 54%; background: #60a5fa"
+                  ></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--ink2)">54%</div>
+              <div class="exp-actions">
+                <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+              </div>
+            </div>
+
+            <div
+              class="exp-item"
+              style="
+                background: #fff5f5;
+                border-radius: 10px;
+                padding: 8px 10px;
+                margin: -2px -4px;
+              "
+            >
+              <div class="exp-icon">🍽️</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name"
+                    >Eating Out
+                    <span
+                      style="
+                        font-size: 10px;
+                        color: var(--danger);
+                        font-weight: 700;
+                      "
+                      >+220 over!</span
+                    ></span
+                  >
+                  <span class="exp-amounts" style="color: var(--danger)"
+                    >720 / 500 PLN</span
+                  >
+                </div>
+                <div class="exp-bar-track">
+                  <div
+                    class="exp-bar-fill"
+                    style="width: 100%; background: var(--danger)"
+                  ></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--danger)">144%</div>
+              <div class="exp-actions">
+                <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+              </div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">📱</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Subscriptions</span>
+                  <span class="exp-amounts" style="color: var(--success)"
+                    >180 / 180 PLN</span
+                  >
+                </div>
+                <div class="exp-bar-track">
+                  <div
+                    class="exp-bar-fill"
+                    style="width: 100%; background: var(--success)"
+                  ></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--success)">✓</div>
+              <div class="exp-actions">
+                <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNPLANNED EXP -->
+        <div class="bento-card unplanned-exp">
+          <div class="card-label" style="color: #9a3412">
+            Unplanned Expenses
+          </div>
+          <div class="big-number" style="color: #c2410c">487</div>
+          <div class="sub-text" style="color: #9a3412">
+            PLN · 6 transactions
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              font-size: 12px;
+              color: #c2410c;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            View all →
+          </div>
+        </div>
+
+        <!-- UNPLANNED INC -->
+        <div class="bento-card unplanned-inc">
+          <div class="card-label" style="color: #14532d">Unplanned Income</div>
+          <div class="big-number" style="color: #16a34a">250</div>
+          <div class="sub-text" style="color: #166534">
+            PLN · 1 transaction (gift)
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              font-size: 12px;
+              color: #16a34a;
+              font-weight: 600;
+              cursor: pointer;
+            "
+          >
+            View all →
+          </div>
+        </div>
+
+        <!-- SAVINGS -->
+        <div class="bento-card savings-card">
+          <div class="card-label">Saved This Period</div>
+          <div class="big-number">425 PLN</div>
+          <div class="sub-text">projected · total: 3,847 PLN</div>
+          <div class="spark-row">
+            <div class="spark-bar" style="height: 20px"></div>
+            <div class="spark-bar" style="height: 28px"></div>
+            <div class="spark-bar" style="height: 18px"></div>
+            <div class="spark-bar" style="height: 32px"></div>
+            <div class="spark-bar" style="height: 24px"></div>
+            <div class="spark-bar" style="height: 36px"></div>
+            <div class="spark-bar hi" style="height: 30px"></div>
+          </div>
+          <div class="sync-row" style="padding-top: 12px">
+            <span class="sync-dot"></span>
+            <span>Last synced 4 min ago · PKO BP, Wise</span>
+            <span class="sync-link">Refresh</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

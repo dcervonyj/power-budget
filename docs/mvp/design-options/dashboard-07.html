@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 07: Soft Claymorphism / Notion-Warm</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,600;0,9..144,700;1,9..144,400&family=Nunito:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f5f0e8;
+        --bg2: #ede7db;
+        --surface: #faf7f2;
+        --surface2: #f0ebe0;
+        --border: #e0d8cc;
+        --ink: #2c2416;
+        --ink2: #6b5d4a;
+        --ink3: #a8967e;
+        --accent: #e8863a;
+        --accent-light: #fef0e4;
+        --success: #3d9970;
+        --success-light: #e4f5ed;
+        --warn: #d4882a;
+        --warn-light: #fef4e2;
+        --danger: #c94040;
+        --danger-light: #fceaea;
+        --blue: #4a7ab5;
+        --blue-light: #e8f0fa;
+        --shadow-clay:
+          6px 6px 14px rgba(100, 70, 30, 0.12),
+          -2px -2px 8px rgba(255, 255, 255, 0.7);
+        --shadow-clay-sm:
+          3px 3px 8px rgba(100, 70, 30, 0.1),
+          -1px -1px 5px rgba(255, 255, 255, 0.6);
+        --shadow-inset:
+          inset 2px 2px 6px rgba(100, 70, 30, 0.1),
+          inset -2px -2px 6px rgba(255, 255, 255, 0.5);
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Nunito", sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
+        min-height: 100vh;
+      }
+
+      /* TOP BAR */
+      .topbar {
+        background: var(--surface);
+        border-bottom: 1.5px solid var(--border);
+        padding: 0 28px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 2px 12px rgba(100, 70, 30, 0.07);
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: "Fraunces", serif;
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.5px;
+      }
+      .logo-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        background: var(--accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: var(--shadow-clay-sm);
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .lang-group {
+        display: flex;
+        gap: 4px;
+      }
+      .lang-btn {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 5px 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        color: var(--ink3);
+        transition: all 0.2s;
+      }
+      .lang-btn.active {
+        background: var(--surface);
+        color: var(--accent);
+        box-shadow: var(--shadow-clay-sm);
+      }
+      .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #e8863a, #d4882a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 800;
+        color: white;
+        box-shadow: var(--shadow-clay-sm);
+      }
+
+      /* PAGE */
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 32px 24px 70px;
+      }
+
+      /* CLAY CARD */
+      .clay {
+        background: var(--surface);
+        border-radius: 20px;
+        box-shadow: var(--shadow-clay);
+        border: 1.5px solid rgba(255, 255, 255, 0.8);
+      }
+      .clay-sm {
+        background: var(--surface);
+        border-radius: 14px;
+        box-shadow: var(--shadow-clay-sm);
+        border: 1px solid rgba(255, 255, 255, 0.7);
+      }
+
+      /* PLAN HEADER */
+      .plan-card {
+        padding: 24px 28px;
+        margin-bottom: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .plan-emoji {
+        font-size: 40px;
+        margin-right: 4px;
+      }
+      .plan-kicker {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--accent);
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .plan-kicker::before {
+        content: "🏠";
+        font-size: 13px;
+      }
+      .plan-title {
+        font-family: "Fraunces", serif;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: var(--ink);
+        line-height: 1.2;
+        margin-bottom: 8px;
+      }
+      .plan-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .meta-chip {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 12px;
+        border-radius: 999px;
+        background: var(--surface2);
+        color: var(--ink2);
+        box-shadow: var(--shadow-inset);
+      }
+      .meta-chip.accent-chip {
+        background: var(--accent-light);
+        color: var(--accent);
+      }
+      .switcher-btn {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--accent);
+        cursor: pointer;
+        text-decoration: none;
+        background: var(--accent-light);
+        padding: 4px 12px;
+        border-radius: 999px;
+      }
+      .days-blob {
+        background: linear-gradient(135deg, #e8863a, #d4621a);
+        border-radius: 20px;
+        padding: 18px 22px;
+        text-align: center;
+        box-shadow:
+          6px 6px 16px rgba(232, 134, 58, 0.35),
+          -2px -2px 8px rgba(255, 200, 150, 0.4);
+        flex-shrink: 0;
+      }
+      .days-blob .num {
+        font-family: "Fraunces", serif;
+        font-size: 42px;
+        font-weight: 700;
+        color: white;
+        line-height: 1;
+        letter-spacing: -2px;
+      }
+      .days-blob .lbl {
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+
+      /* SECTION HEADING */
+      .sect {
+        margin-bottom: 22px;
+      }
+      .sect-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .sect-title {
+        font-family: "Fraunces", serif;
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.3px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .sect-total {
+        font-size: 12px;
+        color: var(--ink3);
+        font-weight: 600;
+      }
+
+      /* INCOME ROWS */
+      .inc-card {
+        padding: 6px 6px;
+      }
+      .inc-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        border-radius: 12px;
+        margin-bottom: 4px;
+        transition: background 0.15s;
+      }
+      .inc-row:hover {
+        background: var(--surface2);
+      }
+      .inc-row:last-child {
+        margin-bottom: 0;
+      }
+      .inc-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        box-shadow: var(--shadow-clay-sm);
+        flex-shrink: 0;
+      }
+      .inc-body {
+        flex: 1;
+      }
+      .inc-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+      }
+      .inc-name {
+        font-weight: 700;
+        font-size: 14px;
+      }
+      .inc-amounts {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .inc-bar {
+        height: 6px;
+        border-radius: 999px;
+        box-shadow: var(--shadow-inset);
+        background: var(--bg2);
+        overflow: hidden;
+      }
+      .inc-fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+      .inc-badge {
+        font-size: 11px;
+        font-weight: 800;
+        padding: 3px 10px;
+        border-radius: 999px;
+        flex-shrink: 0;
+      }
+      .badge-green {
+        background: var(--success-light);
+        color: var(--success);
+      }
+      .badge-warn {
+        background: var(--warn-light);
+        color: var(--warn);
+      }
+      .badge-muted {
+        background: var(--surface2);
+        color: var(--ink3);
+        box-shadow: var(--shadow-inset);
+      }
+      .badge-red {
+        background: var(--danger-light);
+        color: var(--danger);
+      }
+
+      /* EXPENSE ROWS */
+      .exp-card {
+        padding: 8px 10px;
+      }
+      .exp-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 9px 12px;
+        border-radius: 12px;
+        margin-bottom: 3px;
+        transition: background 0.15s;
+      }
+      .exp-row:hover {
+        background: var(--surface2);
+      }
+      .exp-row:last-child {
+        margin-bottom: 0;
+      }
+      .exp-row.over-row {
+        background: var(--danger-light);
+      }
+      .exp-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-clay-sm);
+      }
+      .exp-body {
+        flex: 1;
+        min-width: 0;
+      }
+      .exp-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+        font-size: 13px;
+      }
+      .exp-name {
+        font-weight: 700;
+      }
+      .over-note {
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--danger);
+        margin-left: 6px;
+      }
+      .exp-amounts {
+        font-weight: 700;
+      }
+      .exp-bar {
+        height: 6px;
+        border-radius: 999px;
+        background: var(--bg2);
+        box-shadow: var(--shadow-inset);
+        overflow: hidden;
+      }
+      .exp-fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+      .exp-meta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .exp-btn {
+        font-size: 14px;
+        color: var(--ink3);
+        cursor: pointer;
+      }
+
+      /* TWO COLS */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 22px;
+      }
+
+      /* MINI CARDS */
+      .mini-card {
+        padding: 18px 20px;
+      }
+      .mc-emoji {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+      .mc-label {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--ink3);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 6px;
+      }
+      .mc-value {
+        font-family: "Fraunces", serif;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -1px;
+        line-height: 1;
+      }
+      .mc-sub {
+        font-size: 12px;
+        color: var(--ink3);
+        margin-top: 4px;
+      }
+
+      /* SAVINGS */
+      .savings-card {
+        padding: 22px 24px;
+        margin-bottom: 22px;
+        background: linear-gradient(135deg, #e4f5ed 0%, #f0faf5 100%);
+        border: 1.5px solid rgba(61, 153, 112, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .savings-left {
+      }
+      .savings-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--success);
+        margin-bottom: 6px;
+      }
+      .savings-amount {
+        font-family: "Fraunces", serif;
+        font-size: 36px;
+        font-weight: 700;
+        letter-spacing: -1px;
+        color: var(--success);
+        line-height: 1;
+      }
+      .savings-sub {
+        font-size: 12px;
+        color: var(--ink2);
+        margin-top: 5px;
+      }
+      .spark-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+      }
+      .spark-b {
+        width: 10px;
+        border-radius: 4px 4px 0 0;
+        background: rgba(61, 153, 112, 0.3);
+      }
+      .spark-b.hi {
+        background: var(--success);
+        box-shadow: 0 2px 8px rgba(61, 153, 112, 0.4);
+      }
+
+      /* NET CARD */
+      .net-outer {
+        border-radius: 20px;
+        background: linear-gradient(135deg, #2c2416 0%, #3d2f1a 100%);
+        box-shadow:
+          8px 8px 20px rgba(44, 36, 22, 0.35),
+          -2px -2px 8px rgba(255, 255, 255, 0.05);
+        padding: 24px 28px;
+        margin-bottom: 22px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: center;
+      }
+      .net-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.45);
+        margin-bottom: 6px;
+      }
+      .net-amount {
+        font-family: "Fraunces", serif;
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: -2px;
+        color: #6ee7b7;
+        line-height: 1;
+      }
+      .net-sub {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.4);
+        margin-top: 5px;
+      }
+      .curr-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .curr-btn {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 6px 14px;
+        border-radius: 999px;
+        cursor: pointer;
+        color: rgba(255, 255, 255, 0.5);
+        border: 1.5px solid rgba(255, 255, 255, 0.15);
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .curr-btn.active {
+        background: rgba(110, 231, 183, 0.2);
+        border-color: rgba(110, 231, 183, 0.4);
+        color: #6ee7b7;
+      }
+      .curr-note {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.3);
+        margin-top: 6px;
+      }
+
+      /* SYNC */
+      .sync-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        color: var(--ink3);
+        padding: 12px 18px;
+      }
+      .sync-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--success);
+        flex-shrink: 0;
+        box-shadow: 0 0 6px rgba(61, 153, 112, 0.5);
+      }
+      .sync-refresh {
+        color: var(--accent);
+        font-weight: 700;
+        cursor: pointer;
+        margin-left: auto;
+      }
+
+      @media (max-width: 600px) {
+        .plan-card {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+        .net-outer {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">
+        <div class="logo-icon">💰</div>
+        PowerBudget
+      </div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- PLAN CARD -->
+      <div class="clay plan-card">
+        <div>
+          <div class="plan-kicker">Active Plan</div>
+          <div class="plan-title">May 2026 — Household</div>
+          <div class="plan-meta">
+            <span class="meta-chip accent-chip">Household</span>
+            <span class="meta-chip">May 1 – May 31</span>
+            <span class="switcher-btn">+2 active plans ↓</span>
+          </div>
+        </div>
+        <div class="days-blob">
+          <div class="num">17</div>
+          <div class="lbl">days left</div>
+        </div>
+      </div>
+
+      <!-- INCOME -->
+      <div class="sect">
+        <div class="sect-head">
+          <div class="sect-title">📥 Expected Income</div>
+          <div class="sect-total">16,200 PLN planned</div>
+        </div>
+        <div class="clay inc-card">
+          <div class="inc-row">
+            <div class="inc-icon" style="background: #fff8f0">💼</div>
+            <div class="inc-body">
+              <div class="inc-top">
+                <span class="inc-name">Salary</span>
+                <span class="inc-amounts" style="color: var(--success)"
+                  >12,000 / 12,000 PLN</span
+                >
+              </div>
+              <div class="inc-bar">
+                <div
+                  class="inc-fill"
+                  style="width: 100%; background: var(--success)"
+                ></div>
+              </div>
+            </div>
+            <span class="inc-badge badge-green">✓ 100%</span>
+          </div>
+          <div class="inc-row">
+            <div class="inc-icon" style="background: #fff8f0">💻</div>
+            <div class="inc-body">
+              <div class="inc-top">
+                <span class="inc-name">Freelance</span>
+                <span class="inc-amounts" style="color: var(--warn)"
+                  >1,500 / 3,000 PLN</span
+                >
+              </div>
+              <div class="inc-bar">
+                <div
+                  class="inc-fill"
+                  style="width: 50%; background: var(--warn)"
+                ></div>
+              </div>
+            </div>
+            <span class="inc-badge badge-warn">50% ⏳</span>
+          </div>
+          <div class="inc-row">
+            <div class="inc-icon" style="background: #fff8f0">🏡</div>
+            <div class="inc-body">
+              <div class="inc-top">
+                <span class="inc-name">Side rental</span>
+                <span class="inc-amounts" style="color: var(--ink3)"
+                  >0 / 1,200 PLN</span
+                >
+              </div>
+              <div class="inc-bar">
+                <div class="inc-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <span class="inc-badge badge-muted">Pending</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPENSES -->
+      <div class="sect">
+        <div class="sect-head">
+          <div class="sect-title">📤 Planned Expenses</div>
+          <div class="sect-total">7,180 PLN planned</div>
+        </div>
+        <div class="clay exp-card">
+          <div class="exp-row">
+            <div class="exp-icon" style="background: #edf6f1">🏠</div>
+            <div class="exp-body">
+              <div class="exp-top">
+                <span class="exp-name">Rent</span>
+                <span class="exp-amounts" style="color: var(--success)"
+                  >3,500 / 3,500 PLN</span
+                >
+              </div>
+              <div class="exp-bar">
+                <div
+                  class="exp-fill"
+                  style="width: 100%; background: var(--success)"
+                ></div>
+              </div>
+            </div>
+            <div class="exp-meta">
+              <span class="inc-badge badge-green">✓</span>
+              <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+            </div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background: #fdf5e8">🛒</div>
+            <div class="exp-body">
+              <div class="exp-top">
+                <span class="exp-name">Groceries</span>
+                <span class="exp-amounts" style="color: var(--warn)"
+                  >1,640 / 2,000 PLN</span
+                >
+              </div>
+              <div class="exp-bar">
+                <div
+                  class="exp-fill"
+                  style="width: 82%; background: var(--warn)"
+                ></div>
+              </div>
+            </div>
+            <div class="exp-meta">
+              <span class="inc-badge badge-warn">82%</span>
+              <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+            </div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background: #fdf5e8">⚡</div>
+            <div class="exp-body">
+              <div class="exp-top">
+                <span class="exp-name">Utilities</span>
+                <span class="exp-amounts" style="color: var(--warn)"
+                  >540 / 600 PLN</span
+                >
+              </div>
+              <div class="exp-bar">
+                <div
+                  class="exp-fill"
+                  style="width: 90%; background: var(--warn)"
+                ></div>
+              </div>
+            </div>
+            <div class="exp-meta">
+              <span class="inc-badge badge-warn">90%</span>
+              <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+            </div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background: #edf2fa">🚌</div>
+            <div class="exp-body">
+              <div class="exp-top">
+                <span class="exp-name">Transport</span>
+                <span class="exp-amounts" style="color: var(--blue)"
+                  >215 / 400 PLN</span
+                >
+              </div>
+              <div class="exp-bar">
+                <div
+                  class="exp-fill"
+                  style="width: 54%; background: var(--blue)"
+                ></div>
+              </div>
+            </div>
+            <div class="exp-meta">
+              <span
+                class="inc-badge"
+                style="background: var(--blue-light); color: var(--blue)"
+                >54%</span
+              >
+              <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+            </div>
+          </div>
+          <div class="exp-row over-row">
+            <div class="exp-icon" style="background: #fce8e8">🍽️</div>
+            <div class="exp-body">
+              <div class="exp-top">
+                <span class="exp-name"
+                  >Eating Out <span class="over-note">+220 over!</span></span
+                >
+                <span class="exp-amounts" style="color: var(--danger)"
+                  >720 / 500 PLN</span
+                >
+              </div>
+              <div class="exp-bar">
+                <div
+                  class="exp-fill"
+                  style="width: 100%; background: var(--danger)"
+                ></div>
+              </div>
+            </div>
+            <div class="exp-meta">
+              <span class="inc-badge badge-red">144%</span>
+              <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+            </div>
+          </div>
+          <div class="exp-row">
+            <div class="exp-icon" style="background: #edf6f1">📱</div>
+            <div class="exp-body">
+              <div class="exp-top">
+                <span class="exp-name">Subscriptions</span>
+                <span class="exp-amounts" style="color: var(--success)"
+                  >180 / 180 PLN</span
+                >
+              </div>
+              <div class="exp-bar">
+                <div
+                  class="exp-fill"
+                  style="width: 100%; background: var(--success)"
+                ></div>
+              </div>
+            </div>
+            <div class="exp-meta">
+              <span class="inc-badge badge-green">✓</span>
+              <span class="exp-btn">↗</span><span class="exp-btn">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNPLANNED -->
+      <div class="two-col">
+        <div class="clay mini-card">
+          <div class="mc-emoji">⚡</div>
+          <div class="mc-label">Unplanned Expenses</div>
+          <div class="mc-value" style="color: var(--danger)">487 PLN</div>
+          <div class="mc-sub">6 transactions — tap to list</div>
+        </div>
+        <div class="clay mini-card">
+          <div class="mc-emoji">🎁</div>
+          <div class="mc-label">Unplanned Income</div>
+          <div class="mc-value" style="color: var(--success)">250 PLN</div>
+          <div class="mc-sub">1 transaction — gift</div>
+        </div>
+      </div>
+
+      <!-- SAVINGS -->
+      <div class="clay savings-card">
+        <div class="savings-left">
+          <div class="savings-label">🌱 Saved This Period (Projected)</div>
+          <div class="savings-amount">425 PLN</div>
+          <div class="savings-sub">Total across all periods: 3,847 PLN</div>
+        </div>
+        <div class="spark-bars">
+          <div class="spark-b" style="height: 22px"></div>
+          <div class="spark-b" style="height: 30px"></div>
+          <div class="spark-b" style="height: 20px"></div>
+          <div class="spark-b" style="height: 36px"></div>
+          <div class="spark-b" style="height: 26px"></div>
+          <div class="spark-b" style="height: 28px"></div>
+          <div class="spark-b hi" style="height: 34px"></div>
+        </div>
+      </div>
+
+      <!-- NET -->
+      <div class="net-outer">
+        <div>
+          <div class="net-label">Net for Period</div>
+          <div class="net-amount">+2,098 PLN</div>
+          <div class="net-sub">Income 16,700 − Expenses 14,602</div>
+        </div>
+        <div>
+          <div class="net-label" style="margin-bottom: 10px">Currency</div>
+          <div class="curr-group">
+            <div class="curr-btn active">PLN</div>
+            <div class="curr-btn">EUR 491</div>
+            <div class="curr-btn">UAH 20.4k</div>
+            <div class="curr-btn">USD 529</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYNC -->
+      <div class="clay-sm sync-row">
+        <div class="sync-dot"></div>
+        Last synced 4 min ago · PKO BP, Wise
+        <span class="sync-refresh">Refresh ↺</span>
+      </div>
+    </main>
+  </body>
+</html>

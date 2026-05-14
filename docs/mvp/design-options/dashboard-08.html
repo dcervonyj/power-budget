@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 08: Swiss / International Grid</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --white: #ffffff;
+        --off-white: #f8f8f6;
+        --rule: #d0d0cc;
+        --rule-light: #e8e8e4;
+        --ink: #111110;
+        --ink2: #555550;
+        --ink3: #999990;
+        --red: #d92b2b;
+        --green: #1a6b3c;
+        --amber: #b86000;
+        --blue: #1850a0;
+        --col: calc(100% / 12);
+      }
+
+      body {
+        background: var(--white);
+        color: var(--ink);
+        font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        font-size: 13px;
+        line-height: 1.45;
+        min-height: 100vh;
+      }
+
+      /* TOP BAR — strict rule-based */
+      .topbar {
+        border-bottom: 2px solid var(--ink);
+        padding: 0 32px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+      .logo span {
+        color: var(--red);
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+      .lang-group {
+        display: flex;
+        gap: 0;
+        border: 1px solid var(--rule);
+      }
+      .lang-btn {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 10px;
+        cursor: pointer;
+        color: var(--ink3);
+        letter-spacing: 0.05em;
+        border-right: 1px solid var(--rule);
+      }
+      .lang-btn:last-child {
+        border-right: none;
+      }
+      .lang-btn.active {
+        background: var(--ink);
+        color: var(--white);
+      }
+      .avatar {
+        width: 28px;
+        height: 28px;
+        background: var(--ink);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--white);
+      }
+
+      /* PAGE — 12-column grid with 32px gutters */
+      .page {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 0 32px 64px;
+      }
+
+      /* HAIRLINE DIVIDER */
+      .rule {
+        border: none;
+        border-top: 1px solid var(--rule);
+      }
+      .rule-heavy {
+        border: none;
+        border-top: 2px solid var(--ink);
+      }
+
+      /* PLAN HEADER — full bleed strip */
+      .plan-strip {
+        padding: 24px 0 20px;
+        border-bottom: 1px solid var(--rule);
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 24px;
+        margin-bottom: 32px;
+      }
+      .plan-eyebrow {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink3);
+        margin-bottom: 8px;
+      }
+      .plan-name {
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -1.5px;
+        color: var(--ink);
+        line-height: 1;
+        margin-bottom: 10px;
+      }
+      .plan-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--ink2);
+      }
+      .plan-badge {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border: 1px solid var(--ink);
+        padding: 2px 8px;
+        color: var(--ink);
+      }
+      .plan-switcher {
+        font-size: 11px;
+        color: var(--red);
+        cursor: pointer;
+        text-decoration: underline;
+      }
+      .days-block {
+        text-align: right;
+      }
+      .days-num {
+        font-size: 56px;
+        font-weight: 300;
+        letter-spacing: -3px;
+        color: var(--ink);
+        line-height: 1;
+      }
+      .days-label {
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink3);
+        margin-top: 2px;
+        text-align: right;
+      }
+
+      /* DATA GRID */
+      .data-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 48px;
+        margin-bottom: 0;
+      }
+      .full-col {
+        grid-column: span 2;
+      }
+
+      /* SECTION */
+      .sect {
+        margin-bottom: 28px;
+      }
+      .sect-head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: baseline;
+        padding-bottom: 6px;
+        border-bottom: 2px solid var(--ink);
+        margin-bottom: 0;
+      }
+      .sect-title {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink);
+      }
+      .sect-total {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--ink2);
+      }
+
+      /* TABLE-STYLE ROWS */
+      .t-row {
+        display: grid;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--rule-light);
+        font-size: 12px;
+      }
+      .t-row:last-child {
+        border-bottom: none;
+      }
+
+      /* INCOME TABLE */
+      .inc-row {
+        grid-template-columns: 1fr 100px 100px 64px;
+        gap: 12px;
+      }
+      .col-n {
+        font-weight: 500;
+      }
+      .col-pl {
+        color: var(--ink3);
+        text-align: right;
+      }
+      .col-rc {
+        font-weight: 700;
+        text-align: right;
+      }
+      .col-st {
+        text-align: right;
+      }
+      .st-tag {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .st-ok {
+        color: var(--green);
+      }
+      .st-prog {
+        color: var(--amber);
+      }
+      .st-pend {
+        color: var(--ink3);
+      }
+      .st-over {
+        color: var(--red);
+        background: #fdecea;
+        padding: 2px 6px;
+      }
+
+      /* EXPENSE TABLE */
+      .exp-row-g {
+        grid-template-columns: 22px 1fr 140px 80px 72px 20px 14px;
+        gap: 8px;
+      }
+      .col-ic {
+        font-size: 13px;
+        text-align: center;
+      }
+      .col-bar {
+      }
+      .bar-outer {
+        height: 3px;
+        background: var(--rule-light);
+        position: relative;
+        overflow: hidden;
+      }
+      .bar-inner {
+        height: 100%;
+      }
+      .bar-pct {
+        font-size: 10px;
+        color: var(--ink3);
+        margin-top: 2px;
+        text-align: right;
+      }
+      .col-sp {
+        font-weight: 700;
+        text-align: right;
+      }
+      .col-bu {
+        color: var(--ink3);
+        text-align: right;
+      }
+      .col-hi {
+        text-align: center;
+        color: var(--rule);
+        font-size: 11px;
+        cursor: pointer;
+      }
+      .col-ex {
+        text-align: center;
+        color: var(--rule);
+        font-size: 10px;
+        cursor: pointer;
+      }
+      .over-row-bg {
+        background: #fdf5f5;
+      }
+      .over-note {
+        font-size: 10px;
+        color: var(--red);
+        display: block;
+        font-weight: 500;
+      }
+
+      /* BOTTOM ROW — 4 cols */
+      .bottom-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 0;
+        border-top: 2px solid var(--ink);
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 0;
+      }
+      .stat-cell {
+        padding: 16px 0;
+        border-right: 1px solid var(--rule);
+      }
+      .stat-cell:first-child {
+        padding-left: 0;
+      }
+      .stat-cell:last-child {
+        border-right: none;
+      }
+      .stat-cell + .stat-cell {
+        padding-left: 20px;
+      }
+      .sc-label {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink3);
+        margin-bottom: 6px;
+      }
+      .sc-value {
+        font-size: 26px;
+        font-weight: 300;
+        letter-spacing: -1px;
+        line-height: 1;
+      }
+      .sc-sub {
+        font-size: 11px;
+        color: var(--ink3);
+        margin-top: 4px;
+      }
+      .sc-link {
+        font-size: 11px;
+        color: var(--red);
+        cursor: pointer;
+        margin-top: 5px;
+        text-decoration: underline;
+      }
+
+      /* NET ROW */
+      .net-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 32px;
+        align-items: center;
+        padding: 24px 0;
+        border-bottom: 1px solid var(--rule);
+        margin-bottom: 16px;
+      }
+      .net-label {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--ink3);
+        margin-bottom: 8px;
+      }
+      .net-value {
+        font-size: 52px;
+        font-weight: 300;
+        letter-spacing: -3px;
+        color: var(--green);
+        line-height: 1;
+      }
+      .net-sub {
+        font-size: 12px;
+        color: var(--ink3);
+        margin-top: 5px;
+        font-style: italic;
+      }
+      .curr-row {
+        display: flex;
+        gap: 0;
+        border: 1px solid var(--rule);
+      }
+      .curr-btn {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 5px 12px;
+        cursor: pointer;
+        color: var(--ink3);
+        border-right: 1px solid var(--rule);
+        letter-spacing: 0.04em;
+      }
+      .curr-btn:last-child {
+        border-right: none;
+      }
+      .curr-btn.active {
+        background: var(--ink);
+        color: var(--white);
+        font-weight: 700;
+      }
+      .curr-note {
+        font-size: 10px;
+        color: var(--ink3);
+        margin-top: 6px;
+      }
+
+      /* SPARKLINE */
+      .spark-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        margin-top: 6px;
+      }
+      .spark-b {
+        width: 8px;
+        background: var(--rule-light);
+        border-radius: 1px 1px 0 0;
+      }
+      .spark-b.hi {
+        background: var(--green);
+      }
+
+      /* SYNC */
+      .sync-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11px;
+        color: var(--ink3);
+        padding: 10px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .sync-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--green);
+        flex-shrink: 0;
+      }
+      .sync-refresh {
+        color: var(--red);
+        cursor: pointer;
+        text-decoration: underline;
+        margin-left: auto;
+      }
+
+      @media (max-width: 680px) {
+        .data-grid {
+          grid-template-columns: 1fr;
+        }
+        .full-col {
+          grid-column: span 1;
+        }
+        .bottom-row {
+          grid-template-columns: 1fr 1fr;
+        }
+        .plan-name {
+          font-size: 22px;
+        }
+        .days-num {
+          font-size: 38px;
+        }
+        .exp-row-g {
+          grid-template-columns: 18px 1fr 64px auto;
+        }
+        .exp-row-g .col-bar,
+        .exp-row-g .col-bu {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">POWER<span>BUDGET</span></div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <div class="page">
+      <!-- PLAN STRIP -->
+      <div class="plan-strip">
+        <div>
+          <div class="plan-eyebrow">Budget Plan</div>
+          <div class="plan-name">May 2026 — Household</div>
+          <div class="plan-meta">
+            <span class="plan-badge">Household</span>
+            <span>May 1 – May 31, 2026</span>
+            <span class="plan-switcher">+2 active plans</span>
+          </div>
+        </div>
+        <div class="days-block">
+          <div class="days-num">17</div>
+          <div class="days-label">Days Remaining</div>
+        </div>
+      </div>
+
+      <div class="data-grid">
+        <!-- INCOME — left col -->
+        <div class="sect">
+          <div class="sect-head">
+            <span class="sect-title">Expected Income</span>
+            <span class="sect-total">16,200 PLN</span>
+          </div>
+          <div
+            class="t-row inc-row"
+            style="
+              font-size: 10px;
+              color: var(--ink3);
+              border-bottom: 1px solid var(--rule);
+              padding: 4px 0;
+            "
+          >
+            <span>INSTRUMENT</span><span style="text-align: right">PLANNED</span
+            ><span style="text-align: right">RECEIVED</span
+            ><span style="text-align: right">STATUS</span>
+          </div>
+          <div class="t-row inc-row">
+            <span class="col-n">💼 Salary</span>
+            <span class="col-pl">12,000 PLN</span>
+            <span class="col-rc" style="color: var(--green)">12,000 PLN</span>
+            <span class="col-st"><span class="st-tag st-ok">100%</span></span>
+          </div>
+          <div class="t-row inc-row">
+            <span class="col-n">💻 Freelance</span>
+            <span class="col-pl">3,000 PLN</span>
+            <span class="col-rc" style="color: var(--amber)">1,500 PLN</span>
+            <span class="col-st"><span class="st-tag st-prog">50%</span></span>
+          </div>
+          <div class="t-row inc-row">
+            <span class="col-n">🏡 Side rental</span>
+            <span class="col-pl">1,200 PLN</span>
+            <span class="col-rc" style="color: var(--ink3)">0 PLN</span>
+            <span class="col-st"><span class="st-tag st-pend">—</span></span>
+          </div>
+        </div>
+
+        <!-- UNPLANNED + SAVINGS — right col -->
+        <div>
+          <div class="sect">
+            <div class="sect-head">
+              <span class="sect-title">Unplanned</span>
+            </div>
+            <div
+              class="t-row"
+              style="grid-template-columns: 1fr 100px; gap: 12px; display: grid"
+            >
+              <span class="col-n">Unplanned expenses</span>
+              <span
+                style="font-weight: 700; color: var(--red); text-align: right"
+                >487 PLN
+                <span
+                  style="font-size: 10px; color: var(--ink3); font-weight: 400"
+                  >6 txn</span
+                ></span
+              >
+            </div>
+            <div
+              class="t-row"
+              style="grid-template-columns: 1fr 100px; gap: 12px; display: grid"
+            >
+              <span class="col-n">Unplanned income</span>
+              <span
+                style="font-weight: 700; color: var(--green); text-align: right"
+                >250 PLN
+                <span
+                  style="font-size: 10px; color: var(--ink3); font-weight: 400"
+                  >1 txn</span
+                ></span
+              >
+            </div>
+          </div>
+          <div class="sect">
+            <div class="sect-head">
+              <span class="sect-title">Savings</span>
+            </div>
+            <div style="padding: 10px 0">
+              <div
+                style="
+                  display: flex;
+                  align-items: flex-end;
+                  justify-content: space-between;
+                  gap: 16px;
+                "
+              >
+                <div>
+                  <div class="sc-label">This Period (Projected)</div>
+                  <div
+                    style="
+                      font-size: 28px;
+                      font-weight: 300;
+                      letter-spacing: -1px;
+                      color: var(--green);
+                    "
+                  >
+                    425 PLN
+                  </div>
+                  <div
+                    style="font-size: 11px; color: var(--ink3); margin-top: 3px"
+                  >
+                    Cumulative: 3,847 PLN
+                  </div>
+                </div>
+                <div class="spark-row">
+                  <div class="spark-b" style="height: 18px"></div>
+                  <div class="spark-b" style="height: 26px"></div>
+                  <div class="spark-b" style="height: 16px"></div>
+                  <div class="spark-b" style="height: 30px"></div>
+                  <div class="spark-b" style="height: 20px"></div>
+                  <div class="spark-b" style="height: 22px"></div>
+                  <div class="spark-b hi" style="height: 28px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXPENSES — full width -->
+        <div class="sect full-col">
+          <div class="sect-head">
+            <span class="sect-title">Planned Expenses</span>
+            <span class="sect-total">7,180 PLN budgeted · 6,795 PLN spent</span>
+          </div>
+          <div
+            class="t-row exp-row-g"
+            style="
+              font-size: 10px;
+              color: var(--ink3);
+              padding: 4px 0;
+              border-bottom: 1px solid var(--rule);
+            "
+          >
+            <span></span><span>CATEGORY</span><span>UTILIZATION</span>
+            <span style="text-align: right">SPENT</span>
+            <span style="text-align: right">BUDGET</span>
+            <span style="text-align: center">LOG</span>
+            <span></span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">🏠</span>
+            <span class="col-n">Rent</span>
+            <div class="col-bar">
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 100%; background: var(--green)"
+                ></div>
+              </div>
+              <div class="bar-pct">100%</div>
+            </div>
+            <span class="col-sp" style="color: var(--green)">3,500 PLN</span>
+            <span class="col-bu">3,500</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">🛒</span>
+            <span class="col-n">Groceries</span>
+            <div class="col-bar">
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 82%; background: var(--amber)"
+                ></div>
+              </div>
+              <div class="bar-pct">82%</div>
+            </div>
+            <span class="col-sp" style="color: var(--amber)">1,640 PLN</span>
+            <span class="col-bu">2,000</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">⚡</span>
+            <span class="col-n">Utilities</span>
+            <div class="col-bar">
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 90%; background: var(--amber)"
+                ></div>
+              </div>
+              <div class="bar-pct">90%</div>
+            </div>
+            <span class="col-sp" style="color: var(--amber)">540 PLN</span>
+            <span class="col-bu">600</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">🚌</span>
+            <span class="col-n">Transport</span>
+            <div class="col-bar">
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 54%; background: var(--blue)"
+                ></div>
+              </div>
+              <div class="bar-pct">54%</div>
+            </div>
+            <span class="col-sp">215 PLN</span>
+            <span class="col-bu">400</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g over-row-bg">
+            <span class="col-ic">🍽️</span>
+            <div>
+              <span class="col-n">Eating Out</span>
+              <span class="over-note">+220 PLN over budget</span>
+            </div>
+            <div class="col-bar">
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 100%; background: var(--red)"
+                ></div>
+              </div>
+              <div class="bar-pct" style="color: var(--red)">144%</div>
+            </div>
+            <span class="col-sp" style="color: var(--red)">720 PLN</span>
+            <span class="col-bu">500</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">📱</span>
+            <span class="col-n">Subscriptions</span>
+            <div class="col-bar">
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 100%; background: var(--green)"
+                ></div>
+              </div>
+              <div class="bar-pct">100%</div>
+            </div>
+            <span class="col-sp" style="color: var(--green)">180 PLN</span>
+            <span class="col-bu">180</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM STAT ROW -->
+      <div class="bottom-row">
+        <div class="stat-cell">
+          <div class="sc-label">Total Income Received</div>
+          <div class="sc-value" style="color: var(--green)">
+            13,750 <span style="font-size: 14px; font-weight: 400">PLN</span>
+          </div>
+          <div class="sc-sub">of 16,200 planned</div>
+        </div>
+        <div class="stat-cell">
+          <div class="sc-label">Total Spent</div>
+          <div class="sc-value" style="color: var(--amber)">
+            7,282 <span style="font-size: 14px; font-weight: 400">PLN</span>
+          </div>
+          <div class="sc-sub">incl. 487 unplanned</div>
+        </div>
+        <div class="stat-cell">
+          <div class="sc-label">Unplanned</div>
+          <div class="sc-value" style="color: var(--red)">
+            487 <span style="font-size: 14px; font-weight: 400">PLN</span>
+          </div>
+          <div class="sc-sub">6 exp · 1 inc (250)</div>
+          <div class="sc-link">Detail →</div>
+        </div>
+        <div class="stat-cell">
+          <div class="sc-label">Saved (Projected)</div>
+          <div class="sc-value" style="color: var(--green)">
+            425 <span style="font-size: 14px; font-weight: 400">PLN</span>
+          </div>
+          <div class="sc-sub">Total: 3,847 PLN</div>
+        </div>
+      </div>
+
+      <!-- NET ROW -->
+      <div class="net-row">
+        <div>
+          <div class="net-label">Period Net Result</div>
+          <div class="net-value">+2,098 PLN</div>
+          <div class="net-sub">Income 16,700 PLN − Expenses 14,602 PLN</div>
+        </div>
+        <div style="text-align: right">
+          <div class="net-label">Display Currency</div>
+          <div class="curr-row">
+            <span class="curr-btn active">PLN</span>
+            <span class="curr-btn">EUR</span>
+            <span class="curr-btn">UAH</span>
+            <span class="curr-btn">USD</span>
+          </div>
+          <div class="curr-note">EUR 491 · UAH 20,351 · USD 529</div>
+        </div>
+      </div>
+
+      <!-- SYNC -->
+      <div class="sync-row">
+        <div class="sync-dot"></div>
+        Last synced 4 min ago · PKO BP, Wise
+        <span class="sync-refresh">Refresh</span>
+      </div>
+    </div>
+  </body>
+</html>

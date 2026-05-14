@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 01: Editorial / Magazine</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,400&family=DM+Sans:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --ink: #1a1008;
+        --paper: #faf7f2;
+        --paper-warm: #f3ede3;
+        --rule: #d4c9b8;
+        --accent: #c8401e;
+        --accent-light: #f9e8e3;
+        --success: #2d6a4f;
+        --success-light: #d8f0e5;
+        --warn: #b5700a;
+        --warn-light: #fef3dc;
+        --muted: #7a6e60;
+        --secondary: #4a3f35;
+      }
+
+      body {
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "DM Sans", sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+
+      /* TOP BAR */
+      .topbar {
+        background: var(--ink);
+        color: var(--paper);
+        padding: 12px 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .logo {
+        font-family: "Fraunces", serif;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: var(--paper);
+      }
+      .logo span {
+        color: #e8a87c;
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+      }
+      .lang-switcher {
+        display: flex;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .lang-switcher .active {
+        color: #e8a87c;
+        border-bottom: 1px solid #e8a87c;
+        padding-bottom: 1px;
+      }
+      .lang-switcher a {
+        color: #9a9188;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #e8a87c;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--ink);
+      }
+
+      /* LAYOUT */
+      .page {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 48px 32px 80px;
+      }
+
+      /* PLAN HEADER — editorial hero strip */
+      .plan-hero {
+        border-top: 4px solid var(--accent);
+        padding-top: 28px;
+        margin-bottom: 48px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: end;
+        gap: 16px;
+      }
+      .plan-kicker {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 6px;
+      }
+      .plan-title {
+        font-family: "Fraunces", serif;
+        font-size: 52px;
+        font-weight: 900;
+        line-height: 1;
+        color: var(--ink);
+        letter-spacing: -2px;
+      }
+      .plan-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-top: 12px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .plan-meta .sep {
+        color: var(--rule);
+      }
+      .badge {
+        background: var(--ink);
+        color: var(--paper);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 2px;
+      }
+      .days-left {
+        font-family: "Fraunces", serif;
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--accent);
+        text-align: right;
+        line-height: 1;
+      }
+      .days-left small {
+        display: block;
+        font-family: "DM Sans", sans-serif;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--muted);
+        text-align: right;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+      .plan-switcher {
+        font-size: 12px;
+        color: var(--accent);
+        text-decoration: underline;
+        cursor: pointer;
+        text-align: right;
+        margin-top: 6px;
+      }
+
+      /* SECTION HEADINGS */
+      .section {
+        margin-bottom: 40px;
+      }
+      .section-heading {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+        margin-bottom: 20px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .section-heading h2 {
+        font-family: "Fraunces", serif;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+      .section-heading .section-total {
+        font-family: "Fraunces", serif;
+        font-size: 18px;
+        font-weight: 300;
+        font-style: italic;
+        color: var(--muted);
+        margin-left: auto;
+      }
+
+      /* INCOME ROWS */
+      .income-row {
+        display: grid;
+        grid-template-columns: 1fr 120px 120px 80px;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--paper-warm);
+      }
+      .income-row:last-child {
+        border-bottom: none;
+      }
+      .row-name {
+        font-weight: 500;
+        font-size: 14px;
+      }
+      .row-planned {
+        color: var(--muted);
+        font-size: 13px;
+        text-align: right;
+      }
+      .row-received {
+        font-weight: 600;
+        font-size: 14px;
+        text-align: right;
+      }
+      .row-status {
+        text-align: right;
+      }
+      .status-pill {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 2px;
+        letter-spacing: 0.04em;
+      }
+      .pill-green {
+        background: var(--success-light);
+        color: var(--success);
+      }
+      .pill-warn {
+        background: var(--warn-light);
+        color: var(--warn);
+      }
+      .pill-muted {
+        background: var(--paper-warm);
+        color: var(--muted);
+        border: 1px solid var(--rule);
+      }
+      .pill-red {
+        background: #fce8e4;
+        color: var(--accent);
+      }
+
+      /* EXPENSE ROWS */
+      .expense-row {
+        display: grid;
+        grid-template-columns: 28px 1fr 200px 90px 90px 24px 16px;
+        align-items: center;
+        gap: 10px;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--paper-warm);
+      }
+      .expense-row:last-child {
+        border-bottom: none;
+      }
+      .cat-icon {
+        font-size: 16px;
+        text-align: center;
+      }
+      .exp-name {
+        font-weight: 500;
+        font-size: 14px;
+      }
+      .progress-wrap {
+        position: relative;
+      }
+      .progress-track {
+        height: 5px;
+        background: var(--paper-warm);
+        border-radius: 1px;
+        overflow: hidden;
+        border: 1px solid var(--rule);
+      }
+      .progress-fill {
+        height: 100%;
+        border-radius: 1px;
+        transition: width 0.3s;
+      }
+      .fill-green {
+        background: var(--success);
+      }
+      .fill-warn {
+        background: var(--warn);
+      }
+      .fill-red {
+        background: var(--accent);
+      }
+      .fill-blue {
+        background: #4a7ab5;
+      }
+      .fill-neutral {
+        background: var(--muted);
+      }
+      .exp-spent {
+        font-weight: 600;
+        font-size: 13px;
+        text-align: right;
+      }
+      .exp-planned {
+        font-size: 12px;
+        color: var(--muted);
+        text-align: right;
+      }
+      .hist-icon {
+        color: var(--rule);
+        cursor: pointer;
+        font-size: 12px;
+        text-align: center;
+      }
+      .expand-icon {
+        color: var(--rule);
+        font-size: 10px;
+        text-align: center;
+        cursor: pointer;
+      }
+
+      /* OVER BUDGET */
+      .over-tag {
+        font-size: 11px;
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      /* TWO COLUMNS */
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        margin-bottom: 40px;
+      }
+
+      /* UNPLANNED CARDS */
+      .unplanned-card {
+        border: 1px solid var(--rule);
+        padding: 20px;
+        background: var(--paper-warm);
+      }
+      .unplanned-card .uc-kicker {
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .unplanned-card .uc-amount {
+        font-family: "Fraunces", serif;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: -1px;
+      }
+      .unplanned-card .uc-sub {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+
+      /* SAVED CARD */
+      .saved-card {
+        border-left: 3px solid var(--success);
+        padding: 20px 24px;
+        background: var(--success-light);
+        margin-bottom: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .saved-nums .saved-label {
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--success);
+        font-weight: 600;
+      }
+      .saved-nums .saved-period {
+        font-family: "Fraunces", serif;
+        font-size: 34px;
+        font-weight: 700;
+        letter-spacing: -1px;
+        color: var(--ink);
+        line-height: 1.1;
+      }
+      .saved-nums .saved-total {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      .sparkline svg {
+        display: block;
+      }
+
+      /* NET SUMMARY */
+      .net-card {
+        background: var(--ink);
+        color: var(--paper);
+        padding: 24px 28px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+      .net-label {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #9a9188;
+        margin-bottom: 6px;
+      }
+      .net-amount {
+        font-family: "Fraunces", serif;
+        font-size: 48px;
+        font-weight: 900;
+        letter-spacing: -2px;
+        color: #74c69d;
+        line-height: 1;
+      }
+      .net-breakdown {
+        font-size: 12px;
+        color: #9a9188;
+        margin-top: 6px;
+      }
+      .currency-pills {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .curr-pill {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 5px 12px;
+        border: 1px solid #4a3f35;
+        cursor: pointer;
+        letter-spacing: 0.05em;
+      }
+      .curr-pill.active {
+        background: #e8a87c;
+        color: var(--ink);
+        border-color: #e8a87c;
+      }
+      .curr-pill:not(.active) {
+        color: #9a9188;
+      }
+
+      /* SYNC FOOTER */
+      .sync-footer {
+        font-size: 12px;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--rule);
+      }
+      .sync-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+        display: inline-block;
+      }
+      .sync-refresh {
+        color: var(--accent);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+
+      @media (max-width: 600px) {
+        .plan-title {
+          font-size: 32px;
+        }
+        .two-col {
+          grid-template-columns: 1fr;
+        }
+        .expense-row {
+          grid-template-columns: 24px 1fr 80px 24px;
+        }
+        .expense-row .exp-planned,
+        .expense-row .progress-wrap {
+          display: none;
+        }
+        .income-row {
+          grid-template-columns: 1fr 90px 60px;
+        }
+        .income-row .row-planned {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOP BAR -->
+    <header class="topbar">
+      <div class="logo">Power<span>Budget</span></div>
+      <div class="topbar-right">
+        <div class="lang-switcher">
+          <span class="active">EN</span>
+          <a>PL</a>
+          <a>UK</a>
+          <a>RU</a>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- PLAN HERO -->
+      <div class="plan-hero">
+        <div>
+          <div class="plan-kicker">Active Plan</div>
+          <div class="plan-title">May 2026 —<br />Household</div>
+          <div class="plan-meta">
+            <span class="badge">Household</span>
+            <span class="sep">·</span>
+            <span>May 1 – May 31, 2026</span>
+            <span class="sep">·</span>
+            <span class="plan-switcher">+2 active plans ↓</span>
+          </div>
+        </div>
+        <div>
+          <div class="days-left">17<small>days left</small></div>
+        </div>
+      </div>
+
+      <!-- INCOME -->
+      <section class="section">
+        <div class="section-heading">
+          <h2>Expected Income</h2>
+          <div class="section-total">16,200 PLN planned</div>
+        </div>
+        <div class="income-row">
+          <div class="row-name">Salary</div>
+          <div class="row-planned">12,000 PLN</div>
+          <div class="row-received">12,000 PLN</div>
+          <div class="row-status">
+            <span class="status-pill pill-green">100%</span>
+          </div>
+        </div>
+        <div class="income-row">
+          <div class="row-name">Freelance</div>
+          <div class="row-planned">3,000 PLN</div>
+          <div class="row-received">1,500 PLN</div>
+          <div class="row-status">
+            <span class="status-pill pill-warn">50% — in progress</span>
+          </div>
+        </div>
+        <div class="income-row">
+          <div class="row-name">Side rental</div>
+          <div class="row-planned">1,200 PLN</div>
+          <div class="row-received">0 PLN</div>
+          <div class="row-status">
+            <span class="status-pill pill-muted">0% — pending</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- EXPENSES -->
+      <section class="section">
+        <div class="section-heading">
+          <h2>Planned Expenses</h2>
+          <div class="section-total">7,180 PLN planned</div>
+        </div>
+
+        <div class="expense-row">
+          <div class="cat-icon">🏠</div>
+          <div class="exp-name">Rent</div>
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill fill-green" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="exp-spent" style="color: var(--success)">3,500 PLN</div>
+          <div class="exp-planned">/ 3,500 PLN</div>
+          <div class="hist-icon">↗</div>
+          <div class="expand-icon">›</div>
+        </div>
+
+        <div class="expense-row">
+          <div class="cat-icon">🛒</div>
+          <div class="exp-name">Groceries</div>
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill fill-warn" style="width: 82%"></div>
+            </div>
+          </div>
+          <div class="exp-spent" style="color: var(--warn)">1,640 PLN</div>
+          <div class="exp-planned">/ 2,000 PLN</div>
+          <div class="hist-icon">↗</div>
+          <div class="expand-icon">›</div>
+        </div>
+
+        <div class="expense-row">
+          <div class="cat-icon">⚡</div>
+          <div class="exp-name">Utilities</div>
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill fill-warn" style="width: 90%"></div>
+            </div>
+          </div>
+          <div class="exp-spent" style="color: var(--warn)">540 PLN</div>
+          <div class="exp-planned">/ 600 PLN</div>
+          <div class="hist-icon">↗</div>
+          <div class="expand-icon">›</div>
+        </div>
+
+        <div class="expense-row">
+          <div class="cat-icon">🚌</div>
+          <div class="exp-name">Transport</div>
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill fill-blue" style="width: 54%"></div>
+            </div>
+          </div>
+          <div class="exp-spent">215 PLN</div>
+          <div class="exp-planned">/ 400 PLN</div>
+          <div class="hist-icon">↗</div>
+          <div class="expand-icon">›</div>
+        </div>
+
+        <div class="expense-row" style="background: #fef5f3">
+          <div class="cat-icon">🍽️</div>
+          <div class="exp-name">
+            Eating Out<br /><span class="over-tag">+220 PLN over budget</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill fill-red" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="exp-spent" style="color: var(--accent)">720 PLN</div>
+          <div class="exp-planned">/ 500 PLN</div>
+          <div class="hist-icon">↗</div>
+          <div class="expand-icon">›</div>
+        </div>
+
+        <div class="expense-row">
+          <div class="cat-icon">📱</div>
+          <div class="exp-name">Subscriptions</div>
+          <div class="progress-wrap">
+            <div class="progress-track">
+              <div class="progress-fill fill-green" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="exp-spent" style="color: var(--success)">180 PLN</div>
+          <div class="exp-planned">/ 180 PLN</div>
+          <div class="hist-icon">↗</div>
+          <div class="expand-icon">›</div>
+        </div>
+      </section>
+
+      <!-- UNPLANNED -->
+      <section class="section">
+        <div class="section-heading">
+          <h2>Unplanned</h2>
+        </div>
+        <div class="two-col">
+          <div class="unplanned-card">
+            <div class="uc-kicker">Unplanned Expenses</div>
+            <div class="uc-amount" style="color: var(--accent)">487 PLN</div>
+            <div class="uc-sub">6 transactions — tap to list</div>
+          </div>
+          <div class="unplanned-card">
+            <div class="uc-kicker">Unplanned Income</div>
+            <div class="uc-amount" style="color: var(--success)">250 PLN</div>
+            <div class="uc-sub">1 transaction — gift</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SAVED -->
+      <div class="saved-card">
+        <div class="saved-nums">
+          <div class="saved-label">Saved this period (projected)</div>
+          <div class="saved-period">425 PLN</div>
+          <div class="saved-total">
+            Total saved across all periods: 3,847 PLN
+          </div>
+        </div>
+        <div class="sparkline">
+          <svg width="120" height="40" viewBox="0 0 120 40">
+            <polyline
+              points="0,36 20,30 40,28 60,22 80,18 100,24 120,14"
+              fill="none"
+              stroke="var(--success)"
+              stroke-width="1.5"
+            />
+            <circle cx="120" cy="14" r="3" fill="var(--success)" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- NET SUMMARY -->
+      <div class="net-card">
+        <div>
+          <div class="net-label">Net for period</div>
+          <div class="net-amount">+2,098 PLN</div>
+          <div class="net-breakdown">
+            Income 16,700 PLN − Expenses 14,602 PLN
+          </div>
+        </div>
+        <div>
+          <div
+            style="
+              font-size: 11px;
+              color: #9a9188;
+              letter-spacing: 0.1em;
+              text-transform: uppercase;
+              margin-bottom: 8px;
+            "
+          >
+            Currency
+          </div>
+          <div class="currency-pills">
+            <div class="curr-pill active">PLN</div>
+            <div class="curr-pill">
+              EUR <span style="font-size: 10px; color: #9a9188">491</span>
+            </div>
+            <div class="curr-pill">
+              UAH <span style="font-size: 10px; color: #9a9188">20,351</span>
+            </div>
+            <div class="curr-pill">
+              USD <span style="font-size: 10px; color: #9a9188">529</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SYNC FOOTER -->
+      <div class="sync-footer">
+        <span class="sync-dot"></span>
+        Last synced 4 min ago · PKO BP, Wise
+        <span class="sync-refresh">— Refresh</span>
+      </div>
+    </main>
+  </body>
+</html>
