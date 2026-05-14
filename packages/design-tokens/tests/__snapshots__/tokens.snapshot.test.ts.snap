@@ -1,0 +1,161 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`tokens snapshot > darkTheme matches snapshot 1`] = `
+{
+  "color": {
+    "accent": {
+      "default": "#4ab8e8",
+      "onAccent": "#07080e",
+    },
+    "border": {
+      "strong": "rgba(255,255,255,0.12)",
+      "subtle": "rgba(255,255,255,0.065)",
+    },
+    "hero": {
+      "bgEnd": "#07080e",
+      "bgStart": "#101e30",
+      "sparkline": "rgba(74,184,232,0.7)",
+      "topAccent": "#4ab8e8",
+    },
+    "income": {
+      "default": "#8898c8",
+    },
+    "status": {
+      "danger": "#c04848",
+      "success": "#4aa870",
+      "warning": "#c98c38",
+    },
+    "surface": {
+      "base": "#07080e",
+      "mid": "#12131e",
+      "overlay": "#181928",
+      "raised": "#0c0d16",
+    },
+    "text": {
+      "muted": "rgba(230,224,216,0.28)",
+      "primary": "#e6e0d8",
+      "secondary": "rgba(230,224,216,0.52)",
+    },
+  },
+  "fontFamily": {
+    "sans": "Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif",
+  },
+  "fontSize": {
+    "2xl": 28,
+    "3xl": 36,
+    "lg": 18,
+    "md": 16,
+    "sm": 14,
+    "xl": 22,
+    "xs": 12,
+  },
+  "fontWeight": {
+    "bold": 700,
+    "medium": 500,
+    "regular": 400,
+    "semibold": 600,
+  },
+  "lineHeight": {
+    "loose": 1.6,
+    "normal": 1.4,
+    "tight": 1.2,
+  },
+  "name": "dark",
+  "radius": {
+    "lg": 16,
+    "md": 10,
+    "pill": 999,
+    "sm": 6,
+  },
+  "space": {
+    "2xl": 32,
+    "3xl": 48,
+    "4xl": 64,
+    "lg": 16,
+    "md": 12,
+    "sm": 8,
+    "xl": 24,
+    "xs": 4,
+  },
+}
+`;
+
+exports[`tokens snapshot > lightTheme matches snapshot 1`] = `
+{
+  "color": {
+    "accent": {
+      "default": "#2898d8",
+      "onAccent": "#ffffff",
+    },
+    "border": {
+      "strong": "rgba(0,0,0,0.12)",
+      "subtle": "rgba(0,0,0,0.07)",
+    },
+    "hero": {
+      "bgEnd": "#3ab0e8",
+      "bgStart": "#1870b8",
+      "sparkline": "rgba(255,255,255,0.75)",
+      "topAccent": "transparent",
+    },
+    "income": {
+      "default": "#4868b8",
+    },
+    "status": {
+      "danger": "#b83030",
+      "success": "#2a8c58",
+      "warning": "#b07020",
+    },
+    "surface": {
+      "base": "#edf1f7",
+      "mid": "#f4f6fa",
+      "overlay": "#e8ecf2",
+      "raised": "#ffffff",
+    },
+    "text": {
+      "muted": "rgba(24,32,46,0.38)",
+      "primary": "#18202e",
+      "secondary": "rgba(24,32,46,0.55)",
+    },
+  },
+  "fontFamily": {
+    "sans": "Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif",
+  },
+  "fontSize": {
+    "2xl": 28,
+    "3xl": 36,
+    "lg": 18,
+    "md": 16,
+    "sm": 14,
+    "xl": 22,
+    "xs": 12,
+  },
+  "fontWeight": {
+    "bold": 700,
+    "medium": 500,
+    "regular": 400,
+    "semibold": 600,
+  },
+  "lineHeight": {
+    "loose": 1.6,
+    "normal": 1.4,
+    "tight": 1.2,
+  },
+  "name": "light",
+  "radius": {
+    "lg": 16,
+    "md": 10,
+    "pill": 999,
+    "sm": 6,
+  },
+  "space": {
+    "2xl": 32,
+    "3xl": 48,
+    "4xl": 64,
+    "lg": 16,
+    "md": 12,
+    "sm": 8,
+    "xl": 24,
+    "xs": 4,
+  },
+}
+`;
