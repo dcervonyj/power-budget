@@ -16,6 +16,6 @@
     "outDir": "dist",
     "incremental": false
   },
-  "include": ["src", "tsup.config.ts", "scripts"],
+  "include": ["src", "__tests__", "tsup.config.ts", "vitest.config.ts", "scripts"],
   "exclude": ["dist", "node_modules", "__fixtures__"]
 }
