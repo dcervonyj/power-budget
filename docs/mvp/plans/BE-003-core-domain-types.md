@@ -584,7 +584,7 @@ Alternatives considered:
 - **Decimal string** — avoids the JSON-serialisation friction of `bigint` (which is not natively `JSON.stringify`-able), but introduces a string-math library dependency or rolling our own — violates "no dependencies in core" intent.
 - **`number`** — IEEE 754 cannot represent `0.1 + 0.2` exactly; non-starter for money.
 
-`bigint` JSON-serialisation friction is **acknowledged** and handled at the presentation boundary: REST DTOs (BE-015 onwards) serialise as a string `amountMinor`, and the API client deserialises back to `bigint`. RTK Query's `transformResponse` is the natural seam; mirrors how PostgreSQL drivers handle `BIGINT` in Node.
+`bigint` JSON-serialisation friction is **acknowledged** and handled at the presentation boundary: REST DTOs (BE-015 onwards) serialise as a string `amountMinor`, and the `Http*Repo` adapter deserialises back to `bigint` via a mapper. This mirrors how PostgreSQL drivers handle `BIGINT` in Node.
 
 ### 8.2 `Locale` — closed literal union vs. open string
 
@@ -621,7 +621,7 @@ Open question: do the pure-logic functions (BE-006/007) need `IsoDateTime` compa
 
 **Decision: validate shape (UUIDv7 regex), not existence.** `UserId.of('not-a-uuid')` throws; `UserId.of(<valid-uuidv7-string>)` succeeds even if no such user exists. Existence is the repo's job.
 
-Trade-off: ID parsing in hot paths (e.g. RTK Query cache keys) pays a regex cost. **Mitigation:** brand-only assertion (no `.of`) is available via type assertion at the boundary; `.of` is for untrusted input only. Document the convention.
+Trade-off: ID parsing in hot paths (e.g. cache-key construction in `Http*Repo` adapters) pays a regex cost. **Mitigation:** brand-only assertion (no `.of`) is available via type assertion at the boundary; `.of` is for untrusted input only. Document the convention.
 
 ### 8.7 Where does `HouseholdScope` live?
 
@@ -631,7 +631,7 @@ Trade-off: ID parsing in hot paths (e.g. RTK Query cache keys) pays a regex cost
 
 ## 9. Risks
 
-1. **`bigint` serialisation surprises downstream.** RTK Query and Nest's default JSON serialiser do not handle `bigint` out of the box. _Mitigation:_ document the convention now (DTO carries `amountMinor: string`; client transforms back to `bigint`); BE-015 owns the actual transformer. Add a deliberate test in BE-004 that `JSON.stringify(money)` throws (a guardrail that ensures we do not accidentally pass raw `Money` over the wire).
+1. **`bigint` serialisation surprises downstream.** Nest's default JSON serialiser does not handle `bigint` out of the box, and neither does `JSON.stringify`. _Mitigation:_ document the convention now (DTO carries `amountMinor: string`; the `Http*Repo` mapper transforms back to `bigint`); BE-015 owns the actual transformer. Add a deliberate test in BE-004 that `JSON.stringify(money)` throws (a guardrail that ensures we do not accidentally pass raw `Money` over the wire).
 2. **Brand erosion via `as` assertions.** Developers may bypass `UserId.of` with `someString as UserId`, defeating the brand. _Mitigation:_ team rule from global `CLAUDE.md` ("Avoid `as` type assertions"); ESLint `@typescript-eslint/consistent-type-assertions` enforced in `packages/core/`. Code-review check.
 3. **Currency / locale union closed too tightly.** Adding a fifth locale or a new currency is a core PR + version bump that ripples to every package. _Mitigation:_ the four-MVP scope is explicitly fixed by PRD §1; expansions are intentional events, not surprises. Per ARCHITECTURE.md §5.8, schema columns are open `string`, so the DB never blocks. Keep the public-API snapshot to make the rippling visible in CI.
 
