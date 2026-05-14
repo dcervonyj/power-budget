@@ -195,7 +195,7 @@ The acceptance criterion "`pnpm turbo run lint typecheck test` runs (no-op accep
 
 Each step is ≤30 minutes and ends with a verifiable state.
 
-1. **Init git repo** — `cd /Users/bartimeus/IdeaProjects/power-budget && git init && git checkout -b main`. Confirm no existing `.git/` (we already verified). _Result: empty repo on `main`._
+1. **Init git repo** — `cd /Users/bartimeus/IdeaProjects/power-budget && git init && git checkout -b master`. Confirm no existing `.git/` (we already verified). _Result: empty repo on `master`._
 2. **Install pnpm via Corepack** — `corepack enable && corepack prepare pnpm@9 --activate`. Capture the resolved version (e.g. `pnpm --version` → `9.12.0`) to use in `packageManager`. _Result: `pnpm` on PATH._
 3. **Write `.gitignore`, `.editorconfig`, `.nvmrc`, `LICENSE`, `README.md`** — minimal content per §3 above. _Result: housekeeping files committed-ready._
 4. **Write root `package.json`** — private, name `power-budget`, version `0.0.0`, `packageManager`, scripts delegating to `turbo run <task> -- --`, devDependencies: `typescript@^5.5`, `turbo@^2.0`, `eslint@^9`, `@typescript-eslint/parser@^8`, `@typescript-eslint/eslint-plugin@^8`, `prettier@^3`. _Result: root manifest._
@@ -214,7 +214,7 @@ Each step is ≤30 minutes and ends with a verifiable state.
 17. **Run `pnpm turbo run build`** — Turbo executes `^build` topology: `core` first, then the three leaves in parallel. With `tsc -b` everywhere, the only emitted artefact is `packages/core/dist/index.{js,d.ts}` plus per-leaf empty `dist/`. _Result: build green; observe the topological order in Turbo's terminal output._
 18. **Run `pnpm turbo run build` a second time** — confirm full cache hit (`> FULL TURBO`). _Result: caching demonstrably works (INF-002 acceptance criterion)._
 19. **Manual path-alias smoke test** — add a temporary `export const ping = 'pong'` to `packages/core/src/index.ts` and `import { ping } from '@power-budget/core'` from `packages/backend/src/index.ts`. Run `pnpm --filter @power-budget/backend typecheck`. Revert both edits once it passes. _Result: cross-package imports resolve through both TS aliases and the pnpm symlink._
-20. **Commit** — single commit `INF-002 scaffold pnpm + Turborepo monorepo`. Include all created files plus `pnpm-lock.yaml`. Push to the repo created by INF-001. _Result: commit on `main` (or feature branch per workflow), ready for INF-003._
+20. **Commit** — single commit `INF-002 scaffold pnpm + Turborepo monorepo`. Include all created files plus `pnpm-lock.yaml`. Push to the repo created by INF-001. _Result: commit on `master` (or feature branch per workflow), ready for INF-003._
 
 ## 6. Test plan
 

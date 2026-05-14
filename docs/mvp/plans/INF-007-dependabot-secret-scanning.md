@@ -44,7 +44,7 @@
 | `.gitleaks.toml`                                       | create | Gitleaks config — `useDefault = true` + targeted allowlist for `docs/mvp/**` example tokens.            |
 | `.husky/pre-commit`                                    | modify | Append `gitleaks protect --staged --redact -v --config .gitleaks.toml` to the hook authored in INF-003. |
 | `CODEOWNERS`                                           | modify | Extend INF-001 placeholder with explicit ownership for `.github/`, `.gitleaks.toml`, `SECURITY.md`.     |
-| `SECURITY.md`                                          | create | Public disclosure policy: contact email, response SLA, supported versions table (just `main` in MVP).   |
+| `SECURITY.md`                                          | create | Public disclosure policy: contact email, response SLA, supported versions table (just `master` in MVP). |
 | `docs/mvp/plans/INF-007-dependabot-secret-scanning.md` | create | This plan file.                                                                                         |
 
 No source files are touched. All paths are repo-root relative.
@@ -64,7 +64,7 @@ No source files are touched. All paths are repo-root relative.
 
 ### 4.2 Secret-scan workflow contract
 
-- **Triggers.** `push` (all branches), `pull_request` (against `main`), `schedule: cron '0 6 * * 1'` (Monday 06:00 UTC for drift detection on long-lived branches).
+- **Triggers.** `push` (all branches), `pull_request` (against `master`), `schedule: cron '0 6 * * 1'` (Monday 06:00 UTC for drift detection on long-lived branches).
 - **Permissions.** `contents: read`, `pull-requests: write` (to comment finding summary on the PR), `security-events: write` (optional, for SARIF upload later).
 - **Action.** `gitleaks/gitleaks-action@v2` pinned by full commit SHA (one of the few exceptions to "never pin to SHA" — Actions ecosystem hygiene per OWASP CI/CD top 10).
 - **Failure semantics.** Any non-allowlisted leak → workflow fails with non-zero exit. INF-005 will later add this job to the branch-protection required-checks list.
@@ -131,7 +131,7 @@ UI fallback path documented inline in §5 step 6 (Settings → Code security and
 
 - Reporting address: `security@<domain>` (placeholder — see Open Question 4 for domain decision).
 - Response SLA: acknowledgment within 72 h, fix or mitigation within 30 days for high severity.
-- Supported versions: only `main` in MVP (single deployment).
+- Supported versions: only `master` in MVP (single deployment).
 - Disclosure policy: coordinated, 90-day default embargo aligned with industry norm.
 
 ## 5. Step-by-step build order

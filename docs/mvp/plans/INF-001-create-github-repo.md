@@ -7,20 +7,20 @@
 - **Area**: Infra
 - **Effort**: XS (~0.5d)
 
-**Context.** This task creates the bare container that every subsequent piece of the Power Budget MVP lives in: a private GitHub repo named `power-budget` with `main` as the protected default branch, an initial commit holding only repo-management metadata (`README`, `LICENSE`, `.gitignore`, `CODEOWNERS`, PR template), and branch-protection rules that require PR + (eventually) green CI before merging. It is wave-1 because every other wave-1/2 task — INF-002 (pnpm + Turborepo scaffold), INF-003 (ESLint), INF-007 (Dependabot + secret scanning) — is blocked on a working repo with a protected `main`. It directly enables the CI workflow described in ARCHITECTURE.md §10 ("CI: GitHub Actions … `pull_request`: `pnpm install`, `pnpm turbo run lint typecheck test`") and the secret-handling discipline described in §6 ("Security & secrets") / §6 "Multi-tenancy" testing gates that must run in CI before merge.
+**Context.** This task creates the bare container that every subsequent piece of the Power Budget MVP lives in: a private GitHub repo named `power-budget` with `master` as the protected default branch, an initial commit holding only repo-management metadata (`README`, `LICENSE`, `.gitignore`, `CODEOWNERS`, PR template), and branch-protection rules that require PR + (eventually) green CI before merging. It is wave-1 because every other wave-1/2 task — INF-002 (pnpm + Turborepo scaffold), INF-003 (ESLint), INF-007 (Dependabot + secret scanning) — is blocked on a working repo with a protected `master`. It directly enables the CI workflow described in ARCHITECTURE.md §10 ("CI: GitHub Actions … `pull_request`: `pnpm install`, `pnpm turbo run lint typecheck test`") and the secret-handling discipline described in §6 ("Security & secrets") / §6 "Multi-tenancy" testing gates that must run in CI before merge.
 
 ## 2. Scope
 
 **In scope**
 
 - Create a private GitHub repository under the chosen owner with the name `power-budget`.
-- Set default branch name to `main`.
+- Set default branch name to `master`.
 - Push an initial commit containing: `README.md` (one-paragraph project blurb + link to `docs/mvp/`), `LICENSE`, `.gitignore` (Node + macOS + JetBrains), `CODEOWNERS` placeholder, and a PR template under `.github/PULL_REQUEST_TEMPLATE.md`.
-- Configure branch protection on `main`:
+- Configure branch protection on `master`:
   - Require pull request before merge (≥1 approving review; CODEOWNERS review when the owners file matches).
   - Require status checks to pass — placeholder list now (no required checks selected yet because no CI workflow exists); INF-005 will add `ci / lint`, `ci / typecheck`, `ci / test` to the required list.
   - Require branches to be up to date before merge.
-  - Block direct pushes to `main` (no force-pushes, no deletions).
+  - Block direct pushes to `master` (no force-pushes, no deletions).
   - Require linear history.
   - Require conversation resolution before merge.
   - Apply rules to administrators (`enforce_admins: true`) to avoid bypass accidents.
@@ -60,10 +60,10 @@ No directories outside `.github/`, `docs/`, and the repo root are touched in thi
 These values are consumed by downstream tasks and must be fixed here.
 
 - **Repo URL**: `https://github.com/<owner>/power-budget` (owner TBD — see Open Question 1).
-- **Default branch**: `main`.
+- **Default branch**: `master`.
 - **Visibility**: `private`.
 - **Allowed merge style**: squash merge only. Squash commit title pattern recommended: `<TASK-ID> <short imperative summary>` to match the global commit convention in `~/.claude/CLAUDE.md`.
-- **Branch protection rules on `main`**
+- **Branch protection rules on `master`**
 
   | Rule                                           | Value                                                                    |
   | ---------------------------------------------- | ------------------------------------------------------------------------ |
@@ -141,7 +141,7 @@ Each step is ≤30 min and ordered top-to-bottom. Steps use `gh` CLI commands; s
 
    ```bash
    cd ~/IdeaProjects/power-budget
-   git init -b main
+   git init -b master
    git remote add origin git@github.com:<owner>/power-budget.git
    ```
 
@@ -151,14 +151,14 @@ Each step is ≤30 min and ordered top-to-bottom. Steps use `gh` CLI commands; s
    ```bash
    git add README.md LICENSE .gitignore CODEOWNERS .github/PULL_REQUEST_TEMPLATE.md docs/
    git commit -m "INF-001 initial repo scaffold: license, gitignore, CODEOWNERS, PR template"
-   git push -u origin main
+   git push -u origin master
    ```
 
 6. **Configure repo-level settings via `gh api`.**
 
    ```bash
    gh api -X PATCH repos/<owner>/power-budget \
-     -f default_branch=main \
+     -f default_branch=master \
      -F allow_squash_merge=true \
      -F allow_merge_commit=false \
      -F allow_rebase_merge=false \
@@ -167,10 +167,10 @@ Each step is ≤30 min and ordered top-to-bottom. Steps use `gh` CLI commands; s
      -F has_projects=false
    ```
 
-7. **Apply branch protection on `main`.**
+7. **Apply branch protection on `master`.**
 
    ```bash
-   gh api -X PUT repos/<owner>/power-budget/branches/main/protection \
+   gh api -X PUT repos/<owner>/power-budget/branches/master/protection \
      -H "Accept: application/vnd.github+json" \
      --input - <<'JSON'
    {
@@ -193,7 +193,7 @@ Each step is ≤30 min and ordered top-to-bottom. Steps use `gh` CLI commands; s
    ```
 
 8. **Invite the partner / collaborator (if applicable).** `gh api -X PUT repos/<owner>/power-budget/collaborators/<partner-handle> -f permission=push`.
-9. **Smoke-test the protection** (see §6 step 4): from a feature branch, attempt a direct push to `main` and confirm rejection.
+9. **Smoke-test the protection** (see §6 step 4): from a feature branch, attempt a direct push to `master` and confirm rejection.
 10. **Capture the resulting state.** Run the verification snippet in §6 step 1 and paste the output into the PR that lands this plan, so the recorded contract matches reality.
 
 ## 6. Test plan
@@ -203,7 +203,7 @@ Verification for an infra task is observability of state, not unit tests.
 1. **Branch-protection state matches the contract.**
 
    ```bash
-   gh api repos/<owner>/power-budget/branches/main/protection \
+   gh api repos/<owner>/power-budget/branches/master/protection \
      | jq '{
          req_pr: .required_pull_request_reviews,
          req_checks: .required_status_checks,
@@ -225,25 +225,25 @@ Verification for an infra task is observability of state, not unit tests.
    ```
 
 3. **CODEOWNERS is recognised.** Open a draft PR touching `docs/`; confirm `@<owner>` is auto-requested as reviewer.
-4. **Direct push to `main` is rejected.**
+4. **Direct push to `master` is rejected.**
 
    ```bash
-   git checkout main && git commit --allow-empty -m "INF-001 protection smoke test" && git push origin main
+   git checkout master && git commit --allow-empty -m "INF-001 protection smoke test" && git push origin master
    ```
 
-   Expected: `remote: error: GH006: Protected branch update failed for refs/heads/main`. Reset (`git reset --hard origin/main`) after.
+   Expected: `remote: error: GH006: Protected branch update failed for refs/heads/master`. Reset (`git reset --hard origin/master`) after.
 
 5. **PR template renders.** Open a draft PR; confirm the body is pre-filled with the template fields from §4.
-6. **Manual visual check in the GitHub UI.** Settings → Branches → `main` → all rules visible and ticked. Settings → General → merge button shows only "Squash and merge".
+6. **Manual visual check in the GitHub UI.** Settings → Branches → `master` → all rules visible and ticked. Settings → General → merge button shows only "Squash and merge".
 
 ## 7. Acceptance criteria
 
 (Refined from BACKLOG.md INF-001.)
 
-- [ ] Private repo exists at `github.com/<owner>/power-budget` with default branch `main`.
-- [ ] `gh api repos/<owner>/power-budget/branches/main/protection` returns a JSON body whose fields match the table in §4 exactly.
-- [ ] Direct `git push origin main` from a local clone is rejected with `GH006` (verified in §6 step 4).
-- [ ] A PR targeting `main` requires at least one approving review and CODEOWNERS review before the merge button enables.
+- [ ] Private repo exists at `github.com/<owner>/power-budget` with default branch `master`.
+- [ ] `gh api repos/<owner>/power-budget/branches/master/protection` returns a JSON body whose fields match the table in §4 exactly.
+- [ ] Direct `git push origin master` from a local clone is rejected with `GH006` (verified in §6 step 4).
+- [ ] A PR targeting `master` requires at least one approving review and CODEOWNERS review before the merge button enables.
 - [ ] Only "Squash and merge" is available on the merge button.
 - [ ] Repository has `has_wiki=false`, `has_projects=false`, `delete_branch_on_merge=true`.
 - [ ] `CODEOWNERS` file is committed at repo root and matched paths auto-request `@<owner>`.
@@ -259,7 +259,7 @@ Verification for an infra task is observability of state, not unit tests.
 | 2   | Exact repo name — `power-budget` or something more distinctive?                           | `power-budget` to match the working dir and BACKLOG references. Defer rebrand to v3 marketing.                                                                                                                                     |
 | 3   | License — `UNLICENSED` private, MIT, or AGPL?                                             | `UNLICENSED` (proprietary, all rights reserved) for MVP. The project is a private household app; revisit before public v3.                                                                                                         |
 | 4   | Who is the initial CODEOWNER and the required reviewer?                                   | The single maintainer (`@<owner>`). Until INF-002 introduces packages, one owner is sufficient. Self-approval is impossible — solo-dev workflow needs an exception (see Risk 2).                                                   |
-| 5   | Require signed commits on `main`?                                                         | Off in MVP; on once a second human committer joins. Signing adds operational friction that does not pay off with one committer.                                                                                                    |
+| 5   | Require signed commits on `master`?                                                       | Off in MVP; on once a second human committer joins. Signing adds operational friction that does not pay off with one committer.                                                                                                    |
 | 6   | Required approving review count — 1 or 0 for solo work?                                   | 1, with a documented exception: maintainer pushes via the "Allow specified actors to bypass" list when working solo. Cleaner alternative: keep at 1 and use stacked PRs reviewed by AI-assisted review tooling. Confirm with user. |
 | 7   | Should branch protection include `staging` already?                                       | No; INF-013 introduces staging and adds protection in the same task.                                                                                                                                                               |
 | 8   | Where does CODEOWNERS live — repo root or `.github/`?                                     | Repo root (`CODEOWNERS`) — single canonical location, matches existing `~/.claude/CLAUDE.md` convention referenced in this repo.                                                                                                   |
