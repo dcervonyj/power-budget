@@ -8,3 +8,4 @@ export * from './notifications/index.js';
 export * from './i18n/index.js';
 export * from './dashboard/index.js';
 export * from './shared/index.js';
+export * from './audit/index.js';
