@@ -145,21 +145,21 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 5
 
-| ID       | Title                                    | Area    |
-| -------- | ---------------------------------------- | ------- |
-| INF-006  | GH Actions build + preview deploy        | Infra   |
-| INF-008  | Drizzle ORM tooling                      | Infra   |
-| INF-012  | Observability stack                      | Infra   |
-| BE-004   | Core entity types (Plan, Transaction, …) | Backend |
-| BE-010   | Core locale-aware formatters             | Backend |
-| WEB-002  | Routing + protected-route wrapper        | Web     |
-| WEB-003  | MobX + ReactiveView wiring               | Web     |
-| MOB-002  | React Navigation                         | Mobile  |
-| MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  |
-| MOB-013  | Notification routing layer (placeholder) | Mobile  |
-| I18N-001 | String-extraction infrastructure         | i18n    |
-| QA-001   | Vitest unit-test setup                   | QA      |
-| QA-004   | Detox-defer ADR                          | QA      |
+| ID       | Title                                    | Area    | Status |
+| -------- | ---------------------------------------- | ------- | ------ |
+| INF-006  | GH Actions build + preview deploy        | Infra   | ✅ Done (PR #30) |
+| INF-008  | Drizzle ORM tooling                      | Infra   | ✅ Done (PR #37) |
+| INF-012  | Observability stack                      | Infra   | — |
+| BE-004   | Core entity types (Plan, Transaction, …) | Backend | ✅ Done (PR #34) |
+| BE-010   | Core locale-aware formatters             | Backend | — |
+| WEB-002  | Routing + protected-route wrapper        | Web     | ✅ Done (PR #32) |
+| WEB-003  | MobX + ReactiveView wiring               | Web     | ✅ Done (PR #36) |
+| MOB-002  | React Navigation                         | Mobile  | ✅ Done (PR #35) |
+| MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  | — (blocked by BE-038) |
+| MOB-013  | Notification routing layer (placeholder) | Mobile  | — |
+| I18N-001 | String-extraction infrastructure         | i18n    | — |
+| QA-001   | Vitest unit-test setup                   | QA      | ✅ Done (PR #33) |
+| QA-004   | Detox-defer ADR                          | QA      | ✅ Done (PR #31) |
 
 ### Wave 6
 
