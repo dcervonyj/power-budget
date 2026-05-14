@@ -4,3 +4,9 @@ export { computePlanActuals } from './compute-plan-actuals.js';
 export type { ComputePlanActualsParams } from './compute-plan-actuals.js';
 export { convertMoney, UnknownCurrencyPairError } from './convert-money.js';
 export { computeLeftover } from './compute-leftover.js';
+export { aggregateByCategoryWithPrivacy } from './aggregate-by-category-with-privacy.js';
+export type {
+  PrivacyMap,
+  TxCategoryMap,
+  AggregateByCategoryParams,
+} from './aggregate-by-category-with-privacy.js';
