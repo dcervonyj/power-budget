@@ -151,7 +151,7 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | INF-008  | Drizzle ORM tooling                      | Infra   | ✅ Done (PR #37) |
 | INF-012  | Observability stack                      | Infra   | — |
 | BE-004   | Core entity types (Plan, Transaction, …) | Backend | ✅ Done (PR #34) |
-| BE-010   | Core locale-aware formatters             | Backend | — |
+| BE-010   | Core locale-aware formatters             | Backend | ✅ Done (PR #39) |
 | WEB-002  | Routing + protected-route wrapper        | Web     | ✅ Done (PR #32) |
 | WEB-003  | MobX + ReactiveView wiring               | Web     | ✅ Done (PR #36) |
 | MOB-002  | React Navigation                         | Mobile  | ✅ Done (PR #35) |
@@ -163,17 +163,18 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 6
 
-| ID       | Title                                   | Area    |
-| -------- | --------------------------------------- | ------- |
-| INF-009  | Deployment topology — Fly.io            | Infra   |
-| BE-005   | Drizzle schema — every MVP table        | Backend |
-| BE-006   | Core `computePlanActuals`               | Backend |
-| BE-007   | Core `computeLeftover` + `convertMoney` | Backend |
-| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend |
-| BE-009   | Core `applyMappingSuggestion`           | Backend |
-| MOB-004  | Secure storage for tokens               | Mobile  |
-| I18N-002 | `react-intl` provider + lint rule       | i18n    |
-| I18N-003 | Resource bundles — `en.json` baseline   | i18n    |
+| ID       | Title                                   | Area    | Status |
+| -------- | --------------------------------------- | ------- | ------ |
+| INF-009  | Deployment topology — Fly.io            | Infra   | ⏸ Deferred (needs external account) |
+| BE-005   | Drizzle schema — every MVP table        | Backend | ✅ Done (PR #38) |
+| BE-006   | Core `computePlanActuals`               | Backend | ✅ Done (PR #40) |
+| BE-007   | Core `computeLeftover` + `convertMoney` | Backend | ✅ Done (PR #41) |
+| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | ✅ Done (PR #42) |
+| BE-009   | Core `applyMappingSuggestion`           | Backend | ✅ Done (PR #43) |
+| BE-010   | Core locale-aware formatters            | Backend | ✅ Done (PR #39) |
+| MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs BE-038 / MOB-003) |
+| I18N-002 | `react-intl` provider + lint rule       | i18n    | ⏸ Deferred to Wave 7 |
+| I18N-003 | Resource bundles — `en.json` baseline   | i18n    | ⏸ Deferred to Wave 7 |
 
 ### Wave 7
 
