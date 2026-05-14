@@ -1,0 +1,63 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    container_name: pb_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-power_budget}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-power_budget}
+      POSTGRES_DB: ${POSTGRES_DB:-power_budget}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pb_pg_data:/var/lib/postgresql/data
+    networks:
+      - pb_local
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U power_budget -d power_budget"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: pb_redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - pb_redis_data:/data
+    networks:
+      - pb_local
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 2s
+
+  mailpit:
+    image: axllent/mailpit:v1.20
+    container_name: pb_mailpit
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    networks:
+      - pb_local
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8025/readyz || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 2s
+
+volumes:
+  pb_pg_data:
+  pb_redis_data:
+
+networks:
+  pb_local:
+    driver: bridge
