@@ -1,12 +1,13 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import { RootNavigator } from './navigation/RootNavigator.js';
 
 export function App() {
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-      <Text>Power Budget</Text>
+    <NavigationContainer>
+      <RootNavigator />
       <StatusBar style="auto" />
-    </View>
+    </NavigationContainer>
   );
 }
