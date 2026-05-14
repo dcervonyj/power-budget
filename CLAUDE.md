@@ -1,5 +1,9 @@
 # Power Budget — Agent Instructions
 
+> **Sync rule:** This file is one of three identical agent-instruction files in this repo:
+> `AGENTS.md` (OpenAI Codex), `CLAUDE.md` (Anthropic Claude CLI), `.github/copilot-instructions.md` (GitHub Copilot).
+> **If you modify any one of them, apply the same change to all three.**
+
 ## Project status
 
 The monorepo scaffold is complete (INF-002 ✅). Conventions documented here are authoritative from `docs/mvp/ARCHITECTURE.md`; code must be written to match them from day one.
