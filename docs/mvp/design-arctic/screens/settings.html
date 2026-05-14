@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="sidebar-brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <nav class="nav">
+      <a class="nav__item" href="dashboard-en.html"><span class="nav__icon">▣</span> Dashboard</a>
+      <a class="nav__item" href="plans-list.html"><span class="nav__icon">≡</span> Plans</a>
+      <a class="nav__item" href="transactions.html"><span class="nav__icon">↔</span> Transactions</a>
+      <a class="nav__item" href="bank-connections.html"><span class="nav__icon">🏦</span> Bank Connections</a>
+      <a class="nav__item" href="categories.html"><span class="nav__icon">⊞</span> Categories</a>
+      <a class="nav__item nav__item--active" href="settings.html"><span class="nav__icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar-user">
+        <span class="avatar avatar--purple">AN</span>
+        <div>
+          <div style="font-weight:600;font-size:13px">Anna Nowak</div>
+          <div style="font-size:11px;color:var(--text-muted)">Kowalski household</div>
+        </div>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()">☀️ Light mode</button>
+    </div>
+  </aside>
+  <div class="app__main">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search transactions, plans…" aria-label="Search"/>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="dropdown">
+          <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">EN ▾</button>
+          <div class="dropdown__menu" role="menu">
+            <a class="dropdown__item" href="dashboard-en.html">🇬🇧 English</a>
+            <a class="dropdown__item" href="dashboard-pl.html">🇵🇱 Polski</a>
+            <a class="dropdown__item" href="dashboard-uk.html">🇺🇦 Українська</a>
+            <a class="dropdown__item" href="dashboard-ru.html">🇷🇺 Русский</a>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <span class="avatar avatar--purple">AN</span>
+      </div>
+    </header>
+    <main class="content">
+      <div class="page-header">
+        <div class="page-header__titles">
+          <h1>Settings</h1>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab tab--active" data-tab="tab-profile" onclick="showTab('tab-profile')">Profile</button>
+        <button class="tab" data-tab="tab-language" onclick="showTab('tab-language')">Language &amp; Currency</button>
+        <button class="tab" data-tab="tab-notifications" onclick="showTab('tab-notifications')">Notifications</button>
+        <button class="tab" data-tab="tab-security" onclick="showTab('tab-security')">Security</button>
+        <button class="tab" data-tab="tab-household" onclick="showTab('tab-household')">Household</button>
+      </div>
+
+      <!-- TAB: Profile -->
+      <div id="tab-profile" class="tab-panel tab-panel--active" style="max-width:560px">
+        <!-- Avatar section -->
+        <div class="row" style="gap:16px;margin-bottom:24px;align-items:center">
+          <span class="avatar avatar--purple avatar--lg" style="width:60px;height:60px;font-size:18px">AN</span>
+          <div>
+            <button class="btn btn--secondary btn--sm" style="margin-bottom:6px">Upload photo</button>
+            <div style="font-size:11px;color:var(--text-muted)">JPG or PNG, max 2 MB</div>
+          </div>
+        </div>
+        <form onsubmit="return false;" class="stack-sm">
+          <div class="field">
+            <label class="field__label">Full name</label>
+            <input class="input" type="text" value="Anna Nowak">
+          </div>
+          <div class="field">
+            <label class="field__label">Email</label>
+            <input class="input" type="email" value="anna@household.pl">
+          </div>
+          <div class="field">
+            <label class="field__label">Phone <span style="color:var(--text-muted)">(optional)</span></label>
+            <input class="input" type="tel" placeholder="+48 …">
+          </div>
+          <div style="margin-top:8px">
+            <button type="submit" class="btn btn--primary">Save changes</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- TAB: Language & Currency -->
+      <div id="tab-language" class="tab-panel" style="max-width:560px">
+        <form onsubmit="return false;" class="stack-sm">
+          <div class="field">
+            <label class="field__label">Language</label>
+            <select class="select">
+              <option selected>English</option>
+              <option>Polski</option>
+              <option>Українська</option>
+              <option>Русский</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">Base currency</label>
+            <select class="select">
+              <option selected>PLN — Polish Złoty</option>
+              <option>EUR — Euro</option>
+              <option>UAH — Ukrainian Hryvnia</option>
+              <option>USD — US Dollar</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field__label">Secondary currencies</label>
+            <div class="chips" style="margin-top:4px">
+              <button type="button" class="chip chip--selected">EUR</button>
+              <button type="button" class="chip chip--selected">UAH</button>
+              <button type="button" class="chip">USD</button>
+              <button type="button" class="chip">CHF</button>
+              <button type="button" class="chip">+ Add</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:500">Exchange rate source</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">European Central Bank (ECB)</div>
+            </div>
+            <label class="toggle">
+              <input type="checkbox" checked>
+              <span class="toggle__slider"></span>
+            </label>
+          </div>
+          <div style="margin-top:8px">
+            <button type="submit" class="btn btn--primary">Save changes</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- TAB: Notifications -->
+      <div id="tab-notifications" class="tab-panel" style="max-width:560px">
+        <div class="stack-sm">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:500">Monthly summary email</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Receive a monthly report of your budget</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle__slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:500">Over-budget alerts</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Notify when a category exceeds budget</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle__slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:500">Bank sync failures</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Alert when bank sync fails</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle__slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:500">New household members</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Notify when someone joins your household</div>
+            </div>
+            <label class="toggle"><input type="checkbox"><span class="toggle__slider"></span></label>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-size:13px;font-weight:500">Weekly digest</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Summary of spending every week</div>
+            </div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle__slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Security -->
+      <div id="tab-security" class="tab-panel" style="max-width:560px">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Change password</h3>
+        <form onsubmit="return false;" class="stack-sm" style="margin-bottom:24px">
+          <div class="field">
+            <label class="field__label">Current password</label>
+            <input class="input" type="password" placeholder="Current password">
+          </div>
+          <div class="field">
+            <label class="field__label">New password</label>
+            <input class="input" type="password" placeholder="New password">
+          </div>
+          <div class="field">
+            <label class="field__label">Confirm new password</label>
+            <input class="input" type="password" placeholder="Confirm new password">
+          </div>
+          <div style="margin-top:4px">
+            <button type="submit" class="btn btn--primary">Save password</button>
+          </div>
+        </form>
+
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Two-factor authentication</h3>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+          <span class="badge badge--success">2FA is enabled</span>
+          <label class="toggle"><input type="checkbox" checked><span class="toggle__slider"></span></label>
+          <button class="btn btn--ghost btn--sm">View recovery codes</button>
+        </div>
+
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Active sessions</h3>
+        <div class="stack-sm">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:13px;font-weight:500">Chrome on macOS</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Warsaw, PL · Now</div>
+            </div>
+            <span class="badge badge--success">Current</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:13px;font-weight:500">Firefox on Windows</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Kraków, PL · 2 days ago</div>
+            </div>
+            <button class="btn btn--danger btn--sm">Revoke</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Household -->
+      <div id="tab-household" class="tab-panel" style="max-width:560px">
+        <div class="field" style="margin-bottom:16px">
+          <label class="field__label">Household name</label>
+          <div class="row" style="gap:8px;margin-top:4px">
+            <input class="input" type="text" value="Kowalski household" style="flex:1">
+            <button class="btn btn--secondary btn--sm">Save name</button>
+          </div>
+        </div>
+
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Members</h3>
+        <div class="stack-sm" style="margin-bottom:24px">
+          <div style="display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="avatar avatar--purple">AN</span>
+              <div>
+                <div style="font-size:13px;font-weight:500">Anna Nowak</div>
+                <div style="font-size:11px;color:var(--text-muted)">anna@household.pl</div>
+              </div>
+            </div>
+            <span class="badge badge--accent">Owner</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="avatar avatar--green">MN</span>
+              <div>
+                <div style="font-size:13px;font-weight:500">Marek Nowak</div>
+                <div style="font-size:11px;color:var(--text-muted)">marek@household.pl</div>
+              </div>
+            </div>
+            <div class="row" style="gap:8px">
+              <span class="badge">Member</span>
+              <button class="btn btn--ghost btn--sm">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:16px">Invite member</h3>
+        <div class="row" style="gap:8px">
+          <input class="input" type="email" placeholder="Email address" style="flex:1">
+          <button class="btn btn--primary">Send invite</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  function showTab(id){
+    document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('tab--active');});
+    document.querySelectorAll('.tab-panel').forEach(function(p){p.classList.remove('tab-panel--active');});
+    document.querySelector('[data-tab="'+id+'"]').classList.add('tab--active');
+    document.getElementById(id).classList.add('tab-panel--active');
+  }
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

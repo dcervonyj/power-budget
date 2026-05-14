@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Настройка — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body class="onboarding-shell">
+<header class="topbar">
+  <a class="sidebar-brand" href="../index.html" style="padding:0"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+  <div class="topbar__right">
+    <div class="dropdown">
+      <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">RU ▾</button>
+      <div class="dropdown__menu" role="menu">
+        <a class="dropdown__item" href="onboarding-en.html">🇬🇧 English</a>
+        <a class="dropdown__item" href="onboarding-pl.html">🇵🇱 Polski</a>
+        <a class="dropdown__item" href="onboarding-uk.html">🇺🇦 Українська</a>
+        <a class="dropdown__item" href="onboarding-ru.html">🇷🇺 Русский</a>
+      </div>
+    </div>
+    <button class="theme-btn" onclick="toggleTheme()" style="width:auto;padding:7px 14px">☀️ Светлая тема</button>
+  </div>
+</header>
+<main>
+  <div class="onboarding-card">
+    <div class="steps">
+      <div class="steps__item steps__item--done">
+        <span class="steps__num">✓</span> Язык
+      </div>
+      <span class="steps__sep">›</span>
+      <div class="steps__item steps__item--active">
+        <span class="steps__num">2</span> Валюта
+      </div>
+      <span class="steps__sep">›</span>
+      <div class="steps__item">
+        <span class="steps__num">3</span> Валюты
+      </div>
+      <span class="steps__sep">›</span>
+      <div class="steps__item">
+        <span class="steps__num">4</span> Банк
+      </div>
+      <span class="steps__sep">›</span>
+      <div class="steps__item">
+        <span class="steps__num">5</span> План
+      </div>
+    </div>
+
+    <h1 style="font-size:24px;font-weight:800;margin-bottom:6px">Добро пожаловать в Power Budget</h1>
+    <p style="color:var(--text-dim);font-size:14px;margin-bottom:28px">Настроим ваш аккаунт за несколько простых шагов.</p>
+
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Выберите базовую валюту</h3>
+    <div class="grid grid-2" style="gap:10px;margin-bottom:24px">
+      <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--accent-bg);border:1.5px solid var(--accent-border);border-radius:var(--r-md);cursor:pointer">
+        <input type="radio" name="currency" value="PLN" checked class="radio"> <span style="font-weight:700;font-size:15px">PLN</span> <span style="color:var(--text-muted);font-size:12px">Польский злотый</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer">
+        <input type="radio" name="currency" value="EUR" class="radio"> <span style="font-weight:700;font-size:15px">EUR</span> <span style="color:var(--text-muted);font-size:12px">Евро</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer">
+        <input type="radio" name="currency" value="UAH" class="radio"> <span style="font-weight:700;font-size:15px">UAH</span> <span style="color:var(--text-muted);font-size:12px">Украинская гривна</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer">
+        <input type="radio" name="currency" value="USD" class="radio"> <span style="font-weight:700;font-size:15px">USD</span> <span style="color:var(--text-muted);font-size:12px">Доллар США</span>
+      </label>
+    </div>
+
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Валюты, которые вас интересуют</h3>
+    <div class="chips" style="margin-bottom:24px">
+      <button class="chip chip--selected">PLN</button>
+      <button class="chip chip--selected">EUR</button>
+      <button class="chip chip--selected">UAH</button>
+      <button class="chip chip--selected">USD</button>
+      <button class="chip">GBP</button>
+      <button class="chip">CHF</button>
+      <button class="chip">CZK</button>
+      <button class="chip">+ Добавить</button>
+    </div>
+
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Необязательно: подключите банк</h3>
+    <div class="row" style="margin-bottom:8px">
+      <button class="btn btn--secondary"><span class="bank-logo bank-logo--pko" style="width:20px;height:20px;font-size:10px">P</span> Подключить PKO BP</button>
+      <button class="btn btn--secondary"><span class="bank-logo bank-logo--wise" style="width:20px;height:20px;font-size:10px">W</span> Подключить Wise</button>
+    </div>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:24px">или <a href="dashboard-en.html">пропустить</a></p>
+
+    <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Необязательно: создайте первый план</h3>
+    <div class="grid grid-2" style="gap:10px;margin-bottom:32px">
+      <label style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--accent-bg);border:1.5px solid var(--accent-border);border-radius:var(--r-md);cursor:pointer">
+        <input type="radio" name="plan" value="monthly" checked class="radio" style="margin-top:2px"> <div><div style="font-weight:600;font-size:13px">Ежемесячный личный план</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Май 2026 — Личный</div></div>
+      </label>
+      <label style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:var(--s2);border:1px solid var(--border);border-radius:var(--r-md);cursor:pointer">
+        <input type="radio" name="plan" value="skip" class="radio" style="margin-top:2px"> <div><div style="font-weight:600;font-size:13px">Пропустить</div><div style="font-size:11px;color:var(--text-muted);margin-top:3px">Создам план позже</div></div>
+      </label>
+    </div>
+
+    <div class="row row--between">
+      <button class="btn btn--ghost">← Назад</button>
+      <a class="btn btn--primary" href="dashboard-en.html">Завершить настройку →</a>
+    </div>
+  </div>
+</main>
+<script>
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Светлая тема':'🌙 Тёмная тема';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

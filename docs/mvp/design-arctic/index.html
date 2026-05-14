@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Arctic Design System — PowerBudget</title>
+  <link rel="stylesheet" href="styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+  <style>
+    .gallery-shell { min-height: 100vh; background: var(--bg); }
+    .gallery-header { background: var(--s1); border-bottom: 1px solid var(--border); padding: 20px 40px; display: flex; align-items: center; justify-content: space-between; }
+    .gallery-brand { font-size: 18px; font-weight: 800; color: var(--text); display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .gallery-brand em { color: var(--accent); font-style: normal; }
+    .gallery-body { max-width: 1080px; margin: 0 auto; padding: 40px 24px; }
+    .gallery-hero { margin-bottom: 40px; }
+    .gallery-hero h1 { font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 8px; }
+    .gallery-hero p { color: var(--text-dim); font-size: 15px; }
+    .screen-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .screen-card { background: var(--s1); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow); text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 8px; transition: border-color 150ms, box-shadow 150ms; }
+    .screen-card:hover { border-color: var(--accent-border); box-shadow: 0 4px 20px var(--accent-glow); color: var(--text); }
+    .screen-card__num { font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; }
+    .screen-card__name { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+    .screen-card__desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+    .screen-card__tag { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: var(--r-pill); background: var(--s2); color: var(--text-muted); border: 1px solid var(--border); }
+    .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin: 32px 0 16px; }
+  </style>
+</head>
+<body>
+<div class="gallery-shell">
+  <header class="gallery-header">
+    <a class="gallery-brand" href="index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span class="badge badge--accent">Arctic Design System</span>
+      <button class="theme-btn" onclick="toggleTheme()" style="width:auto;padding:7px 14px;">☀️ Light mode</button>
+    </div>
+  </header>
+  <div class="gallery-body">
+    <div class="gallery-hero">
+      <h1>Arctic Design System</h1>
+      <p>Interactive prototype · 19 screens · Dark &amp; light themes · Multi-language</p>
+    </div>
+
+    <div class="section-title">🔐 Authentication</div>
+    <div class="screen-grid">
+      <a class="screen-card" href="screens/auth-login.html">
+        <span class="screen-card__num">01</span>
+        <div class="screen-card__name">Sign in</div>
+        <div class="screen-card__desc">Email + password login, Google SSO, magic link option</div>
+        <span class="screen-card__tag">Auth</span>
+      </a>
+      <a class="screen-card" href="screens/auth-signup.html">
+        <span class="screen-card__num">02</span>
+        <div class="screen-card__name">Create account</div>
+        <div class="screen-card__desc">Registration form with Google SSO option</div>
+        <span class="screen-card__tag">Auth</span>
+      </a>
+      <a class="screen-card" href="screens/auth-magic-link.html">
+        <span class="screen-card__num">03</span>
+        <div class="screen-card__name">Magic link</div>
+        <div class="screen-card__desc">Passwordless login via email link</div>
+        <span class="screen-card__tag">Auth</span>
+      </a>
+      <a class="screen-card" href="screens/auth-2fa.html">
+        <span class="screen-card__num">04</span>
+        <div class="screen-card__name">Two-factor auth</div>
+        <div class="screen-card__desc">6-digit TOTP code entry with auto-advance</div>
+        <span class="screen-card__tag">Auth</span>
+      </a>
+    </div>
+
+    <div class="section-title">🚀 Onboarding</div>
+    <div class="screen-grid">
+      <a class="screen-card" href="screens/onboarding-en.html">
+        <span class="screen-card__num">05</span>
+        <div class="screen-card__name">Onboarding (EN)</div>
+        <div class="screen-card__desc">5-step setup: language → currency → banks → plan</div>
+        <span class="screen-card__tag">Onboarding · 🇬🇧 EN</span>
+      </a>
+      <a class="screen-card" href="screens/onboarding-pl.html">
+        <span class="screen-card__num">06</span>
+        <div class="screen-card__name">Onboarding (PL)</div>
+        <div class="screen-card__desc">Konfiguracja krok po kroku</div>
+        <span class="screen-card__tag">Onboarding · 🇵🇱 PL</span>
+      </a>
+      <a class="screen-card" href="screens/onboarding-uk.html">
+        <span class="screen-card__num">07</span>
+        <div class="screen-card__name">Onboarding (UK)</div>
+        <div class="screen-card__desc">Налаштування крок за кроком</div>
+        <span class="screen-card__tag">Onboarding · 🇺🇦 UK</span>
+      </a>
+      <a class="screen-card" href="screens/onboarding-ru.html">
+        <span class="screen-card__num">08</span>
+        <div class="screen-card__name">Onboarding (RU)</div>
+        <div class="screen-card__desc">Настройка шаг за шагом</div>
+        <span class="screen-card__tag">Onboarding · 🇷🇺 RU</span>
+      </a>
+    </div>
+
+    <div class="section-title">📊 Dashboard</div>
+    <div class="screen-grid">
+      <a class="screen-card" href="screens/dashboard-en.html">
+        <span class="screen-card__num">09</span>
+        <div class="screen-card__name">Dashboard (EN)</div>
+        <div class="screen-card__desc">Full plan view with income, expenses, KPIs, sparkline</div>
+        <span class="screen-card__tag">Dashboard · 🇬🇧 EN</span>
+      </a>
+      <a class="screen-card" href="screens/dashboard-pl.html">
+        <span class="screen-card__num">10</span>
+        <div class="screen-card__name">Dashboard (PL)</div>
+        <div class="screen-card__desc">Pulpit z dochodami, wydatkami i KPI</div>
+        <span class="screen-card__tag">Dashboard · 🇵🇱 PL</span>
+      </a>
+      <a class="screen-card" href="screens/dashboard-uk.html">
+        <span class="screen-card__num">11</span>
+        <div class="screen-card__name">Dashboard (UK)</div>
+        <div class="screen-card__desc">Панель з доходами та витратами</div>
+        <span class="screen-card__tag">Dashboard · 🇺🇦 UK</span>
+      </a>
+      <a class="screen-card" href="screens/dashboard-ru.html">
+        <span class="screen-card__num">12</span>
+        <div class="screen-card__name">Dashboard (RU)</div>
+        <div class="screen-card__desc">Панель с доходами и расходами</div>
+        <span class="screen-card__tag">Dashboard · 🇷🇺 RU</span>
+      </a>
+    </div>
+
+    <div class="section-title">📋 Plans</div>
+    <div class="screen-grid">
+      <a class="screen-card" href="screens/plans-list.html">
+        <span class="screen-card__num">13</span>
+        <div class="screen-card__name">Plans list</div>
+        <div class="screen-card__desc">Grid of budget plans with ring progress indicators</div>
+        <span class="screen-card__tag">Plans</span>
+      </a>
+      <a class="screen-card" href="screens/plan-editor.html">
+        <span class="screen-card__num">14</span>
+        <div class="screen-card__name">Plan editor</div>
+        <div class="screen-card__desc">Create/edit plan with income sources and categories</div>
+        <span class="screen-card__tag">Plans</span>
+      </a>
+    </div>
+
+    <div class="section-title">💳 Transactions</div>
+    <div class="screen-grid">
+      <a class="screen-card" href="screens/transactions.html">
+        <span class="screen-card__num">15</span>
+        <div class="screen-card__name">Transactions</div>
+        <div class="screen-card__desc">Filterable table with bulk actions and pagination</div>
+        <span class="screen-card__tag">Transactions</span>
+      </a>
+      <a class="screen-card" href="screens/transaction-detail.html">
+        <span class="screen-card__num">16</span>
+        <div class="screen-card__name">Transaction detail</div>
+        <div class="screen-card__desc">Edit form with similar transactions sidebar</div>
+        <span class="screen-card__tag">Transactions</span>
+      </a>
+    </div>
+
+    <div class="section-title">⚙️ Settings</div>
+    <div class="screen-grid">
+      <a class="screen-card" href="screens/bank-connections.html">
+        <span class="screen-card__num">17</span>
+        <div class="screen-card__name">Bank connections</div>
+        <div class="screen-card__desc">Connected banks, sync status, add new connections</div>
+        <span class="screen-card__tag">Settings</span>
+      </a>
+      <a class="screen-card" href="screens/categories.html">
+        <span class="screen-card__num">18</span>
+        <div class="screen-card__name">Categories</div>
+        <div class="screen-card__desc">Manage income and expense categories with budgets</div>
+        <span class="screen-card__tag">Settings</span>
+      </a>
+      <a class="screen-card" href="screens/settings.html">
+        <span class="screen-card__num">19</span>
+        <div class="screen-card__name">Settings</div>
+        <div class="screen-card__desc">Profile, language, notifications, security, household</div>
+        <span class="screen-card__tag">Settings</span>
+      </a>
+    </div>
+  </div>
+</div>
+<script>
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+</script>
+</body>
+</html>

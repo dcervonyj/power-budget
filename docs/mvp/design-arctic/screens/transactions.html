@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transactions — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <a class="sidebar-brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+    <nav class="nav">
+      <a class="nav__item" href="dashboard-en.html"><span class="nav__icon">▣</span> Dashboard</a>
+      <a class="nav__item" href="plans-list.html"><span class="nav__icon">≡</span> Plans</a>
+      <a class="nav__item nav__item--active" href="transactions.html"><span class="nav__icon">↔</span> Transactions</a>
+      <a class="nav__item" href="bank-connections.html"><span class="nav__icon">🏦</span> Bank Connections</a>
+      <a class="nav__item" href="categories.html"><span class="nav__icon">⊞</span> Categories</a>
+      <a class="nav__item" href="settings.html"><span class="nav__icon">⚙</span> Settings</a>
+    </nav>
+    <div class="sidebar__footer">
+      <div class="sidebar-user">
+        <span class="avatar avatar--purple">AN</span>
+        <div>
+          <div style="font-weight:600;font-size:13px">Anna Nowak</div>
+          <div style="font-size:11px;color:var(--text-muted)">Kowalski household</div>
+        </div>
+      </div>
+      <button class="theme-btn" onclick="toggleTheme()">☀️ Light mode</button>
+    </div>
+  </aside>
+  <div class="app__main">
+    <header class="topbar">
+      <div class="topbar__left">
+        <div class="search">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search transactions, plans…" aria-label="Search"/>
+        </div>
+      </div>
+      <div class="topbar__right">
+        <div class="dropdown">
+          <button class="locale-pill" onclick="toggleMenu(this)" aria-haspopup="menu" aria-expanded="false">EN ▾</button>
+          <div class="dropdown__menu" role="menu">
+            <a class="dropdown__item" href="dashboard-en.html">🇬🇧 English</a>
+            <a class="dropdown__item" href="dashboard-pl.html">🇵🇱 Polski</a>
+            <a class="dropdown__item" href="dashboard-uk.html">🇺🇦 Українська</a>
+            <a class="dropdown__item" href="dashboard-ru.html">🇷🇺 Русский</a>
+          </div>
+        </div>
+        <button class="icon-btn" aria-label="Notifications">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        </button>
+        <span class="avatar avatar--purple">AN</span>
+      </div>
+    </header>
+    <main class="content">
+      <div class="page-header">
+        <div class="page-header__titles">
+          <h1>Transactions</h1>
+        </div>
+        <button class="btn btn--primary">＋ Add transaction</button>
+      </div>
+
+      <!-- Filters -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+        <select class="select" style="width:140px"><option>May 2026</option><option>Apr 2026</option><option>Mar 2026</option></select>
+        <select class="select" style="width:160px"><option>All categories</option><option>Groceries</option><option>Transport</option><option>Rent</option></select>
+        <select class="select" style="width:140px"><option>All types</option><option>Income</option><option>Expense</option></select>
+        <div class="search" style="flex:1;min-width:200px">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input placeholder="Search merchant, category…"/>
+        </div>
+      </div>
+
+      <!-- Bulk bar -->
+      <div class="bulk-bar">
+        <span style="font-size:13px;font-weight:500">2 transactions selected</span>
+        <div class="row" style="gap:8px">
+          <button class="btn btn--sm btn--secondary">Recategorize</button>
+          <button class="btn btn--sm btn--secondary">Assign to plan</button>
+          <button class="btn btn--sm btn--danger">Delete</button>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th style="width:40px"><input type="checkbox" class="checkbox"></th>
+              <th>Date</th>
+              <th>Merchant</th>
+              <th>Category</th>
+              <th>Account</th>
+              <th class="num">Amount</th>
+              <th style="width:60px">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="table__selected">
+              <td><input type="checkbox" class="checkbox" checked></td>
+              <td>May 14</td>
+              <td>Biedronka</td>
+              <td>Groceries</td>
+              <td>PKO BP</td>
+              <td class="num">−149.80 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr class="table__selected">
+              <td><input type="checkbox" class="checkbox" checked></td>
+              <td>May 13</td>
+              <td>Lidl</td>
+              <td>Groceries</td>
+              <td>PKO BP</td>
+              <td class="num">−87.40 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 13</td>
+              <td>PKO BP Transfer</td>
+              <td>Rent</td>
+              <td>PKO BP</td>
+              <td class="num">−3,500.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 12</td>
+              <td>Żabka</td>
+              <td>Groceries</td>
+              <td>PKO BP</td>
+              <td class="num">−22.50 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 11</td>
+              <td>Revolut FX</td>
+              <td>Transport</td>
+              <td>Wise</td>
+              <td class="num">−45.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 10</td>
+              <td>Netflix</td>
+              <td>Subscriptions</td>
+              <td>Wise</td>
+              <td class="num">−45.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 10</td>
+              <td>Wise Transfer</td>
+              <td>Freelance Income</td>
+              <td>Wise</td>
+              <td class="num" style="color:var(--success)">+1,800.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 9</td>
+              <td>Uber</td>
+              <td>Transport</td>
+              <td>PKO BP</td>
+              <td class="num">−34.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 8</td>
+              <td>Żabka</td>
+              <td>Groceries</td>
+              <td>PKO BP</td>
+              <td class="num">−18.90 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 7</td>
+              <td>Amazon</td>
+              <td>Unplanned</td>
+              <td>PKO BP</td>
+              <td class="num">−149.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 6</td>
+              <td>ZTM</td>
+              <td>Transport</td>
+              <td>PKO BP</td>
+              <td class="num">−110.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 5</td>
+              <td>Employer</td>
+              <td>Salary</td>
+              <td>PKO BP</td>
+              <td class="num" style="color:var(--success)">+12,000.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 4</td>
+              <td>Pizzeria Roma</td>
+              <td>Eating Out</td>
+              <td>PKO BP</td>
+              <td class="num">−68.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 3</td>
+              <td>H&amp;M</td>
+              <td>Clothing</td>
+              <td>PKO BP</td>
+              <td class="num">−210.00 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+            <tr>
+              <td><input type="checkbox" class="checkbox"></td>
+              <td>May 2</td>
+              <td>Apteka</td>
+              <td>Healthcare</td>
+              <td>PKO BP</td>
+              <td class="num">−89.90 PLN</td>
+              <td><a href="transaction-detail.html" class="icon-btn" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></a></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <button class="page-btn">‹</button>
+        <button class="page-btn page-btn--active">1</button>
+        <button class="page-btn">2</button>
+        <button class="page-btn">3</button>
+        <button class="page-btn">›</button>
+      </div>
+    </main>
+  </div>
+</div>
+<script>
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

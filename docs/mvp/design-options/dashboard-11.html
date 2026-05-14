@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 11: Glass Bento (02 + 05)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --glass: rgba(255, 255, 255, 0.08);
+        --glass-border: rgba(255, 255, 255, 0.14);
+        --glass-strong: rgba(255, 255, 255, 0.14);
+        --glass-hover: rgba(255, 255, 255, 0.12);
+        --text: #f0eeff;
+        --text-dim: rgba(240, 238, 255, 0.55);
+        --text-muted: rgba(240, 238, 255, 0.32);
+        --accent: #a78bfa;
+        --accent-glow: rgba(167, 139, 250, 0.3);
+        --success: #4ade80;
+        --success-glow: rgba(74, 222, 128, 0.25);
+        --warn: #fbbf24;
+        --warn-glow: rgba(251, 191, 36, 0.25);
+        --danger: #f87171;
+        --danger-glow: rgba(248, 113, 113, 0.3);
+        --blue: #60a5fa;
+        --radius: 20px;
+        --radius-sm: 12px;
+      }
+
+      body {
+        min-height: 100vh;
+        background:
+          radial-gradient(ellipse 80% 60% at 10% 20%, #4f1bc4 0%, transparent 60%),
+          radial-gradient(ellipse 70% 50% at 90% 80%, #0e4fa8 0%, transparent 55%),
+          radial-gradient(ellipse 60% 70% at 50% 50%, #7c1a6e 0%, transparent 65%),
+          radial-gradient(ellipse 90% 80% at 80% 10%, #0d2a6e 0%, transparent 50%),
+          #0a0520;
+        color: var(--text);
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      /* Ambient orbs */
+      body::before {
+        content: "";
+        position: fixed;
+        width: 600px;
+        height: 600px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+        top: -150px;
+        left: -150px;
+        pointer-events: none;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        width: 500px;
+        height: 500px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(59, 130, 246, 0.12) 0%, transparent 70%);
+        bottom: -100px;
+        right: -100px;
+        pointer-events: none;
+      }
+
+      /* GLASS BASE */
+      .glass {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--radius);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+      .glass-strong {
+        background: var(--glass-strong);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius);
+        backdrop-filter: blur(28px);
+        -webkit-backdrop-filter: blur(28px);
+      }
+
+      /* TOP BAR */
+      .topbar {
+        background: rgba(10, 5, 32, 0.55);
+        border-bottom: 1px solid var(--glass-border);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        padding: 0 28px;
+        height: 56px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .logo {
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+        background: linear-gradient(135deg, #a78bfa, #60a5fa);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .topbar-center {
+        background: rgba(167, 139, 250, 0.15);
+        border: 1px solid rgba(167, 139, 250, 0.25);
+        border-radius: 999px;
+        padding: 6px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .topbar-center .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 6px var(--success-glow);
+      }
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .lang-group {
+        display: flex;
+        gap: 4px;
+      }
+      .lang-btn {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 9px;
+        border-radius: 7px;
+        cursor: pointer;
+        color: var(--text-dim);
+        transition: all 0.2s;
+      }
+      .lang-btn.active {
+        background: rgba(167, 139, 250, 0.2);
+        color: var(--accent);
+        border: 1px solid rgba(167, 139, 250, 0.3);
+      }
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #7c3aed, #2563eb);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+        color: white;
+        border: 1.5px solid rgba(255, 255, 255, 0.25);
+        box-shadow: 0 0 14px rgba(124, 58, 237, 0.45);
+      }
+
+      /* PAGE */
+      .page {
+        max-width: 980px;
+        margin: 0 auto;
+        padding: 28px 24px 60px;
+      }
+
+      /* PLAN STRIP */
+      .plan-strip {
+        padding: 20px 24px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+      .plan-left {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .plan-name {
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: var(--text);
+      }
+      .plan-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      .type-badge {
+        background: rgba(167, 139, 250, 0.18);
+        color: var(--accent);
+        border: 1px solid rgba(167, 139, 250, 0.3);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 999px;
+      }
+      .plan-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .days-chip {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.6), rgba(167, 139, 250, 0.4));
+        border: 1px solid rgba(167, 139, 250, 0.4);
+        backdrop-filter: blur(16px);
+        color: white;
+        border-radius: var(--radius-sm);
+        padding: 12px 20px;
+        text-align: center;
+        box-shadow: 0 0 20px rgba(139, 92, 246, 0.35);
+      }
+      .days-chip .num {
+        font-size: 32px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -1px;
+      }
+      .days-chip .lbl {
+        font-size: 11px;
+        font-weight: 500;
+        opacity: 0.75;
+        margin-top: 2px;
+      }
+      .switcher-chip {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 999px;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--accent);
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+      }
+
+      /* BENTO GRID */
+      .bento {
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, 1fr);
+      }
+      .bento-card {
+        border-radius: var(--radius);
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        transition: background 0.2s;
+      }
+      .bento-card:hover {
+        background: var(--glass-hover);
+      }
+      .bento-card.wide { grid-column: span 2; }
+      .bento-card.full { grid-column: span 3; }
+      .bento-card.tall { grid-row: span 2; }
+
+      .card-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+
+      /* INCOME ROWS */
+      .income-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      }
+      .income-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .income-bar-wrap { flex: 1; }
+      .income-bar-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text);
+      }
+      .income-bar-track {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .income-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+      }
+      .income-chip {
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      /* EXPENSE ROWS */
+      .exp-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .exp-item:last-child { border-bottom: none; }
+      .exp-icon {
+        font-size: 18px;
+        width: 32px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+      .exp-body { flex: 1; min-width: 0; }
+      .exp-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 4px;
+      }
+      .exp-name { font-size: 13px; font-weight: 600; color: var(--text); }
+      .exp-amounts { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+      .exp-bar-track {
+        height: 5px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 999px;
+        overflow: hidden;
+        position: relative;
+      }
+      .exp-bar-fill {
+        height: 100%;
+        border-radius: 999px;
+        max-width: 100%;
+      }
+      .glow-green { box-shadow: 0 0 8px var(--success-glow); }
+      .glow-warn  { box-shadow: 0 0 8px var(--warn-glow); }
+      .glow-danger { box-shadow: 0 0 8px var(--danger-glow); }
+      .exp-pct {
+        font-size: 11px;
+        font-weight: 700;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+      .exp-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .exp-btn { font-size: 14px; color: var(--text-muted); cursor: pointer; }
+
+      /* BIG NUMBERS */
+      .big-number {
+        font-size: 38px;
+        font-weight: 800;
+        letter-spacing: -2px;
+        line-height: 1;
+        margin: 8px 0 4px;
+      }
+      .sub-text { font-size: 12px; color: var(--text-dim); }
+
+      /* NET CARD — glowing gradient */
+      .net-card-bento {
+        background: linear-gradient(
+          135deg,
+          rgba(74, 222, 128, 0.18) 0%,
+          rgba(16, 185, 129, 0.12) 100%
+        ) !important;
+        border: 1px solid rgba(74, 222, 128, 0.35) !important;
+        box-shadow: 0 0 40px rgba(74, 222, 128, 0.12), inset 0 0 30px rgba(74, 222, 128, 0.05);
+      }
+      .net-card-bento .card-label { color: rgba(74, 222, 128, 0.6); }
+      .net-card-bento .big-number {
+        color: var(--success);
+        font-size: 44px;
+        text-shadow: 0 0 20px var(--success-glow);
+      }
+      .net-card-bento .sub-text { color: rgba(74, 222, 128, 0.7); }
+
+      /* SAVINGS CARD */
+      .savings-card {
+        background: linear-gradient(
+          135deg,
+          rgba(167, 139, 250, 0.18) 0%,
+          rgba(124, 58, 237, 0.12) 100%
+        ) !important;
+        border: 1px solid rgba(167, 139, 250, 0.35) !important;
+        box-shadow: 0 0 40px rgba(139, 92, 246, 0.1);
+      }
+      .savings-card .card-label { color: rgba(167, 139, 250, 0.6); }
+      .savings-card .big-number { color: var(--accent); text-shadow: 0 0 16px var(--accent-glow); }
+
+      /* UNPLANNED CARDS */
+      .unplanned-exp {
+        background: rgba(248, 113, 113, 0.1) !important;
+        border: 1px solid rgba(248, 113, 113, 0.3) !important;
+      }
+      .unplanned-inc {
+        background: rgba(74, 222, 128, 0.08) !important;
+        border: 1px solid rgba(74, 222, 128, 0.25) !important;
+      }
+
+      /* CURRENCY PILLS */
+      .curr-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+      .curr-p {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 5px 10px;
+        border-radius: 999px;
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(8px);
+      }
+      .curr-p.active {
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+        border-color: rgba(255, 255, 255, 0.35);
+      }
+
+      /* SPARKLINE */
+      .spark-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        margin-top: 14px;
+      }
+      .spark-bar {
+        width: 10px;
+        border-radius: 3px 3px 0 0;
+        background: rgba(167, 139, 250, 0.25);
+      }
+      .spark-bar.hi { background: rgba(167, 139, 250, 0.8); box-shadow: 0 0 6px var(--accent-glow); }
+
+      /* SYNC */
+      .sync-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 11px;
+        color: var(--text-muted);
+        padding-top: 12px;
+      }
+      .sync-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--success);
+        flex-shrink: 0;
+        box-shadow: 0 0 6px var(--success-glow);
+      }
+      .sync-link { color: var(--accent); cursor: pointer; }
+
+      @media (max-width: 700px) {
+        .bento { grid-template-columns: 1fr; }
+        .bento-card.wide, .bento-card.full, .bento-card.tall {
+          grid-column: span 1;
+          grid-row: span 1;
+        }
+        .plan-strip { flex-direction: column; align-items: flex-start; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">PowerBudget</div>
+      <div class="topbar-center">
+        <span class="dot"></span>
+        May 2026 — Household
+      </div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- PLAN STRIP -->
+      <div class="glass plan-strip">
+        <div class="plan-left">
+          <div class="plan-name">May 2026 — Household</div>
+          <div class="plan-meta">
+            <span class="type-badge">Household</span>
+            May 1 – May 31, 2026
+          </div>
+        </div>
+        <div class="plan-right">
+          <div class="days-chip">
+            <div class="num">17</div>
+            <div class="lbl">days left</div>
+          </div>
+          <div class="switcher-chip">+2 active plans ↓</div>
+        </div>
+      </div>
+
+      <!-- BENTO GRID -->
+      <div class="bento">
+
+        <!-- INCOME — wide -->
+        <div class="bento-card wide">
+          <div class="card-label">Expected Income</div>
+
+          <div class="income-item">
+            <div style="font-size: 18px">💼</div>
+            <div class="income-bar-wrap">
+              <div class="income-bar-label">
+                <span style="font-weight: 600">Salary</span>
+                <span style="color: var(--success); font-weight: 700">12,000 / 12,000 PLN</span>
+              </div>
+              <div class="income-bar-track">
+                <div class="income-bar-fill glow-green" style="width: 100%; background: var(--success)"></div>
+              </div>
+            </div>
+            <span class="income-chip" style="color: var(--success)">100%</span>
+          </div>
+
+          <div class="income-item">
+            <div style="font-size: 18px">💻</div>
+            <div class="income-bar-wrap">
+              <div class="income-bar-label">
+                <span style="font-weight: 600">Freelance</span>
+                <span style="color: var(--warn); font-weight: 700">1,500 / 3,000 PLN</span>
+              </div>
+              <div class="income-bar-track">
+                <div class="income-bar-fill glow-warn" style="width: 50%; background: var(--warn)"></div>
+              </div>
+            </div>
+            <span class="income-chip" style="color: var(--warn)">50%</span>
+          </div>
+
+          <div class="income-item">
+            <div style="font-size: 18px">🏡</div>
+            <div class="income-bar-wrap">
+              <div class="income-bar-label">
+                <span style="font-weight: 600">Side rental</span>
+                <span style="color: var(--text-muted); font-weight: 700">0 / 1,200 PLN</span>
+              </div>
+              <div class="income-bar-track">
+                <div class="income-bar-fill" style="width: 0%"></div>
+              </div>
+            </div>
+            <span class="income-chip" style="color: var(--text-muted)">Pending</span>
+          </div>
+        </div>
+
+        <!-- NET CARD -->
+        <div class="bento-card net-card-bento">
+          <div class="card-label">Period Net</div>
+          <div class="big-number">+2,098</div>
+          <div class="sub-text">PLN this month</div>
+          <div class="curr-row">
+            <div class="curr-p active">PLN</div>
+            <div class="curr-p">€491</div>
+            <div class="curr-p">$529</div>
+            <div class="curr-p">₴20.4k</div>
+          </div>
+        </div>
+
+        <!-- EXPENSES — full width -->
+        <div class="bento-card full">
+          <div class="card-label">Planned Expenses</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px">
+
+            <div class="exp-item">
+              <div class="exp-icon">🏠</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Rent</span>
+                  <span class="exp-amounts" style="color: var(--success)">3,500 / 3,500 PLN</span>
+                </div>
+                <div class="exp-bar-track">
+                  <div class="exp-bar-fill glow-green" style="width: 100%; background: var(--success)"></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--success)">✓</div>
+              <div class="exp-actions"><span class="exp-btn">↗</span><span class="exp-btn">›</span></div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">🛒</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Groceries</span>
+                  <span class="exp-amounts" style="color: var(--warn)">1,640 / 2,000 PLN</span>
+                </div>
+                <div class="exp-bar-track">
+                  <div class="exp-bar-fill glow-warn" style="width: 82%; background: var(--warn)"></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--warn)">82%</div>
+              <div class="exp-actions"><span class="exp-btn">↗</span><span class="exp-btn">›</span></div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">⚡</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Utilities</span>
+                  <span class="exp-amounts" style="color: var(--warn)">540 / 600 PLN</span>
+                </div>
+                <div class="exp-bar-track">
+                  <div class="exp-bar-fill glow-warn" style="width: 90%; background: var(--warn)"></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--warn)">90%</div>
+              <div class="exp-actions"><span class="exp-btn">↗</span><span class="exp-btn">›</span></div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">🚌</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Transport</span>
+                  <span class="exp-amounts" style="color: var(--text-dim)">215 / 400 PLN</span>
+                </div>
+                <div class="exp-bar-track">
+                  <div class="exp-bar-fill" style="width: 54%; background: var(--blue)"></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--text-dim)">54%</div>
+              <div class="exp-actions"><span class="exp-btn">↗</span><span class="exp-btn">›</span></div>
+            </div>
+
+            <div class="exp-item" style="background: rgba(248,113,113,0.08); border-radius: 10px; padding: 8px 10px; margin: -2px -4px; border: 1px solid rgba(248,113,113,0.2)">
+              <div class="exp-icon">🍽️</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Eating Out
+                    <span style="font-size: 10px; color: var(--danger); font-weight: 700">+220 over!</span>
+                  </span>
+                  <span class="exp-amounts" style="color: var(--danger)">720 / 500 PLN</span>
+                </div>
+                <div class="exp-bar-track">
+                  <div class="exp-bar-fill glow-danger" style="width: 100%; background: var(--danger)"></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--danger)">144%</div>
+              <div class="exp-actions"><span class="exp-btn">↗</span><span class="exp-btn">›</span></div>
+            </div>
+
+            <div class="exp-item">
+              <div class="exp-icon">📱</div>
+              <div class="exp-body">
+                <div class="exp-header">
+                  <span class="exp-name">Subscriptions</span>
+                  <span class="exp-amounts" style="color: var(--success)">180 / 180 PLN</span>
+                </div>
+                <div class="exp-bar-track">
+                  <div class="exp-bar-fill glow-green" style="width: 100%; background: var(--success)"></div>
+                </div>
+              </div>
+              <div class="exp-pct" style="color: var(--success)">✓</div>
+              <div class="exp-actions"><span class="exp-btn">↗</span><span class="exp-btn">›</span></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- UNPLANNED EXP -->
+        <div class="bento-card unplanned-exp">
+          <div class="card-label" style="color: rgba(248,113,113,0.7)">Unplanned Expenses</div>
+          <div class="big-number" style="color: var(--danger); text-shadow: 0 0 16px var(--danger-glow)">487</div>
+          <div class="sub-text" style="color: rgba(248,113,113,0.6)">PLN · 6 transactions</div>
+          <div style="margin-top: 12px; font-size: 12px; color: var(--danger); font-weight: 600; cursor: pointer">View all →</div>
+        </div>
+
+        <!-- UNPLANNED INC -->
+        <div class="bento-card unplanned-inc">
+          <div class="card-label" style="color: rgba(74,222,128,0.6)">Unplanned Income</div>
+          <div class="big-number" style="color: var(--success); text-shadow: 0 0 16px var(--success-glow)">250</div>
+          <div class="sub-text" style="color: rgba(74,222,128,0.6)">PLN · 1 transaction (gift)</div>
+          <div style="margin-top: 12px; font-size: 12px; color: var(--success); font-weight: 600; cursor: pointer">View all →</div>
+        </div>
+
+        <!-- SAVINGS -->
+        <div class="bento-card savings-card">
+          <div class="card-label">Saved This Period</div>
+          <div class="big-number">425 PLN</div>
+          <div class="sub-text">projected · total: 3,847 PLN</div>
+          <div class="spark-row">
+            <div class="spark-bar" style="height: 20px"></div>
+            <div class="spark-bar" style="height: 28px"></div>
+            <div class="spark-bar" style="height: 18px"></div>
+            <div class="spark-bar" style="height: 32px"></div>
+            <div class="spark-bar" style="height: 24px"></div>
+            <div class="spark-bar" style="height: 36px"></div>
+            <div class="spark-bar hi" style="height: 30px"></div>
+          </div>
+          <div class="sync-row">
+            <span class="sync-dot"></span>
+            <span>Last synced 4 min ago · PKO BP, Wise</span>
+            <span class="sync-link">Refresh</span>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </body>
+</html>

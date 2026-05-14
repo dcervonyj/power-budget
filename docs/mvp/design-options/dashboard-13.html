@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 13: Ring Glass (05 + 10)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --glass: rgba(255,255,255,0.09);
+        --glass-border: rgba(255,255,255,0.16);
+        --glass-strong: rgba(255,255,255,0.15);
+        --text: #f0eeff;
+        --text-dim: rgba(240,238,255,0.55);
+        --text-muted: rgba(240,238,255,0.30);
+        --accent: #c084fc;
+        --accent-glow: rgba(192,132,252,0.35);
+        --success: #4ade80;
+        --success-glow: rgba(74,222,128,0.28);
+        --warn: #fbbf24;
+        --warn-glow: rgba(251,191,36,0.28);
+        --danger: #f87171;
+        --danger-glow: rgba(248,113,113,0.35);
+        --blue: #60a5fa;
+        --r-rent: #ff6b9d;
+        --r-groceries: #fbbf24;
+        --r-utilities: #c084fc;
+        --r-transport: #4ade80;
+        --r-eating: #f87171;
+        --r-subs: #60a5fa;
+        --r-income: #a78bfa;
+      }
+
+      body {
+        min-height: 100vh;
+        background:
+          radial-gradient(ellipse 80% 60% at 10% 20%, #4f1bc4 0%, transparent 60%),
+          radial-gradient(ellipse 70% 50% at 90% 80%, #0e4fa8 0%, transparent 55%),
+          radial-gradient(ellipse 60% 70% at 50% 50%, #7c1a6e 0%, transparent 65%),
+          radial-gradient(ellipse 90% 80% at 80% 10%, #0d2a6e 0%, transparent 50%),
+          #0a0520;
+        color: var(--text);
+        font-family: "Plus Jakarta Sans", sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        width: 500px; height: 500px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(139,92,246,0.18) 0%, transparent 70%);
+        top: -100px; left: -100px; pointer-events: none;
+      }
+      body::after {
+        content: "";
+        position: fixed;
+        width: 400px; height: 400px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, transparent 70%);
+        bottom: -80px; right: -80px; pointer-events: none;
+      }
+
+      .glass {
+        background: var(--glass);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        backdrop-filter: blur(22px);
+        -webkit-backdrop-filter: blur(22px);
+      }
+      .glass-strong {
+        background: var(--glass-strong);
+        border: 1px solid rgba(255,255,255,0.22);
+        border-radius: 20px;
+        backdrop-filter: blur(28px);
+        -webkit-backdrop-filter: blur(28px);
+      }
+
+      /* TOP BAR */
+      .topbar {
+        background: rgba(10,5,32,0.6);
+        border-bottom: 1px solid var(--glass-border);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        padding: 0 24px;
+        height: 54px;
+        display: flex; align-items: center; justify-content: space-between;
+        position: sticky; top: 0; z-index: 100;
+      }
+      .logo { font-size: 18px; font-weight: 800; letter-spacing: -0.5px; }
+      .logo span { color: var(--accent); filter: drop-shadow(0 0 6px var(--accent-glow)); }
+      .topbar-right { display: flex; align-items: center; gap: 10px; }
+      .lang-group { display: flex; gap: 2px; }
+      .lang-btn {
+        font-size: 11px; font-weight: 600; padding: 4px 9px; border-radius: 8px;
+        cursor: pointer; color: var(--text-muted);
+      }
+      .lang-btn.active {
+        background: rgba(255,255,255,0.1); color: var(--text);
+        border: 1px solid var(--glass-border);
+      }
+      .avatar {
+        width: 34px; height: 34px; border-radius: 50%;
+        background: linear-gradient(135deg, var(--r-income), #7c4dff);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: 800; color: white;
+        box-shadow: 0 0 10px rgba(167,139,250,0.4);
+      }
+
+      /* PAGE */
+      .page { max-width: 980px; margin: 0 auto; padding: 24px 20px 60px; }
+
+      /* PLAN HEADER */
+      .plan-header {
+        padding: 18px 22px; margin-bottom: 18px;
+        display: flex; align-items: center; justify-content: space-between;
+      }
+      .plan-name { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
+      .plan-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+      .pchip {
+        font-size: 11px; font-weight: 600; padding: 3px 12px; border-radius: 999px;
+        background: rgba(255,255,255,0.08); border: 1px solid var(--glass-border);
+        color: var(--text-dim);
+      }
+      .pchip-accent {
+        background: rgba(192,132,252,0.14); border-color: rgba(192,132,252,0.35);
+        color: var(--accent);
+      }
+      .plan-right { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+
+      /* DAYS RING */
+      .days-ring-wrap { position: relative; width: 76px; height: 76px; }
+      .days-ring-wrap svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+      .days-center {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+      }
+      .days-center .n { font-size: 22px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+      .days-center .l { font-size: 9px; font-weight: 500; color: var(--text-dim); margin-top: 1px; }
+      .switcher-btn { font-size: 11px; font-weight: 600; color: var(--accent); cursor: pointer; }
+
+      /* INCOME SECTION */
+      .income-section { padding: 20px 22px; margin-bottom: 18px; }
+      .sect-label {
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--text-muted); margin-bottom: 16px;
+      }
+      .income-rings { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+      .inc-ring-item { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+      .inc-ring-svg { position: relative; width: 68px; height: 68px; }
+      .inc-ring-svg svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+      .inc-ring-center {
+        position: absolute; inset: 0; display: flex; align-items: center;
+        justify-content: center; font-size: 13px; font-weight: 800;
+      }
+      .inc-ring-label { font-size: 11px; font-weight: 600; color: var(--text-dim); text-align: center; }
+      .inc-ring-amounts { font-size: 10px; color: var(--text-muted); text-align: center; }
+      .inc-badge {
+        font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      }
+      .divider-v { width: 1px; height: 90px; background: var(--glass-border); flex-shrink: 0; }
+      .inc-summary { flex: 1; min-width: 160px; }
+      .inc-total { font-size: 34px; font-weight: 800; letter-spacing: -1.5px; color: var(--r-income); line-height: 1; }
+      .inc-total span { font-size: 14px; font-weight: 500; color: var(--text-dim); }
+      .inc-bar-track { height: 4px; border-radius: 999px; background: rgba(167,139,250,0.12); margin-top: 10px; overflow: hidden; }
+      .inc-bar-fill { height: 100%; border-radius: 999px; background: var(--r-income); box-shadow: 0 0 6px rgba(167,139,250,0.5); }
+
+      /* RINGS SECTION */
+      .rings-section {
+        display: grid; grid-template-columns: auto 1fr; gap: 28px;
+        padding: 24px 22px; margin-bottom: 18px; align-items: center;
+        /* Glass lens glow: subtle color bleed from ring colors into background */
+        background:
+          radial-gradient(ellipse 60% 60% at 20% 50%, rgba(255,107,157,0.06) 0%, transparent 60%),
+          radial-gradient(ellipse 40% 40% at 20% 50%, rgba(192,132,252,0.05) 0%, transparent 50%),
+          var(--glass);
+      }
+      .rings-canvas { position: relative; width: 220px; height: 220px; flex-shrink: 0; }
+      .rings-canvas svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+      .rings-center {
+        position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center;
+      }
+      .rc-label {
+        font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+        color: var(--text-muted); margin-bottom: 3px;
+      }
+      .rc-value { font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+      .rc-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+
+      .rings-legend {}
+      .legend-title {
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--text-muted); margin-bottom: 12px;
+      }
+      .ring-row {
+        display: grid; grid-template-columns: 10px 1fr 80px 60px 48px 20px;
+        align-items: center; gap: 10px; padding: 7px 0;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .ring-row:last-child { border-bottom: none; }
+      .ring-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+      .ring-name { font-size: 12px; font-weight: 500; }
+      .ring-over { font-size: 9px; display: block; font-weight: 700; }
+      .ring-spent { font-size: 12px; font-weight: 700; text-align: right; }
+      .ring-budget { font-size: 11px; color: var(--text-muted); text-align: right; }
+      .ring-pct { font-size: 11px; font-weight: 700; text-align: right; }
+      .ring-expand { font-size: 12px; color: var(--text-muted); cursor: pointer; text-align: center; }
+
+      /* BOTTOM GRID */
+      .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+      .stat-card { padding: 18px 20px; }
+      .sc-label {
+        font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+        color: var(--text-muted); margin-bottom: 8px;
+      }
+      .sc-value { font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+      .sc-sub { font-size: 11px; color: var(--text-dim); margin-top: 5px; }
+
+      /* NET CARD */
+      .net-card {
+        display: grid; grid-template-columns: 1fr auto;
+        align-items: center; gap: 20px;
+        padding: 20px 22px; margin-bottom: 18px;
+        background:
+          radial-gradient(ellipse 100% 100% at 0% 50%, rgba(74,222,128,0.08) 0%, transparent 50%),
+          var(--glass);
+      }
+      .net-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 6px; }
+      .net-value { font-size: 44px; font-weight: 800; letter-spacing: -2px; color: var(--success); line-height: 1; filter: drop-shadow(0 0 10px var(--success-glow)); }
+      .net-value span { font-size: 20px; font-weight: 500; color: var(--text-dim); }
+      .net-breakdown { font-size: 11px; color: var(--text-dim); margin-top: 5px; }
+      .curr-group { display: flex; gap: 4px; }
+      .curr-btn {
+        font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 8px; cursor: pointer;
+        background: rgba(255,255,255,0.07); border: 1px solid var(--glass-border); color: var(--text-dim);
+      }
+      .curr-btn.active { background: rgba(192,132,252,0.2); border-color: rgba(192,132,252,0.4); color: var(--accent); }
+
+      /* SYNC */
+      .sync-row {
+        padding: 12px 16px; display: flex; align-items: center; gap: 8px;
+        font-size: 11px; color: var(--text-dim);
+      }
+      .sync-dot {
+        width: 6px; height: 6px; border-radius: 50%; background: var(--success);
+        box-shadow: 0 0 6px var(--success-glow); flex-shrink: 0;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+      .sync-link { color: var(--accent); cursor: pointer; font-weight: 600; margin-left: auto; }
+
+      @media (max-width: 680px) {
+        .rings-section { grid-template-columns: 1fr; }
+        .rings-canvas { width: 160px; height: 160px; margin: 0 auto; }
+        .bottom-grid { grid-template-columns: 1fr 1fr; }
+        .net-card { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">Power<span>Budget</span></div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- PLAN HEADER -->
+      <div class="plan-header glass">
+        <div>
+          <div class="plan-name">May 2026 — Household</div>
+          <div class="plan-chips">
+            <span class="pchip pchip-accent">Household</span>
+            <span class="pchip">May 1 – May 31, 2026</span>
+            <span class="pchip">16,200 PLN planned</span>
+          </div>
+        </div>
+        <div class="plan-right">
+          <div class="days-ring-wrap">
+            <svg viewBox="0 0 76 76" width="76" height="76">
+              <circle cx="38" cy="38" r="32" fill="none" stroke="rgba(192,132,252,0.12)" stroke-width="6"/>
+              <circle cx="38" cy="38" r="32" fill="none" stroke="var(--accent)" stroke-width="6"
+                stroke-linecap="round" stroke-dasharray="201.1" stroke-dashoffset="90"
+                style="filter:drop-shadow(0 0 5px rgba(192,132,252,0.6))"/>
+            </svg>
+            <div class="days-center">
+              <span class="n">17</span>
+              <span class="l">days</span>
+            </div>
+          </div>
+          <div class="switcher-btn">+2 plans ↓</div>
+        </div>
+      </div>
+
+      <!-- INCOME RINGS -->
+      <div class="income-section glass">
+        <div class="sect-label">Expected Income</div>
+        <div class="income-rings">
+          <!-- Salary 100% -->
+          <div class="inc-ring-item">
+            <div class="inc-ring-svg">
+              <svg viewBox="0 0 68 68" width="68" height="68">
+                <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(167,139,250,0.12)" stroke-width="6"/>
+                <circle cx="34" cy="34" r="28" fill="none" stroke="var(--r-income)" stroke-width="6"
+                  stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="0"
+                  style="filter:drop-shadow(0 0 5px rgba(167,139,250,0.6))"/>
+              </svg>
+              <div class="inc-ring-center" style="color:var(--r-income)">100%</div>
+            </div>
+            <div class="inc-ring-label">Salary</div>
+            <div class="inc-ring-amounts">12,000 / 12,000</div>
+            <span class="inc-badge" style="background:rgba(167,139,250,0.15);color:var(--r-income)">✓ Full</span>
+          </div>
+
+          <!-- Freelance 50% -->
+          <div class="inc-ring-item">
+            <div class="inc-ring-svg">
+              <svg viewBox="0 0 68 68" width="68" height="68">
+                <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(251,191,36,0.12)" stroke-width="6"/>
+                <circle cx="34" cy="34" r="28" fill="none" stroke="var(--warn)" stroke-width="6"
+                  stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="87.96"/>
+              </svg>
+              <div class="inc-ring-center" style="color:var(--warn)">50%</div>
+            </div>
+            <div class="inc-ring-label">Freelance</div>
+            <div class="inc-ring-amounts">1,500 / 3,000</div>
+            <span class="inc-badge" style="background:rgba(251,191,36,0.12);color:var(--warn)">In progress</span>
+          </div>
+
+          <!-- Side rental 0% -->
+          <div class="inc-ring-item">
+            <div class="inc-ring-svg">
+              <svg viewBox="0 0 68 68" width="68" height="68">
+                <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="6"/>
+                <circle cx="34" cy="34" r="28" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="6"
+                  stroke-linecap="round" stroke-dasharray="175.9" stroke-dashoffset="175.9"/>
+              </svg>
+              <div class="inc-ring-center" style="color:var(--text-muted)">0%</div>
+            </div>
+            <div class="inc-ring-label">Side rental</div>
+            <div class="inc-ring-amounts">0 / 1,200</div>
+            <span class="inc-badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted)">Pending</span>
+          </div>
+
+          <div class="divider-v"></div>
+
+          <!-- Summary -->
+          <div class="inc-summary">
+            <div class="sect-label" style="margin-bottom:6px">Total received</div>
+            <div class="inc-total">13,500 <span>PLN</span></div>
+            <div style="font-size:11px;color:var(--text-dim);margin-top:4px">of 16,200 PLN planned</div>
+            <div class="inc-bar-track"><div class="inc-bar-fill" style="width:83%"></div></div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px">83% received</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPENSE RINGS — glass lens hero -->
+      <div class="rings-section glass">
+        <!-- Concentric rings SVG -->
+        <!-- r: rent=96, groceries=80, utilities=64, transport=48, eating=32, subs=16 -->
+        <!-- circumferences: 603.2, 502.7, 402.1, 301.6, 201.1, 100.5 -->
+        <div class="rings-canvas">
+          <svg viewBox="0 0 220 220" width="220" height="220">
+            <!-- Tracks -->
+            <circle cx="110" cy="110" r="96" fill="none" stroke="rgba(255,107,157,0.1)" stroke-width="12"/>
+            <circle cx="110" cy="110" r="80" fill="none" stroke="rgba(251,191,36,0.1)" stroke-width="12"/>
+            <circle cx="110" cy="110" r="64" fill="none" stroke="rgba(192,132,252,0.1)" stroke-width="12"/>
+            <circle cx="110" cy="110" r="48" fill="none" stroke="rgba(74,222,128,0.1)" stroke-width="12"/>
+            <circle cx="110" cy="110" r="32" fill="none" stroke="rgba(248,113,113,0.1)" stroke-width="12"/>
+            <circle cx="110" cy="110" r="16" fill="none" stroke="rgba(96,165,250,0.1)" stroke-width="10"/>
+
+            <!-- Rent 100% -->
+            <circle cx="110" cy="110" r="96" fill="none" stroke="var(--r-rent)" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="603.2" stroke-dashoffset="0"
+              style="filter:drop-shadow(0 0 5px rgba(255,107,157,0.6))"/>
+
+            <!-- Groceries 82% -->
+            <circle cx="110" cy="110" r="80" fill="none" stroke="var(--r-groceries)" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="502.7" stroke-dashoffset="90.5"/>
+
+            <!-- Utilities 90% -->
+            <circle cx="110" cy="110" r="64" fill="none" stroke="var(--r-utilities)" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="402.1" stroke-dashoffset="40.2"
+              style="filter:drop-shadow(0 0 4px rgba(192,132,252,0.5))"/>
+
+            <!-- Transport 54% -->
+            <circle cx="110" cy="110" r="48" fill="none" stroke="var(--r-transport)" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="301.6" stroke-dashoffset="138.7"/>
+
+            <!-- Eating Out 144% — full + danger glow -->
+            <circle cx="110" cy="110" r="32" fill="none" stroke="var(--r-eating)" stroke-width="12"
+              stroke-linecap="round" stroke-dasharray="201.1" stroke-dashoffset="0"
+              style="filter:drop-shadow(0 0 7px rgba(248,113,113,0.8))"/>
+
+            <!-- Subscriptions 100% -->
+            <circle cx="110" cy="110" r="16" fill="none" stroke="var(--r-subs)" stroke-width="10"
+              stroke-linecap="round" stroke-dasharray="100.5" stroke-dashoffset="0"
+              style="filter:drop-shadow(0 0 4px rgba(96,165,250,0.6))"/>
+          </svg>
+
+          <div class="rings-center">
+            <div class="rc-label">Spent</div>
+            <div class="rc-value">6,795</div>
+            <div class="rc-sub">of 7,180 PLN</div>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="rings-legend">
+          <div class="legend-title">Planned Expenses</div>
+
+          <div class="ring-row">
+            <div class="ring-dot" style="background:var(--r-rent);box-shadow:0 0 6px rgba(255,107,157,0.5)"></div>
+            <div class="ring-name">🏠 Rent</div>
+            <div class="ring-spent" style="color:var(--r-rent)">3,500 PLN</div>
+            <div class="ring-budget">/ 3,500</div>
+            <div class="ring-pct" style="color:var(--r-rent)">100%</div>
+            <div class="ring-expand">↗</div>
+          </div>
+          <div class="ring-row">
+            <div class="ring-dot" style="background:var(--r-groceries)"></div>
+            <div class="ring-name">🛒 Groceries</div>
+            <div class="ring-spent" style="color:var(--r-groceries)">1,640 PLN</div>
+            <div class="ring-budget">/ 2,000</div>
+            <div class="ring-pct" style="color:var(--r-groceries)">82%</div>
+            <div class="ring-expand">↗</div>
+          </div>
+          <div class="ring-row">
+            <div class="ring-dot" style="background:var(--r-utilities);box-shadow:0 0 4px rgba(192,132,252,0.5)"></div>
+            <div class="ring-name">⚡ Utilities</div>
+            <div class="ring-spent" style="color:var(--r-utilities)">540 PLN</div>
+            <div class="ring-budget">/ 600</div>
+            <div class="ring-pct" style="color:var(--r-utilities)">90%</div>
+            <div class="ring-expand">↗</div>
+          </div>
+          <div class="ring-row">
+            <div class="ring-dot" style="background:var(--r-transport)"></div>
+            <div class="ring-name">🚌 Transport</div>
+            <div class="ring-spent" style="color:var(--r-transport)">215 PLN</div>
+            <div class="ring-budget">/ 400</div>
+            <div class="ring-pct" style="color:var(--r-transport)">54%</div>
+            <div class="ring-expand">↗</div>
+          </div>
+          <div class="ring-row" style="background:rgba(248,113,113,0.07);border-radius:10px;padding:7px 8px;margin:0 -8px;">
+            <div class="ring-dot" style="background:var(--r-eating);box-shadow:0 0 6px rgba(248,113,113,0.7)"></div>
+            <div class="ring-name">🍽️ Eating Out<span class="ring-over" style="color:var(--danger)">▲ +220 over</span></div>
+            <div class="ring-spent" style="color:var(--danger)">720 PLN</div>
+            <div class="ring-budget">/ 500</div>
+            <div class="ring-pct" style="color:var(--danger)">144%</div>
+            <div class="ring-expand">↗</div>
+          </div>
+          <div class="ring-row">
+            <div class="ring-dot" style="background:var(--r-subs);box-shadow:0 0 4px rgba(96,165,250,0.5)"></div>
+            <div class="ring-name">📱 Subscriptions</div>
+            <div class="ring-spent" style="color:var(--r-subs)">180 PLN</div>
+            <div class="ring-budget">/ 180</div>
+            <div class="ring-pct" style="color:var(--r-subs)">100%</div>
+            <div class="ring-expand">↗</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOTTOM GRID -->
+      <div class="bottom-grid">
+        <div class="stat-card glass">
+          <div class="sc-label">Budget Health</div>
+          <div class="sc-value" style="color:var(--success);filter:drop-shadow(0 0 8px var(--success-glow))">87%</div>
+          <div class="sc-sub">1 category over plan</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="sc-label">Unplanned This Month</div>
+          <div class="sc-value" style="color:var(--warn)">+237 PLN</div>
+          <div class="sc-sub">Net of unplanned txns</div>
+        </div>
+        <div class="stat-card glass">
+          <div class="sc-label">Projected Savings</div>
+          <div class="sc-value" style="color:var(--accent);filter:drop-shadow(0 0 8px var(--accent-glow))">425 PLN</div>
+          <div class="sc-sub">Cumulative: 3,847 PLN</div>
+        </div>
+      </div>
+
+      <!-- NET CARD -->
+      <div class="net-card glass">
+        <div>
+          <div class="net-label">Net Result</div>
+          <div class="net-value">+2,098 <span>PLN</span></div>
+          <div class="net-breakdown">Income 16,700 PLN − Expenses 14,602 PLN</div>
+        </div>
+        <div>
+          <div class="sc-label" style="margin-bottom:8px">Currency</div>
+          <div class="curr-group">
+            <span class="curr-btn active">PLN</span>
+            <span class="curr-btn">EUR</span>
+            <span class="curr-btn">UAH</span>
+            <span class="curr-btn">USD</span>
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:5px">≈ EUR 491 / USD 529</div>
+        </div>
+      </div>
+
+      <!-- SYNC -->
+      <div class="sync-row glass">
+        <div class="sync-dot"></div>
+        <span>Last sync 4 min ago</span>
+        <span style="opacity:0.4">·</span>
+        <span>PKO BP, Wise</span>
+        <div class="sync-link">Refresh now →</div>
+      </div>
+    </main>
+  </body>
+</html>

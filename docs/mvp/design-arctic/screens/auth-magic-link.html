@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Magic link — PowerBudget</title>
+  <link rel="stylesheet" href="../styles.css">
+  <script>(function(){var s=localStorage.getItem('pb-theme')||'dark';document.documentElement.setAttribute('data-theme',s);})();</script>
+</head>
+<body>
+<button onclick="toggleTheme()" style="position:fixed;top:16px;right:16px;z-index:200" class="btn btn--secondary btn--sm">☀️ Light mode</button>
+<div class="auth-shell">
+  <section class="auth-card">
+    <a class="auth-card__brand" href="../index.html"><span class="brand-mark">P</span> Power<em>Budget</em></a>
+
+    <!-- State 1: Form -->
+    <div id="state-form">
+      <h1>Magic link</h1>
+      <p class="auth-card__lede">We'll email you a secure link to sign in — no password needed.</p>
+      <form class="stack-sm" onsubmit="sendMagicLink();return false;" style="margin-bottom:16px">
+        <div class="field">
+          <label class="field__label" for="ml-email">Email address</label>
+          <input class="input" id="ml-email" type="email" placeholder="you@example.com" autocomplete="email">
+        </div>
+        <button type="submit" class="btn btn--primary btn--block" style="margin-top:8px">Send magic link</button>
+      </form>
+      <div class="auth-card__footer">
+        Remember your password? <a href="auth-login.html">Sign in</a>
+      </div>
+    </div>
+
+    <!-- State 2: Confirmation (hidden by default) -->
+    <div id="state-confirm" style="display:none;text-align:center">
+      <div style="font-size:48px;margin-bottom:16px">✉️</div>
+      <h2 style="font-size:20px;font-weight:700;margin-bottom:10px">Check your inbox</h2>
+      <p style="color:var(--text-dim);font-size:14px;margin-bottom:24px">We sent a magic link to your email. Click the link to sign in. The link expires in 10 minutes.</p>
+      <button class="btn btn--ghost btn--block" style="margin-bottom:16px">Resend link</button>
+      <div class="auth-card__footer">
+        Wrong email? <a href="#" onclick="goBack();return false;">Go back</a>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+  function sendMagicLink(){
+    document.getElementById('state-form').style.display='none';
+    document.getElementById('state-confirm').style.display='block';
+  }
+  function goBack(){
+    document.getElementById('state-confirm').style.display='none';
+    document.getElementById('state-form').style.display='block';
+  }
+  function toggleTheme(){
+    var html=document.documentElement;
+    var cur=html.getAttribute('data-theme')||'dark';
+    var nxt=cur==='dark'?'light':'dark';
+    html.setAttribute('data-theme',nxt);
+    localStorage.setItem('pb-theme',nxt);
+    document.querySelectorAll('.theme-btn').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+    document.querySelectorAll('button[onclick="toggleTheme()"]').forEach(function(b){
+      b.textContent=nxt==='dark'?'☀️ Light mode':'🌙 Dark mode';
+    });
+  }
+  function toggleMenu(btn){
+    var menu=btn.nextElementSibling;
+    var open=menu.dataset.open==='true';
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      m.dataset.open='false';
+      if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+    });
+    if(!open){
+      menu.dataset.open='true';
+      btn.setAttribute('aria-expanded','true');
+    }
+  }
+  document.addEventListener('click',function(e){
+    document.querySelectorAll('.dropdown__menu[data-open="true"]').forEach(function(m){
+      if(!m.parentElement.contains(e.target)){
+        m.dataset.open='false';
+        if(m.previousElementSibling) m.previousElementSibling.setAttribute('aria-expanded','false');
+      }
+    });
+  });
+</script>
+</body>
+</html>

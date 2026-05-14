@@ -1,0 +1,468 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 14: Terminal Bento (02 + 04)</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg: #060d1a;
+        --surface: #0d1a2e;
+        --surface2: #0f1f35;
+        --surface3: #142540;
+        --border: #1a2e4a;
+        --border2: #1f3558;
+        --amber: #f5a623;
+        --amber-dim: rgba(245,166,35,0.55);
+        --amber-bg: rgba(245,166,35,0.08);
+        --cyan: #00d4ff;
+        --cyan-dim: rgba(0,212,255,0.55);
+        --cyan-bg: rgba(0,212,255,0.07);
+        --green: #32d67c;
+        --orange: #ff8c42;
+        --red: #e84545;
+        --text: #b8cfea;
+        --text-dim: #4a6080;
+        --text-bright: #d8e8ff;
+        --glow-amber: 0 0 10px rgba(245,166,35,0.5), 0 0 20px rgba(245,166,35,0.15);
+        --glow-cyan: 0 0 10px rgba(0,212,255,0.5), 0 0 20px rgba(0,212,255,0.15);
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+
+      /* TOPBAR */
+      .topbar {
+        background: rgba(6,13,26,0.96);
+        border-bottom: 1px solid var(--border2);
+        padding: 0 18px;
+        height: 38px;
+        display: flex; align-items: center; justify-content: space-between;
+        font-size: 11px;
+        position: sticky; top: 0; z-index: 100;
+      }
+      .logo {
+        font-weight: 700; font-size: 15px; letter-spacing: 0.08em; text-transform: uppercase;
+        color: var(--amber); text-shadow: var(--glow-amber);
+      }
+      .logo span { color: var(--cyan); text-shadow: var(--glow-cyan); }
+      .topbar-right { display: flex; align-items: center; gap: 12px; }
+      .lang-group { display: flex; border: 1px solid var(--border2); }
+      .lang-btn {
+        padding: 3px 8px; font-size: 10px; font-weight: 600; cursor: pointer;
+        color: var(--text-dim); border-right: 1px solid var(--border2);
+        text-transform: uppercase; letter-spacing: 0.04em;
+      }
+      .lang-btn:last-child { border-right: none; }
+      .lang-btn.active { background: var(--amber); color: var(--bg); }
+      .avatar {
+        font-size: 10px; font-weight: 700; padding: 3px 9px;
+        border: 1px solid rgba(245,166,35,0.4); color: var(--amber);
+      }
+
+      /* PAGE */
+      .page { padding: 12px 14px 48px; }
+
+      /* BENTO GRID */
+      .bento {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: auto auto auto auto;
+        gap: 6px;
+      }
+
+      /* TILES */
+      .tile {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        overflow: hidden;
+        transition: border-color 0.15s;
+      }
+      .tile:hover { border-color: var(--border2); }
+
+      /* TILE HEADER */
+      .th {
+        background: var(--surface2);
+        border-bottom: 1px solid var(--border);
+        padding: 4px 10px;
+        font-size: 9px; font-weight: 700; color: var(--amber);
+        text-transform: uppercase; letter-spacing: 0.1em;
+        display: flex; align-items: center; justify-content: space-between;
+        text-shadow: 0 0 8px rgba(245,166,35,0.4);
+      }
+      .th-right { color: var(--text-dim); text-shadow: none; font-weight: 400; }
+
+      /* PLAN TILE */
+      .tile-plan { grid-column: span 4; }
+      .plan-inner { padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+      .plan-id { font-size: 20px; font-weight: 700; color: var(--amber); letter-spacing: 0.05em; text-shadow: var(--glow-amber); }
+      .plan-sub { font-size: 10px; color: var(--text-dim); margin-top: 2px; }
+      .plan-metas { display: flex; gap: 16px; }
+      .pm { font-size: 10px; }
+      .pm .lbl { color: var(--text-dim); text-transform: uppercase; font-size: 9px; letter-spacing: 0.06em; }
+      .pm .val { color: var(--text-bright); font-weight: 600; margin-top: 1px; }
+      .pm .val.amber { color: var(--amber); text-shadow: 0 0 6px rgba(245,166,35,0.4); }
+      .pm .val.cyan { color: var(--cyan); text-shadow: 0 0 6px rgba(0,212,255,0.4); }
+
+      /* DAYS TILE */
+      .tile-days { grid-column: span 2; }
+      .days-inner { padding: 12px 14px; text-align: center; }
+      .days-num {
+        font-size: 42px; font-weight: 700; color: var(--cyan); letter-spacing: -2px;
+        line-height: 1; text-shadow: var(--glow-cyan);
+      }
+      .days-lbl { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+      .days-bar { margin-top: 8px; height: 3px; background: var(--border); }
+      .days-bar-fill { height: 100%; width: 55%; background: var(--cyan); box-shadow: 0 0 4px rgba(0,212,255,0.5); }
+
+      /* INCOME TILE */
+      .tile-income { grid-column: span 3; }
+
+      /* TABLE */
+      .trow {
+        display: grid; padding: 5px 10px; align-items: center;
+        border-bottom: 1px solid rgba(26,46,74,0.5);
+        font-size: 11px;
+      }
+      .trow:last-child { border-bottom: none; }
+      .trow:hover { background: rgba(245,166,35,0.03); }
+      .trow-head {
+        background: var(--surface3); padding: 3px 10px;
+        font-size: 9px; color: var(--amber); font-weight: 600;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        border-bottom: 1px solid var(--border2);
+        opacity: 0.75;
+      }
+
+      .inc-row { grid-template-columns: 1fr 80px 80px 50px 52px; gap: 8px; }
+      .col-name { color: var(--text-bright); font-weight: 500; }
+      .col-planned { color: var(--text-dim); text-align: right; }
+      .col-received { text-align: right; font-weight: 600; }
+      .col-pct { text-align: right; font-weight: 700; }
+      .col-status { text-align: right; }
+
+      .stag {
+        font-size: 9px; font-weight: 700; padding: 1px 5px;
+        text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+      }
+      .st-green { color: var(--green); border: 1px solid rgba(50,214,124,0.3); }
+      .st-orange { color: var(--orange); border: 1px solid rgba(255,140,66,0.3); }
+      .st-dim { color: var(--text-dim); border: 1px solid var(--border); }
+      .st-red { color: var(--red); border: 1px solid rgba(232,69,69,0.3); }
+      .st-amber { color: var(--amber); border: 1px solid rgba(245,166,35,0.3); }
+      .st-cyan { color: var(--cyan); border: 1px solid rgba(0,212,255,0.3); }
+
+      /* SAVINGS TILE */
+      .tile-savings { grid-column: span 3; }
+      .savings-inner { padding: 12px 14px; }
+      .sav-value { font-size: 26px; font-weight: 700; color: var(--cyan); letter-spacing: -0.5px; text-shadow: var(--glow-cyan); }
+      .sav-sub { font-size: 10px; color: var(--text-dim); margin-top: 3px; }
+      .mini-chart { margin-top: 10px; }
+      .mc-bar-wrap { display: flex; align-items: flex-end; gap: 2px; height: 28px; }
+      .mc-bar { flex: 1; min-width: 6px; border-top: 1px solid var(--cyan); background: rgba(0,212,255,0.1); }
+
+      /* EXPENSES TILE */
+      .tile-expenses { grid-column: span 6; }
+      .exp-row { grid-template-columns: 16px 1fr 120px 70px 55px 50px 14px; gap: 6px; align-items: center; }
+      .col-bar { }
+      .bar-track { height: 3px; background: var(--bg); border: 1px solid var(--border); }
+      .bar-fill { height: 100%; }
+      .col-icon { font-size: 11px; text-align: center; }
+      .over-tag { font-size: 9px; color: var(--red); display: block; }
+
+      /* NET TILE */
+      .tile-net { grid-column: span 4; }
+      .net-inner { padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+      .net-value { font-size: 38px; font-weight: 700; color: var(--green); letter-spacing: -1.5px; line-height: 1; }
+      .net-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+      .net-breakdown { font-size: 10px; color: var(--text-dim); margin-top: 4px; }
+      .block-bar { font-size: 18px; font-weight: 700; color: var(--amber); letter-spacing: 2px; text-shadow: var(--glow-amber); }
+      .bar-label { font-size: 9px; color: var(--text-dim); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; }
+      .curr-group { display: flex; border: 1px solid var(--border2); }
+      .curr-btn { padding: 3px 8px; font-size: 10px; font-weight: 700; color: var(--text-dim); border-right: 1px solid var(--border2); cursor: pointer; }
+      .curr-btn:last-child { border-right: none; }
+      .curr-btn.active { background: var(--cyan); color: var(--bg); }
+
+      /* UNPLANNED TILE */
+      .tile-unplanned { grid-column: span 2; }
+
+      /* SYNC TILE */
+      .tile-sync { grid-column: span 6; }
+      .sync-inner {
+        padding: 5px 10px; display: flex; align-items: center; gap: 8px;
+        font-size: 10px; color: var(--text-dim);
+      }
+      .sync-dot {
+        width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+        box-shadow: 0 0 5px rgba(50,214,124,0.6);
+        animation: pulse 2s step-end infinite;
+      }
+      @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+      .sync-link { color: var(--cyan); cursor: pointer; margin-left: auto; font-weight: 600; }
+
+      @media (max-width: 700px) {
+        .bento { grid-template-columns: 1fr 1fr; }
+        .tile-plan, .tile-expenses, .tile-net, .tile-sync { grid-column: span 2; }
+        .tile-days, .tile-income, .tile-savings, .tile-unplanned { grid-column: span 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="logo">POWER<span>▸BUDGET</span></div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">[DC]</div>
+      </div>
+    </header>
+
+    <div class="page">
+      <div class="bento">
+
+        <!-- PLAN TILE -->
+        <div class="tile tile-plan">
+          <div class="th">PLAN OVERVIEW <span class="th-right">[ +2 ACTIVE PLANS ]</span></div>
+          <div class="plan-inner">
+            <div>
+              <div class="plan-id">MAY-2026-HH</div>
+              <div class="plan-sub">May 2026 — Household &nbsp;|&nbsp; 01 May – 31 May</div>
+            </div>
+            <div class="plan-metas">
+              <div class="pm">
+                <div class="lbl">INCOME PLAN</div>
+                <div class="val amber">16,200 PLN</div>
+              </div>
+              <div class="pm">
+                <div class="lbl">EXP PLAN</div>
+                <div class="val cyan">7,180 PLN</div>
+              </div>
+              <div class="pm">
+                <div class="lbl">PERIOD</div>
+                <div class="val">31 DAYS</div>
+              </div>
+              <div class="pm">
+                <div class="lbl">TYPE</div>
+                <div class="val">HOUSEHOLD</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DAYS TILE -->
+        <div class="tile tile-days">
+          <div class="th">DAYS LEFT</div>
+          <div class="days-inner">
+            <div class="days-num">17</div>
+            <div class="days-lbl">of 31 days</div>
+            <div class="days-bar"><div class="days-bar-fill"></div></div>
+          </div>
+        </div>
+
+        <!-- INCOME TILE -->
+        <div class="tile tile-income">
+          <div class="th">EXPECTED INCOME <span class="th-right">PLAN: 16,200</span></div>
+          <div class="trow-head inc-row">
+            <span></span>
+            <span>INSTRUMENT</span>
+            <span style="text-align:right">PLANNED</span>
+            <span style="text-align:right">RCVD</span>
+            <span style="text-align:right">%</span>
+            <span style="text-align:right">STATUS</span>
+          </div>
+          <div class="trow inc-row">
+            <span>💼</span>
+            <span class="col-name">Salary</span>
+            <span class="col-planned">12,000</span>
+            <span class="col-received" style="color:var(--green)">12,000</span>
+            <span class="col-pct" style="color:var(--green)">100%</span>
+            <span class="col-status"><span class="stag st-green">RCVD</span></span>
+          </div>
+          <div class="trow inc-row">
+            <span>💻</span>
+            <span class="col-name">Freelance</span>
+            <span class="col-planned">3,000</span>
+            <span class="col-received" style="color:var(--orange)">1,500</span>
+            <span class="col-pct" style="color:var(--orange)">50%</span>
+            <span class="col-status"><span class="stag st-orange">PROG</span></span>
+          </div>
+          <div class="trow inc-row">
+            <span>🏡</span>
+            <span class="col-name">Side rental</span>
+            <span class="col-planned">1,200</span>
+            <span class="col-received" style="color:var(--text-dim)">0</span>
+            <span class="col-pct" style="color:var(--text-dim)">0%</span>
+            <span class="col-status"><span class="stag st-dim">PEND</span></span>
+          </div>
+        </div>
+
+        <!-- SAVINGS TILE -->
+        <div class="tile tile-savings">
+          <div class="th">SAVINGS TRACKER <span class="th-right">CUMULATIVE: 3,847</span></div>
+          <div class="savings-inner">
+            <div style="font-size:9px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">PROJECTED THIS PERIOD</div>
+            <div class="sav-value">425 PLN</div>
+            <div class="sav-sub">+127 vs last period</div>
+            <div class="mini-chart">
+              <div class="mc-bar-wrap">
+                <div class="mc-bar" style="height:40%"></div>
+                <div class="mc-bar" style="height:55%"></div>
+                <div class="mc-bar" style="height:48%"></div>
+                <div class="mc-bar" style="height:62%"></div>
+                <div class="mc-bar" style="height:44%"></div>
+                <div class="mc-bar" style="height:70%"></div>
+                <div class="mc-bar" style="height:60%;border-color:var(--amber);background:rgba(245,166,35,0.1)"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EXPENSES TILE -->
+        <div class="tile tile-expenses">
+          <div class="th">PLANNED EXPENSES <span class="th-right">BUDGET: 7,180 &nbsp;|&nbsp; SPENT: 6,795 &nbsp;|&nbsp; REMAINING: 385 PLN</span></div>
+          <div class="trow-head exp-row">
+            <span></span>
+            <span>CATEGORY</span>
+            <span>UTILIZATION</span>
+            <span style="text-align:right">SPENT</span>
+            <span style="text-align:right">BUDGET</span>
+            <span style="text-align:right">%</span>
+            <span></span>
+          </div>
+
+          <div class="trow exp-row">
+            <span class="col-icon">🏠</span>
+            <span class="col-name">Rent</span>
+            <div class="col-bar"><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--green);box-shadow:0 0 3px rgba(50,214,124,0.5)"></div></div></div>
+            <span class="col-received" style="color:var(--green)">3,500</span>
+            <span class="col-planned">3,500</span>
+            <span class="col-pct" style="color:var(--green)">100%</span>
+            <span style="text-align:right"><span class="stag st-green">FULL</span></span>
+          </div>
+
+          <div class="trow exp-row">
+            <span class="col-icon">🛒</span>
+            <span class="col-name">Groceries</span>
+            <div class="col-bar"><div class="bar-track"><div class="bar-fill" style="width:82%;background:var(--orange)"></div></div></div>
+            <span class="col-received" style="color:var(--orange)">1,640</span>
+            <span class="col-planned">2,000</span>
+            <span class="col-pct" style="color:var(--orange)">82%</span>
+            <span style="text-align:right"><span class="stag st-orange">ON TR</span></span>
+          </div>
+
+          <div class="trow exp-row">
+            <span class="col-icon">⚡</span>
+            <span class="col-name">Utilities</span>
+            <div class="col-bar"><div class="bar-track"><div class="bar-fill" style="width:90%;background:var(--orange)"></div></div></div>
+            <span class="col-received" style="color:var(--orange)">540</span>
+            <span class="col-planned">600</span>
+            <span class="col-pct" style="color:var(--orange)">90%</span>
+            <span style="text-align:right"><span class="stag st-orange">WARN</span></span>
+          </div>
+
+          <div class="trow exp-row">
+            <span class="col-icon">🚌</span>
+            <span class="col-name">Transport</span>
+            <div class="col-bar"><div class="bar-track"><div class="bar-fill" style="width:54%;background:var(--cyan);box-shadow:0 0 3px rgba(0,212,255,0.4)"></div></div></div>
+            <span class="col-received">215</span>
+            <span class="col-planned">400</span>
+            <span class="col-pct">54%</span>
+            <span style="text-align:right"><span class="stag st-cyan">OK</span></span>
+          </div>
+
+          <div class="trow exp-row" style="background:rgba(232,69,69,0.06);border-left:2px solid var(--red)">
+            <span class="col-icon">🍽️</span>
+            <span class="col-name">Eating Out<span class="over-tag">▲ +220 over</span></span>
+            <div class="col-bar"><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--red);box-shadow:0 0 4px rgba(232,69,69,0.6)"></div></div></div>
+            <span class="col-received" style="color:var(--red)">720</span>
+            <span class="col-planned">500</span>
+            <span class="col-pct" style="color:var(--red)">144%</span>
+            <span style="text-align:right"><span class="stag st-red">OVER</span></span>
+          </div>
+
+          <div class="trow exp-row">
+            <span class="col-icon">📱</span>
+            <span class="col-name">Subscriptions</span>
+            <div class="col-bar"><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--green);box-shadow:0 0 3px rgba(50,214,124,0.5)"></div></div></div>
+            <span class="col-received" style="color:var(--green)">180</span>
+            <span class="col-planned">180</span>
+            <span class="col-pct" style="color:var(--green)">100%</span>
+            <span style="text-align:right"><span class="stag st-green">FULL</span></span>
+          </div>
+        </div>
+
+        <!-- NET TILE -->
+        <div class="tile tile-net">
+          <div class="th">NET RESULT</div>
+          <div class="net-inner">
+            <div>
+              <div class="net-label">PERIOD NET</div>
+              <div class="net-value">+2,098 PLN</div>
+              <div class="net-breakdown">INC 16,700 − EXP 14,602 PLN</div>
+            </div>
+            <div>
+              <div class="net-label">BUDGET BAR</div>
+              <div class="block-bar">■■■■■■■□□□</div>
+              <div class="bar-label">72% WITHIN PLAN</div>
+            </div>
+            <div>
+              <div class="net-label">CURRENCY</div>
+              <div class="curr-group">
+                <span class="curr-btn active">PLN</span>
+                <span class="curr-btn">EUR</span>
+                <span class="curr-btn">UAH</span>
+                <span class="curr-btn">USD</span>
+              </div>
+              <div style="font-size:10px;color:var(--text-dim);margin-top:4px">EUR 491 / USD 529</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- UNPLANNED TILE -->
+        <div class="tile tile-unplanned">
+          <div class="th" style="color:var(--cyan);text-shadow:var(--glow-cyan)">UNPLANNED</div>
+          <div class="trow" style="grid-template-columns:1fr 80px 60px;gap:8px">
+            <span class="col-name">📌 Unplanned Exp</span>
+            <span style="text-align:right;color:var(--red);font-weight:700">487 PLN</span>
+            <span style="text-align:right"><span class="stag st-red">6 TXN</span></span>
+          </div>
+          <div class="trow" style="grid-template-columns:1fr 80px 60px;gap:8px">
+            <span class="col-name">🎁 Unplanned Inc</span>
+            <span style="text-align:right;color:var(--green);font-weight:700">250 PLN</span>
+            <span style="text-align:right"><span class="stag st-green">1 TXN</span></span>
+          </div>
+        </div>
+
+        <!-- SYNC TILE -->
+        <div class="tile tile-sync">
+          <div class="sync-inner">
+            <div class="sync-dot"></div>
+            <span>LAST SYNC: 4 MIN AGO</span>
+            <span style="color:var(--border2)">|</span>
+            <span>SOURCES: PKO BP, WISE</span>
+            <span style="color:var(--border2)">|</span>
+            <span>NEXT AUTO-SYNC: 56 MIN</span>
+            <div class="sync-link">[ REFRESH NOW ]</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </body>
+</html>
