@@ -12,7 +12,7 @@ module.exports = [
   // ─── Global ignores ─────────────────────────────────────────────────────
   // Flat-config replacement for .eslintignore. Applied to all configs below.
   {
-    ignores: ['**/node_modules/**', '**/dist/**', '**/.turbo/**', '**/coverage/**'],
+    ignores: ['**/node_modules/**', '**/dist/**', '**/.turbo/**', '**/coverage/**', '**/drizzle.config.ts'],
   },
 
   // ─── TypeScript: recommended rules (.ts / .tsx) ──────────────────────────
