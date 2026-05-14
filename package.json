@@ -8,6 +8,7 @@
   },
   "scripts": {
     "preinstall": "node -e \"if (!process.env.npm_config_user_agent?.startsWith('pnpm')) { console.error('Use pnpm'); process.exit(1); }\"",
+    "prepare": "husky",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
@@ -22,8 +23,22 @@
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
     "eslint": "^9",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
     "prettier": "^3",
     "turbo": "^2.0",
     "typescript": "^5.5"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{js,cjs,mjs}": [
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }
