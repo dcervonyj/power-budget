@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Power Budget — Option 09: Cyberpunk / Synthwave</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=VT323&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0d0017;
+        --bg2: #130024;
+        --bg3: #1a0030;
+        --panel: rgba(30, 0, 60, 0.8);
+        --border-cyan: #00f5ff;
+        --border-pink: #ff2d7a;
+        --border-dim: rgba(0, 245, 255, 0.2);
+        --border-pink-dim: rgba(255, 45, 122, 0.2);
+        --cyan: #00f5ff;
+        --cyan-dim: rgba(0, 245, 255, 0.6);
+        --pink: #ff2d7a;
+        --pink-dim: rgba(255, 45, 122, 0.6);
+        --purple: #bf5af2;
+        --yellow: #ffe600;
+        --green: #39ff90;
+        --green-dim: rgba(57, 255, 144, 0.6);
+        --orange: #ff8c00;
+        --red: #ff3b3b;
+        --text: #e8d8ff;
+        --text-dim: rgba(232, 216, 255, 0.55);
+        --text-muted: rgba(232, 216, 255, 0.3);
+        --glow-cyan:
+          0 0 10px rgba(0, 245, 255, 0.7), 0 0 20px rgba(0, 245, 255, 0.3);
+        --glow-pink:
+          0 0 10px rgba(255, 45, 122, 0.7), 0 0 20px rgba(255, 45, 122, 0.3);
+        --glow-green:
+          0 0 8px rgba(57, 255, 144, 0.6), 0 0 16px rgba(57, 255, 144, 0.2);
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 13px;
+        line-height: 1.5;
+        min-height: 100vh;
+        background-image:
+          radial-gradient(
+            ellipse 80% 50% at 50% -10%,
+            rgba(120, 0, 200, 0.35) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 60% 40% at 90% 100%,
+            rgba(0, 100, 200, 0.2) 0%,
+            transparent 50%
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 40px,
+            rgba(0, 245, 255, 0.015) 40px,
+            rgba(0, 245, 255, 0.015) 41px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 40px,
+            rgba(0, 245, 255, 0.015) 40px,
+            rgba(0, 245, 255, 0.015) 41px
+          );
+      }
+
+      /* GLITCH TEXT EFFECT */
+      .glitch {
+        position: relative;
+        display: inline-block;
+      }
+      .glitch::before {
+        content: attr(data-text);
+        position: absolute;
+        left: 2px;
+        top: 0;
+        color: var(--cyan);
+        clip: rect(0, 900px, 0, 0);
+        animation: glitch1 3s infinite linear;
+        opacity: 0.7;
+      }
+      .glitch::after {
+        content: attr(data-text);
+        position: absolute;
+        left: -2px;
+        top: 0;
+        color: var(--pink);
+        clip: rect(0, 900px, 0, 0);
+        animation: glitch2 3s infinite linear;
+        opacity: 0.7;
+      }
+      @keyframes glitch1 {
+        0%,
+        94%,
+        100% {
+          clip: rect(0, 0, 0, 0);
+        }
+        95% {
+          clip: rect(4px, 900px, 6px, 0);
+        }
+        96% {
+          clip: rect(20px, 900px, 22px, 0);
+        }
+        97% {
+          clip: rect(10px, 900px, 12px, 0);
+        }
+      }
+      @keyframes glitch2 {
+        0%,
+        94%,
+        100% {
+          clip: rect(0, 0, 0, 0);
+        }
+        95% {
+          clip: rect(12px, 900px, 14px, 0);
+        }
+        96% {
+          clip: rect(2px, 900px, 4px, 0);
+        }
+        97% {
+          clip: rect(18px, 900px, 20px, 0);
+        }
+      }
+
+      /* NEON BORDER */
+      .neon-cyan {
+        border: 1px solid var(--border-cyan);
+        box-shadow:
+          0 0 8px rgba(0, 245, 255, 0.25),
+          inset 0 0 8px rgba(0, 245, 255, 0.05);
+      }
+      .neon-pink {
+        border: 1px solid var(--border-pink);
+        box-shadow:
+          0 0 8px rgba(255, 45, 122, 0.25),
+          inset 0 0 8px rgba(255, 45, 122, 0.05);
+      }
+      .neon-purple {
+        border: 1px solid rgba(191, 90, 242, 0.4);
+        box-shadow:
+          0 0 8px rgba(191, 90, 242, 0.2),
+          inset 0 0 8px rgba(191, 90, 242, 0.04);
+      }
+
+      /* TOP BAR */
+      .topbar {
+        background: rgba(13, 0, 23, 0.95);
+        border-bottom: 1px solid var(--border-dim);
+        padding: 0 24px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+      .logo {
+        font-family: "VT323", monospace;
+        font-size: 26px;
+        letter-spacing: 2px;
+        color: var(--cyan);
+        text-shadow: var(--glow-cyan);
+      }
+      .logo span {
+        color: var(--pink);
+        text-shadow: var(--glow-pink);
+      }
+
+      .topbar-center {
+        font-family: "VT323", monospace;
+        font-size: 14px;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+      }
+      .topbar-center .live {
+        color: var(--green);
+        text-shadow: var(--glow-green);
+        animation: pulse 2s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .topbar-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .lang-group {
+        display: flex;
+        gap: 2px;
+      }
+      .lang-btn {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        cursor: pointer;
+        color: var(--text-muted);
+        border: 1px solid transparent;
+        border-radius: 3px;
+        letter-spacing: 0.05em;
+      }
+      .lang-btn.active {
+        color: var(--cyan);
+        border-color: var(--border-dim);
+        text-shadow: 0 0 6px rgba(0, 245, 255, 0.5);
+      }
+      .avatar {
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--border-pink);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--pink);
+        box-shadow: var(--glow-pink);
+        font-family: "VT323", monospace;
+        font-size: 15px;
+      }
+
+      /* PAGE */
+      .page {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 24px 20px 60px;
+      }
+
+      /* PLAN HEADER */
+      .plan-header {
+        background: var(--panel);
+        padding: 20px 24px;
+        margin-bottom: 18px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 20px;
+      }
+      .plan-sys-id {
+        font-family: "VT323", monospace;
+        font-size: 13px;
+        color: var(--text-muted);
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+      }
+      .plan-title {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        color: var(--text);
+        margin-bottom: 10px;
+      }
+      .plan-chips {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .pchip {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 3px 10px;
+        letter-spacing: 0.05em;
+        color: var(--cyan-dim);
+        border: 1px solid var(--border-dim);
+      }
+      .pchip-pink {
+        color: var(--pink-dim);
+        border-color: var(--border-pink-dim);
+      }
+      .plan-switcher {
+        font-size: 11px;
+        color: var(--cyan);
+        cursor: pointer;
+        text-shadow: 0 0 6px rgba(0, 245, 255, 0.4);
+      }
+      .days-display {
+        text-align: center;
+        padding: 14px 20px;
+        background: rgba(0, 245, 255, 0.05);
+        border: 1px solid var(--border-dim);
+      }
+      .days-num {
+        font-family: "VT323", monospace;
+        font-size: 56px;
+        color: var(--cyan);
+        line-height: 1;
+        text-shadow: var(--glow-cyan);
+        letter-spacing: 2px;
+      }
+      .days-lbl {
+        font-family: "VT323", monospace;
+        font-size: 14px;
+        color: var(--text-muted);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+
+      /* SECTION HEADER */
+      .sect {
+        margin-bottom: 16px;
+      }
+      .sect-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 10px;
+        background: rgba(0, 245, 255, 0.06);
+        border-left: 2px solid var(--cyan);
+        margin-bottom: 2px;
+      }
+      .sect-head.pink-head {
+        background: rgba(255, 45, 122, 0.06);
+        border-left-color: var(--pink);
+      }
+      .sect-title {
+        font-family: "VT323", monospace;
+        font-size: 16px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--cyan);
+        text-shadow: 0 0 6px rgba(0, 245, 255, 0.4);
+      }
+      .sect-title.pink {
+        color: var(--pink);
+        text-shadow: 0 0 6px rgba(255, 45, 122, 0.4);
+      }
+      .sect-total {
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: "VT323", monospace;
+        font-size: 14px;
+        letter-spacing: 1px;
+      }
+
+      /* TABLE ROWS */
+      .panel-rows {
+        background: var(--panel);
+        border: 1px solid var(--border-dim);
+      }
+
+      .t-row {
+        display: grid;
+        padding: 7px 12px;
+        align-items: center;
+        border-bottom: 1px solid rgba(0, 245, 255, 0.06);
+        font-size: 12px;
+        transition: background 0.15s;
+      }
+      .t-row:last-child {
+        border-bottom: none;
+      }
+      .t-row:hover {
+        background: rgba(0, 245, 255, 0.04);
+      }
+
+      /* INCOME */
+      .inc-row {
+        grid-template-columns: 1fr 110px 110px 80px;
+        gap: 10px;
+      }
+      .col-n {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .col-pl {
+        color: var(--text-muted);
+        text-align: right;
+        font-family: "VT323", monospace;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+      }
+      .col-rc {
+        text-align: right;
+        font-weight: 700;
+        font-family: "VT323", monospace;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+      }
+      .col-st {
+        text-align: right;
+      }
+      .stag {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 7px;
+        letter-spacing: 0.08em;
+        font-family: "Space Grotesk", sans-serif;
+      }
+      .stag-green {
+        color: var(--green);
+        border: 1px solid rgba(57, 255, 144, 0.3);
+        text-shadow: 0 0 4px rgba(57, 255, 144, 0.5);
+      }
+      .stag-orange {
+        color: var(--orange);
+        border: 1px solid rgba(255, 140, 0, 0.3);
+      }
+      .stag-dim {
+        color: var(--text-muted);
+        border: 1px solid var(--border-dim);
+      }
+      .stag-red {
+        color: var(--red);
+        border: 1px solid rgba(255, 59, 59, 0.4);
+        text-shadow: 0 0 4px rgba(255, 59, 59, 0.5);
+      }
+
+      /* EXPENSE ROWS */
+      .exp-row-g {
+        grid-template-columns: 22px 1fr 150px 80px 72px 22px 14px;
+        gap: 8px;
+      }
+      .col-ic {
+        font-size: 13px;
+        text-align: center;
+      }
+      .bar-outer {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .bar-inner {
+        height: 100%;
+      }
+      .bar-pct {
+        font-size: 9px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        text-align: right;
+        font-family: "VT323", monospace;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+      }
+      .col-sp {
+        font-weight: 700;
+        text-align: right;
+        font-family: "VT323", monospace;
+        font-size: 15px;
+        letter-spacing: 0.5px;
+      }
+      .col-bu {
+        color: var(--text-muted);
+        text-align: right;
+        font-family: "VT323", monospace;
+        font-size: 14px;
+      }
+      .col-hi {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .col-ex {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 10px;
+        cursor: pointer;
+      }
+      .over-note {
+        font-size: 10px;
+        color: var(--red);
+        display: block;
+        font-family: "VT323", monospace;
+        font-size: 13px;
+        letter-spacing: 1px;
+        text-shadow: 0 0 4px rgba(255, 59, 59, 0.5);
+      }
+      .over-row {
+        background: rgba(255, 59, 59, 0.05) !important;
+        border-left: 1px solid rgba(255, 59, 59, 0.4);
+      }
+
+      /* GRID */
+      .two-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+
+      /* MINI PANELS */
+      .mini-panel {
+        background: var(--panel);
+        padding: 16px 18px;
+      }
+      .mp-label {
+        font-family: "VT323", monospace;
+        font-size: 14px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+      .mp-value {
+        font-family: "VT323", monospace;
+        font-size: 40px;
+        line-height: 1;
+        letter-spacing: 1px;
+      }
+      .mp-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .mp-link {
+        font-size: 11px;
+        color: var(--cyan);
+        cursor: pointer;
+        margin-top: 8px;
+        font-weight: 600;
+        text-shadow: 0 0 4px rgba(0, 245, 255, 0.4);
+      }
+
+      /* SAVINGS */
+      .savings-panel {
+        background: var(--panel);
+        border: 1px solid rgba(57, 255, 144, 0.25);
+        box-shadow: 0 0 12px rgba(57, 255, 144, 0.08);
+        padding: 18px 20px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+      }
+      .sav-label {
+        font-family: "VT323", monospace;
+        font-size: 14px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--green-dim);
+        margin-bottom: 4px;
+      }
+      .sav-value {
+        font-family: "VT323", monospace;
+        font-size: 44px;
+        line-height: 1;
+        color: var(--green);
+        text-shadow: var(--glow-green);
+        letter-spacing: 2px;
+      }
+      .sav-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      /* SPARKLINE */
+      .spark-wrap {
+      }
+
+      /* NET */
+      .net-panel {
+        background: var(--panel);
+        border: 1px solid rgba(57, 255, 144, 0.3);
+        box-shadow: 0 0 20px rgba(57, 255, 144, 0.1);
+        padding: 20px 22px;
+        margin-bottom: 16px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: center;
+      }
+      .net-label-s {
+        font-family: "VT323", monospace;
+        font-size: 14px;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+      }
+      .net-value {
+        font-family: "VT323", monospace;
+        font-size: 60px;
+        line-height: 1;
+        letter-spacing: 2px;
+        color: var(--green);
+        text-shadow: var(--glow-green);
+      }
+      .net-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+      .curr-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .curr-btn {
+        font-size: 11px;
+        font-weight: 700;
+        padding: 5px 12px;
+        cursor: pointer;
+        color: var(--text-muted);
+        border: 1px solid var(--border-dim);
+        background: rgba(0, 245, 255, 0.03);
+        letter-spacing: 0.05em;
+      }
+      .curr-btn.active {
+        color: var(--cyan);
+        border-color: var(--border-cyan);
+        background: rgba(0, 245, 255, 0.08);
+        text-shadow: 0 0 6px rgba(0, 245, 255, 0.4);
+        box-shadow: 0 0 8px rgba(0, 245, 255, 0.15);
+      }
+      .curr-note {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 5px;
+        font-family: "VT323", monospace;
+        font-size: 13px;
+        letter-spacing: 1px;
+      }
+
+      /* SYNC */
+      .sync-bar {
+        background: var(--panel);
+        border: 1px solid var(--border-dim);
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-family: "VT323", monospace;
+        font-size: 14px;
+        letter-spacing: 1px;
+      }
+      .sync-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: var(--glow-green);
+        flex-shrink: 0;
+        animation: pulse 2s ease-in-out infinite;
+      }
+      .sync-refresh {
+        color: var(--cyan);
+        cursor: pointer;
+        margin-left: auto;
+        text-shadow: 0 0 4px rgba(0, 245, 255, 0.4);
+      }
+
+      /* SCANLINE for extra effect */
+      .scanline-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 999;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 3px,
+          rgba(0, 0, 0, 0.04) 3px,
+          rgba(0, 0, 0, 0.04) 4px
+        );
+      }
+
+      @media (max-width: 640px) {
+        .two-grid {
+          grid-template-columns: 1fr;
+        }
+        .exp-row-g {
+          grid-template-columns: 18px 1fr 64px auto;
+        }
+        .exp-row-g .bar-outer,
+        .exp-row-g .col-bu {
+          display: none;
+        }
+        .inc-row {
+          grid-template-columns: 1fr 90px auto;
+        }
+        .inc-row .col-pl {
+          display: none;
+        }
+        .net-panel {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scanline-overlay"></div>
+
+    <header class="topbar">
+      <div class="logo glitch" data-text="POWER▸BUDGET">
+        POWER▸<span>BUDGET</span>
+      </div>
+      <div class="topbar-center">
+        SYS:BUDGET_CORE &nbsp;|&nbsp;
+        <span class="live">● LIVE</span> &nbsp;|&nbsp; 2026-05-14
+      </div>
+      <div class="topbar-right">
+        <div class="lang-group">
+          <span class="lang-btn active">EN</span>
+          <span class="lang-btn">PL</span>
+          <span class="lang-btn">UK</span>
+          <span class="lang-btn">RU</span>
+        </div>
+        <div class="avatar">DC</div>
+      </div>
+    </header>
+
+    <main class="page">
+      <!-- PLAN HEADER -->
+      <div class="plan-header neon-cyan">
+        <div>
+          <div class="plan-sys-id">
+            PLAN_ID: MAY-2026-HH &nbsp;▸&nbsp; ACTIVE
+          </div>
+          <div class="plan-title">May 2026 — Household</div>
+          <div class="plan-chips">
+            <span class="pchip">HOUSEHOLD</span>
+            <span class="pchip">MAY 1 – 31</span>
+            <span class="pchip pchip-pink plan-switcher"
+              >+2 ACTIVE PLANS ↓</span
+            >
+          </div>
+        </div>
+        <div class="days-display">
+          <div class="days-num">17</div>
+          <div class="days-lbl">DAYS LEFT</div>
+        </div>
+      </div>
+
+      <!-- INCOME -->
+      <div class="sect">
+        <div class="sect-head">
+          <span class="sect-title">// EXPECTED INCOME</span>
+          <span class="sect-total">PLAN: 16,200 PLN</span>
+        </div>
+        <div class="panel-rows">
+          <div
+            class="t-row"
+            style="
+              grid-template-columns: 1fr 110px 110px 80px;
+              gap: 10px;
+              border-bottom: 1px solid rgba(0, 245, 255, 0.1);
+              font-size: 10px;
+              font-family: &quot;VT323&quot;, monospace;
+              font-size: 12px;
+              letter-spacing: 1px;
+              color: var(--text-muted);
+              text-transform: uppercase;
+              padding: 5px 12px;
+            "
+          >
+            <span>SOURCE</span><span style="text-align: right">PLANNED</span
+            ><span style="text-align: right">RECEIVED</span
+            ><span style="text-align: right">STATUS</span>
+          </div>
+          <div class="t-row inc-row">
+            <span class="col-n">💼 Salary</span>
+            <span class="col-pl">12,000 PLN</span>
+            <span
+              class="col-rc"
+              style="
+                color: var(--green);
+                text-shadow: 0 0 4px rgba(57, 255, 144, 0.4);
+              "
+              >12,000 PLN</span
+            >
+            <span class="col-st"
+              ><span class="stag stag-green">FULL</span></span
+            >
+          </div>
+          <div class="t-row inc-row">
+            <span class="col-n">💻 Freelance</span>
+            <span class="col-pl">3,000 PLN</span>
+            <span class="col-rc" style="color: var(--orange)">1,500 PLN</span>
+            <span class="col-st"
+              ><span class="stag stag-orange">50%</span></span
+            >
+          </div>
+          <div class="t-row inc-row">
+            <span class="col-n">🏡 Side rental</span>
+            <span class="col-pl">1,200 PLN</span>
+            <span class="col-rc" style="color: var(--text-muted)">0 PLN</span>
+            <span class="col-st"><span class="stag stag-dim">PEND</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPENSES -->
+      <div class="sect">
+        <div class="sect-head pink-head">
+          <span class="sect-title pink">// PLANNED EXPENSES</span>
+          <span class="sect-total">BUDGET: 7,180 PLN</span>
+        </div>
+        <div class="panel-rows" style="border-color: var(--border-pink-dim)">
+          <div
+            class="t-row"
+            style="
+              grid-template-columns: 22px 1fr 150px 80px 72px 22px 14px;
+              gap: 8px;
+              font-size: 10px;
+              font-family: &quot;VT323&quot;, monospace;
+              font-size: 12px;
+              letter-spacing: 1px;
+              color: var(--text-muted);
+              text-transform: uppercase;
+              padding: 5px 12px;
+              border-bottom: 1px solid rgba(255, 45, 122, 0.1);
+            "
+          >
+            <span></span><span>CATEGORY</span><span>UTIL BAR</span>
+            <span style="text-align: right">SPENT</span>
+            <span style="text-align: right">BUDGET</span>
+            <span style="text-align: center">LOG</span><span></span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">🏠</span>
+            <span class="col-n">Rent</span>
+            <div>
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="
+                    width: 100%;
+                    background: var(--green);
+                    box-shadow: 0 0 4px rgba(57, 255, 144, 0.4);
+                  "
+                ></div>
+              </div>
+              <div class="bar-pct" style="color: var(--green)">100%</div>
+            </div>
+            <span
+              class="col-sp"
+              style="
+                color: var(--green);
+                text-shadow: 0 0 4px rgba(57, 255, 144, 0.3);
+              "
+              >3,500</span
+            >
+            <span class="col-bu">3,500</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">🛒</span>
+            <span class="col-n">Groceries</span>
+            <div>
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 82%; background: var(--orange)"
+                ></div>
+              </div>
+              <div class="bar-pct" style="color: var(--orange)">82%</div>
+            </div>
+            <span class="col-sp" style="color: var(--orange)">1,640</span>
+            <span class="col-bu">2,000</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">⚡</span>
+            <span class="col-n">Utilities</span>
+            <div>
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 90%; background: var(--orange)"
+                ></div>
+              </div>
+              <div class="bar-pct" style="color: var(--orange)">90%</div>
+            </div>
+            <span class="col-sp" style="color: var(--orange)">540</span>
+            <span class="col-bu">600</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">🚌</span>
+            <span class="col-n">Transport</span>
+            <div>
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="width: 54%; background: var(--cyan)"
+                ></div>
+              </div>
+              <div class="bar-pct" style="color: var(--cyan)">54%</div>
+            </div>
+            <span class="col-sp" style="color: var(--cyan)">215</span>
+            <span class="col-bu">400</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g over-row">
+            <span class="col-ic">🍽️</span>
+            <div>
+              <span class="col-n">Eating Out</span>
+              <span class="over-note">▲ +220 OVER</span>
+            </div>
+            <div>
+              <div
+                class="bar-outer"
+                style="border-color: rgba(255, 59, 59, 0.3)"
+              >
+                <div
+                  class="bar-inner"
+                  style="
+                    width: 100%;
+                    background: var(--red);
+                    box-shadow: 0 0 4px rgba(255, 59, 59, 0.5);
+                  "
+                ></div>
+              </div>
+              <div class="bar-pct" style="color: var(--red)">144%</div>
+            </div>
+            <span
+              class="col-sp"
+              style="
+                color: var(--red);
+                text-shadow: 0 0 4px rgba(255, 59, 59, 0.5);
+              "
+              >720</span
+            >
+            <span class="col-bu">500</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+
+          <div class="t-row exp-row-g">
+            <span class="col-ic">📱</span>
+            <span class="col-n">Subscriptions</span>
+            <div>
+              <div class="bar-outer">
+                <div
+                  class="bar-inner"
+                  style="
+                    width: 100%;
+                    background: var(--green);
+                    box-shadow: 0 0 4px rgba(57, 255, 144, 0.3);
+                  "
+                ></div>
+              </div>
+              <div class="bar-pct" style="color: var(--green)">100%</div>
+            </div>
+            <span class="col-sp" style="color: var(--green)">180</span>
+            <span class="col-bu">180</span>
+            <span class="col-hi">↗</span>
+            <span class="col-ex">›</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNPLANNED -->
+      <div class="two-grid">
+        <div class="mini-panel neon-pink">
+          <div class="mp-label">// UNPLANNED EXP</div>
+          <div
+            class="mp-value"
+            style="
+              color: var(--red);
+              text-shadow: 0 0 8px rgba(255, 59, 59, 0.5);
+            "
+          >
+            487 PLN
+          </div>
+          <div class="mp-sub">6 TRANSACTIONS</div>
+          <div class="mp-link" style="color: var(--pink)">VIEW ALL →</div>
+        </div>
+        <div class="mini-panel neon-cyan">
+          <div class="mp-label">// UNPLANNED INC</div>
+          <div
+            class="mp-value"
+            style="color: var(--green); text-shadow: var(--glow-green)"
+          >
+            250 PLN
+          </div>
+          <div class="mp-sub">1 TXN · GIFT</div>
+          <div class="mp-link">VIEW →</div>
+        </div>
+      </div>
+
+      <!-- SAVINGS -->
+      <div class="savings-panel">
+        <div>
+          <div class="sav-label">// SAVED THIS PERIOD</div>
+          <div class="sav-value">425 PLN</div>
+          <div class="sav-sub">CUMULATIVE: 3,847 PLN ACROSS ALL PERIODS</div>
+        </div>
+        <svg width="110" height="44" viewBox="0 0 110 44">
+          <defs>
+            <linearGradient id="ggrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#39ff90" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#39ff90" stop-opacity="0" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M0,38 L18,30 L36,32 L54,20 L72,22 L90,26 L110,10"
+            fill="none"
+            stroke="#39ff90"
+            stroke-width="1.5"
+            style="filter: drop-shadow(0 0 3px #39ff90)"
+          />
+          <path
+            d="M0,38 L18,30 L36,32 L54,20 L72,22 L90,26 L110,10 L110,44 L0,44Z"
+            fill="url(#ggrad)"
+          />
+          <circle
+            cx="110"
+            cy="10"
+            r="3"
+            fill="#39ff90"
+            style="filter: drop-shadow(0 0 4px #39ff90)"
+          />
+        </svg>
+      </div>
+
+      <!-- NET -->
+      <div class="net-panel">
+        <div>
+          <div class="net-label-s">// NET FOR PERIOD</div>
+          <div class="net-value">+2,098 PLN</div>
+          <div class="net-sub">INCOME 16,700 − EXPENSES 14,602</div>
+        </div>
+        <div>
+          <div class="net-label-s" style="margin-bottom: 8px">// CURRENCY</div>
+          <div class="curr-group">
+            <div class="curr-btn active">PLN</div>
+            <div class="curr-btn">EUR</div>
+            <div class="curr-btn">UAH</div>
+            <div class="curr-btn">USD</div>
+          </div>
+          <div class="curr-note">EUR 491 · UAH 20,351 · USD 529</div>
+        </div>
+      </div>
+
+      <!-- SYNC -->
+      <div class="sync-bar">
+        <div class="sync-dot"></div>
+        LAST SYNC: 4 MIN AGO &nbsp;·&nbsp; SOURCES: PKO_BP, WISE
+        <span class="sync-refresh">[ REFRESH ]</span>
+      </div>
+    </main>
+  </body>
+</html>
