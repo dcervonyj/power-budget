@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Magic link · Power Budget</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <main class="auth-shell">
+    <section class="auth-card" id="form-state" aria-labelledby="auth-title">
+      <a class="auth-card__brand" href="../index.html">
+        <span class="brand__mark" aria-hidden="true">P</span>
+        <span>Power Budget</span>
+      </a>
+      <h1 id="auth-title">Sign in with a link</h1>
+      <p class="auth-card__lede">We'll email you a one-time sign-in link.</p>
+
+      <form class="stack" onsubmit="event.preventDefault(); document.getElementById('form-state').hidden = true; document.getElementById('sent-state').hidden = false;">
+        <div class="field">
+          <label class="field__label" for="email">Email</label>
+          <input class="input" id="email" type="email" autocomplete="email" placeholder="you@example.com" value="anna@household.pl" required />
+        </div>
+        <button class="btn btn--primary btn--block btn--lg" type="submit">Send magic link</button>
+      </form>
+
+      <p class="auth-card__footer">
+        <a href="auth-login.html">← Back to password sign-in</a>
+      </p>
+    </section>
+
+    <section class="auth-card" id="sent-state" hidden aria-labelledby="sent-title">
+      <a class="auth-card__brand" href="../index.html">
+        <span class="brand__mark" aria-hidden="true">P</span>
+        <span>Power Budget</span>
+      </a>
+      <div style="width:64px;height:64px;border-radius:50%;background:var(--success-soft);display:grid;place-items:center;margin-bottom:16px;">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h1 id="sent-title">Check your inbox</h1>
+      <p class="auth-card__lede">We just emailed a sign-in link to <strong>anna@household.pl</strong>. It expires in 15 minutes.</p>
+      <button class="btn btn--secondary btn--block" type="button" onclick="document.getElementById('sent-state').hidden=true; document.getElementById('form-state').hidden=false;">Use a different email</button>
+      <p class="auth-card__footer">Didn't get it? Check spam or <a href="#">resend</a>.</p>
+    </section>
+  </main>
+</body>
+</html>

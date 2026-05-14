@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions · Power Budget</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" role="navigation" aria-label="Primary">
+      <a class="brand" href="../index.html">
+        <span class="brand__mark" aria-hidden="true">P</span>
+        <span>Power Budget</span>
+      </a>
+      <nav class="nav">
+        <a class="nav__item" href="dashboard-en.html"><span class="nav__icon" aria-hidden="true">▣</span> Dashboard</a>
+        <a class="nav__item" href="plans-list.html"><span class="nav__icon" aria-hidden="true">≡</span> Plans</a>
+        <a class="nav__item nav__item--active" href="transactions.html"><span class="nav__icon" aria-hidden="true">↔</span> Transactions</a>
+        <a class="nav__item" href="bank-connections.html"><span class="nav__icon" aria-hidden="true">🏦</span> Bank Connections</a>
+        <a class="nav__item" href="categories.html"><span class="nav__icon" aria-hidden="true">⊞</span> Categories</a>
+        <a class="nav__item" href="settings.html"><span class="nav__icon" aria-hidden="true">⚙</span> Settings</a>
+      </nav>
+      <div class="sidebar__footer">
+        <span class="avatar avatar--purple">AN</span>
+        <div style="min-width:0;">
+          <div style="font-weight:500;">Anna Nowak</div>
+          <div class="secondary" style="font-size:12px;">Kowalski household</div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="app__main">
+      <header class="topbar" role="banner">
+        <div class="topbar__left">
+          <div class="search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input placeholder="Search merchant, amount…" aria-label="Search transactions" />
+          </div>
+        </div>
+        <div class="topbar__right">
+          <button class="locale-pill" aria-label="Language">EN ▾</button>
+          <span class="avatar avatar--purple">AN</span>
+        </div>
+      </header>
+
+      <main class="content">
+        <div class="page-header">
+          <div class="page-header__titles">
+            <h1>Transactions</h1>
+            <p class="page-header__subtitle">Bank-imported plus manual entries · 187 transactions in May 2026.</p>
+          </div>
+          <button class="btn btn--primary">+ Add manual transaction</button>
+        </div>
+
+        <div class="filter-bar">
+          <select class="select" style="width:auto;"><option>May 2026</option><option>April 2026</option><option>Custom range</option></select>
+          <select class="select" style="width:auto;"><option>All categories</option><option>Groceries</option><option>Transport</option></select>
+          <select class="select" style="width:auto;"><option>All statuses</option><option>Unplanned</option><option>Mapped</option><option>Transfer</option><option>Ignored</option></select>
+          <select class="select" style="width:auto;"><option>All currencies</option><option>PLN</option><option>EUR</option><option>UAH</option></select>
+          <select class="select" style="width:auto;"><option>All sources</option><option>PKO BP</option><option>Wise</option><option>Manual</option></select>
+          <span style="margin-left:auto;" class="secondary">9 of 187 shown</span>
+        </div>
+
+        <div class="bulk-bar" id="bulk-bar">
+          <div class="row gap-3">
+            <strong>2 selected</strong>
+            <span class="secondary">in May 2026</span>
+          </div>
+          <div class="row gap-2">
+            <button class="btn btn--secondary btn--sm">Map to planned…</button>
+            <button class="btn btn--secondary btn--sm">Mark as Transfer</button>
+            <button class="btn btn--secondary btn--sm">Ignore</button>
+            <button class="btn btn--ghost btn--sm" onclick="document.getElementById('bulk-bar').style.display='none'">Clear</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th style="width:36px;"><input type="checkbox" class="checkbox" aria-label="Select all" /></th>
+                <th>Date</th>
+                <th>Merchant</th>
+                <th class="num">Original</th>
+                <th class="num">PLN</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Source</th>
+                <th style="width:36px;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="table__selected">
+                <td><input type="checkbox" class="checkbox" checked aria-label="Select row" /></td>
+                <td>May 13</td>
+                <td><strong>Biedronka 5421</strong><div class="secondary" style="font-size:12px;">Warsaw, ul. Marszałkowska</div></td>
+                <td class="num">PLN 142.30</td>
+                <td class="num">142.30</td>
+                <td><span class="category-icon" style="display:inline-grid; width:20px; height:20px; font-size:12px;">🛒</span> Groceries</td>
+                <td><span class="badge badge--success">Mapped to Groceries</span></td>
+                <td>PKO BP</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr class="table__selected">
+                <td><input type="checkbox" class="checkbox" checked aria-label="Select row" /></td>
+                <td>May 12</td>
+                <td><strong>Apteka Gemini</strong><div class="secondary" style="font-size:12px;">Warsaw, ul. Hoża</div></td>
+                <td class="num">PLN 95.00</td>
+                <td class="num">95.00</td>
+                <td>—</td>
+                <td><span class="badge badge--warn">Unplanned</span></td>
+                <td>PKO BP</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" aria-label="Select row" /></td>
+                <td>May 12</td>
+                <td><strong>Żabka 12</strong><div class="secondary" style="font-size:12px;">Warsaw, ul. Mokotowska</div></td>
+                <td class="num">PLN 24.50</td>
+                <td class="num">24.50</td>
+                <td><span class="category-icon" style="display:inline-grid; width:20px; height:20px; font-size:12px;">🍽</span> Eating out</td>
+                <td><span class="badge badge--success">Mapped to Eating out</span></td>
+                <td>PKO BP</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" aria-label="Select row" /></td>
+                <td>May 11</td>
+                <td><strong>Uber Eats</strong><div class="secondary" style="font-size:12px;">App charge</div></td>
+                <td class="num">PLN 32.00</td>
+                <td class="num">32.00</td>
+                <td>—</td>
+                <td><span class="badge badge--warn">Unplanned</span></td>
+                <td>PKO BP</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" aria-label="Select row" /></td>
+                <td>May 10</td>
+                <td><strong>Wise — Freelance payout</strong><div class="secondary" style="font-size:12px;">From: Studio Berlin GmbH</div></td>
+                <td class="num">EUR 420.00</td>
+                <td class="num success">+ 1,800.00</td>
+                <td><span class="category-icon" style="display:inline-grid; width:20px; height:20px; font-size:12px;">💻</span> Income</td>
+                <td><span class="badge badge--success">Mapped to Freelance</span></td>
+                <td>Wise</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" aria-label="Select row" /></td>
+                <td>May 9</td>
+                <td><strong>PKO → Wise transfer</strong><div class="secondary" style="font-size:12px;">Internal transfer</div></td>
+                <td class="num">PLN 800.00</td>
+                <td class="num secondary">— 800.00</td>
+                <td>—</td>
+                <td><span class="badge badge--accent">Transfer · paired</span></td>
+                <td>PKO BP</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" aria-label="Select row" /></td>
+                <td>May 8</td>
+                <td><strong>Cash · coffee</strong><div class="secondary" style="font-size:12px;">Manual entry · Anna</div></td>
+                <td class="num">PLN 18.00</td>
+                <td class="num">18.00</td>
+                <td><span class="category-icon" style="display:inline-grid; width:20px; height:20px; font-size:12px;">🍽</span> Eating out</td>
+                <td><span class="badge badge--success">Mapped to Eating out</span></td>
+                <td>Manual</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" aria-label="Select row" /></td>
+                <td>May 5</td>
+                <td><strong>PKO BP — Salary</strong><div class="secondary" style="font-size:12px;">Employer: Tech Sp. z o.o.</div></td>
+                <td class="num">PLN 12,000.00</td>
+                <td class="num success">+ 12,000.00</td>
+                <td><span class="category-icon" style="display:inline-grid; width:20px; height:20px; font-size:12px;">💼</span> Income</td>
+                <td><span class="badge badge--success">Mapped to Salary</span></td>
+                <td>PKO BP</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+              <tr>
+                <td><input type="checkbox" class="checkbox" aria-label="Select row" /></td>
+                <td>May 1</td>
+                <td><strong>Apartment rent</strong><div class="secondary" style="font-size:12px;">Standing order · landlord</div></td>
+                <td class="num">PLN 3,500.00</td>
+                <td class="num">3,500.00</td>
+                <td><span class="category-icon" style="display:inline-grid; width:20px; height:20px; font-size:12px;">🏠</span> Rent</td>
+                <td><span class="badge badge--success">Mapped to Rent</span></td>
+                <td>PKO BP</td>
+                <td><a class="icon-btn" href="transaction-detail.html" aria-label="Open"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="row row--end mt-3 secondary" style="font-size:12px;">
+          Showing 9 of 187 · <a href="#">Load more</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
