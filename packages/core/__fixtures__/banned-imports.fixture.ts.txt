@@ -1,0 +1,5 @@
+// This file is intentionally invalid per ARCHITECTURE.md §4.
+// It is a .txt file so it is never linted normally.
+// The verify-banned-imports.mjs script renames it temporarily to test the ban works.
+import React from 'react';
+export const _ = React;
