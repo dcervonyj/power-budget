@@ -1,21 +1,41 @@
 {
   "name": "@power-budget/core",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./domain": {
+      "types": "./dist/domain/index.d.ts",
+      "import": "./dist/domain/index.mjs",
+      "require": "./dist/domain/index.cjs"
+    },
+    "./logic": {
+      "types": "./dist/logic/index.d.ts",
+      "import": "./dist/logic/index.mjs",
+      "require": "./dist/logic/index.cjs"
     }
   },
+  "files": ["dist", "README.md"],
   "scripts": {
-    "build": "tsc -b",
-    "lint": "eslint src --max-warnings 0",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
+    "lint:bans": "node scripts/verify-banned-imports.mjs",
     "test": "vitest run",
-    "typecheck": "tsc -b --pretty",
     "clean": "rm -rf dist .turbo"
   },
-  "dependencies": {}
+  "dependencies": {},
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "vitest": "^2.0.0"
+  }
 }
