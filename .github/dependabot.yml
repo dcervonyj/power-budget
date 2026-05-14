@@ -1,0 +1,52 @@
+version: 2
+updates:
+  # npm / pnpm — weekly, covers all packages in the monorepo
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 10
+    groups:
+      typescript-tooling:
+        patterns:
+          - "typescript"
+          - "@typescript-eslint/*"
+          - "eslint*"
+          - "prettier"
+          - "turbo"
+        update-types:
+          - "minor"
+          - "patch"
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "playwright*"
+          - "@playwright/*"
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Major version bumps require explicit review — never auto-merge
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+    labels:
+      - "dependencies"
+      - "automated"
+
+  # GitHub Actions — monthly
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Europe/Warsaw"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+      - "automated"
