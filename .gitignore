@@ -1,15 +1,28 @@
-# IDE
-.idea/
-.vscode/
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+*.tsbuildinfo
+
+# Turborepo
+.turbo/
+
+# Test coverage
+coverage/
+
+# Environment variables
+.env
+.env.local
 
 # OS
 .DS_Store
 
+# IDE
+.idea/
+.vscode/
+!.vscode/extensions.json
+
 # Logs
 *.log
-
-# Build outputs and dependencies
-node_modules/
-dist/
-.turbo/
-*.tsbuildinfo
+pnpm-debug.log*
