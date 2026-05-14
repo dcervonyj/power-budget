@@ -39,6 +39,10 @@ export class ReactRouterNavigationAdapter implements NavigationPort {
         return '/categories';
       case 'settings':
         return '/settings';
+      default: {
+        const _exhaustive: never = route;
+        return String(_exhaustive);
+      }
     }
   }
 
