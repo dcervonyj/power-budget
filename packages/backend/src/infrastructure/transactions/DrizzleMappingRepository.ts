@@ -99,7 +99,7 @@ export class DrizzleMappingRepository implements MappingRepository {
 
     return {
       // transactionId serves as id since transactionId is the PK
-      id: row.mapping.transactionId as unknown as TransactionMappingId,
+      id: row.mapping.transactionId as TransactionMappingId,
       transactionId: row.mapping.transactionId as TransactionId,
       plannedItemId: row.mapping.plannedItemId as PlannedItemId,
       householdId: row.householdId as HouseholdId,
