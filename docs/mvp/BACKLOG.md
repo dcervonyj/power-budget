@@ -216,12 +216,12 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 10
 
-| ID      | Title                                         | Area     |
-| ------- | --------------------------------------------- | -------- |
-| BE-015  | Auth presentation — REST controllers + guards | Backend  |
-| BE-022  | Transactions infrastructure + REST            | Backend  |
-| BE-035  | Audit log API + `AuditLogger` port            | Backend  |
-| SEC-002 | Key rotation runbook                          | Security |
+| ID      | Title                                         | Area     | Status  | PR                                                       |
+| ------- | --------------------------------------------- | -------- | ------- | -------------------------------------------------------- |
+| BE-015  | Auth presentation — REST controllers + guards | Backend  | ✅ Done | [#59](https://github.com/dcervonyj/power-budget/pull/59) |
+| BE-022  | Transactions infrastructure + REST            | Backend  | ✅ Done | [#60](https://github.com/dcervonyj/power-budget/pull/60) |
+| BE-035  | Audit log API + `AuditLogger` port            | Backend  | ✅ Done | [#62](https://github.com/dcervonyj/power-budget/pull/62) |
+| SEC-002 | Key rotation runbook                          | Security | ✅ Done | [#61](https://github.com/dcervonyj/power-budget/pull/61) |
 
 ### Wave 11
 
