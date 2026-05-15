@@ -178,18 +178,18 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 7
 
-| ID       | Title                                         | Area    |
-| -------- | --------------------------------------------- | ------- |
-| INF-010  | Managed PG (Neon) + Redis (Upstash)           | Infra   |
-| INF-011  | Web hosting — Cloudflare Pages                | Infra   |
-| BE-011   | Auth domain — entities + ports                | Backend |
-| BE-016   | BankConnection domain + `BankConnectorPort`   | Backend |
-| BE-020   | Transactions domain — entities + ports        | Backend |
-| BE-023   | BullMQ infrastructure                         | Backend |
-| BE-025   | Plans domain — entities + ports               | Backend |
-| BE-027   | Categories domain + privacy + seed migration  | Backend |
-| I18N-004 | Translations — uk/ru/pl (LLM + native review) | i18n    |
-| QA-002   | Integration test harness                      | QA      |
+| ID       | Title                                         | Area    | Status    | PR  |
+| -------- | --------------------------------------------- | ------- | --------- | --- |
+| INF-010  | Managed PG (Neon) + Redis (Upstash)           | Infra   | ⏭ Skipped | —   |
+| INF-011  | Web hosting — Cloudflare Pages                | Infra   | ⏭ Skipped | —   |
+| BE-011   | Auth domain — entities + ports                | Backend | ✅ Done    | [#45](https://github.com/dcervonyj/power-budget/pull/45) |
+| BE-016   | BankConnection domain + `BankConnectorPort`   | Backend | ✅ Done    | [#48](https://github.com/dcervonyj/power-budget/pull/48) |
+| BE-020   | Transactions domain — entities + ports        | Backend | ✅ Done    | [#47](https://github.com/dcervonyj/power-budget/pull/47) |
+| BE-023   | BullMQ infrastructure                         | Backend | ✅ Done    | [#44](https://github.com/dcervonyj/power-budget/pull/44) |
+| BE-025   | Plans domain — entities + ports               | Backend | ✅ Done    | [#46](https://github.com/dcervonyj/power-budget/pull/46) |
+| BE-027   | Categories domain + privacy + seed migration  | Backend | ✅ Done    | [#49](https://github.com/dcervonyj/power-budget/pull/49) |
+| I18N-004 | Translations — uk/ru/pl (LLM + native review) | i18n    | ⏭ Skipped | —   |
+| QA-002   | Integration test harness                      | QA      | ✅ Done    | [#50](https://github.com/dcervonyj/power-budget/pull/50) |
 
 ### Wave 8
 
