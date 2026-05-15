@@ -15,7 +15,8 @@
     "db:migrate": "tsx drizzle/migrate.ts",
     "db:reset": "drizzle-kit drop && tsx drizzle/migrate.ts",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx drizzle/seed/0001_seed_categories.ts"
+    "db:seed": "tsx drizzle/seed/0001_seed_categories.ts",
+    "test:integration": "vitest run --config src/test/integration/vitest.integration.config.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10",
