@@ -1,6 +1,20 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+const plugins = [react()];
+
+// Only upload source maps when SENTRY_AUTH_TOKEN is present (CI)
+if (process.env['SENTRY_AUTH_TOKEN']) {
+  plugins.push(
+    sentryVitePlugin({
+      authToken: process.env['SENTRY_AUTH_TOKEN'],
+      org: process.env['SENTRY_ORG'] ?? 'power-budget',
+      project: process.env['SENTRY_PROJECT'] ?? 'web',
+    }),
+  );
+}
 
 const securityHeaders = {
   'Content-Security-Policy': [
@@ -18,7 +32,10 @@ const securityHeaders = {
 };
 
 export default defineConfig({
-  plugins: [react()],
+  plugins,
+  build: {
+    sourcemap: true,
+  },
   resolve: {
     alias: {
       '@web': path.resolve(__dirname, './src'),
