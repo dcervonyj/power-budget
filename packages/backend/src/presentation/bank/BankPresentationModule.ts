@@ -2,9 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BankModule } from '../../infrastructure/bank/BankModule.js';
 import { AuditModule } from '../../infrastructure/audit/AuditModule.js';
+import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
 import { DrizzleBankConnectionRepository } from '../../infrastructure/bank/DrizzleBankConnectionRepository.js';
 import { InMemoryBankConnectorRegistry } from '../../infrastructure/bank/InMemoryBankConnectorRegistry.js';
 import { DrizzleAuditEventRepository } from '../../infrastructure/audit/DrizzleAuditEventRepository.js';
+import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { InitiateBankConnectionUseCase } from '../../application/bank/use-cases/InitiateBankConnectionUseCase.js';
 import { CompleteBankConsentUseCase } from '../../application/bank/use-cases/CompleteBankConsentUseCase.js';
 import { ListUserConnectionsUseCase } from '../../application/bank/use-cases/ListUserConnectionsUseCase.js';
@@ -15,14 +17,21 @@ import { GetBankCatalogUseCase } from '../../application/bank/use-cases/GetBankC
 import { BankController } from './BankController.js';
 
 @Module({
-  imports: [BankModule, AuditModule, ConfigModule],
+  imports: [BankModule, AuditModule, AuthModule, ConfigModule],
   controllers: [BankController],
   providers: [
     {
       provide: InitiateBankConnectionUseCase,
-      inject: [DrizzleBankConnectionRepository, InMemoryBankConnectorRegistry],
-      useFactory: (repo: DrizzleBankConnectionRepository, reg: InMemoryBankConnectorRegistry) =>
-        new InitiateBankConnectionUseCase(repo, reg),
+      inject: [
+        DrizzleBankConnectionRepository,
+        InMemoryBankConnectorRegistry,
+        DrizzleTotpSecretRepository,
+      ],
+      useFactory: (
+        repo: DrizzleBankConnectionRepository,
+        reg: InMemoryBankConnectorRegistry,
+        totpRepo: DrizzleTotpSecretRepository,
+      ) => new InitiateBankConnectionUseCase(repo, reg, totpRepo),
     },
     {
       provide: CompleteBankConsentUseCase,
