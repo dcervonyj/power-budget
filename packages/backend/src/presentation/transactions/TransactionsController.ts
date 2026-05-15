@@ -1,0 +1,239 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  HttpStatus,
+  UseGuards,
+  NotFoundException,
+} from '@nestjs/common';
+import type {
+  BankAccountId,
+  IsoDate,
+  PlannedItemId,
+  PlanId,
+  TransactionId,
+} from '@power-budget/core';
+import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
+import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
+import {
+  AddManualTransactionDto,
+  BulkMapDto,
+  ListTransactionsQueryDto,
+  MarkTransferDto,
+  PatchTransactionDto,
+  SetMappingDto,
+} from './dto/transactions.dto.js';
+import { AddManualTransactionUseCase } from '../../application/transactions/use-cases/AddManualTransactionUseCase.js';
+import { BulkMapTransactionsUseCase } from '../../application/transactions/use-cases/BulkMapTransactionsUseCase.js';
+import { GetTransactionUseCase } from '../../application/transactions/use-cases/GetTransactionUseCase.js';
+import { ListTransactionsUseCase } from '../../application/transactions/use-cases/ListTransactionsUseCase.js';
+import { MapTransactionUseCase } from '../../application/transactions/use-cases/MapTransactionUseCase.js';
+import { MarkAsTransferUseCase } from '../../application/transactions/use-cases/MarkAsTransferUseCase.js';
+import { PatchTransactionUseCase } from '../../application/transactions/use-cases/PatchTransactionUseCase.js';
+import { UnmarkTransferUseCase } from '../../application/transactions/use-cases/UnmarkTransferUseCase.js';
+import { TransactionNotFoundError } from '../../domain/transactions/errors.js';
+
+const STUB_PLAN_ID = '00000000-0000-0000-0000-000000000000' as PlanId;
+
+@Controller('transactions')
+@UseGuards(JwtAuthGuard)
+export class TransactionsController {
+  constructor(
+    private readonly listTransactions: ListTransactionsUseCase,
+    private readonly getTransaction: GetTransactionUseCase,
+    private readonly addManualTransaction: AddManualTransactionUseCase,
+    private readonly mapTransaction: MapTransactionUseCase,
+    private readonly bulkMapTransactions: BulkMapTransactionsUseCase,
+    private readonly markAsTransfer: MarkAsTransferUseCase,
+    private readonly unmarkTransfer: UnmarkTransferUseCase,
+    private readonly patchTransaction: PatchTransactionUseCase,
+  ) {}
+
+  @Get()
+  async list(@Query() query: ListTransactionsQueryDto, @CurrentUser() user: AuthenticatedUser) {
+    if (!user.householdId) {
+      return { items: [], nextCursor: null, hasMore: false };
+    }
+
+    return this.listTransactions.execute({
+      query: {
+        householdId: user.householdId,
+        accountId: query.accountId as BankAccountId | undefined,
+        dateFrom: query.from as IsoDate | undefined,
+        dateTo: query.to as IsoDate | undefined,
+        search: query.q,
+        unmappedOnly: query.unmappedOnly,
+        cursor: query.cursor as TransactionId | undefined,
+        limit: query.limit,
+      },
+      householdId: user.householdId,
+    });
+  }
+
+  @Get(':id')
+  async getOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    if (!user.householdId) {
+      throw new NotFoundException('No household');
+    }
+
+    try {
+      return await this.getTransaction.execute(id as TransactionId, user.householdId);
+    } catch (err) {
+      if (err instanceof TransactionNotFoundError) {
+        throw new NotFoundException('Transaction not found');
+      }
+      throw err;
+    }
+  }
+
+  @Post()
+  async addManual(@Body() dto: AddManualTransactionDto, @CurrentUser() user: AuthenticatedUser) {
+    if (!user.householdId) {
+      throw new NotFoundException('No household');
+    }
+
+    return this.addManualTransaction.execute({
+      householdId: user.householdId,
+      accountId: dto.accountId as BankAccountId,
+      occurredOn: dto.occurredOn,
+      amountMinor: BigInt(dto.amountMinor),
+      currency: dto.currency,
+      description: dto.description,
+      merchant: dto.merchant ?? null,
+      notes: dto.notes ?? null,
+    });
+  }
+
+  @Patch(':id')
+  async patch(
+    @Param('id') id: string,
+    @Body() dto: PatchTransactionDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    if (!user.householdId) {
+      throw new NotFoundException('No household');
+    }
+
+    try {
+      await this.patchTransaction.execute({
+        transactionId: id as TransactionId,
+        householdId: user.householdId,
+        patch: {
+          notes: dto.notes ?? undefined,
+          ignored: dto.ignored,
+        },
+      });
+    } catch (err) {
+      if (err instanceof TransactionNotFoundError) {
+        throw new NotFoundException('Transaction not found');
+      }
+      throw err;
+    }
+  }
+
+  @Patch(':id/mapping')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async setMapping(
+    @Param('id') id: string,
+    @Body() dto: SetMappingDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    if (!user.householdId) {
+      return;
+    }
+
+    try {
+      await this.mapTransaction.execute({
+        transactionId: id as TransactionId,
+        plannedItemId: (dto.plannedItemId as PlannedItemId) ?? null,
+        by: user.userId,
+        householdId: user.householdId,
+        planId: STUB_PLAN_ID,
+      });
+    } catch (err) {
+      if (err instanceof TransactionNotFoundError) {
+        throw new NotFoundException('Transaction not found');
+      }
+      throw err;
+    }
+  }
+
+  @Post(':id/transfer')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async markTransfer(
+    @Param('id') id: string,
+    @Body() dto: MarkTransferDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    if (!user.householdId) {
+      return;
+    }
+
+    try {
+      await this.markAsTransfer.execute({
+        transactionId: id as TransactionId,
+        counterpartId: (dto.counterpartTransactionId as TransactionId | undefined) ?? null,
+        by: user.userId,
+        householdId: user.householdId,
+      });
+    } catch (err) {
+      if (err instanceof TransactionNotFoundError) {
+        throw new NotFoundException('Transaction not found');
+      }
+      throw err;
+    }
+  }
+
+  @Delete(':id/transfer')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unmarkTransferHandler(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    if (!user.householdId) {
+      return;
+    }
+
+    try {
+      await this.unmarkTransfer.execute({
+        transactionId: id as TransactionId,
+        householdId: user.householdId,
+      });
+    } catch (err) {
+      if (err instanceof TransactionNotFoundError) {
+        throw new NotFoundException('Transaction not found');
+      }
+      throw err;
+    }
+  }
+
+  @Post('bulk')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async bulkMap(@Body() dto: BulkMapDto, @CurrentUser() user: AuthenticatedUser): Promise<void> {
+    if (!user.householdId || dto.op !== 'map') {
+      return;
+    }
+
+    const plannedItemId = dto.payload?.['plannedItemId'] as string | undefined as
+      | PlannedItemId
+      | undefined;
+    if (!plannedItemId) {
+      return;
+    }
+
+    await this.bulkMapTransactions.execute({
+      mappings: dto.ids.map((txId) => ({
+        transactionId: txId as TransactionId,
+        plannedItemId,
+      })),
+      by: user.userId,
+      planId: STUB_PLAN_ID,
+    });
+  }
+}
