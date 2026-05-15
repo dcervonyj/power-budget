@@ -162,6 +162,9 @@ importers:
       '@power-budget/core':
         specifier: workspace:*
         version: link:../core
+      '@power-budget/design-tokens':
+        specifier: workspace:^
+        version: link:../design-tokens
       '@power-budget/shared-app':
         specifier: workspace:*
         version: link:../shared-app
@@ -248,6 +251,9 @@ importers:
       '@power-budget/core':
         specifier: workspace:*
         version: link:../core
+      '@power-budget/design-tokens':
+        specifier: workspace:^
+        version: link:../design-tokens
       '@power-budget/shared-app':
         specifier: workspace:*
         version: link:../shared-app

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@power-budget/core": "workspace:*",
+    "@power-budget/design-tokens": "workspace:^",
     "@power-budget/shared-app": "workspace:*",
     "@react-navigation/bottom-tabs": "^7.16.1",
     "@react-navigation/native": "^6.1.0",
