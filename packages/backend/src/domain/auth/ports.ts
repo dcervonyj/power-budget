@@ -68,3 +68,26 @@ export interface HouseholdInviteRepository {
   findByTokenHash(tokenHash: string): Promise<HouseholdInvite | null>;
   accept(id: string, at: Date): Promise<void>;
 }
+
+export interface JwtAccessTokenIssuer {
+  issue(payload: { userId: UserId; householdId: HouseholdId | null }): string;
+}
+
+export interface MagicLinkTokenRepository {
+  save(token: { tokenHash: string; userId: UserId; expiresAt: Date }): Promise<void>;
+  /** Returns null if token is expired, not found, or already consumed. */
+  consume(tokenHash: string): Promise<{ userId: UserId } | null>;
+}
+
+export interface NotificationOutboxPort {
+  enqueue(event: {
+    kind: string;
+    userId: UserId;
+    payload: Record<string, unknown>;
+    dedupeKey: string;
+  }): Promise<void>;
+}
+
+export interface BankConnectionChecker {
+  hasActiveConnection(userId: UserId): Promise<boolean>;
+}
