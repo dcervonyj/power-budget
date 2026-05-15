@@ -1,28 +1,17 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { IntlProvider } from 'react-intl';
-import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocales } from 'expo-localization';
 import { RootNavigator } from './navigation/RootNavigator.js';
+import { LocaleResolver, LOCALE_STORAGE_KEY } from '../infrastructure/locale/index.js';
+import type { SupportedLocale } from '../infrastructure/locale/index.js';
 
-type SupportedLocale = 'en' | 'uk' | 'ru' | 'pl';
+const resolver = new LocaleResolver();
 
-const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
-
-function resolveLocale(stored?: string | null): SupportedLocale {
-  if (stored && (SUPPORTED_LOCALES as readonly string[]).includes(stored)) {
-    return stored as SupportedLocale;
-  }
-  try {
-    const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale ?? 'en';
-    const lang = deviceLocale.split('-')[0] ?? 'en';
-    if ((SUPPORTED_LOCALES as readonly string[]).includes(lang)) {
-      return lang as SupportedLocale;
-    }
-  } catch {
-    // ignore locale detection errors
-  }
-  return 'en';
+function getDeviceLanguage(): string {
+  return getLocales()[0]?.languageCode ?? 'en';
 }
 
 async function loadMessages(locale: SupportedLocale): Promise<Record<string, string>> {
@@ -39,12 +28,20 @@ async function loadMessages(locale: SupportedLocale): Promise<Record<string, str
 }
 
 export function App(): React.JSX.Element {
-  const [locale] = useState<SupportedLocale>(() => resolveLocale(null));
+  const [locale, setLocale] = useState<SupportedLocale>(() =>
+    resolver.resolve(getDeviceLanguage()),
+  );
   const [messages, setMessages] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    void loadMessages(locale).then(setMessages);
-  }, [locale]);
+    void AsyncStorage.getItem(LOCALE_STORAGE_KEY)
+      .then((stored) => {
+        const resolved = resolver.resolve(getDeviceLanguage(), stored);
+        setLocale(resolved);
+        return loadMessages(resolved);
+      })
+      .then(setMessages);
+  }, []);
 
   return (
     <IntlProvider locale={locale} messages={messages} defaultLocale="en">
