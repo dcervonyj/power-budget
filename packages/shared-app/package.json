@@ -70,6 +70,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "codegen": "openapi-typescript ../../packages/backend/openapi.json --output src/contract/api-types.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" --max-warnings 0",
     "clean": "rm -rf dist .turbo"
@@ -85,6 +86,7 @@
   },
   "devDependencies": {
     "@types/react": "^18",
+    "openapi-typescript": "^7.13.0",
     "tsup": "^8.0.0"
   }
 }
