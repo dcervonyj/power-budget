@@ -96,3 +96,7 @@ export interface Encryption {
   encrypt(plaintext: string, context?: string): Promise<EncryptedString>;
   decrypt(ciphertext: EncryptedString, context?: string): Promise<string>;
 }
+
+export interface AppConfigPort {
+  get(key: 'APP_BASE_URL'): string;
+}

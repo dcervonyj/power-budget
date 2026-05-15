@@ -9,3 +9,6 @@ export * from './use-cases/RefreshTokenUseCase.js';
 export * from './use-cases/LogoutUseCase.js';
 export * from './use-cases/GetCurrentUserUseCase.js';
 export * from './use-cases/UpdateLocalePreferenceUseCase.js';
+export * from './use-cases/CreateHouseholdUseCase.js';
+export * from './use-cases/InviteToHouseholdUseCase.js';
+export * from './use-cases/AcceptInviteUseCase.js';

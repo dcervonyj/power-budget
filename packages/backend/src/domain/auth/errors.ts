@@ -39,3 +39,31 @@ export class EmailAlreadyRegisteredError extends Error {
     this.name = 'EmailAlreadyRegisteredError';
   }
 }
+
+export class InviteExpiredError extends Error {
+  constructor() {
+    super('INVITE_EXPIRED');
+    this.name = 'InviteExpiredError';
+  }
+}
+
+export class InviteAlreadyUsedError extends Error {
+  constructor() {
+    super('INVITE_ALREADY_USED');
+    this.name = 'InviteAlreadyUsedError';
+  }
+}
+
+export class EmailMismatchError extends Error {
+  constructor() {
+    super('EMAIL_MISMATCH');
+    this.name = 'EmailMismatchError';
+  }
+}
+
+export class AlreadyInHouseholdError extends Error {
+  constructor() {
+    super('ALREADY_IN_HOUSEHOLD');
+    this.name = 'AlreadyInHouseholdError';
+  }
+}
