@@ -57,6 +57,7 @@ export interface TotpSecret {
   readonly userId: UserId;
   readonly encryptedSecret: string;
   readonly enrolledAt: Date;
+  readonly verifiedAt: Date | null;
 }
 
 export interface HouseholdInvite {
