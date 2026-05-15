@@ -105,6 +105,16 @@ export const totpSecrets = pgTable('totp_secrets', {
     .references(() => users.id),
   encryptedSecret: text('encrypted_secret').notNull(),
   enrolledAt: timestamp('enrolled_at', { withTimezone: true }).notNull().defaultNow(),
+  verifiedAt: timestamp('verified_at', { withTimezone: true }),
+});
+
+export const magicLinkTokens = pgTable('magic_link_tokens', {
+  tokenHash: text('token_hash').primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const householdInvites = pgTable(
