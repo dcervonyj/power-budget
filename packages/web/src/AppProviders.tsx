@@ -1,11 +1,40 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { IntlProvider } from 'react-intl';
 import { LocalStorageTokenStore } from './infrastructure/tokens/LocalStorageTokenStore.js';
 import { ReactRouterNavigationAdapter } from './infrastructure/navigation/ReactRouterNavigationAdapter.js';
 import { createApiClient } from './infrastructure/api/ApiClient.js';
 
 export interface AppProvidersProps {
   children: React.ReactNode;
+}
+
+type SupportedLocale = 'en' | 'uk' | 'ru' | 'pl';
+
+const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
+
+function resolveLocale(): SupportedLocale {
+  const stored = localStorage.getItem('pb_locale');
+  if (stored && (SUPPORTED_LOCALES as readonly string[]).includes(stored)) {
+    return stored as SupportedLocale;
+  }
+  const browser = navigator.language.split('-')[0] ?? 'en';
+  return (SUPPORTED_LOCALES as readonly string[]).includes(browser)
+    ? (browser as SupportedLocale)
+    : 'en';
+}
+
+async function loadMessages(locale: SupportedLocale): Promise<Record<string, string>> {
+  switch (locale) {
+    case 'uk':
+      return (await import('../public/locales/uk.json')) as unknown as Record<string, string>;
+    case 'ru':
+      return (await import('../public/locales/ru.json')) as unknown as Record<string, string>;
+    case 'pl':
+      return (await import('../public/locales/pl.json')) as unknown as Record<string, string>;
+    default:
+      return (await import('../public/locales/en.json')) as unknown as Record<string, string>;
+  }
 }
 
 // Singleton infrastructure adapters — created once, wired at runtime.
@@ -32,14 +61,20 @@ function NavigationWirer(): null {
 
 /**
  * AppProviders is the composition root for the web app.
- * It wires platform-specific adapters to shared-app context factories and
- * exposes them via React context. Feature contexts are added in WEB-005+.
+ * Wraps children with IntlProvider (react-intl) plus platform adapters.
  */
 export function AppProviders({ children }: AppProvidersProps): React.JSX.Element {
+  const [locale] = useState<SupportedLocale>(resolveLocale);
+  const [messages, setMessages] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    void loadMessages(locale).then(setMessages);
+  }, [locale]);
+
   return (
-    <>
+    <IntlProvider locale={locale} messages={messages} defaultLocale="en">
       <NavigationWirer />
       {children}
-    </>
+    </IntlProvider>
   );
 }

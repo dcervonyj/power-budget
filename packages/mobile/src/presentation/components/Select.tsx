@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal as RNModal, FlatList, StyleSheet } from 'react-native';
+import { useIntl, FormattedMessage } from 'react-intl';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import type { SelectOption } from '@power-budget/shared-app';
 
@@ -21,7 +22,10 @@ export function Select<T extends string = string>({
   label,
 }: SelectProps<T>): React.JSX.Element {
   const [open, setOpen] = useState(false);
+  const intl = useIntl();
   const selected = options.find((o) => o.value === value);
+  const placeholderText =
+    placeholder ?? intl.formatMessage({ id: 'select.placeholder', defaultMessage: 'Select…' });
 
   return (
     <View style={styles.container}>
@@ -34,9 +38,11 @@ export function Select<T extends string = string>({
         activeOpacity={0.7}
       >
         <Text style={[styles.triggerText, !selected && styles.placeholder]}>
-          {selected ? selected.label : (placeholder ?? 'Select…')}
+          {selected ? selected.label : placeholderText}
         </Text>
-        <Text style={styles.chevron}>▾</Text>
+        <Text style={styles.chevron}>
+          <FormattedMessage id="select.chevron" defaultMessage="▾" />
+        </Text>
       </TouchableOpacity>
       <RNModal
         visible={open}

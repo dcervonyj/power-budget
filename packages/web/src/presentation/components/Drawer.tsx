@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useIntl, FormattedMessage } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 
 export interface DrawerProps {
@@ -17,6 +18,7 @@ export function Drawer({
   width = 400,
 }: DrawerProps): React.JSX.Element {
   const theme = useTheme();
+  const intl = useIntl();
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -86,7 +88,7 @@ export function Drawer({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close drawer"
+              aria-label={intl.formatMessage({ id: 'common.close', defaultMessage: 'Close' })}
               style={{
                 background: 'none',
                 border: 'none',
@@ -95,7 +97,7 @@ export function Drawer({
                 fontSize: theme.fontSize.xl,
               }}
             >
-              ×
+              <FormattedMessage id="common.closeIcon" defaultMessage="×" />
             </button>
           </div>
         )}

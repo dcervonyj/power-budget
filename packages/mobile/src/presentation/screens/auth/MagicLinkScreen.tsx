@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function MagicLinkScreen() {
+export function MagicLinkScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>MagicLink</Text>
+      <Text>
+        <FormattedMessage id="screen.magicLink.title" defaultMessage="Magic Link" />
+      </Text>
     </View>
   );
 }

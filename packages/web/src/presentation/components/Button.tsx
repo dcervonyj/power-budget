@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ButtonVariant } from '@power-budget/shared-app';
+import { FormattedMessage } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 
 export interface ButtonProps {
@@ -53,7 +54,7 @@ export function Button({
         gap: theme.space.sm,
       }}
     >
-      {loading ? '…' : children}
+      {loading ? <FormattedMessage id="button.loading" defaultMessage="…" /> : children}
     </button>
   );
 }

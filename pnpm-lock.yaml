@@ -229,6 +229,9 @@ importers:
       '@types/react-native':
         specifier: ~0.73.0
         version: 0.73.0(@babel/core@7.29.0)(@babel/preset-env@7.29.5(@babel/core@7.29.0))(@types/react@18.2.79)(react@18.2.0)
+      eslint-plugin-formatjs:
+        specifier: ^6.4.10
+        version: 6.4.10(eslint@9.39.4)
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
@@ -318,6 +321,9 @@ importers:
       '@vitest/coverage-v8':
         specifier: ^2.1.9
         version: 2.1.9(vitest@2.1.9(@types/node@25.8.0)(jsdom@29.1.1(@noble/hashes@2.2.0))(terser@5.47.1))
+      eslint-plugin-formatjs:
+        specifier: ^6.4.10
+        version: 6.4.10(eslint@9.39.4)
       jsdom:
         specifier: ^29.1.1
         version: 29.1.1(@noble/hashes@2.2.0)
@@ -3529,6 +3535,9 @@ packages:
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
 
+  '@types/picomatch@4.0.3':
+    resolution: {integrity: sha512-iG0T6+nYJ9FAPmx9SsUlnwcq1ZVRuCXcVEvWnntoPlrOpwtSTKNDC9uVAxTsC3PUvJ+99n4RpAcNgBbHX3JSnQ==}
+
   '@types/prop-types@15.7.15':
     resolution: {integrity: sha512-F6bEyamV9jKGAFBEmlQnesRPGOQqS2+Uwi0Em15xenOxHaf2hv6L8YCVn3rPdPJOiJfPiCnLIRyvwVaqMY3MIw==}
 
@@ -3626,6 +3635,9 @@ packages:
   '@typescript-eslint/visitor-keys@8.59.3':
     resolution: {integrity: sha512-f1UQF7ggd42YiwI5wGrRaPsa+P0CINBlrkLPmGfpq/u/I/oVtecoEIfFR9ag/oa1sLOsRNZ6xehf6qMZhQGBDg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@unicode/unicode-17.0.0@1.6.16':
+    resolution: {integrity: sha512-advq5p36zZ+PDRUpDkWcHHR++R19kx0LYB5iG3bj0KB8mYVKg0ywS996e2bXeXxDb8XdOF7KTivcx7VkYie1pg==}
 
   '@urql/core@2.3.6':
     resolution: {integrity: sha512-PUxhtBh7/8167HJK6WqBv6Z0piuiaZHQGYbhwpNL9aIQmLROPEdaUYkY4wh45wPQXcTpnd11l0q3Pw+TI11pdw==}
@@ -4847,6 +4859,11 @@ packages:
   escape-string-regexp@4.0.0:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
+
+  eslint-plugin-formatjs@6.4.10:
+    resolution: {integrity: sha512-ABLgeLNu2E0Vrx3bGmZVUizW2q8YRaPOB5iv33Rz7KOxxybVSc11OdPLJKHDvn6IKAPRyYcZ8fWROuayTcSiEg==}
+    peerDependencies:
+      eslint: 9 || 10
 
   eslint-scope@5.1.1:
     resolution: {integrity: sha512-2NxwbF/hZ0KpepYN0cNbo+FN6XoK7GaHlQhgx/hIZl6Va0bF45RQOOwhLIy8lQDbuCiadSLCBnH2CFYquit5bw==}
@@ -11982,6 +11999,8 @@ snapshots:
       pg-protocol: 1.13.0
       pg-types: 2.2.0
 
+  '@types/picomatch@4.0.3': {}
+
   '@types/prop-types@15.7.15': {}
 
   '@types/react-dom@18.3.7(@types/react@18.3.28)':
@@ -12123,6 +12142,8 @@ snapshots:
     dependencies:
       '@typescript-eslint/types': 8.59.3
       eslint-visitor-keys: 5.0.1
+
+  '@unicode/unicode-17.0.0@1.6.16': {}
 
   '@urql/core@2.3.6(graphql@15.8.0)':
     dependencies:
@@ -13489,6 +13510,18 @@ snapshots:
   escape-string-regexp@2.0.0: {}
 
   escape-string-regexp@4.0.0: {}
+
+  eslint-plugin-formatjs@6.4.10(eslint@9.39.4):
+    dependencies:
+      '@formatjs/icu-messageformat-parser': 3.5.9
+      '@formatjs/ts-transformer': 4.4.9
+      '@types/picomatch': 4.0.3
+      '@unicode/unicode-17.0.0': 1.6.16
+      eslint: 9.39.4
+      magic-string: 0.30.21
+      picomatch: 4.0.4
+    transitivePeerDependencies:
+      - ts-jest
 
   eslint-scope@5.1.1:
     dependencies:

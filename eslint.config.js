@@ -6,6 +6,7 @@
 // this root config.
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
+const formatjsPlugin = require('eslint-plugin-formatjs').default;
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
@@ -62,7 +63,19 @@ module.exports = [
       ],
 
       // ── react-intl placeholder (enabled in I18N-002) ────────────────────
-      // 'react-intl/no-literal-string': 'error', // enabled in I18N-002
+      // (formatjs/no-literal-string-in-jsx rule is in the dedicated block below)
+    },
+  },
+
+  // ─── formatjs: no-literal-string in presentation layers ─────────────────
+  // Ensures all user-visible strings in presentation/ go through react-intl.
+  // Scoped to presentation/ only — infra and application layers may use literals.
+  {
+    files: ['packages/*/src/presentation/**/*.{ts,tsx}'],
+    ignores: ['packages/*/src/presentation/**/__tests__/**'],
+    plugins: { formatjs: formatjsPlugin },
+    rules: {
+      'formatjs/no-literal-string-in-jsx': 'error',
     },
   },
 

@@ -1,10 +1,16 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function AddBankConnectionScreen() {
+export function AddBankConnectionScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>AddBankConnection</Text>
+      <Text>
+        <FormattedMessage
+          id="screen.addBankConnection.title"
+          defaultMessage="Add Bank Connection"
+        />
+      </Text>
     </View>
   );
 }

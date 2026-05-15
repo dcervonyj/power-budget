@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function LoginScreen() {
+export function LoginScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>Login</Text>
+      <Text>
+        <FormattedMessage id="screen.login.title" defaultMessage="Login" />
+      </Text>
     </View>
   );
 }

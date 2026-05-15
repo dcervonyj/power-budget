@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function RegisterScreen() {
+export function RegisterScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>Register</Text>
+      <Text>
+        <FormattedMessage id="screen.register.title" defaultMessage="Register" />
+      </Text>
     </View>
   );
 }

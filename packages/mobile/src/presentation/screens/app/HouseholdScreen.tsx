@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function HouseholdScreen() {
+export function HouseholdScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>Household</Text>
+      <Text>
+        <FormattedMessage id="screen.household.title" defaultMessage="Household" />
+      </Text>
     </View>
   );
 }
