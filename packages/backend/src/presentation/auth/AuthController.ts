@@ -10,6 +10,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
 import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
@@ -33,6 +41,7 @@ import { VerifyTotpUseCase } from '../../application/auth/use-cases/VerifyTotpUs
 import { RefreshTokenUseCase } from '../../application/auth/use-cases/RefreshTokenUseCase.js';
 import { LogoutUseCase } from '../../application/auth/use-cases/LogoutUseCase.js';
 
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -49,6 +58,10 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @ApiOperation({ summary: 'Register a new user' })
+  @ApiBody({ type: RegisterDto })
+  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 409, description: 'Email already in use' })
   async register(@Body() dto: RegisterDto) {
     const result = await this.registerUser.execute({
       email: dto.email,
@@ -64,6 +77,10 @@ export class AuthController {
   }
 
   @Post('login')
+  @ApiOperation({ summary: 'Login with email and password' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ status: 201, description: 'Tokens issued' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() dto: LoginDto) {
     const result = await this.loginWithPassword.execute({
       email: dto.email,
@@ -80,11 +97,18 @@ export class AuthController {
 
   @Post('magic-link/request')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Request a magic-link login email' })
+  @ApiBody({ type: RequestMagicLinkDto })
+  @ApiResponse({ status: 204, description: 'Magic link sent (if account exists)' })
   async requestMagicLinkEndpoint(@Body() dto: RequestMagicLinkDto): Promise<void> {
     await this.requestMagicLink.execute({ email: dto.email });
   }
 
   @Post('magic-link/consume')
+  @ApiOperation({ summary: 'Consume a magic-link token and get tokens' })
+  @ApiBody({ type: ConsumeMagicLinkDto })
+  @ApiResponse({ status: 201, description: 'Tokens issued' })
+  @ApiResponse({ status: 401, description: 'Token invalid or expired' })
   async consumeMagicLinkEndpoint(@Body() dto: ConsumeMagicLinkDto) {
     const result = await this.consumeMagicLink.execute({ token: dto.token });
 
@@ -97,6 +121,8 @@ export class AuthController {
 
   @Get('oauth/google/start')
   @Redirect()
+  @ApiOperation({ summary: 'Start Google OAuth flow (redirects to Google)' })
+  @ApiResponse({ status: 302, description: 'Redirect to Google OAuth' })
   googleStart() {
     // Stub: OAuthProvider.buildAuthorizeUrl not yet wired to real Google OAuth
     const callbackUri = `${this.config.get<string>('APP_BASE_URL') ?? 'http://localhost:3000'}/auth/oauth/google/callback`;
@@ -107,6 +133,10 @@ export class AuthController {
   }
 
   @Get('oauth/google/callback')
+  @ApiOperation({ summary: 'Google OAuth callback' })
+  @ApiQuery({ name: 'code', description: 'Authorization code from Google' })
+  @ApiQuery({ name: 'state', description: 'OAuth state parameter' })
+  @ApiResponse({ status: 200, description: 'Tokens issued' })
   async googleCallback(@Query('code') code: string, @Query('state') state: string) {
     const redirectUri = `${this.config.get<string>('APP_BASE_URL') ?? 'http://localhost:3000'}/auth/oauth/google/callback`;
     const result = await this.loginWithGoogle.execute({ code, redirectUri, state });
@@ -121,6 +151,10 @@ export class AuthController {
   @Post('totp/enable')
   @UseGuards(JwtAuthGuard, TotpStepUpGuard)
   @RequireRecentTotp()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Enable TOTP 2FA for the current user' })
+  @ApiResponse({ status: 201, description: 'TOTP secret and QR code URI' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async totpEnable(@CurrentUser() user: AuthenticatedUser) {
     const result = await this.enableTotp.execute({ userId: user.userId });
 
@@ -130,6 +164,11 @@ export class AuthController {
   @Post('totp/verify')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Verify and activate TOTP for the current user' })
+  @ApiBody({ type: VerifyTotpDto })
+  @ApiResponse({ status: 204, description: 'TOTP verified' })
+  @ApiResponse({ status: 401, description: 'Unauthorized or invalid code' })
   async totpVerify(
     @Body() dto: VerifyTotpDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -138,6 +177,10 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @ApiOperation({ summary: 'Rotate refresh token and get a new access token' })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiResponse({ status: 201, description: 'New tokens issued' })
+  @ApiResponse({ status: 401, description: 'Refresh token invalid or expired' })
   async refreshTokenEndpoint(@Body() dto: RefreshTokenDto) {
     const result = await this.refreshToken.execute({ refreshToken: dto.refreshToken });
 
@@ -151,6 +194,11 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout and revoke refresh token' })
+  @ApiBody({ type: LogoutDto })
+  @ApiResponse({ status: 204, description: 'Logged out' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logoutEndpoint(@Body() dto: LogoutDto): Promise<void> {
     await this.logout.execute({ refreshToken: dto.refreshToken });
   }

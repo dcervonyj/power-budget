@@ -12,6 +12,15 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import type { BankConnectionId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
@@ -32,6 +41,7 @@ import {
   BankConnectionInvalidStateError,
 } from '../../domain/bank/errors.js';
 
+@ApiTags('bank-connections')
 @Controller('bank-connections')
 export class BankController {
   constructor(
@@ -46,6 +56,8 @@ export class BankController {
   ) {}
 
   @Get('catalogue')
+  @ApiOperation({ summary: 'List available banks for a given country' })
+  @ApiResponse({ status: 200, description: 'List of bank institutions' })
   async catalogue(@Query() query: GetCatalogQueryDto) {
     const country = query.country ?? 'PL';
 
@@ -54,6 +66,12 @@ export class BankController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Initiate a new bank connection (starts OAuth consent)' })
+  @ApiBody({ type: InitiateBankConnectionDto })
+  @ApiResponse({ status: 201, description: 'Consent link returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Connection to this bank already exists' })
   async initiateBankConnection(
     @Body() dto: InitiateBankConnectionDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -81,6 +99,14 @@ export class BankController {
 
   @Get(':id/complete')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Complete bank OAuth consent callback' })
+  @ApiParam({ name: 'id', description: 'Bank connection ID' })
+  @ApiQuery({ name: 'code', description: 'OAuth authorization code' })
+  @ApiQuery({ name: 'state', description: 'OAuth state / consent reference' })
+  @ApiResponse({ status: 200, description: 'Connection activated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Consent not found' })
   async completeBankConsent(
     @Param('id') _id: string,
     @Query('code') code: string,
@@ -102,6 +128,10 @@ export class BankController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List bank connections for the current user' })
+  @ApiResponse({ status: 200, description: 'List of bank connections' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listBankConnections(@CurrentUser() user: AuthenticatedUser) {
     return this.listConnections.execute({ userId: user.userId });
   }
@@ -109,6 +139,13 @@ export class BankController {
   @Post(':id/refresh')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.ACCEPTED)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Trigger a manual sync for a bank connection' })
+  @ApiParam({ name: 'id', description: 'Bank connection ID' })
+  @ApiResponse({ status: 202, description: 'Refresh enqueued' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Connection not found' })
   async refreshConnection(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     if (!user.householdId) {
       throw new ForbiddenException('No household');
@@ -135,6 +172,13 @@ export class BankController {
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Disconnect (delete) a bank connection' })
+  @ApiParam({ name: 'id', description: 'Bank connection ID' })
+  @ApiResponse({ status: 204, description: 'Connection removed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Connection not found' })
   async disconnectBank(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -163,6 +207,13 @@ export class BankController {
 
   @Post(':id/reconnect')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Re-initiate consent for an expired bank connection' })
+  @ApiParam({ name: 'id', description: 'Bank connection ID' })
+  @ApiResponse({ status: 201, description: 'New consent link returned' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden or invalid state' })
+  @ApiResponse({ status: 404, description: 'Connection not found' })
   async reconnectBank(
     @Param('id') id: string,
     @Body() body: { redirectUri?: string },
@@ -196,6 +247,11 @@ export class BankController {
 
   @Get(':id/accounts')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'List bank accounts for a connection' })
+  @ApiParam({ name: 'id', description: 'Bank connection ID' })
+  @ApiResponse({ status: 200, description: 'List of bank accounts' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async listAccounts(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     if (!user.householdId) {
       return [];

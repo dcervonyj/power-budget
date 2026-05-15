@@ -12,6 +12,14 @@ import {
   UseGuards,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import type {
   BankAccountId,
   IsoDate,
@@ -41,6 +49,8 @@ import { TransactionNotFoundError } from '../../domain/transactions/errors.js';
 
 const STUB_PLAN_ID = '00000000-0000-0000-0000-000000000000' as PlanId;
 
+@ApiTags('transactions')
+@ApiBearerAuth()
 @Controller('transactions')
 @UseGuards(JwtAuthGuard)
 export class TransactionsController {
@@ -56,6 +66,9 @@ export class TransactionsController {
   ) {}
 
   @Get()
+  @ApiOperation({ summary: 'List transactions for the current household' })
+  @ApiResponse({ status: 200, description: 'Paginated list of transactions' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async list(@Query() query: ListTransactionsQueryDto, @CurrentUser() user: AuthenticatedUser) {
     if (!user.householdId) {
       return { items: [], nextCursor: null, hasMore: false };
@@ -77,6 +90,11 @@ export class TransactionsController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a single transaction by ID' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({ status: 200, description: 'Transaction detail' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
   async getOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     if (!user.householdId) {
       throw new NotFoundException('No household');
@@ -93,6 +111,10 @@ export class TransactionsController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Add a manual transaction' })
+  @ApiBody({ type: AddManualTransactionDto })
+  @ApiResponse({ status: 201, description: 'Transaction created' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async addManual(@Body() dto: AddManualTransactionDto, @CurrentUser() user: AuthenticatedUser) {
     if (!user.householdId) {
       throw new NotFoundException('No household');
@@ -111,6 +133,12 @@ export class TransactionsController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Patch notes or ignored flag on a transaction' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiBody({ type: PatchTransactionDto })
+  @ApiResponse({ status: 200, description: 'Transaction updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
   async patch(
     @Param('id') id: string,
     @Body() dto: PatchTransactionDto,
@@ -139,6 +167,12 @@ export class TransactionsController {
 
   @Patch(':id/mapping')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Set or clear the planned-item mapping for a transaction' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiBody({ type: SetMappingDto })
+  @ApiResponse({ status: 204, description: 'Mapping updated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
   async setMapping(
     @Param('id') id: string,
     @Body() dto: SetMappingDto,
@@ -166,6 +200,12 @@ export class TransactionsController {
 
   @Post(':id/transfer')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Mark a transaction as a transfer between own accounts' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiBody({ type: MarkTransferDto })
+  @ApiResponse({ status: 204, description: 'Marked as transfer' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
   async markTransfer(
     @Param('id') id: string,
     @Body() dto: MarkTransferDto,
@@ -192,6 +232,11 @@ export class TransactionsController {
 
   @Delete(':id/transfer')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Unmark a transaction as a transfer' })
+  @ApiParam({ name: 'id', description: 'Transaction ID' })
+  @ApiResponse({ status: 204, description: 'Transfer flag removed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Transaction not found' })
   async unmarkTransferHandler(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -215,6 +260,10 @@ export class TransactionsController {
 
   @Post('bulk')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Bulk-map or bulk-act on a set of transactions' })
+  @ApiBody({ type: BulkMapDto })
+  @ApiResponse({ status: 204, description: 'Bulk operation applied' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async bulkMap(@Body() dto: BulkMapDto, @CurrentUser() user: AuthenticatedUser): Promise<void> {
     if (!user.householdId || dto.op !== 'map') {
       return;
