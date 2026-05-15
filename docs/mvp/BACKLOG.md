@@ -113,10 +113,10 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 ### Wave 2 — depends on Wave 1
 
 | ID      | Title                              | Area   |
-| ------- | ---------------------------------- | ------ |
+| ------- | ---------------------------------- | ------ | ---------------- |
 | INF-002 | Scaffold pnpm + Turborepo monorepo | Infra  |
 | INF-007 | Dependabot + secret scanning       | Infra  |
-| DES-002 | Component library scaffold         | Design |
+| DES-002 | Component library scaffold         | Design | ✅ Done (PR #72) |
 
 ### Wave 3 — depends on Waves 1+2 (the "explosion" wave — many parallel starters)
 
@@ -157,7 +157,7 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | MOB-002  | React Navigation                         | Mobile  | ✅ Done (PR #35)        |
 | MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  | — (BE-038 ✅ unblocked) |
 | MOB-013  | Notification routing layer (placeholder) | Mobile  | —                       |
-| I18N-001 | String-extraction infrastructure         | i18n    | —                       |
+| I18N-001 | String-extraction infrastructure         | i18n    | ✅ Done (PR #70)        |
 | QA-001   | Vitest unit-test setup                   | QA      | ✅ Done (PR #33)        |
 | QA-004   | Detox-defer ADR                          | QA      | ✅ Done (PR #31)        |
 
@@ -173,7 +173,7 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | BE-009   | Core `applyMappingSuggestion`           | Backend | ✅ Done (PR #43)                    |
 | BE-010   | Core locale-aware formatters            | Backend | ✅ Done (PR #39)                    |
 | MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs MOB-003)           |
-| I18N-002 | `react-intl` provider + lint rule       | i18n    | ⏸ Deferred to Wave 7                |
+| I18N-002 | `react-intl` provider + lint rule       | i18n    | ✅ Done (PR #78)                    |
 | I18N-003 | Resource bundles — `en.json` baseline   | i18n    | ⏸ Deferred to Wave 7                |
 
 ### Wave 7
@@ -241,9 +241,9 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | BE-018  | GoCardless adapter                | Backend  | ✅ #71 |
 | BE-019  | Wise adapter                      | Backend  | ✅ #73 |
 | BE-036  | RLS policies + tenancy spec       | Backend  | ✅ #74 |
-| WEB-004 | Typed API client from OpenAPI     | Web      |        |
-| MOB-005 | Auth screens (mobile)             | Mobile   |        |
-| MOB-009 | Locale resolution + i18n (mobile) | Mobile   |        |
+| WEB-004 | Typed API client from OpenAPI     | Web      | ✅ #69 |
+| MOB-005 | Auth screens (mobile)             | Mobile   | ✅ #80 |
+| MOB-009 | Locale resolution + i18n (mobile) | Mobile   | ✅ #79 |
 | SEC-007 | 2FA-at-bank-connect gate          | Security | ✅ #75 |
 
 ### Wave 13
