@@ -51,6 +51,11 @@ jobs:
           pnpm exec prettier --write packages/backend/openapi.json
           git diff --exit-code packages/backend/openapi.json
 
+      - name: Check API types drift
+        run: |
+          pnpm --filter @power-budget/shared-app codegen
+          git diff --exit-code packages/shared-app/src/contract/api-types.ts
+
       - name: Collect coverage reports
         if: always()
         run: find . -name 'lcov.info' -not -path '*/node_modules/*' | xargs -I{} echo "{}"
