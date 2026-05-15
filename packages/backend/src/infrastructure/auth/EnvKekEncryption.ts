@@ -49,7 +49,13 @@ export class EnvKekEncryption implements Encryption {
     if (parts.length !== 5) {
       throw new Error('EnvKekEncryption: invalid ciphertext format');
     }
-    const [kid, alg, ivB64, ciphertextB64, authTagB64] = parts;
+    const [kid, alg, ivB64, ciphertextB64, authTagB64] = parts as [
+      string,
+      string,
+      string,
+      string,
+      string,
+    ];
     if (kid !== KID || alg !== ALG) {
       throw new Error(`EnvKekEncryption: unsupported kid="${kid}" alg="${alg}"`);
     }
