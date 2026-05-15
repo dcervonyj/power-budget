@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { IngestEcbDailyRatesUseCase } from './IngestEcbDailyRatesUseCase.js';
 import type { FxRateProvider, FxRateRepository } from '../../../domain/fx/index.js';
 import type { NewFxRate } from '../../../domain/fx/index.js';
@@ -47,7 +47,9 @@ function makeProvider(rates: NewFxRate[]): FxRateProvider {
   return { fetchForDate: vi.fn().mockResolvedValue(rates) };
 }
 
-function makeRepo(existingRate: ReturnType<FxRateRepository['getRate']> extends Promise<infer T> ? T : never = null): FxRateRepository {
+function makeRepo(
+  existingRate: ReturnType<FxRateRepository['getRate']> extends Promise<infer T> ? T : never = null,
+): FxRateRepository {
   return {
     saveBatch: vi.fn().mockResolvedValue(undefined),
     getTable: vi.fn().mockResolvedValue(new Map()),
@@ -66,9 +68,7 @@ describe('IngestEcbDailyRatesUseCase', () => {
       await useCase.execute(INGEST_DATE);
 
       expect(provider.fetchForDate).toHaveBeenCalledWith(INGEST_DATE);
-      expect(repo.saveBatch).toHaveBeenCalledWith(
-        expect.arrayContaining([...ECB_RATES]),
-      );
+      expect(repo.saveBatch).toHaveBeenCalledWith(expect.arrayContaining([...ECB_RATES]));
     });
 
     it('supplements with fallback for UAH when ECB does not cover it', async () => {
