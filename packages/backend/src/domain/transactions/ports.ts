@@ -4,6 +4,7 @@ import type {
   PlannedItemId,
   UserId,
   HouseholdId,
+  PlanId,
 } from '@power-budget/core';
 import type {
   Transaction,
@@ -24,7 +25,10 @@ export interface TransactionRepository {
   insertManual(input: NewManualTransaction): Promise<Transaction>;
   findById(id: TransactionId, scope: HouseholdScope): Promise<Transaction | null>;
   list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<Transaction>>;
-  patch(id: TransactionId, patch: Partial<Pick<Transaction, 'notes' | 'ignored'>>): Promise<void>;
+  patch(
+    id: TransactionId,
+    patch: Partial<Pick<Transaction, 'notes' | 'ignored' | 'suggestedPlannedItemId'>>,
+  ): Promise<void>;
 }
 
 export interface MappingRepository {
@@ -44,4 +48,12 @@ export interface TransferRepository {
   ): Promise<TransferId>;
   unmark(transactionId: TransactionId): Promise<void>;
   findByTransaction(id: TransactionId): Promise<Transfer | null>;
+}
+
+export interface MappingSuggestionPort {
+  suggest(tx: Transaction, recentMappings: TransactionMapping[]): PlannedItemId | null;
+}
+
+export interface PlanActualsRefreshPort {
+  scheduleRefresh(planId: PlanId): Promise<void>;
 }
