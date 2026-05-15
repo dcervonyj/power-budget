@@ -31,7 +31,7 @@ module.exports = [
   // without type-aware rules via the block below.
   {
     files: ['**/*.ts', '**/*.tsx'],
-    ignores: ['**/src/test/integration/**', '**/__tests__/**'],
+    ignores: ['**/src/test/integration/**', '**/__tests__/**', '**/vite.config.ts', '**/vitest.config.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
