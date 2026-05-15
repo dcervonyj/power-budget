@@ -1,0 +1,1205 @@
+{
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": ["Health"]
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "operationId": "AuthController_register",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully"
+          },
+          "409": {
+            "description": "Email already in use"
+          }
+        },
+        "summary": "Register a new user",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tokens issued"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        },
+        "summary": "Login with email and password",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/magic-link/request": {
+      "post": {
+        "operationId": "AuthController_requestMagicLinkEndpoint",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestMagicLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Magic link sent (if account exists)"
+          }
+        },
+        "summary": "Request a magic-link login email",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/magic-link/consume": {
+      "post": {
+        "operationId": "AuthController_consumeMagicLinkEndpoint",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsumeMagicLinkDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tokens issued"
+          },
+          "401": {
+            "description": "Token invalid or expired"
+          }
+        },
+        "summary": "Consume a magic-link token and get tokens",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/oauth/google/start": {
+      "get": {
+        "operationId": "AuthController_googleStart",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect to Google OAuth"
+          }
+        },
+        "summary": "Start Google OAuth flow (redirects to Google)",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/oauth/google/callback": {
+      "get": {
+        "operationId": "AuthController_googleCallback",
+        "parameters": [
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "description": "OAuth state parameter",
+            "schema": {}
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "description": "Authorization code from Google",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tokens issued"
+          }
+        },
+        "summary": "Google OAuth callback",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/totp/enable": {
+      "post": {
+        "operationId": "AuthController_totpEnable",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "TOTP secret and QR code URI"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Enable TOTP 2FA for the current user",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/totp/verify": {
+      "post": {
+        "operationId": "AuthController_totpVerify",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyTotpDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "TOTP verified"
+          },
+          "401": {
+            "description": "Unauthorized or invalid code"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Verify and activate TOTP for the current user",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "operationId": "AuthController_refreshTokenEndpoint",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "New tokens issued"
+          },
+          "401": {
+            "description": "Refresh token invalid or expired"
+          }
+        },
+        "summary": "Rotate refresh token and get a new access token",
+        "tags": ["auth"]
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logoutEndpoint",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Logged out"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Logout and revoke refresh token",
+        "tags": ["auth"]
+      }
+    },
+    "/users/me": {
+      "get": {
+        "operationId": "UsersController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current user profile"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get the current authenticated user",
+        "tags": ["users"]
+      }
+    },
+    "/users/me/locale": {
+      "patch": {
+        "operationId": "UsersController_updateLocalePreference",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateLocaleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Locale updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the current user locale preference",
+        "tags": ["users"]
+      }
+    },
+    "/households": {
+      "post": {
+        "operationId": "HouseholdsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHouseholdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Household created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new household",
+        "tags": ["households"]
+      }
+    },
+    "/households/invite": {
+      "post": {
+        "operationId": "HouseholdsController_invite",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteToHouseholdDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Invitation sent"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Invite a user to the current household",
+        "tags": ["households"]
+      }
+    },
+    "/households/invite/{token}/accept": {
+      "post": {
+        "operationId": "HouseholdsController_acceptInviteEndpoint",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Invitation token from email",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Invitation accepted"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Accept a household invitation",
+        "tags": ["households"]
+      }
+    },
+    "/transactions": {
+      "get": {
+        "operationId": "TransactionsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Paginated list of transactions"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List transactions for the current household",
+        "tags": ["transactions"]
+      },
+      "post": {
+        "operationId": "TransactionsController_addManual",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddManualTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transaction created"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a manual transaction",
+        "tags": ["transactions"]
+      }
+    },
+    "/transactions/{id}": {
+      "get": {
+        "operationId": "TransactionsController_getOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transaction ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Transaction detail"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Transaction not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a single transaction by ID",
+        "tags": ["transactions"]
+      },
+      "patch": {
+        "operationId": "TransactionsController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transaction ID",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchTransactionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Transaction updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Transaction not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Patch notes or ignored flag on a transaction",
+        "tags": ["transactions"]
+      }
+    },
+    "/transactions/{id}/mapping": {
+      "patch": {
+        "operationId": "TransactionsController_setMapping",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transaction ID",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMappingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Mapping updated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Transaction not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Set or clear the planned-item mapping for a transaction",
+        "tags": ["transactions"]
+      }
+    },
+    "/transactions/{id}/transfer": {
+      "post": {
+        "operationId": "TransactionsController_markTransfer",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transaction ID",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MarkTransferDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Marked as transfer"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Transaction not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a transaction as a transfer between own accounts",
+        "tags": ["transactions"]
+      },
+      "delete": {
+        "operationId": "TransactionsController_unmarkTransferHandler",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Transaction ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Transfer flag removed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Transaction not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Unmark a transaction as a transfer",
+        "tags": ["transactions"]
+      }
+    },
+    "/transactions/bulk": {
+      "post": {
+        "operationId": "TransactionsController_bulkMap",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkMapDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Bulk operation applied"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Bulk-map or bulk-act on a set of transactions",
+        "tags": ["transactions"]
+      }
+    },
+    "/audit-log": {
+      "get": {
+        "operationId": "AuditController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Paginated list of audit events"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List audit log events for the current household",
+        "tags": ["audit-log"]
+      }
+    },
+    "/bank-connections/catalogue": {
+      "get": {
+        "operationId": "BankController_catalogue",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of bank institutions"
+          }
+        },
+        "summary": "List available banks for a given country",
+        "tags": ["bank-connections"]
+      }
+    },
+    "/bank-connections": {
+      "post": {
+        "operationId": "BankController_initiateBankConnection",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitiateBankConnectionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Consent link returned"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Connection to this bank already exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Initiate a new bank connection (starts OAuth consent)",
+        "tags": ["bank-connections"]
+      },
+      "get": {
+        "operationId": "BankController_listBankConnections",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of bank connections"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List bank connections for the current user",
+        "tags": ["bank-connections"]
+      }
+    },
+    "/bank-connections/{id}/complete": {
+      "get": {
+        "operationId": "BankController_completeBankConsent",
+        "parameters": [
+          {
+            "name": "state",
+            "required": true,
+            "in": "query",
+            "description": "OAuth state / consent reference",
+            "schema": {}
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "query",
+            "description": "OAuth authorization code",
+            "schema": {}
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Bank connection ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection activated"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Consent not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Complete bank OAuth consent callback",
+        "tags": ["bank-connections"]
+      }
+    },
+    "/bank-connections/{id}/refresh": {
+      "post": {
+        "operationId": "BankController_refreshConnection",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Bank connection ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Refresh enqueued"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Connection not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Trigger a manual sync for a bank connection",
+        "tags": ["bank-connections"]
+      }
+    },
+    "/bank-connections/{id}": {
+      "delete": {
+        "operationId": "BankController_disconnectBank",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Bank connection ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Connection removed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Connection not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Disconnect (delete) a bank connection",
+        "tags": ["bank-connections"]
+      }
+    },
+    "/bank-connections/{id}/reconnect": {
+      "post": {
+        "operationId": "BankController_reconnectBank",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Bank connection ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "New consent link returned"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden or invalid state"
+          },
+          "404": {
+            "description": "Connection not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Re-initiate consent for an expired bank connection",
+        "tags": ["bank-connections"]
+      }
+    },
+    "/bank-connections/{id}/accounts": {
+      "get": {
+        "operationId": "BankController_listAccounts",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Bank connection ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of bank accounts"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List bank accounts for a connection",
+        "tags": ["bank-connections"]
+      }
+    }
+  },
+  "info": {
+    "title": "Power Budget API",
+    "description": "",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "Str0ngPass!",
+            "minLength": 8
+          },
+          "locale": {
+            "type": "string",
+            "enum": ["en", "uk", "ru", "pl"],
+            "default": "en"
+          }
+        },
+        "required": ["email", "password"]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          },
+          "password": {
+            "type": "string",
+            "example": "Str0ngPass!"
+          },
+          "totp": {
+            "type": "string",
+            "description": "TOTP code if 2FA is enabled",
+            "example": "123456"
+          }
+        },
+        "required": ["email", "password"]
+      },
+      "RequestMagicLinkDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "user@example.com"
+          }
+        },
+        "required": ["email"]
+      },
+      "ConsumeMagicLinkDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Magic-link token from email"
+          }
+        },
+        "required": ["token"]
+      },
+      "VerifyTotpDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "6-digit TOTP code",
+            "example": "123456"
+          }
+        },
+        "required": ["code"]
+      },
+      "RefreshTokenDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Opaque refresh token"
+          }
+        },
+        "required": ["refreshToken"]
+      },
+      "LogoutDto": {
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "description": "Refresh token to revoke"
+          }
+        },
+        "required": ["refreshToken"]
+      },
+      "UpdateLocaleDto": {
+        "type": "object",
+        "properties": {
+          "locale": {
+            "type": "string",
+            "enum": ["en", "uk", "ru", "pl"],
+            "example": "en"
+          }
+        },
+        "required": ["locale"]
+      },
+      "CreateHouseholdDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Smith Family"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "example": "PLN",
+            "description": "ISO 4217 currency code"
+          }
+        },
+        "required": ["name"]
+      },
+      "InviteToHouseholdDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "member@example.com"
+          }
+        },
+        "required": ["email"]
+      },
+      "AddManualTransactionDto": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "Bank account ID"
+          },
+          "occurredOn": {
+            "type": "string",
+            "description": "Date of transaction (ISO 8601)",
+            "example": "2024-06-15"
+          },
+          "amountMinor": {
+            "type": "number",
+            "description": "Amount in minor currency units (e.g. cents)",
+            "example": 1500
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "example": "PLN"
+          },
+          "description": {
+            "type": "string",
+            "example": "Coffee at Starbucks"
+          },
+          "merchant": {
+            "type": "string",
+            "example": "Starbucks",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "example": "Team lunch",
+            "nullable": true
+          }
+        },
+        "required": ["accountId", "occurredOn", "amountMinor", "currency", "description"]
+      },
+      "PatchTransactionDto": {
+        "type": "object",
+        "properties": {
+          "notes": {
+            "type": "string",
+            "example": "Corrected description",
+            "nullable": true
+          },
+          "ignored": {
+            "type": "boolean",
+            "description": "Soft-ignore the transaction from totals"
+          }
+        }
+      },
+      "SetMappingDto": {
+        "type": "object",
+        "properties": {
+          "plannedItemId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Planned item ID to map to, or null to unmap"
+          }
+        },
+        "required": ["plannedItemId"]
+      },
+      "MarkTransferDto": {
+        "type": "object",
+        "properties": {
+          "counterpartTransactionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "ID of the counterpart transaction for this transfer"
+          }
+        }
+      },
+      "BulkMapDto": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "description": "Transaction IDs to act on",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "op": {
+            "type": "string",
+            "enum": ["map", "transfer", "ignore"]
+          },
+          "payload": {
+            "type": "object",
+            "description": "Operation-specific payload"
+          }
+        },
+        "required": ["ids", "op"]
+      },
+      "InitiateBankConnectionDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": ["gocardless", "wise_personal"]
+          },
+          "bankId": {
+            "type": "string",
+            "description": "Provider-specific institution/bank ID",
+            "example": "PKO_BPKOPLPW"
+          },
+          "redirectUri": {
+            "type": "string",
+            "description": "OAuth redirect URI after consent",
+            "example": "https://app.power-budget.test/connect/callback"
+          }
+        },
+        "required": ["provider", "bankId", "redirectUri"]
+      }
+    }
+  }
+}

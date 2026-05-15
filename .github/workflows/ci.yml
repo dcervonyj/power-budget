@@ -45,6 +45,11 @@ jobs:
       - name: Lint, typecheck & test
         run: pnpm turbo run lint typecheck test --continue
 
+      - name: Check OpenAPI spec drift
+        run: |
+          pnpm -F @power-budget/backend generate:openapi
+          git diff --exit-code packages/backend/openapi.json
+
       - name: Collect coverage reports
         if: always()
         run: find . -name 'lcov.info' -not -path '*/node_modules/*' | xargs -I{} echo "{}"
