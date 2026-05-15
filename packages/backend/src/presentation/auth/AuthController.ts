@@ -11,7 +11,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
+import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
+import { RequireRecentTotp } from './decorators/RequireRecentTotp.js';
 import {
   RegisterDto,
   LoginDto,
@@ -117,7 +119,8 @@ export class AuthController {
   }
 
   @Post('totp/enable')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TotpStepUpGuard)
+  @RequireRecentTotp()
   async totpEnable(@CurrentUser() user: AuthenticatedUser) {
     const result = await this.enableTotp.execute({ userId: user.userId });
 
