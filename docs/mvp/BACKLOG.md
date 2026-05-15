@@ -134,61 +134,61 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 4 — depends on Waves 1–3
 
-| ID      | Title                                          | Area    | Status |
-| ------- | ---------------------------------------------- | ------- | ------ |
-| INF-005 | GitHub Actions CI                              | Infra   | ✅ Done (PR #10) |
-| INF-015 | Scaffold `packages/shared-app` + Metro spike   | Infra   | ✅ Done (PR #12) |
-| BE-001  | Scaffold `packages/backend` (NestJS)           | Backend | ✅ Done (PR #11) |
-| BE-003  | Core domain types — IDs + value objects        | Backend | ✅ Done (PR #15) |
-| WEB-001 | Scaffold `packages/web` (thin UI wrapper)      | Web     | ✅ Done (PR #18) |
-| MOB-001 | Scaffold `packages/mobile` (thin UI wrapper)   | Mobile  | ✅ Done (PR #19) |
+| ID      | Title                                        | Area    | Status           |
+| ------- | -------------------------------------------- | ------- | ---------------- |
+| INF-005 | GitHub Actions CI                            | Infra   | ✅ Done (PR #10) |
+| INF-015 | Scaffold `packages/shared-app` + Metro spike | Infra   | ✅ Done (PR #12) |
+| BE-001  | Scaffold `packages/backend` (NestJS)         | Backend | ✅ Done (PR #11) |
+| BE-003  | Core domain types — IDs + value objects      | Backend | ✅ Done (PR #15) |
+| WEB-001 | Scaffold `packages/web` (thin UI wrapper)    | Web     | ✅ Done (PR #18) |
+| MOB-001 | Scaffold `packages/mobile` (thin UI wrapper) | Mobile  | ✅ Done (PR #19) |
 
 ### Wave 5
 
-| ID       | Title                                    | Area    | Status |
-| -------- | ---------------------------------------- | ------- | ------ |
-| INF-006  | GH Actions build + preview deploy        | Infra   | ✅ Done (PR #30) |
-| INF-008  | Drizzle ORM tooling                      | Infra   | ✅ Done (PR #37) |
-| INF-012  | Observability stack                      | Infra   | — |
-| BE-004   | Core entity types (Plan, Transaction, …) | Backend | ✅ Done (PR #34) |
-| BE-010   | Core locale-aware formatters             | Backend | ✅ Done (PR #39) |
-| WEB-002  | Routing + protected-route wrapper        | Web     | ✅ Done (PR #32) |
-| WEB-003  | MobX + ReactiveView wiring               | Web     | ✅ Done (PR #36) |
-| MOB-002  | React Navigation                         | Mobile  | ✅ Done (PR #35) |
+| ID       | Title                                    | Area    | Status                |
+| -------- | ---------------------------------------- | ------- | --------------------- |
+| INF-006  | GH Actions build + preview deploy        | Infra   | ✅ Done (PR #30)      |
+| INF-008  | Drizzle ORM tooling                      | Infra   | ✅ Done (PR #37)      |
+| INF-012  | Observability stack                      | Infra   | —                     |
+| BE-004   | Core entity types (Plan, Transaction, …) | Backend | ✅ Done (PR #34)      |
+| BE-010   | Core locale-aware formatters             | Backend | ✅ Done (PR #39)      |
+| WEB-002  | Routing + protected-route wrapper        | Web     | ✅ Done (PR #32)      |
+| WEB-003  | MobX + ReactiveView wiring               | Web     | ✅ Done (PR #36)      |
+| MOB-002  | React Navigation                         | Mobile  | ✅ Done (PR #35)      |
 | MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  | — (blocked by BE-038) |
-| MOB-013  | Notification routing layer (placeholder) | Mobile  | — |
-| I18N-001 | String-extraction infrastructure         | i18n    | — |
-| QA-001   | Vitest unit-test setup                   | QA      | ✅ Done (PR #33) |
-| QA-004   | Detox-defer ADR                          | QA      | ✅ Done (PR #31) |
+| MOB-013  | Notification routing layer (placeholder) | Mobile  | —                     |
+| I18N-001 | String-extraction infrastructure         | i18n    | —                     |
+| QA-001   | Vitest unit-test setup                   | QA      | ✅ Done (PR #33)      |
+| QA-004   | Detox-defer ADR                          | QA      | ✅ Done (PR #31)      |
 
 ### Wave 6
 
-| ID       | Title                                   | Area    | Status |
-| -------- | --------------------------------------- | ------- | ------ |
+| ID       | Title                                   | Area    | Status                              |
+| -------- | --------------------------------------- | ------- | ----------------------------------- |
 | INF-009  | Deployment topology — Fly.io            | Infra   | ⏸ Deferred (needs external account) |
-| BE-005   | Drizzle schema — every MVP table        | Backend | ✅ Done (PR #38) |
-| BE-006   | Core `computePlanActuals`               | Backend | ✅ Done (PR #40) |
-| BE-007   | Core `computeLeftover` + `convertMoney` | Backend | ✅ Done (PR #41) |
-| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | ✅ Done (PR #42) |
-| BE-009   | Core `applyMappingSuggestion`           | Backend | ✅ Done (PR #43) |
-| BE-010   | Core locale-aware formatters            | Backend | ✅ Done (PR #39) |
-| MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs BE-038 / MOB-003) |
-| I18N-002 | `react-intl` provider + lint rule       | i18n    | ⏸ Deferred to Wave 7 |
-| I18N-003 | Resource bundles — `en.json` baseline   | i18n    | ⏸ Deferred to Wave 7 |
+| BE-005   | Drizzle schema — every MVP table        | Backend | ✅ Done (PR #38)                    |
+| BE-006   | Core `computePlanActuals`               | Backend | ✅ Done (PR #40)                    |
+| BE-007   | Core `computeLeftover` + `convertMoney` | Backend | ✅ Done (PR #41)                    |
+| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | ✅ Done (PR #42)                    |
+| BE-009   | Core `applyMappingSuggestion`           | Backend | ✅ Done (PR #43)                    |
+| BE-010   | Core locale-aware formatters            | Backend | ✅ Done (PR #39)                    |
+| MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs BE-038 / MOB-003)  |
+| I18N-002 | `react-intl` provider + lint rule       | i18n    | ⏸ Deferred to Wave 7                |
+| I18N-003 | Resource bundles — `en.json` baseline   | i18n    | ⏸ Deferred to Wave 7                |
 
 ### Wave 7
 
-| ID       | Title                                         | Area    | Status    | PR  |
-| -------- | --------------------------------------------- | ------- | --------- | --- |
-| INF-010  | Managed PG (Neon) + Redis (Upstash)           | Infra   | ⏭ Skipped | —   |
-| INF-011  | Web hosting — Cloudflare Pages                | Infra   | ⏭ Skipped | —   |
+| ID       | Title                                         | Area    | Status     | PR                                                       |
+| -------- | --------------------------------------------- | ------- | ---------- | -------------------------------------------------------- |
+| INF-010  | Managed PG (Neon) + Redis (Upstash)           | Infra   | ⏭ Skipped | —                                                        |
+| INF-011  | Web hosting — Cloudflare Pages                | Infra   | ⏭ Skipped | —                                                        |
 | BE-011   | Auth domain — entities + ports                | Backend | ✅ Done    | [#45](https://github.com/dcervonyj/power-budget/pull/45) |
-| BE-016   | BankConnection domain + `BankConnectorPort`   | Backend | ✅ Done    | [#48](https://github.com/dcervonyj/power-budget/pull/48) |
+| BE-016   | BankConnection domain + `BankConnector`       | Backend | ✅ Done    | [#48](https://github.com/dcervonyj/power-budget/pull/48) |
 | BE-020   | Transactions domain — entities + ports        | Backend | ✅ Done    | [#47](https://github.com/dcervonyj/power-budget/pull/47) |
 | BE-023   | BullMQ infrastructure                         | Backend | ✅ Done    | [#44](https://github.com/dcervonyj/power-budget/pull/44) |
 | BE-025   | Plans domain — entities + ports               | Backend | ✅ Done    | [#46](https://github.com/dcervonyj/power-budget/pull/46) |
 | BE-027   | Categories domain + privacy + seed migration  | Backend | ✅ Done    | [#49](https://github.com/dcervonyj/power-budget/pull/49) |
-| I18N-004 | Translations — uk/ru/pl (LLM + native review) | i18n    | ⏭ Skipped | —   |
+| I18N-004 | Translations — uk/ru/pl (LLM + native review) | i18n    | ⏭ Skipped | —                                                        |
 | QA-002   | Integration test harness                      | QA      | ✅ Done    | [#50](https://github.com/dcervonyj/power-budget/pull/50) |
 
 ### Wave 8
@@ -426,7 +426,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Infra
 - **Effort**: S (~1d)
-- **Description**: Create `packages/shared-app` (`@power-budget/shared-app`) — the new package that holds all platform-agnostic frontend application logic (MobX ReactiveViews, use cases, selectors, API adapters, context factories, `NavigationPort` interface, `AppRoute` typed route union). This is the first step before any feature code is written on either web or mobile. The task has two deliverables: (1) the package scaffold with the full folder tree for all 8 feature modules (empty barrels, same structure as `@power-budget/core` for domain modules), `package.json` with `mobx`, `axios`, `react` as dependencies, and a `tsup` dual-build config; (2) a Metro resolver validation: add `@power-budget/shared-app` as a dependency of `packages/mobile`, run `expo export --platform ios` (or a Metro bundle dry-run), and confirm no symlink resolution errors. Per ARCHITECTURE.md §4 (`shared-app` description).
+- **Description**: Create `packages/shared-app` (`@power-budget/shared-app`) — the new package that holds all platform-agnostic frontend application logic (MobX ReactiveViews, use cases, selectors, API adapters, context factories, `Navigator` interface, `AppRoute` typed route union). This is the first step before any feature code is written on either web or mobile. The task has two deliverables: (1) the package scaffold with the full folder tree for all 8 feature modules (empty barrels, same structure as `@power-budget/core` for domain modules), `package.json` with `mobx`, `axios`, `react` as dependencies, and a `tsup` dual-build config; (2) a Metro resolver validation: add `@power-budget/shared-app` as a dependency of `packages/mobile`, run `expo export --platform ios` (or a Metro bundle dry-run), and confirm no symlink resolution errors. Per ARCHITECTURE.md §4 (`shared-app` description).
 - **Blocked by**: INF-002, INF-003, BE-002
 - **Blocks**: WEB-001, MOB-001, WEB-003, MOB-003, WEB-004
 - **Acceptance criteria**:
@@ -435,7 +435,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
   - `pnpm -F @power-budget/shared-app typecheck` passes.
   - `import { createAuthContext } from '@power-budget/shared-app'` resolves in a throwaway file under `packages/web/src/`.
   - Metro resolves `@power-budget/shared-app` in a dry-run Expo bundle without `Unable to resolve module` errors.
-  - `NavigationPort` interface is committed in `src/infrastructure/navigation/NavigationPort.ts`.
+  - `Navigator` interface is committed in `src/infrastructure/navigation/Navigator.ts`.
   - `AppRoute` discriminated union is stubbed in `src/contract/routes.ts`.
 
 #### INF-008: Drizzle ORM tooling & migration scaffolding
@@ -650,7 +650,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: M (~2d)
-- **Description**: Per ARCHITECTURE.md §5.1 — define `User`, `Session`, `TotpSecret`, `HouseholdInvite` domain entities in `backend/src/domain/auth/`. Define ports: `UserRepo`, `PasswordHashing`, `TotpVerifier`, `OAuthProviderPort`, `RefreshTokenStore`, `HouseholdRepo`. No implementations.
+- **Description**: Per ARCHITECTURE.md §5.1 — define `User`, `Session`, `TotpSecret`, `HouseholdInvite` domain entities in `backend/src/domain/auth/`. Define ports: `UserRepository`, `PasswordHashing`, `TotpVerifier`, `OAuthProvider`, `RefreshTokenStore`, `HouseholdRepository`. No implementations.
 - **Blocked by**: BE-004, BE-005
 - **Blocks**: BE-012, BE-013
 - **Acceptance criteria**:
@@ -674,7 +674,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: M (~3d)
-- **Description**: Implement `DrizzleUserRepo`, `DrizzleHouseholdRepo`, `Argon2PasswordHashing`, `OtplibTotpVerifier`, `GoogleOauthClient`, `JwtAccessTokenIssuer`, `RedisRefreshTokenStore` per ARCHITECTURE.md §5.1. Wire into Nest DI module.
+- **Description**: Implement `DrizzleUserRepository`, `DrizzleHouseholdRepository`, `Argon2PasswordHashing`, `OtplibTotpVerifier`, `GoogleOauthClient`, `JwtAccessTokenIssuer`, `RedisRefreshTokenStore` per ARCHITECTURE.md §5.1. Wire into Nest DI module.
 - **Blocked by**: BE-012, BE-005
 - **Blocks**: BE-015, SEC-001
 - **Acceptance criteria**:
@@ -706,11 +706,11 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
   - Guard rejects missing / expired / malformed tokens.
   - `RequestContext` injected into every authenticated controller.
 
-#### BE-016: BankConnection domain — entities + `BankConnectorPort`
+#### BE-016: BankConnection domain — entities + `BankConnector`
 
 - **Area**: Backend
 - **Effort**: M (~2d)
-- **Description**: Define `BankConnection`, `BankAccount`, `Consent`, `SyncRun`, `RawTransaction` types and the `BankConnectorPort` interface exactly per ARCHITECTURE.md §5.2. Domain service `ConsentExpiryPolicy` (7d / 1d / on-expiry).
+- **Description**: Define `BankConnection`, `BankAccount`, `Consent`, `SyncRun`, `RawTransaction` types and the `BankConnector` interface exactly per ARCHITECTURE.md §5.2. Domain service `ConsentExpiryPolicy` (7d / 1d / on-expiry).
 - **Blocked by**: BE-004, BE-005
 - **Blocks**: BE-017, BE-018, BE-019
 - **Acceptance criteria**:
@@ -728,13 +728,13 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 - **Acceptance criteria**:
   - All 8 bank-connection endpoints from §7 work end-to-end with a stub connector.
   - `DisconnectBank` preserves transactions + accounts per PRD §4.2.
-  - Integration test using a fake `BankConnectorPort` adapter.
+  - Integration test using a fake `BankConnector` adapter.
 
 #### BE-018: GoCardless adapter (`GoCardlessBankConnector`)
 
 - **Area**: Backend
 - **Effort**: XL (~7d)
-- **Description**: Implement `GoCardlessBankConnector implements BankConnectorPort` per ARCHITECTURE.md §5.2. PSD2 consent flow for PKO BP (`BPKOPLPW`), 90-day expiry, sandbox bank for tests. Consent token encrypted via `Encryption` port. Includes account listing + transaction fetch + reconnect URL.
+- **Description**: Implement `GoCardlessBankConnector implements BankConnector` per ARCHITECTURE.md §5.2. PSD2 consent flow for PKO BP (`BPKOPLPW`), 90-day expiry, sandbox bank for tests. Consent token encrypted via `Encryption` port. Includes account listing + transaction fetch + reconnect URL.
 - **Blocked by**: BE-017, SEC-001
 - **Blocks**: BE-024, QA-006
 - **Acceptance criteria**:
@@ -747,7 +747,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: L (~4d)
-- **Description**: Implement `WiseBankConnector implements BankConnectorPort` per ARCHITECTURE.md §5.2. User pastes a Wise API token during connect (no OAuth). Encrypted at rest. Polling only; no webhooks in MVP.
+- **Description**: Implement `WiseBankConnector implements BankConnector` per ARCHITECTURE.md §5.2. User pastes a Wise API token during connect (no OAuth). Encrypted at rest. Polling only; no webhooks in MVP.
 - **Blocked by**: BE-017, SEC-001
 - **Blocks**: BE-024
 - **Acceptance criteria**:
@@ -759,7 +759,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: M (~2d)
-- **Description**: Per ARCHITECTURE.md §5.3 — define `Transaction`, `TransactionMapping`, `Transfer`, `IngestBatch` types; ports `TransactionRepo`, `MappingRepo`, `TransferRepo`; domain services `IdempotentIngest`, `MappingSuggestion`.
+- **Description**: Per ARCHITECTURE.md §5.3 — define `Transaction`, `TransactionMapping`, `Transfer`, `IngestBatch` types; ports `TransactionRepository`, `MappingRepository`, `TransferRepository`; domain services `IdempotentIngest`, `MappingSuggestion`.
 - **Blocked by**: BE-004, BE-005
 - **Blocks**: BE-021, BE-022, BE-024
 - **Acceptance criteria**:
@@ -782,7 +782,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: L (~4d)
-- **Description**: `DrizzleTransactionRepo`, `DrizzleMappingRepo`, `DrizzleTransferRepo` plus REST controllers for the 7 transaction endpoints in ARCHITECTURE.md §7.
+- **Description**: `DrizzleTransactionRepository`, `DrizzleMappingRepository`, `DrizzleTransferRepository` plus REST controllers for the 7 transaction endpoints in ARCHITECTURE.md §7.
 - **Blocked by**: BE-021
 - **Blocks**: BE-024, WEB-012
 - **Acceptance criteria**:
@@ -806,7 +806,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: L (~4d)
-- **Description**: `@nestjs/schedule` enqueues `sync-connection` every 4 h per active connection plus on-demand. Worker processor calls `BankConnectorPort.fetchTransactions(since)`, calls `IngestBankTransactions`, writes `audit_log`, enqueues reconnect-reminder if `expiresAt < now + 7d`. Per ARCHITECTURE.md §9.
+- **Description**: `@nestjs/schedule` enqueues `sync-connection` every 4 h per active connection plus on-demand. Worker processor calls `BankConnector.fetchTransactions(since)`, calls `IngestBankTransactions`, writes `audit_log`, enqueues reconnect-reminder if `expiresAt < now + 7d`. Per ARCHITECTURE.md §9.
 - **Blocked by**: BE-018, BE-019, BE-021, BE-023
 - **Blocks**: QA-006, BE-029
 - **Acceptance criteria**:
@@ -818,7 +818,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: M (~2d)
-- **Description**: Per ARCHITECTURE.md §5.4 — `Plan`, `PlannedItem`, `PlannedItemVersion` entities; ports `PlanRepo`, `PlannedItemRepo`, `PlannedItemVersionRepo`, `PlanActualsReader`. Domain service `PlanCloning`. Invariant: ≤1 active plan per `(type, periodKind)` per user/household, except `custom`.
+- **Description**: Per ARCHITECTURE.md §5.4 — `Plan`, `PlannedItem`, `PlannedItemVersion` entities; ports `PlanRepository`, `PlannedItemRepository`, `PlannedItemVersionRepository`, `PlanActualsReader`. Domain service `PlanCloning`. Invariant: ≤1 active plan per `(type, periodKind)` per user/household, except `custom`.
 - **Blocked by**: BE-004, BE-005
 - **Blocks**: BE-026, BE-030
 - **Acceptance criteria**:
@@ -854,7 +854,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: L (~3d)
-- **Description**: Per ARCHITECTURE.md §5.6 — `EcbFxRateProvider implements FxRateProvider`, `DrizzleFxRateRepo`, `IngestEcbDailyRates` use case, `GetFxRate` endpoint, `UpdateCurrencyPreferences`. Cron `0 16 * * 1-5` CET. Frankfurter fallback for UAH/RUB per §5.6.2. Carry-forward up to 7 d for missing dates.
+- **Description**: Per ARCHITECTURE.md §5.6 — `EcbFxRateProvider implements FxRateProvider`, `DrizzleFxRateRepository`, `IngestEcbDailyRates` use case, `GetFxRate` endpoint, `UpdateCurrencyPreferences`. Cron `0 16 * * 1-5` CET. Frankfurter fallback for UAH/RUB per §5.6.2. Carry-forward up to 7 d for missing dates.
 - **Blocked by**: BE-005, BE-007, BE-023
 - **Blocks**: BE-030, WEB-016, MOB-009
 - **Acceptance criteria**:
@@ -938,7 +938,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Backend
 - **Effort**: M (~2d)
-- **Description**: Per ARCHITECTURE.md §6 — `AuditLogger` port; `DrizzleAuditEventRepo` (INSERT-only). DB role `audit_admin` for redaction. `GET /audit-log?subjectType=&subjectId=&from=&to=` endpoint, household-scoped, paginated.
+- **Description**: Per ARCHITECTURE.md §6 — `AuditLogger` port; `DrizzleAuditEventRepository` (INSERT-only). DB role `audit_admin` for redaction. `GET /audit-log?subjectType=&subjectId=&from=&to=` endpoint, household-scoped, paginated.
 - **Blocked by**: BE-005, BE-015
 - **Blocks**: WEB-019, SEC-004
 - **Acceptance criteria**:

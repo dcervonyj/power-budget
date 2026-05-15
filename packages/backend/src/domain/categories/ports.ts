@@ -11,14 +11,14 @@ export interface HouseholdScope {
   readonly householdId: HouseholdId;
 }
 
-export interface CategoryRepo {
+export interface CategoryRepository {
   list(scope: HouseholdScope): Promise<Category[]>;
   create(input: NewCategory): Promise<Category>;
   update(id: CategoryId, patch: CategoryPatch): Promise<Category>;
   archive(id: CategoryId, at: Date): Promise<void>;
 }
 
-export interface CategoryPrivacyRepo {
+export interface CategoryPrivacyRepository {
   get(categoryId: CategoryId): Promise<CategoryPrivacy | null>;
   set(categoryId: CategoryId, level: CategoryPrivacyLevel, by: UserId): Promise<void>;
 }
