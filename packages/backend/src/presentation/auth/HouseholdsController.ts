@@ -1,4 +1,12 @@
 import { Controller, Post, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
 import { CreateHouseholdDto, InviteToHouseholdDto } from './dto/households.dto.js';
@@ -6,6 +14,8 @@ import { CreateHouseholdUseCase } from '../../application/auth/use-cases/CreateH
 import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/InviteToHouseholdUseCase.js';
 import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInviteUseCase.js';
 
+@ApiTags('households')
+@ApiBearerAuth()
 @Controller('households')
 @UseGuards(JwtAuthGuard)
 export class HouseholdsController {
@@ -16,6 +26,10 @@ export class HouseholdsController {
   ) {}
 
   @Post()
+  @ApiOperation({ summary: 'Create a new household' })
+  @ApiBody({ type: CreateHouseholdDto })
+  @ApiResponse({ status: 201, description: 'Household created' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async create(@Body() dto: CreateHouseholdDto, @CurrentUser() user: AuthenticatedUser) {
     const result = await this.createHousehold.execute({
       userId: user.userId,
@@ -28,6 +42,10 @@ export class HouseholdsController {
 
   @Post('invite')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Invite a user to the current household' })
+  @ApiBody({ type: InviteToHouseholdDto })
+  @ApiResponse({ status: 204, description: 'Invitation sent' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async invite(
     @Body() dto: InviteToHouseholdDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -44,6 +62,10 @@ export class HouseholdsController {
 
   @Post('invite/:token/accept')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Accept a household invitation' })
+  @ApiParam({ name: 'token', description: 'Invitation token from email' })
+  @ApiResponse({ status: 204, description: 'Invitation accepted' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async acceptInviteEndpoint(
     @Param('token') token: string,
     @CurrentUser() user: AuthenticatedUser,

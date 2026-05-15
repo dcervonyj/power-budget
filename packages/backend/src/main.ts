@@ -1,9 +1,11 @@
 import 'reflect-metadata';
 import * as Sentry from '@sentry/node';
 import { NestFactory } from '@nestjs/core';
+import type { INestApplication } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import helmet from '@fastify/helmet';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
 import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
 
@@ -28,10 +30,19 @@ Sentry.init({
 });
 
 async function bootstrap() {
-  const app = (await NestFactory.create(
-    AppModule,
-    new FastifyAdapter(),
-  )) as unknown as NestFastifyApplication;
+  const nestApp: INestApplication = await NestFactory.create(AppModule, new FastifyAdapter());
+  const app = nestApp as unknown as NestFastifyApplication;
+
+  if (process.env['NODE_ENV'] !== 'production') {
+    const config = new DocumentBuilder()
+      .setTitle('Power Budget API')
+      .setVersion('1.0')
+      .setOpenAPIVersion('3.1.0')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(nestApp, config);
+    SwaggerModule.setup('docs', nestApp, document);
+  }
 
   await app.register(helmet, {
     contentSecurityPolicy: {
