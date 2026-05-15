@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { InputState } from '@power-budget/shared-app';
+import { FormattedMessage } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 
 export interface InputProps {
@@ -79,7 +80,11 @@ export function Input({
               fontSize: theme.fontSize.sm,
             }}
           >
-            {showPassword ? 'Hide' : 'Show'}
+            {showPassword ? (
+              <FormattedMessage id="input.password.hide" defaultMessage="Hide" />
+            ) : (
+              <FormattedMessage id="input.password.show" defaultMessage="Show" />
+            )}
           </button>
         )}
       </div>

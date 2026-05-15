@@ -1,5 +1,10 @@
 import React from 'react';
+import { FormattedMessage } from 'react-intl';
 
-export function SettingsScreen() {
-  return <div>Settings</div>;
+export function SettingsScreen(): React.JSX.Element {
+  return (
+    <div>
+      <FormattedMessage id="screen.settings.title" defaultMessage="Settings" />
+    </div>
+  );
 }

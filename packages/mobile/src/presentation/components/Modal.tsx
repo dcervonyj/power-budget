@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal as RNModal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 
 const t = rnDarkTheme;
@@ -32,7 +33,9 @@ export function Modal({
           <View style={styles.header}>
             <Text style={styles.title}>{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.close}>×</Text>
+              <Text style={styles.close}>
+                <FormattedMessage id="common.closeIcon" defaultMessage="×" />
+              </Text>
             </TouchableOpacity>
           </View>
           <View style={styles.body}>{children}</View>

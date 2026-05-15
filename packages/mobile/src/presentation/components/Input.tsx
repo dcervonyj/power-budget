@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 
 const t = rnDarkTheme;
@@ -48,7 +49,13 @@ export function Input({
             }}
             style={styles.toggle}
           >
-            <Text style={styles.toggleText}>{showText ? 'Hide' : 'Show'}</Text>
+            <Text style={styles.toggleText}>
+              {showText ? (
+                <FormattedMessage id="input.password.hide" defaultMessage="Hide" />
+              ) : (
+                <FormattedMessage id="input.password.show" defaultMessage="Show" />
+              )}
+            </Text>
           </TouchableOpacity>
         )}
       </View>

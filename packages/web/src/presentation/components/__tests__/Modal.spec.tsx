@@ -1,12 +1,15 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { IntlProvider } from 'react-intl';
 import { ThemeProvider } from '../ThemeContext.js';
 import { Modal } from '../Modal.js';
 import { darkTheme } from '@power-budget/design-tokens';
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>
+  <IntlProvider locale="en" messages={{}}>
+    <ThemeProvider theme={darkTheme}>{children}</ThemeProvider>
+  </IntlProvider>
 );
 
 describe('Modal', () => {
