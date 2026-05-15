@@ -31,9 +31,14 @@ pnpm -F @power-budget/core test -- --testPathPattern=money.spec.ts
 pnpm dev:db:up                        # docker compose up --wait (Postgres + Redis + Mailpit)
 pnpm dev:db:down
 pnpm dev:db:reset                     # nuke + recreate volumes
+
+# OpenAPI spec
+pnpm -F @power-budget/backend generate:openapi   # regenerate packages/backend/openapi.json
 ```
 
 Turborepo respects `dependsOn` topology: `core` builds before `backend`, `web`, `mobile`.
+The CI runs a drift check (`git diff --exit-code packages/backend/openapi.json`) after regenerating
+with `prettier --write`; always regenerate and commit the spec when adding or changing endpoints.
 
 ## Monorepo layout
 
@@ -172,6 +177,44 @@ These are the heart of the product; every other layer delegates to them:
 ## Notifications (outbox pattern)
 
 Notification events are written to `notifications_outbox` in the **same DB transaction** as the triggering domain change. A BullMQ `notification-dispatch` worker picks them up. This guarantees at-least-once delivery. Deduplication: `(userId, kind, dedupeKey)` UNIQUE index.
+
+## Backend bootstrap order (`packages/backend/src/main.ts`)
+
+The backend bootstrap function follows this strict order — do not reorder:
+
+1. **`Sentry.init()`** — must run before anything else so all errors are captured
+2. **`NestFactory.create()`** — creates the Fastify adapter app
+3. **`SwaggerModule.setup('docs', ...)`** — sets up OpenAPI UI (skipped when `NODE_ENV=production`)
+4. **`app.register(helmet, ...)`** — registers HTTP security headers
+5. **`app.useGlobalFilters(new SentryExceptionFilter())`** — captures 5xx errors to Sentry
+6. **`app.listen(port, '0.0.0.0')`** — starts listening
+
+## OpenAPI / Swagger conventions
+
+- `/docs` is served in development and staging only (`NODE_ENV !== 'production'`).
+- Every controller must be decorated with `@ApiTags(...)`, `@ApiOperation(...)`, `@ApiResponse(...)`.
+- Controllers with `@UseGuards(JwtAuthGuard)` must have `@ApiBearerAuth()` at class level.
+- Every DTO must have `@ApiProperty()` / `@ApiPropertyOptional()` — use explicit `type:` fields since tsx/swc don't emit decorator metadata.
+- After adding or modifying endpoints, regenerate and commit: `pnpm -F @power-budget/backend generate:openapi && pnpm exec prettier --write packages/backend/openapi.json && git add packages/backend/openapi.json`
+
+## TOTP step-up enforcement
+
+Sensitive endpoints can require a recent TOTP verification via:
+
+```ts
+@UseGuards(JwtAuthGuard, TotpStepUpGuard)
+@RequireRecentTotp()          // default 5 min window
+```
+
+`TotpStepUpGuard` checks `RedisTotpStepUpStore` keyed `totp-stepup:{userId}` (TTL 300 s). `VerifyTotpUseCase` accepts an optional third argument `stepUpStore: TotpStepUpStore | null` to record step-up time.
+
+## Audit log PII redaction
+
+`REDACTING_AUDIT_LOGGER` token in `AuditModule` provides a `DrizzleAuditEventRepository`-shaped logger that:
+
+- Redacts IBANs matching `[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7,19}` → `****`
+- Skips logging entries where `payload.amountMinor >= AUDIT_REDACTION_THRESHOLD_MINOR`
+  Set `AUDIT_REDACTION_THRESHOLD_MINOR` in `.env` (default 1,000,000 minor units = 10,000 PLN).
 
 ## Internationalisation
 

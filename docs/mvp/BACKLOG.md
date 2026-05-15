@@ -145,21 +145,21 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 5
 
-| ID       | Title                                    | Area    | Status                |
-| -------- | ---------------------------------------- | ------- | --------------------- |
-| INF-006  | GH Actions build + preview deploy        | Infra   | ✅ Done (PR #30)      |
-| INF-008  | Drizzle ORM tooling                      | Infra   | ✅ Done (PR #37)      |
-| INF-012  | Observability stack                      | Infra   | —                     |
-| BE-004   | Core entity types (Plan, Transaction, …) | Backend | ✅ Done (PR #34)      |
-| BE-010   | Core locale-aware formatters             | Backend | ✅ Done (PR #39)      |
-| WEB-002  | Routing + protected-route wrapper        | Web     | ✅ Done (PR #32)      |
-| WEB-003  | MobX + ReactiveView wiring               | Web     | ✅ Done (PR #36)      |
-| MOB-002  | React Navigation                         | Mobile  | ✅ Done (PR #35)      |
-| MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  | — (blocked by BE-038) |
-| MOB-013  | Notification routing layer (placeholder) | Mobile  | —                     |
-| I18N-001 | String-extraction infrastructure         | i18n    | —                     |
-| QA-001   | Vitest unit-test setup                   | QA      | ✅ Done (PR #33)      |
-| QA-004   | Detox-defer ADR                          | QA      | ✅ Done (PR #31)      |
+| ID       | Title                                    | Area    | Status                  |
+| -------- | ---------------------------------------- | ------- | ----------------------- |
+| INF-006  | GH Actions build + preview deploy        | Infra   | ✅ Done (PR #30)        |
+| INF-008  | Drizzle ORM tooling                      | Infra   | ✅ Done (PR #37)        |
+| INF-012  | Observability stack                      | Infra   | —                       |
+| BE-004   | Core entity types (Plan, Transaction, …) | Backend | ✅ Done (PR #34)        |
+| BE-010   | Core locale-aware formatters             | Backend | ✅ Done (PR #39)        |
+| WEB-002  | Routing + protected-route wrapper        | Web     | ✅ Done (PR #32)        |
+| WEB-003  | MobX + ReactiveView wiring               | Web     | ✅ Done (PR #36)        |
+| MOB-002  | React Navigation                         | Mobile  | ✅ Done (PR #35)        |
+| MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  | — (BE-038 ✅ unblocked) |
+| MOB-013  | Notification routing layer (placeholder) | Mobile  | —                       |
+| I18N-001 | String-extraction infrastructure         | i18n    | —                       |
+| QA-001   | Vitest unit-test setup                   | QA      | ✅ Done (PR #33)        |
+| QA-004   | Detox-defer ADR                          | QA      | ✅ Done (PR #31)        |
 
 ### Wave 6
 
@@ -172,7 +172,7 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | ✅ Done (PR #42)                    |
 | BE-009   | Core `applyMappingSuggestion`           | Backend | ✅ Done (PR #43)                    |
 | BE-010   | Core locale-aware formatters            | Backend | ✅ Done (PR #39)                    |
-| MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs BE-038 / MOB-003)  |
+| MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs MOB-003)           |
 | I18N-002 | `react-intl` provider + lint rule       | i18n    | ⏸ Deferred to Wave 7                |
 | I18N-003 | Resource bundles — `en.json` baseline   | i18n    | ⏸ Deferred to Wave 7                |
 
@@ -225,14 +225,14 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 11
 
-| ID      | Title                           | Area     |
-| ------- | ------------------------------- | -------- |
-| BE-017  | BankConnection use cases + REST | Backend  |
-| BE-038  | OpenAPI / Swagger docs          | Backend  |
-| INF-014 | Sentry error tracking           | Infra    |
-| SEC-003 | TOTP step-up enforcement        | Security |
-| SEC-004 | Web security headers            | Security |
-| SEC-008 | PII redaction in audit          | Security |
+| ID      | Title                           | Area     | Status           | PR  |
+| ------- | ------------------------------- | -------- | ---------------- | --- |
+| BE-017  | BankConnection use cases + REST | Backend  | ✅ Done (PR #63) | #63 |
+| BE-038  | OpenAPI / Swagger docs          | Backend  | ✅ Done (PR #68) | #68 |
+| INF-014 | Sentry error tracking           | Infra    | ✅ Done (PR #64) | #64 |
+| SEC-003 | TOTP step-up enforcement        | Security | ✅ Done (PR #65) | #65 |
+| SEC-004 | Web security headers            | Security | ✅ Done (PR #66) | #66 |
+| SEC-008 | PII redaction in audit          | Security | ✅ Done (PR #67) | #67 |
 
 ### Wave 12
 
