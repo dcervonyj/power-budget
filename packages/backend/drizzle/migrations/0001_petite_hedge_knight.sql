@@ -1,0 +1,1 @@
+ALTER TABLE "categories" ADD COLUMN "kind" varchar(20) DEFAULT 'expense' NOT NULL;
