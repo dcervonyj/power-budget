@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@nestjs/common": "^10",
-    "@nestjs/core": "^10",
+    "@nestjs/core": "^11",
     "@nestjs/platform-fastify": "^10",
     "@power-budget/core": "workspace:*",
     "drizzle-orm": "^0.45.2",
