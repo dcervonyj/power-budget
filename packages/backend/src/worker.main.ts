@@ -1,11 +1,18 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { WorkerModule } from './worker/worker.module';
 
-async function bootstrap() {
-  const app = await NestFactory.createApplicationContext(AppModule);
-  await app.init();
-  console.log('Worker started');
+async function bootstrap(): Promise<void> {
+  const app = await NestFactory.createApplicationContext(WorkerModule, {
+    logger: ['log', 'warn', 'error'],
+  });
+  app.enableShutdownHooks();
+  console.log(
+    'Worker started — consuming queues: bank-sync, notification-dispatch, outbox-relay, period-close, ecb-fx, refresh-plan-actuals',
+  );
 }
 
-void bootstrap();
+bootstrap().catch((err) => {
+  console.error('Worker bootstrap failed', err);
+  process.exit(1);
+});
