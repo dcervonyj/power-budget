@@ -32,6 +32,9 @@
     },
     "db:reset": {
       "cache": false
+    },
+    "i18n:extract": {
+      "outputs": ["public/locales/en.json", "assets/locales/en.json"]
     }
   }
 }

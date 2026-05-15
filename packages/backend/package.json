@@ -18,7 +18,8 @@
     "db:seed": "tsx drizzle/seed/0001_seed_categories.ts",
     "test:integration": "vitest run --config src/test/integration/vitest.integration.config.ts",
     "generate:openapi": "tsx src/generate-openapi.ts",
-    "check:openapi": "pnpm run generate:openapi && pnpm exec prettier --write openapi.json && git diff --exit-code openapi.json"
+    "check:openapi": "pnpm run generate:openapi && pnpm exec prettier --write openapi.json && git diff --exit-code openapi.json",
+    "copy:i18n": "cp -r ../web/public/locales ./src/i18n/locales/"
   },
   "dependencies": {
     "@fastify/helmet": "^13.0.2",
