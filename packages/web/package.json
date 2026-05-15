@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@power-budget/core": "workspace:*",
+    "@power-budget/design-tokens": "workspace:^",
     "@power-budget/shared-app": "workspace:*",
     "@sentry/react": "^10.53.1",
     "mobx": "^6.13.0",

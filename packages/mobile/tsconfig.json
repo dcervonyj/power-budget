@@ -14,7 +14,9 @@
       "@power-budget/core": ["../../packages/core/src/index.ts"],
       "@power-budget/core/*": ["../../packages/core/src/*"],
       "@power-budget/shared-app": ["../../packages/shared-app/src/index.ts"],
-      "@power-budget/shared-app/*": ["../../packages/shared-app/src/*"]
+      "@power-budget/shared-app/*": ["../../packages/shared-app/src/*"],
+      "@power-budget/design-tokens": ["../../packages/design-tokens/src/index.ts"],
+      "@power-budget/design-tokens/rn": ["../../packages/design-tokens/src/rn.ts"]
     }
   },
   "include": ["src", "index.ts", "app.json"]
