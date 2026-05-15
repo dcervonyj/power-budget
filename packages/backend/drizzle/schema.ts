@@ -330,6 +330,7 @@ export const categories = pgTable(
     householdId: uuid('household_id').references(() => households.id),
     seedKey: varchar('seed_key', { length: 100 }),
     name: varchar('name', { length: 100 }).notNull(),
+    kind: varchar('kind', { length: 20 }).notNull().default('expense'),
     icon: varchar('icon', { length: 100 }).notNull().default('tag'),
     color: varchar('color', { length: 20 }).notNull().default('#6B7280'),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
