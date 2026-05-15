@@ -17,6 +17,7 @@
   "dependencies": {
     "@power-budget/core": "workspace:*",
     "@power-budget/shared-app": "workspace:*",
+    "@sentry/react": "^10.53.1",
     "mobx": "^6.13.0",
     "mobx-react-lite": "^4.0.7",
     "react": "^18.3.1",
@@ -24,6 +25,7 @@
     "react-router-dom": "^6.26.0"
   },
   "devDependencies": {
+    "@sentry/vite-plugin": "^5.3.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/react": "^18.3.0",
