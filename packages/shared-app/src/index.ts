@@ -1,3 +1,4 @@
+export * from './design/index.js';
 export * from './contract/index.js';
 export * from './infrastructure/index.js';
 export * from './auth/index.js';
