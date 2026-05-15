@@ -5,7 +5,9 @@ import type {
   BankConnectionRepository,
   BankConnectorRegistry,
 } from '../../../domain/bank/ports.js';
+import type { TotpSecretRepository } from '../../../domain/auth/ports.js';
 import { BankConnectionAlreadyActiveError } from '../../../domain/bank/errors.js';
+import { TotpEnrollmentRequiredError } from '../../../domain/auth/errors.js';
 
 export interface InitiateBankConnectionInput {
   readonly userId: UserId;
@@ -24,9 +26,15 @@ export class InitiateBankConnectionUseCase {
   constructor(
     private readonly connectionRepo: BankConnectionRepository,
     private readonly registry: BankConnectorRegistry,
+    private readonly totpSecretRepo: TotpSecretRepository,
   ) {}
 
   async execute(input: InitiateBankConnectionInput): Promise<InitiateBankConnectionOutput> {
+    const totpSecret = await this.totpSecretRepo.findByUser(input.userId);
+    if (!totpSecret?.verifiedAt) {
+      throw new TotpEnrollmentRequiredError();
+    }
+
     const existing = await this.connectionRepo.findActiveByUserAndBank(
       input.userId,
       input.bankId,

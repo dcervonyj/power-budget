@@ -40,6 +40,7 @@ import {
   BankConnectionAlreadyActiveError,
   BankConnectionInvalidStateError,
 } from '../../domain/bank/errors.js';
+import { TotpEnrollmentRequiredError } from '../../domain/auth/errors.js';
 
 @ApiTags('bank-connections')
 @Controller('bank-connections')
@@ -91,6 +92,12 @@ export class BankController {
     } catch (err) {
       if (err instanceof BankConnectionAlreadyActiveError) {
         throw new ForbiddenException('Connection to this bank already exists');
+      }
+      if (err instanceof TotpEnrollmentRequiredError) {
+        throw new ForbiddenException({
+          code: 'requires_totp_enrollment',
+          redirectHint: '/auth/totp/enroll',
+        });
       }
 
       throw err;
