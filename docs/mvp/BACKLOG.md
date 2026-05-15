@@ -206,13 +206,13 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 9
 
-| ID      | Title                          | Area     |
-| ------- | ------------------------------ | -------- |
-| BE-013  | Auth infrastructure adapters   | Backend  |
-| BE-014  | Household domain + invite flow | Backend  |
-| BE-021  | Transactions use cases         | Backend  |
-| SEC-001 | KMS / envelope encryption      | Security |
-| SEC-006 | Auth rate limiting             | Security |
+| ID      | Title                          | Area     | Status     | PR  |
+| ------- | ------------------------------ | -------- | ---------- | --- |
+| BE-013  | Auth infrastructure adapters   | Backend  | ✅         | #58 |
+| BE-014  | Household domain + invite flow | Backend  | ✅         | #56 |
+| BE-021  | Transactions use cases         | Backend  | ✅         | #57 |
+| SEC-001 | KMS / envelope encryption      | Security | ✅         | #55 |
+| SEC-006 | Auth rate limiting             | Security | ⏭ Skipped | —   |
 
 ### Wave 10
 
