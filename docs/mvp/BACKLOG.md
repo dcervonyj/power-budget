@@ -193,16 +193,16 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 8
 
-| ID       | Title                             | Area    |
-| -------- | --------------------------------- | ------- |
-| INF-013  | Staging environment + DNS + TLS   | Infra   |
-| BE-012   | Auth use cases                    | Backend |
-| BE-026   | Plans use cases + REST + audit    | Backend |
-| BE-028   | FX — ECB ingest                   | Backend |
-| BE-037   | ESLint `no-repo-without-scope`    | Backend |
-| I18N-005 | Localised email templates         | i18n    |
-| I18N-006 | Locale-aware formatters across UI | i18n    |
-| I18N-007 | Localised seed categories         | i18n    |
+| ID       | Title                             | Area    | Status     | PR                                                       |
+| -------- | --------------------------------- | ------- | ---------- | -------------------------------------------------------- |
+| INF-013  | Staging environment + DNS + TLS   | Infra   | ⏭ Skipped | —                                                        |
+| BE-012   | Auth use cases                    | Backend | ✅ Done    | [#51](https://github.com/dcervonyj/power-budget/pull/51) |
+| BE-026   | Plans use cases + REST + audit    | Backend | ✅ Done    | [#54](https://github.com/dcervonyj/power-budget/pull/54) |
+| BE-028   | FX — ECB ingest                   | Backend | ✅ Done    | [#53](https://github.com/dcervonyj/power-budget/pull/53) |
+| BE-037   | ESLint `no-repo-without-scope`    | Backend | ✅ Done    | [#52](https://github.com/dcervonyj/power-budget/pull/52) |
+| I18N-005 | Localised email templates         | i18n    | ⏭ Skipped | —                                                        |
+| I18N-006 | Locale-aware formatters across UI | i18n    | ⏭ Skipped | —                                                        |
+| I18N-007 | Localised seed categories         | i18n    | ⏭ Skipped | —                                                        |
 
 ### Wave 9
 
