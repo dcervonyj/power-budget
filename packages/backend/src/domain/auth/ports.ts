@@ -1,4 +1,4 @@
-import type { UserId, HouseholdId } from '@power-budget/core';
+import type { UserId, HouseholdId, EncryptedString } from '@power-budget/core';
 import type {
   User,
   NewUser,
@@ -90,4 +90,9 @@ export interface NotificationOutboxPort {
 
 export interface BankConnectionChecker {
   hasActiveConnection(userId: UserId): Promise<boolean>;
+}
+
+export interface Encryption {
+  encrypt(plaintext: string, context?: string): Promise<EncryptedString>;
+  decrypt(ciphertext: EncryptedString, context?: string): Promise<string>;
 }
