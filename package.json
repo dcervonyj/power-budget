@@ -18,7 +18,8 @@
     "dev:db:up": "docker compose up -d --wait",
     "dev:db:down": "docker compose down",
     "dev:db:reset": "bash scripts/db-reset.sh",
-    "dev:db:logs": "docker compose logs -f"
+    "dev:db:logs": "docker compose logs -f",
+    "i18n:extract": "turbo run i18n:extract"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8",
