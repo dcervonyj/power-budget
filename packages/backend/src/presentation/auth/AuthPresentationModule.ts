@@ -5,6 +5,7 @@ import { AuthController } from './AuthController.js';
 import { UsersController } from './UsersController.js';
 import { HouseholdsController } from './HouseholdsController.js';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
+import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { AppConfigAdapter } from './AppConfigAdapter.js';
 import { DrizzleUserRepository } from '../../infrastructure/auth/DrizzleUserRepository.js';
 import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHouseholdRepository.js';
@@ -17,6 +18,7 @@ import { Argon2PasswordHashing } from '../../infrastructure/auth/Argon2PasswordH
 import { OtplibTotpVerifier } from '../../infrastructure/auth/OtplibTotpVerifier.js';
 import { JwtAccessTokenIssuerAdapter } from '../../infrastructure/auth/JwtAccessTokenIssuer.js';
 import { RedisRefreshTokenStore } from '../../infrastructure/auth/RedisRefreshTokenStore.js';
+import { RedisTotpStepUpStore } from '../../infrastructure/auth/RedisTotpStepUpStore.js';
 import { RegisterUserUseCase } from '../../application/auth/use-cases/RegisterUserUseCase.js';
 import { LoginWithPasswordUseCase } from '../../application/auth/use-cases/LoginWithPasswordUseCase.js';
 import { RequestMagicLinkUseCase } from '../../application/auth/use-cases/RequestMagicLinkUseCase.js';
@@ -47,6 +49,7 @@ const STUB_OAUTH_PROVIDER: OAuthProvider = {
   controllers: [AuthController, UsersController, HouseholdsController],
   providers: [
     JwtAuthGuard,
+    TotpStepUpGuard,
     AppConfigAdapter,
     {
       provide: RegisterUserUseCase,
@@ -175,9 +178,12 @@ const STUB_OAUTH_PROVIDER: OAuthProvider = {
     },
     {
       provide: VerifyTotpUseCase,
-      inject: [OtplibTotpVerifier, DrizzleTotpSecretRepository],
-      useFactory: (totpVerifier: OtplibTotpVerifier, totpSecretRepo: DrizzleTotpSecretRepository) =>
-        new VerifyTotpUseCase(totpVerifier, totpSecretRepo),
+      inject: [OtplibTotpVerifier, DrizzleTotpSecretRepository, RedisTotpStepUpStore],
+      useFactory: (
+        totpVerifier: OtplibTotpVerifier,
+        totpSecretRepo: DrizzleTotpSecretRepository,
+        stepUpStore: RedisTotpStepUpStore,
+      ) => new VerifyTotpUseCase(totpVerifier, totpSecretRepo, stepUpStore),
     },
     {
       provide: RefreshTokenUseCase,
