@@ -63,12 +63,14 @@ domain/ → application/ → infrastructure/ → presentation/
 The dependency arrow is strictly inward. `domain/` and `@power-budget/core` must never import from any outer layer, any framework, or any I/O library.
 
 Backend layer responsibilities:
+
 - **domain/** — entities, value objects, port interfaces, domain services (pure TS, no I/O)
 - **application/** — use cases (depend on ports only; one use case per meaningful action)
 - **infrastructure/** — Drizzle repos, GoCardless/Wise adapters, Redis, SMTP, ECB adapters
 - **presentation/** — NestJS controllers, DTOs, guards
 
 Frontend (web/mobile) layer responsibilities:
+
 - **domain/** — re-exports from `@power-budget/core`
 - **application/** — RTK slices + RTK Query endpoints
 - **infrastructure/** — API client, localStorage/SecureStore adapters, i18n loader
@@ -89,13 +91,13 @@ This package is consumed by backend, web, and mobile. It **must stay pure**:
 
 ```ts
 // Port (interface in domain layer)
-export interface TransactionRepo { ... }
-export interface BankConnectorPort { ... }
+export interface TransactionRepository { ... }
+export interface BankConnector { ... }
 export interface FxRateProvider { ... }
 
 // Adapter (implementation in infrastructure layer)
-export class DrizzleTransactionRepo implements TransactionRepo { ... }
-export class GoCardlessBankConnector implements BankConnectorPort { ... }
+export class DrizzleTransactionRepository implements TransactionRepository { ... }
+export class GoCardlessBankConnector implements BankConnector { ... }
 export class EcbFxRateProvider implements FxRateProvider { ... }
 ```
 
@@ -119,9 +121,9 @@ Exhaustive switches over discriminated unions are mandatory; TypeScript's `never
 `Money` is `{ amountMinor: bigint; currency: CurrencyCode }`. **No floats anywhere.** All amounts stored as minor units (e.g. cents). Cross-currency arithmetic throws `CurrencyMismatchError`.
 
 ```ts
-Money.add(a, b)        // throws if currencies differ
-Money.multiply(m, 2n)  // bigint multiplier
-Money.compare(a, b)    // -1 | 0 | 1
+Money.add(a, b); // throws if currencies differ
+Money.multiply(m, 2n); // bigint multiplier
+Money.compare(a, b); // -1 | 0 | 1
 ```
 
 FX conversion always uses a `FxRateTable` snapshot passed in explicitly — never fetched inside pure functions.
@@ -140,16 +142,16 @@ Use `lodash-es` only, never `lodash`.
 
 ## Key domain concepts (product language)
 
-| Term | Meaning |
-|---|---|
-| **Household** | Tenant boundary; all data is household-scoped |
-| **Plan** | A budget for a period (`personal` or `household`, `weekly`/`monthly`/`custom`) |
-| **PlannedItem** | One line in a plan: category + direction (income/expense) + amount |
-| **Mapping** | Link from a transaction to exactly one planned item |
-| **Unplanned** | Transaction with no mapping; surfaced separately on the dashboard |
-| **Transfer** | Transaction marked as moving money between own accounts; excluded from totals |
-| **LeftoverEntry** | Derived (never stored): unspent planned expense at period end |
-| **PlanActualsView** | The shape returned by `GET /plans/:id/dashboard` — the core UI data |
+| Term                | Meaning                                                                        |
+| ------------------- | ------------------------------------------------------------------------------ |
+| **Household**       | Tenant boundary; all data is household-scoped                                  |
+| **Plan**            | A budget for a period (`personal` or `household`, `weekly`/`monthly`/`custom`) |
+| **PlannedItem**     | One line in a plan: category + direction (income/expense) + amount             |
+| **Mapping**         | Link from a transaction to exactly one planned item                            |
+| **Unplanned**       | Transaction with no mapping; surfaced separately on the dashboard              |
+| **Transfer**        | Transaction marked as moving money between own accounts; excluded from totals  |
+| **LeftoverEntry**   | Derived (never stored): unspent planned expense at period end                  |
+| **PlanActualsView** | The shape returned by `GET /plans/:id/dashboard` — the core UI data            |
 
 ## Core pure functions (in `@power-budget/core`)
 
@@ -163,7 +165,7 @@ These are the heart of the product; every other layer delegates to them:
 ## Bank sync architecture
 
 - **GoCardless** (PSD2 AISP) for PKO BP; **Wise Personal API** for Wise.
-- Both are behind `BankConnectorPort` — the rest of the system never sees provider differences.
+- Both are behind `BankConnector` — the rest of the system never sees provider differences.
 - Sync runs via BullMQ (`sync-connection` job, cron every 4 h + on-demand).
 - Transaction idempotency key: `(account_id, external_id)` UNIQUE. When `external_id` is absent, hash `(account, date, amount, normalised_description)`.
 
@@ -177,10 +179,10 @@ Four locales: `en`, `uk`, `ru`, `pl`. ICU MessageFormat for all strings (uk/ru/p
 
 ## Local infrastructure (docker-compose)
 
-| Service | Image | Port |
-|---|---|---|
-| Postgres 16 | `postgres:16.4-alpine` | 5432 |
-| Redis 7 | `redis:7.4-alpine` | 6379 |
+| Service                | Image                   | Port                   |
+| ---------------------- | ----------------------- | ---------------------- |
+| Postgres 16            | `postgres:16.4-alpine`  | 5432                   |
+| Redis 7                | `redis:7.4-alpine`      | 6379                   |
 | Mailpit (SMTP catcher) | `axllent/mailpit:v1.20` | 1025 (SMTP), 8025 (UI) |
 
 Dev credentials: user/password/db all `power_budget`. Copy `.env.example` → `.env` on first setup.

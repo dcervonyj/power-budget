@@ -1,9 +1,9 @@
-import type { NavigationPort } from '@power-budget/shared-app/infrastructure';
+import type { Navigator } from '@power-budget/shared-app/infrastructure';
 import type { AppRoute } from '@power-budget/shared-app/contract';
 
-// NavigationPort adapter using react-router-dom's imperative API
+// Navigator adapter using react-router-dom's imperative API
 // Wired at app bootstrap — not imported directly by components
-export class ReactRouterNavigationAdapter implements NavigationPort {
+export class ReactRouterNavigationAdapter implements Navigator {
   // navigate is provided at runtime via setNavigate()
   private _navigate: ((path: string) => void) | null = null;
 

@@ -17,23 +17,23 @@ The architecture is shaped by four constraints from the PRD:
 
 ### Stack at a glance
 
-| Concern       | Choice                                                  | Why                                                                                      |
-| ------------- | ------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Backend       | NestJS + TypeScript                                     | First-class module/DI system maps cleanly to clean-architecture layers; broad ecosystem. |
-| Web           | React + Vite + TypeScript                               | Vite for fast dev; React because it shares mental model with mobile.                     |
-| Mobile        | React Native + Expo + TypeScript                        | Single codebase with web for shared hooks; EAS Build/Submit handles iOS pipeline.        |
-| Shared (domain) | `@power-budget/core` (workspace package)                | One source of truth for domain types and pure logic. No I/O, no React, no Nest.          |
+| Concern         | Choice                                                  | Why                                                                                                                                                         |
+| --------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend         | NestJS + TypeScript                                     | First-class module/DI system maps cleanly to clean-architecture layers; broad ecosystem.                                                                    |
+| Web             | React + Vite + TypeScript                               | Vite for fast dev; React because it shares mental model with mobile.                                                                                        |
+| Mobile          | React Native + Expo + TypeScript                        | Single codebase with web for shared hooks; EAS Build/Submit handles iOS pipeline.                                                                           |
+| Shared (domain) | `@power-budget/core` (workspace package)                | One source of truth for domain types and pure logic. No I/O, no React, no Nest.                                                                             |
 | Shared (app)    | `@power-budget/shared-app` (workspace package)          | All platform-agnostic frontend application logic: MobX ReactiveViews, use cases, selectors, API adapters, context factories. Shared between web and mobile. |
-| Database      | PostgreSQL 16                                           | Relational data, strong constraints, JSONB where needed, mature multi-tenancy patterns.  |
-| ORM           | Drizzle ORM                                             | TypeScript-native, SQL-first, zero runtime overhead. Justified in §5.1.                  |
-| Jobs          | Redis + BullMQ                                          | Per-connection queues, retries, scheduling — fits sync model exactly.                    |
-| State (FE)    | MobX + `clean-architecture-reactive`                    | Reactive feature-module state; `ReactiveView<State<S,C>>` with explicit use-case mutations. Justified in §5.1. |
-| Bank — PKO    | GoCardless Bank Account Data API                        | Free PSD2 AISP licence; PKO BP supported; sandbox available.                             |
-| Bank — Wise   | Wise Personal API (direct)                              | Free, account-holder API; no aggregator needed.                                          |
-| FX            | ECB daily reference rates                               | Free, authoritative, daily; cached locally.                                              |
-| Email         | Resend (or SES)                                         | Transactional only; locale-aware templating.                                             |
-| Auth          | Email + password / magic link / Google OAuth + TOTP 2FA | PRD §4.1. Argon2id hashes, JWT access + opaque refresh.                                  |
-| Observability | pino + Prometheus + OpenTelemetry                       | Cheap, standard, container-native.                                                       |
+| Database        | PostgreSQL 16                                           | Relational data, strong constraints, JSONB where needed, mature multi-tenancy patterns.                                                                     |
+| ORM             | Drizzle ORM                                             | TypeScript-native, SQL-first, zero runtime overhead. Justified in §5.1.                                                                                     |
+| Jobs            | Redis + BullMQ                                          | Per-connection queues, retries, scheduling — fits sync model exactly.                                                                                       |
+| State (FE)      | MobX + `clean-architecture-reactive`                    | Reactive feature-module state; `ReactiveView<State<S,C>>` with explicit use-case mutations. Justified in §5.1.                                              |
+| Bank — PKO      | GoCardless Bank Account Data API                        | Free PSD2 AISP licence; PKO BP supported; sandbox available.                                                                                                |
+| Bank — Wise     | Wise Personal API (direct)                              | Free, account-holder API; no aggregator needed.                                                                                                             |
+| FX              | ECB daily reference rates                               | Free, authoritative, daily; cached locally.                                                                                                                 |
+| Email           | Resend (or SES)                                         | Transactional only; locale-aware templating.                                                                                                                |
+| Auth            | Email + password / magic link / Google OAuth + TOTP 2FA | PRD §4.1. Argon2id hashes, JWT access + opaque refresh.                                                                                                     |
+| Observability   | pino + Prometheus + OpenTelemetry                       | Cheap, standard, container-native.                                                                                                                          |
 
 ### Top-level system diagram
 
@@ -110,7 +110,7 @@ flowchart LR
 
 ### Data flow notes
 
-- **Bank sync.** A scheduled job in the worker enqueues one `sync-connection` job per active bank connection (cron: every 4 h plus on-demand). The job calls the matching `BankConnectorPort` adapter (GoCardless for PKO, Wise direct for Wise), fetches transactions since `last_synced_at`, and upserts them in Postgres under the connection's household. Idempotency: `(account_id, external_id)` UNIQUE. Heuristic-mapping suggestions are computed in the same transaction.
+- **Bank sync.** A scheduled job in the worker enqueues one `sync-connection` job per active bank connection (cron: every 4 h plus on-demand). The job calls the matching `BankConnector` adapter (GoCardless for PKO, Wise direct for Wise), fetches transactions since `last_synced_at`, and upserts them in Postgres under the connection's household. Idempotency: `(account_id, external_id)` UNIQUE. Heuristic-mapping suggestions are computed in the same transaction.
 - **Dashboard load.** Client calls `GET /plans/:id/dashboard`. The handler executes a single read-only use case backed by a materialised view (`v_plan_actuals`) refreshed on every transaction upsert or plan edit. Result is FX-converted at presentation time using cached daily rates from `fx_rates`. Target: <500 ms p95 for 12 months / 5 000 rows.
 - **Transaction mapping.** Client calls `PATCH /transactions/:id/mapping { plannedItemId }`. The use case validates household membership, writes to `transaction_mappings`, emits an audit event, and triggers the materialised-view refresh for the affected plan.
 - **Notification dispatch.** Domain events (`reconnect.due`, `over_budget.crossed`, `digest.weekly`) are written to `notifications_outbox` inside the same transaction as the triggering write. A BullMQ outbox-relay job picks them up, resolves recipient locale, renders the template via the i18n loader, and sends via SMTP. Outbox guarantees at-least-once delivery; the consumer is idempotent via outbox `id`.
@@ -143,21 +143,21 @@ Every frontend feature owns a single `ReactiveView<State<Source, Computed>>` ins
 
 ```ts
 // State type for a feature (e.g. plans)
-type PlansSourceState = { plans: Plan[]; isLoading: boolean; };
-type PlansComputedState = { activePlanCount: number; };
+type PlansSourceState = { plans: Plan[]; isLoading: boolean };
+type PlansComputedState = { activePlanCount: number };
 type PlansState = State<PlansSourceState, PlansComputedState>;
 
 // Use case writes to the view
 class GetPlansUseCase {
-    constructor(
-        private readonly view: ReactiveView<PlansState>,
-        private readonly repo: PlanRepo,
-    ) {}
-    async execute(householdId: HouseholdId): Promise<void> {
-        this.view.update({ isLoading: true });
-        const plans = await this.repo.list({ householdId });
-        this.view.update({ plans, isLoading: false });
-    }
+  constructor(
+    private readonly view: ReactiveView<PlansState>,
+    private readonly repo: PlanRepository,
+  ) {}
+  async execute(householdId: HouseholdId): Promise<void> {
+    this.view.update({ isLoading: true });
+    const plans = await this.repo.list({ householdId });
+    this.view.update({ plans, isLoading: false });
+  }
 }
 ```
 
@@ -199,22 +199,22 @@ The package-level `infrastructure/` folder holds cross-feature singletons: `ApiC
 
 **What lives where:**
 
-| Sub-directory | Package |
-|---|---|
-| `application/` (state, selectors, reactions, use cases, ports) | `@power-budget/shared-app` |
-| `api/` (mapper, Http*Repo adapters) | `@power-budget/shared-app` |
-| `config/` (`create*Context()`, `*Context.ts`) | `@power-budget/shared-app` |
-| `ui/connect/connector.ts` | `@power-budget/shared-app` |
-| `ui/content/` (React DOM components) | `packages/web` only |
-| `ui/content/` (React Native components) | `packages/mobile` only |
-| `infrastructure/` (ApiClient, token store) | `@power-budget/shared-app` for ApiClient; per-platform for token storage adapter |
+| Sub-directory                                                  | Package                                                                          |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `application/` (state, selectors, reactions, use cases, ports) | `@power-budget/shared-app`                                                       |
+| `api/` (mapper, Http\*Repo adapters)                           | `@power-budget/shared-app`                                                       |
+| `config/` (`create*Context()`, `*Context.ts`)                  | `@power-budget/shared-app`                                                       |
+| `ui/connect/connector.ts`                                      | `@power-budget/shared-app`                                                       |
+| `ui/content/` (React DOM components)                           | `packages/web` only                                                              |
+| `ui/content/` (React Native components)                        | `packages/mobile` only                                                           |
+| `infrastructure/` (ApiClient, token store)                     | `@power-budget/shared-app` for ApiClient; per-platform for token storage adapter |
 
-### `NavigationPort` — decoupled navigation
+### `Navigator` — decoupled navigation
 
-Use cases that trigger navigation (e.g. `LoginWithPasswordUseCase` redirecting to TOTP enrolment) must inject a `NavigationPort` rather than importing React Router or React Navigation directly. The web app supplies `ReactRouterNavigationAdapter implements NavigationPort`; the mobile app supplies `ReactNavigationAdapter implements NavigationPort`. The port interface lives in `packages/shared-app/src/infrastructure/navigation/`.
+Use cases that trigger navigation (e.g. `LoginWithPasswordUseCase` redirecting to TOTP enrolment) must inject a `Navigator` rather than importing React Router or React Navigation directly. The web app supplies `ReactRouterNavigationAdapter implements Navigator`; the mobile app supplies `ReactNavigationAdapter implements Navigator`. The port interface lives in `packages/shared-app/src/infrastructure/navigation/`.
 
 ```ts
-export interface NavigationPort {
+export interface Navigator {
   navigate(route: AppRoute): void;
   replace(route: AppRoute): void;
   goBack(): void;
@@ -225,29 +225,29 @@ export interface NavigationPort {
 
 All naming follows `docs/code-style.md` and `docs/README.md §5` in the reference repo:
 
-| Concept | Pattern | Example |
-|---|---|---|
-| Port (interface) | PascalCase noun, **no `I` prefix** | `PlanRepo`, `DueDatePresenter`, `BankConnectorPort` |
-| HTTP implementation | `Http<Port>` | `HttpPlanRepo` |
-| Storage implementation | `LocalStorage<Port>` / `InMemory<Port>` / `MobX<Port>` / `Drizzle<Port>` | `DrizzleTransactionRepo`, `InMemoryFxRateRepo` |
-| Use case (frontend) | `<Verb><Noun>UseCase` | `GetTransactionsUseCase`, `MapTransactionUseCase` |
-| Use case (backend) | `<Verb><Noun>UseCase` | `RegisterUserUseCase`, `IngestBankTransactionsUseCase` |
-| Lifecycle use case | `Open<Feature>UseCase`, `Close<Feature>UseCase` | `OpenDashboardUseCase` |
-| Selector | `<Subject>Selector` | `ActivePlanCountSelector`, `VisibleTransactionsSelector` |
-| Reaction | `<Cause>Reaction` | `HouseholdChangedReaction` |
-| Mapper | `<Subject>Mapper` | `TransactionMapper` |
-| Presenter port | `<Subject>Presenter` | `MoneyPresenter`, `DueDatePresenter` |
-| State types | `<Feature>SourceState`, `<Feature>ComputedState`, `<Feature>State` | `PlansSourceState`, `PlansState` |
-| Composition root fn | `create<Feature>Context` | `createDashboardContext` |
-| Composition root type | `<Feature>Context` | `DashboardContext` |
-| Provider component | `<Feature>.tsx` | `Dashboard.tsx` |
-| Props type | `Props<ComponentName>` | `PropsDashboardContent`, `PropsPlansHeader` |
-| Publisher port | `<Event>Publisher` | `TransactionMappedPublisher` |
-| Subscriber port | `<Event>Subscriber` | `TransactionMappedSubscriber` |
-| Test file | `<ClassName>.test.ts` | `GetTransactionsUseCase.test.ts` |
-| Class file | PascalCase | `HttpPlanRepo.ts`, `MapTransactionUseCase.ts` |
-| Non-class module | camelCase | `connector.ts`, `defaultPlansSourceState.ts` |
-| Folder | kebab-case | `use-cases/`, `api/repository/` |
+| Concept                | Pattern                                                                  | Example                                                    |
+| ---------------------- | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Port (interface)       | PascalCase noun, **no `I` prefix, no `Port` suffix**                     | `PlanRepository`, `DueDatePresenter`, `BankConnector`      |
+| HTTP implementation    | `Http<Port>`                                                             | `HttpPlanRepository`                                       |
+| Storage implementation | `LocalStorage<Port>` / `InMemory<Port>` / `MobX<Port>` / `Drizzle<Port>` | `DrizzleTransactionRepository`, `InMemoryFxRateRepository` |
+| Use case (frontend)    | `<Verb><Noun>UseCase`                                                    | `GetTransactionsUseCase`, `MapTransactionUseCase`          |
+| Use case (backend)     | `<Verb><Noun>UseCase`                                                    | `RegisterUserUseCase`, `IngestBankTransactionsUseCase`     |
+| Lifecycle use case     | `Open<Feature>UseCase`, `Close<Feature>UseCase`                          | `OpenDashboardUseCase`                                     |
+| Selector               | `<Subject>Selector`                                                      | `ActivePlanCountSelector`, `VisibleTransactionsSelector`   |
+| Reaction               | `<Cause>Reaction`                                                        | `HouseholdChangedReaction`                                 |
+| Mapper                 | `<Subject>Mapper`                                                        | `TransactionMapper`                                        |
+| Presenter port         | `<Subject>Presenter`                                                     | `MoneyPresenter`, `DueDatePresenter`                       |
+| State types            | `<Feature>SourceState`, `<Feature>ComputedState`, `<Feature>State`       | `PlansSourceState`, `PlansState`                           |
+| Composition root fn    | `create<Feature>Context`                                                 | `createDashboardContext`                                   |
+| Composition root type  | `<Feature>Context`                                                       | `DashboardContext`                                         |
+| Provider component     | `<Feature>.tsx`                                                          | `Dashboard.tsx`                                            |
+| Props type             | `Props<ComponentName>`                                                   | `PropsDashboardContent`, `PropsPlansHeader`                |
+| Publisher port         | `<Event>Publisher`                                                       | `TransactionMappedPublisher`                               |
+| Subscriber port        | `<Event>Subscriber`                                                      | `TransactionMappedSubscriber`                              |
+| Test file              | `<ClassName>.test.ts`                                                    | `GetTransactionsUseCase.test.ts`                           |
+| Class file             | PascalCase                                                               | `HttpPlanRepository.ts`, `MapTransactionUseCase.ts`        |
+| Non-class module       | camelCase                                                                | `connector.ts`, `defaultPlansSourceState.ts`               |
+| Folder                 | kebab-case                                                               | `use-cases/`, `api/repository/`                            |
 
 > **No `*Helper`, `*Utils`, `*Manager`, `*Service` names.** Place logic in the role that fits: a use case, selector, mapper, or presenter.
 
@@ -272,21 +272,21 @@ These rules apply across the entire codebase (backend and frontend) and are enfo
 
 ### What we adopt from the reference repo
 
-| From `clean-architecture-reactive` | In power-budget |
-|---|---|
-| `src/base/` → port layer | `application/` in every feature (frontend) + `domain/` (backend) |
-| `src/react-mobx/` → adapter layer | `api/`, `repository/`, `infrastructure/` |
-| `State<Source, Computed>` type | used in every frontend feature state file |
-| `MobXReactiveView` | the state container for every frontend feature |
-| `Selector<FullState, T>` | computed-state derivation in `application/selectors/` |
-| `Reaction<FullState, T>` | side-effect triggers in `application/reactions/` |
-| `MobXReactiveConnector` | the `Connector` class in `ui/connect/connector.ts` per feature |
-| Naming: no `I` prefix | enforced everywhere |
-| Naming: `UseCase` suffix | enforced for all use cases |
-| Naming: `Props<ComponentName>` | enforced for all React component prop types |
-| TypeScript style rules (§6 of reference guide) | enforced via ESLint + code review |
-| `lodash-es` only | `lodash-es` only, never `lodash` |
-| No `experimentalDecorators` | absent from `tsconfig.base.json` |
+| From `clean-architecture-reactive`             | In power-budget                                                  |
+| ---------------------------------------------- | ---------------------------------------------------------------- |
+| `src/base/` → port layer                       | `application/` in every feature (frontend) + `domain/` (backend) |
+| `src/react-mobx/` → adapter layer              | `api/`, `repository/`, `infrastructure/`                         |
+| `State<Source, Computed>` type                 | used in every frontend feature state file                        |
+| `MobXReactiveView`                             | the state container for every frontend feature                   |
+| `Selector<FullState, T>`                       | computed-state derivation in `application/selectors/`            |
+| `Reaction<FullState, T>`                       | side-effect triggers in `application/reactions/`                 |
+| `MobXReactiveConnector`                        | the `Connector` class in `ui/connect/connector.ts` per feature   |
+| Naming: no `I` prefix                          | enforced everywhere                                              |
+| Naming: `UseCase` suffix                       | enforced for all use cases                                       |
+| Naming: `Props<ComponentName>`                 | enforced for all React component prop types                      |
+| TypeScript style rules (§6 of reference guide) | enforced via ESLint + code review                                |
+| `lodash-es` only                               | `lodash-es` only, never `lodash`                                 |
+| No `experimentalDecorators`                    | absent from `tsconfig.base.json`                                 |
 
 ---
 
@@ -310,7 +310,7 @@ power-budget/
 │   │   │   ├── infrastructure/
 │   │   │   │   ├── mobx/          # MobXReactiveView, connect() HOC, createContext helper
 │   │   │   │   ├── api-client/    # ApiClient (HttpClient impl) + auth interceptor
-│   │   │   │   └── navigation/    # NavigationPort interface
+│   │   │   │   └── navigation/    # Navigator interface
 │   │   │   ├── auth/              # application/ + api/ + config/ + ui/connect/
 │   │   │   ├── bankConnections/   # application/ + api/ + config/ + ui/connect/
 │   │   │   ├── transactions/      # application/ + api/ + config/ + ui/connect/
@@ -393,23 +393,26 @@ Contents:
 **`@power-budget/shared-app`** — all platform-agnostic frontend application logic, shared by web and mobile. Imports `@power-budget/core` and `mobx`. Banned: importing from `backend/` (talks over HTTP), importing any React Native or DOM-specific modules directly (those live in the `ui/content/` layer of each consumer package). Depends on React (for `createContext` and the `connect()` HOC) but **not** on `react-dom` or `react-native` — these are peer dependencies resolved differently per platform.
 
 Contents per feature:
+
 - `application/` — `State<Source, Computed>`, selectors, reactions, use-case classes (all pure TS)
 - `api/` — `Http*Repo` adapters, mappers (use injected `HttpClient`, no direct `fetch`/`axios`)
 - `config/` — `create*Context()` factories, `*Context` types (use React `createContext`)
 - `ui/connect/` — `Connector<FeatureContext>` (uses MobX `observer()` via `connect()`)
-- `infrastructure/` — `MobXReactiveView`, `connect()` HOC, `ApiClient`, `NavigationPort` interface
+- `infrastructure/` — `MobXReactiveView`, `connect()` HOC, `ApiClient`, `Navigator` interface
 
 **`packages/web`** — thin UI layer. Imports `@power-budget/shared-app`. Contains only:
+
 - `ui/content/` components for each feature (React DOM: `div`, `input`, etc.)
 - `infrastructure/LocalStorageTokenStore implements SecureTokenStore`
-- `infrastructure/ReactRouterNavigationAdapter implements NavigationPort`
+- `infrastructure/ReactRouterNavigationAdapter implements Navigator`
 - React Router 6 route definitions
 - Vite config, `main.tsx`, SPA shell
 
 **`packages/mobile`** — thin UI layer. Imports `@power-budget/shared-app`. Contains only:
+
 - `ui/content/` components for each feature (React Native: `View`, `Text`, etc.)
 - `infrastructure/ExpoSecureStoreTokenStore implements SecureTokenStore`
-- `infrastructure/ReactNavigationAdapter implements NavigationPort`
+- `infrastructure/ReactNavigationAdapter implements Navigator`
 - React Navigation setup
 - Biometrics, deep linking, Expo config, `App.tsx`
 
@@ -443,7 +446,7 @@ Each domain is documented with the same template: purpose, core concepts, backen
 
 - **Domain layer.** `User`, `Household`, `Session`, `TotpSecret`, `HouseholdInvite` entities; `PasswordHashing`, `TotpVerifier` domain services as interfaces; `HouseholdInvariants` (single household per user in MVP).
 - **Application layer.** Use cases — `RegisterUserUseCase`, `LoginWithPasswordUseCase`, `RequestMagicLinkUseCase`, `ConsumeMagicLinkUseCase`, `LoginWithGoogleUseCase`, `EnableTotpUseCase`, `VerifyTotpUseCase`, `CreateHouseholdUseCase`, `InviteToHouseholdUseCase`, `AcceptInviteUseCase`, `UpdateLocalePreferenceUseCase`, `GetCurrentUserUseCase`. Each depends only on ports.
-- **Infrastructure layer.** `DrizzleUserRepo` (UserRepo port), `DrizzleHouseholdRepo`, `Argon2PasswordHashing` (PasswordHashing port), `Otplib​TotpVerifier`, `GoogleOauthClient` (OAuthProviderPort), `JwtAccessTokenIssuer`, `RedisRefreshTokenStore`.
+- **Infrastructure layer.** `DrizzleUserRepository` (UserRepository port), `DrizzleHouseholdRepository`, `Argon2PasswordHashing` (PasswordHashing port), `Otplib​TotpVerifier`, `GoogleOauthClient` (OAuthProvider), `JwtAccessTokenIssuer`, `RedisRefreshTokenStore`.
 - **Presentation layer.** REST:
   - `POST /auth/register` — body `{ email, password, locale? }` → `{ userId }` + verification mail.
   - `POST /auth/login` — body `{ email, password, totp? }` → `{ accessToken, refreshToken }` (TOTP demanded only if user has bank connections).
@@ -465,13 +468,13 @@ Each domain is documented with the same template: purpose, core concepts, backen
 - **Domain types** from `@power-budget/core`: `User`, `Household`, `LocaleCode`.
 - **State.** `State<AuthSourceState, AuthComputedState>` where source holds `currentUser`, `household`, `tokens`, `isLoading`; computed holds `isAuthenticated`, `hasBankConnections` (drives TOTP requirement).
 - **Application layer.** `ReactiveView<AuthState>` owned by `createAuthContext()`. Use cases: `LoginWithPasswordUseCase`, `RegisterUserUseCase`, `RequestMagicLinkUseCase`, `ConsumeMagicLinkUseCase`, `LoginWithGoogleUseCase`, `EnableTotpUseCase`, `VerifyTotpUseCase`, `CreateHouseholdUseCase`, `AcceptInviteUseCase`, `GetCurrentUserUseCase`, `UpdateLocalePreferenceUseCase`, `OpenAuthUseCase` / `CloseAuthUseCase`. Each constructor-injects the view and the relevant port interfaces. Tokens persisted via `SecureTokenStore` port (`LocalStorageTokenStore` on web, `ExpoSecureStoreTokenStore` on mobile).
-- **Adapters.** `HttpUserRepo implements UserRepo`, `HttpAuthRepo implements AuthRepo`. `ApiClient` (the `HttpClient` implementation) has an auth interceptor that calls `RotateTokenUseCase` on 401.
+- **Adapters.** `HttpUserRepository implements UserRepository`, `HttpAuthRepository implements AuthRepository`. `ApiClient` (the `HttpClient` implementation) has an auth interceptor that calls `RotateTokenUseCase` on 401.
 - **Presentation.** Screens: `LoginScreen`, `RegisterScreen`, `MagicLinkScreen`, `OAuthCallbackScreen`, `TotpEnrollmentScreen`, `OnboardingFlow` (5-step from PRD §4.1), `ProfileScreen`, `HouseholdScreen`, `AcceptInviteScreen`.
 
 **Key ports.**
 
 ```ts
-export interface UserRepo {
+export interface UserRepository {
   findById(id: UserId): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   create(user: NewUser): Promise<User>;
@@ -489,7 +492,7 @@ export interface TotpVerifier {
   verify(secret: string, code: string, window?: number): boolean;
 }
 
-export interface OAuthProviderPort {
+export interface OAuthProvider {
   buildAuthorizeUrl(state: string, redirectUri: string): string;
   exchange(
     code: string,
@@ -499,9 +502,7 @@ export interface OAuthProviderPort {
 
 export interface RefreshTokenStore {
   issue(userId: UserId, ttlSeconds: number): Promise<string>;
-  rotate(
-    oldToken: string,
-  ): Promise<{ userId: UserId; newToken: string } | null>;
+  rotate(oldToken: string): Promise<{ userId: UserId; newToken: string } | null>;
   revoke(token: string): Promise<void>;
 }
 ```
@@ -522,7 +523,7 @@ export interface RefreshTokenStore {
 
 ### 5.2 Bank Connections
 
-**Purpose.** Provide a uniform interface over heterogeneous bank APIs so that the rest of the system never sees vendor differences. MVP integrates GoCardless (Bank Account Data API) for PKO BP and Wise Personal API directly. v2 adds Monobank; v3 adds Salt Edge / Plaid. The `BankConnectorPort` abstraction is non-negotiable — it is the single most important seam in the codebase.
+**Purpose.** Provide a uniform interface over heterogeneous bank APIs so that the rest of the system never sees vendor differences. MVP integrates GoCardless (Bank Account Data API) for PKO BP and Wise Personal API directly. v2 adds Monobank; v3 adds Salt Edge / Plaid. The `BankConnector` abstraction is non-negotiable — it is the single most important seam in the codebase.
 
 **Core concepts.**
 
@@ -536,9 +537,9 @@ export interface RefreshTokenStore {
 
 **Backend — Clean Architecture.**
 
-- **Domain layer.** `BankConnection`, `BankAccount`, `Consent`, `SyncRun` entities. Domain service `ConsentExpiryPolicy` that knows the reminder schedule (7d / 1d / on-expiry — PRD §4.10). `BankConnectorPort` interface (see below) plus provider-agnostic `RawTransaction` DTO.
-- **Application layer.** Use cases — `InitiateBankConnectionUseCase`, `CompleteBankConsentUseCase`, `ListUserConnectionsUseCase`, `RefreshConnectionUseCase` (on-demand), `ScheduleConnectionSyncUseCase`, `RunConnectionSyncUseCase`, `DisconnectBankUseCase`, `ReconnectBankUseCase` (preserves history per PRD §4.2). Depend on `BankConnectorRegistry` and `BankConnectionRepo` ports.
-- **Infrastructure layer.** `GoCardlessBankConnector implements BankConnectorPort` (uses official OpenAPI client; encrypts the consent token at rest using the user's DEK — see §6). `WiseBankConnector implements BankConnectorPort` (uses Wise REST API directly; user pastes their Wise API token during connect). `BankConnectorRegistry` resolves a `BankConnectorPort` by `BankProvider`. `DrizzleBankConnectionRepo`, `DrizzleSyncRunRepo`. BullMQ scheduler enqueues `sync-connection` every 4 h + after consent completion.
+- **Domain layer.** `BankConnection`, `BankAccount`, `Consent`, `SyncRun` entities. Domain service `ConsentExpiryPolicy` that knows the reminder schedule (7d / 1d / on-expiry — PRD §4.10). `BankConnector` interface (see below) plus provider-agnostic `RawTransaction` DTO.
+- **Application layer.** Use cases — `InitiateBankConnectionUseCase`, `CompleteBankConsentUseCase`, `ListUserConnectionsUseCase`, `RefreshConnectionUseCase` (on-demand), `ScheduleConnectionSyncUseCase`, `RunConnectionSyncUseCase`, `DisconnectBankUseCase`, `ReconnectBankUseCase` (preserves history per PRD §4.2). Depend on `BankConnectorRegistry` and `BankConnectionRepository` ports.
+- **Infrastructure layer.** `GoCardlessBankConnector implements BankConnector` (uses official OpenAPI client; encrypts the consent token at rest using the user's DEK — see §6). `WiseBankConnector implements BankConnector` (uses Wise REST API directly; user pastes their Wise API token during connect). `BankConnectorRegistry` resolves a `BankConnector` by `BankProvider`. `DrizzleBankConnectionRepository`, `DrizzleSyncRunRepository`. BullMQ scheduler enqueues `sync-connection` every 4 h + after consent completion.
 - **Presentation layer.** REST:
   - `GET /banks` → catalogue (provider + bank + supported countries + max history).
   - `POST /bank-connections/initiate` — body `{ bankId, redirectUri, historyDays }` → `{ consentUrl, connectionId }`.
@@ -554,13 +555,13 @@ export interface RefreshTokenStore {
 - **Domain types** from `@power-budget/core`: `BankConnection`, `BankAccount`, `ConsentLifecycle`.
 - **State.** `State<BankConnectionsSourceState, BankConnectionsComputedState>` where source holds `connections`, `isLoading`; computed holds `expiringConnections` (consent expiry < 7 d), `syncingConnectionIds`.
 - **Application layer.** `ReactiveView<BankConnectionsState>` owned by `createBankConnectionsContext()`. Use cases: `ListConnectionsUseCase`, `InitiateBankConnectionUseCase`, `CompleteBankConsentUseCase` (called after OAuth redirect-back), `RefreshConnectionUseCase` (on-demand sync), `DisconnectBankUseCase`, `ReconnectBankUseCase`. Selector `ExpiringConnectionsSelector` drives `ReconnectBanner`.
-- **Adapters.** `HttpBankConnectionRepo implements BankConnectionRepo`. No provider-specific code on the client — the consent screen is hosted on the bank's side; the app only handles redirect-back.
+- **Adapters.** `HttpBankConnectionRepository implements BankConnectionRepository`. No provider-specific code on the client — the consent screen is hosted on the bank's side; the app only handles redirect-back.
 - **Presentation.** Screens: `BankConnectionsList`, `AddBankFlow` (pick provider → pick bank → choose history → consent → review accounts), `ReconnectBanner` (global; appears when `expiringConnections.length > 0`), `SyncStatusChip` (last synced N minutes ago).
 
 **Key ports.**
 
 ```ts
-export interface BankConnectorPort {
+export interface BankConnector {
   readonly provider: BankProvider;
   listSupportedBanks(country: CountryCode): Promise<BankCatalogEntry[]>;
   initiateConsent(input: {
@@ -573,30 +574,19 @@ export interface BankConnectorPort {
     externalConsentRef: string;
     callbackPayload: Record<string, string>;
   }): Promise<{ consentToken: EncryptedString; expiresAt: Date | null }>;
-  listAccounts(
-    connectionId: BankConnectionId,
-    consent: EncryptedString,
-  ): Promise<RawBankAccount[]>;
+  listAccounts(connectionId: BankConnectionId, consent: EncryptedString): Promise<RawBankAccount[]>;
   fetchTransactions(input: {
     accountExternalId: string;
     consent: EncryptedString;
     since: Date;
   }): Promise<RawTransaction[]>;
-  refreshConsent(
-    connectionId: BankConnectionId,
-  ): Promise<{ consentUrl: string }>;
-  disconnect(
-    connectionId: BankConnectionId,
-    consent: EncryptedString,
-  ): Promise<void>;
+  refreshConsent(connectionId: BankConnectionId): Promise<{ consentUrl: string }>;
+  disconnect(connectionId: BankConnectionId, consent: EncryptedString): Promise<void>;
 }
 
-export interface BankConnectionRepo {
+export interface BankConnectionRepository {
   create(conn: NewBankConnection): Promise<BankConnection>;
-  findById(
-    id: BankConnectionId,
-    scope: HouseholdScope,
-  ): Promise<BankConnection | null>;
+  findById(id: BankConnectionId, scope: HouseholdScope): Promise<BankConnection | null>;
   listByUser(userId: UserId): Promise<BankConnection[]>;
   updateConsent(
     id: BankConnectionId,
@@ -606,12 +596,9 @@ export interface BankConnectionRepo {
   markDisconnected(id: BankConnectionId, at: Date): Promise<void>;
 }
 
-export interface SyncRunRepo {
+export interface SyncRunRepository {
   start(connectionId: BankConnectionId): Promise<SyncRunId>;
-  finish(
-    id: SyncRunId,
-    result: { ok: boolean; fetched: number; error?: string },
-  ): Promise<void>;
+  finish(id: SyncRunId, result: { ok: boolean; fetched: number; error?: string }): Promise<void>;
   lastSuccessfulAt(connectionId: BankConnectionId): Promise<Date | null>;
 }
 ```
@@ -641,7 +628,7 @@ export interface SyncRunRepo {
 
 - **Domain layer.** `Transaction`, `TransactionMapping`, `Transfer`, `IngestBatch`. Domain service `IdempotentIngest` (combines `(account_id, external_id)` and `source = manual` semantics). Domain service `MappingSuggestion` (pure; takes prior mappings + new transaction → optional planned item).
 - **Application layer.** Use cases — `IngestBankTransactionsUseCase` (called by worker; idempotent), `CreateManualTransactionUseCase`, `UpdateTransactionNotesUseCase`, `MapTransactionUseCase`, `UnmapTransactionUseCase`, `MarkAsTransferUseCase`, `LinkTransferCounterpartUseCase`, `IgnoreTransactionUseCase`, `BulkMapUseCase`, `BulkMarkAsTransferUseCase`, `ListTransactionsUseCase` (paginated, filterable per PRD §4.3).
-- **Infrastructure layer.** `DrizzleTransactionRepo`, `DrizzleMappingRepo`, `DrizzleTransferRepo`. Worker `BankSyncProcessor` invokes `BankConnectorPort.fetchTransactions`, normalises into `RawTransaction`, then calls `IngestBankTransactions`. Materialised-view refresh trigger fires on every mapping change (deferred — actual refresh is debounced 250 ms in the worker).
+- **Infrastructure layer.** `DrizzleTransactionRepository`, `DrizzleMappingRepository`, `DrizzleTransferRepository`. Worker `BankSyncProcessor` invokes `BankConnector.fetchTransactions`, normalises into `RawTransaction`, then calls `IngestBankTransactions`. Materialised-view refresh trigger fires on every mapping change (deferred — actual refresh is debounced 250 ms in the worker).
 - **Presentation layer.** REST:
   - `GET /transactions?accountId=&from=&to=&category=&mapped=&source=&q=&cursor=` — paginated.
   - `POST /transactions` — manual create.
@@ -656,37 +643,22 @@ export interface SyncRunRepo {
 - **Domain types** from `@power-budget/core`: `Transaction`, `TransactionMapping`, `Transfer`, `Money`.
 - **State.** `State<TransactionsSourceState, TransactionsComputedState>` where source holds `transactions` (cursor-paginated), `isLoading`, `activeMappingTarget`; computed holds `unmappedCount`, `totalsByCategory`.
 - **Application layer.** `ReactiveView<TransactionsState>` owned by `createTransactionsContext()`. Use cases: `ListTransactionsUseCase`, `LoadMoreTransactionsUseCase` (cursor pagination), `MapTransactionUseCase` (optimistic — updates source state before server round-trip; rolls back on error), `UnmapTransactionUseCase`, `MarkAsTransferUseCase`, `UnmarkTransferUseCase`, `AddManualTransactionUseCase`, `EditManualTransactionUseCase`, `DeleteManualTransactionUseCase`, `BulkMapTransactionsUseCase`, `SuggestMappingsUseCase`.
-- **Adapters.** `HttpTransactionRepo implements TransactionRepo`, `HttpMappingRepo implements MappingRepo`.
+- **Adapters.** `HttpTransactionRepository implements TransactionRepository`, `HttpMappingRepository implements MappingRepository`.
 - **Presentation.** Screens: `TransactionsList`, `TransactionDetail`, `MappingModal` (pick plan → planned item; suggestions float to top), `BulkActionBar`, `ManualTransactionForm`, `TransferMarkModal`.
 
 **Key ports.**
 
 ```ts
-export interface TransactionRepo {
-  upsertByExternalId(
-    input: NewTransaction,
-  ): Promise<{ id: TransactionId; created: boolean }>;
+export interface TransactionRepository {
+  upsertByExternalId(input: NewTransaction): Promise<{ id: TransactionId; created: boolean }>;
   insertManual(input: NewManualTransaction): Promise<Transaction>;
-  findById(
-    id: TransactionId,
-    scope: HouseholdScope,
-  ): Promise<Transaction | null>;
-  list(
-    query: TransactionQuery,
-    scope: HouseholdScope,
-  ): Promise<Page<Transaction>>;
-  patch(
-    id: TransactionId,
-    patch: Partial<Pick<Transaction, "notes" | "ignored">>,
-  ): Promise<void>;
+  findById(id: TransactionId, scope: HouseholdScope): Promise<Transaction | null>;
+  list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<Transaction>>;
+  patch(id: TransactionId, patch: Partial<Pick<Transaction, 'notes' | 'ignored'>>): Promise<void>;
 }
 
-export interface MappingRepo {
-  set(
-    transactionId: TransactionId,
-    plannedItemId: PlannedItemId | null,
-    by: UserId,
-  ): Promise<void>;
+export interface MappingRepository {
+  set(transactionId: TransactionId, plannedItemId: PlannedItemId | null, by: UserId): Promise<void>;
   bulkSet(
     input: { transactionId: TransactionId; plannedItemId: PlannedItemId }[],
     by: UserId,
@@ -694,7 +666,7 @@ export interface MappingRepo {
   findByTransaction(id: TransactionId): Promise<TransactionMapping | null>;
 }
 
-export interface TransferRepo {
+export interface TransferRepository {
   mark(
     transactionId: TransactionId,
     counterpart: TransactionId | null,
@@ -730,7 +702,7 @@ export interface TransferRepo {
 
 - **Domain layer.** `Plan`, `PlannedItem`, `PlannedItemVersion` entities. Domain service `PlanCloning` (clones structure: categories + amounts, fresh period). Domain service `LeftoverCalculator` (delegates to core `computeLeftover`). Invariant: in MVP at most one active plan of each `(type, periodKind)` per user/household at a time — except `custom`, which has no such limit.
 - **Application layer.** Use cases — `CreatePlanUseCase`, `UpdatePlanUseCase`, `ClonePlanFromPreviousUseCase`, `ArchivePlanUseCase`, `ListActivePlansUseCase`, `GetPlanDashboardUseCase` (returns the `PlanActualsView`), `AddPlannedItemUseCase`, `UpdatePlannedItemUseCase` (writes a `PlannedItemVersion`), `RemovePlannedItemUseCase`, `GetPlannedItemHistoryUseCase`, `ClosePeriodSnapshotUseCase` (called by scheduled job at period end).
-- **Infrastructure layer.** `DrizzlePlanRepo`, `DrizzlePlannedItemRepo`, `DrizzlePlannedItemVersionRepo`. Materialised view `v_plan_actuals(plan_id, planned_item_id, actual_minor)` refreshed by trigger or worker. Scheduled job `close-periods` runs daily at 00:30 UTC.
+- **Infrastructure layer.** `DrizzlePlanRepository`, `DrizzlePlannedItemRepository`, `DrizzlePlannedItemVersionRepository`. Materialised view `v_plan_actuals(plan_id, planned_item_id, actual_minor)` refreshed by trigger or worker. Scheduled job `close-periods` runs daily at 00:30 UTC.
 - **Presentation layer.** REST:
   - `GET /plans?active=true&date=` → list.
   - `POST /plans` — body `{ name, type, periodKind, periodStart, periodEnd, baseCurrency }`.
@@ -748,24 +720,20 @@ export interface TransferRepo {
 - **Domain types** from `@power-budget/core`: `Plan`, `PlannedItem`, `PlannedItemVersion`, `PlanActualsView`, `LeftoverEntry`.
 - **State.** `State<PlansSourceState, PlansComputedState>` where source holds `plans`, `activePlan`, `plannedItems`, `actualsView`, `isLoading`; computed holds `totalPlannedIncome`, `totalPlannedExpenses`, `balance`.
 - **Application layer.** `ReactiveView<PlansState>` owned by `createPlansContext()`. Use cases: `ListPlansUseCase`, `CreatePlanUseCase`, `UpdatePlanUseCase`, `ArchivePlanUseCase`, `ClonePlanUseCase`, `AddPlannedItemUseCase`, `UpdatePlannedItemUseCase`, `RemovePlannedItemUseCase`, `GetPlanDashboardUseCase` (fetches `PlanActualsView`; result stored in source state), `RecomputePlanActualsUseCase`, `GetPlannedItemHistoryUseCase`. Selector `PlanTotalsSelector` derives income/expense/balance from `PlansComputedState`.
-- **Adapters.** `HttpPlanRepo implements PlanRepo`, `HttpPlannedItemRepo implements PlannedItemRepo`.
+- **Adapters.** `HttpPlanRepository implements PlanRepository`, `HttpPlannedItemRepository implements PlannedItemRepository`.
 - **Presentation.** Screens: `PlansList`, `PlanEditor`, `Dashboard` (home screen per PRD §4.11), `PlannedItemHistoryDrawer`, `ClonePlanModal`, `CustomPeriodPicker`.
 
 **Key ports.**
 
 ```ts
-export interface PlanRepo {
+export interface PlanRepository {
   create(plan: NewPlan): Promise<Plan>;
   findById(id: PlanId, scope: HouseholdScope): Promise<Plan | null>;
-  listActive(query: {
-    userId: UserId;
-    householdId: HouseholdId;
-    date: Date;
-  }): Promise<Plan[]>;
+  listActive(query: { userId: UserId; householdId: HouseholdId; date: Date }): Promise<Plan[]>;
   archive(id: PlanId, at: Date): Promise<void>;
 }
 
-export interface PlannedItemRepo {
+export interface PlannedItemRepository {
   add(item: NewPlannedItem): Promise<PlannedItem>;
   update(
     id: PlannedItemId,
@@ -777,7 +745,7 @@ export interface PlannedItemRepo {
   listByPlan(planId: PlanId): Promise<PlannedItem[]>;
 }
 
-export interface PlannedItemVersionRepo {
+export interface PlannedItemVersionRepository {
   append(version: NewPlannedItemVersion): Promise<void>;
   listByItem(itemId: PlannedItemId): Promise<PlannedItemVersion[]>;
 }
@@ -787,7 +755,7 @@ export interface PlanActualsReader {
 }
 ```
 
-**Cross-domain dependencies.** Plans read `categories` (FK). Plans are written-against by Transactions (`MappingRepo.set` references `plannedItemId`). Plans publish `plan.created`, `plan.item.changed` events for the audit log.
+**Cross-domain dependencies.** Plans read `categories` (FK). Plans are written-against by Transactions (`MappingRepository.set` references `plannedItemId`). Plans publish `plan.created`, `plan.item.changed` events for the audit log.
 
 **Open questions.**
 
@@ -810,7 +778,7 @@ export interface PlanActualsReader {
 
 - **Domain layer.** `Category`, `CategoryPrivacy`, `CategoryAggregate` types. Pure function `aggregateByCategoryWithPrivacy` in `@power-budget/core` is the single place the privacy rule is implemented. Invariant: category names are unique-per-household when not archived.
 - **Application layer.** Use cases — `ListCategoriesUseCase`, `CreateCategoryUseCase`, `RenameCategoryUseCase`, `ArchiveCategoryUseCase`, `SetCategoryPrivacyUseCase`, `GetHouseholdCategoryAggregateUseCase` (returns `CategoryAggregate[]` for viewer X looking at category C; applies privacy).
-- **Infrastructure layer.** `DrizzleCategoryRepo`, `DrizzleCategoryPrivacyRepo`. Seed migration installs default categories in all four locales (storing a `seedKey` to allow translation updates without renaming user-created rows).
+- **Infrastructure layer.** `DrizzleCategoryRepository`, `DrizzleCategoryPrivacyRepository`. Seed migration installs default categories in all four locales (storing a `seedKey` to allow translation updates without renaming user-created rows).
 - **Presentation layer.** REST:
   - `GET /categories` → list (own household).
   - `POST /categories` — body `{ name, icon, color }`.
@@ -824,26 +792,22 @@ export interface PlanActualsReader {
 - **Domain types** from `@power-budget/core`: `Category`, `CategoryPrivacy`, `CategoryAggregate`.
 - **State.** `State<CategoriesSourceState, CategoriesComputedState>` where source holds `categories`, `privacyMap`, `isLoading`; computed holds `activeCategoriesById` (lookup map used by other features).
 - **Application layer.** `ReactiveView<CategoriesState>` owned by `createCategoriesContext()`. Use cases: `ListCategoriesUseCase`, `CreateCategoryUseCase`, `UpdateCategoryUseCase`, `ArchiveCategoryUseCase`, `SetCategoryPrivacyUseCase`, `GetCategoryPrivacyUseCase`. `activeCategoriesById` is exposed via `CategoriesSelector` to plan and transaction features (passed as a dependency, not shared store).
-- **Adapters.** `HttpCategoryRepo implements CategoryRepo`, `HttpCategoryPrivacyRepo implements CategoryPrivacyRepo`.
+- **Adapters.** `HttpCategoryRepository implements CategoryRepository`, `HttpCategoryPrivacyRepository implements CategoryPrivacyRepository`.
 - **Presentation.** Screens: `CategoriesScreen` (list + privacy toggle per row), `CategoryPickerModal`, `HouseholdCategoryDrillIn` (renders to the level allowed by the partner — total bar, total+counts, or full list).
 
 **Key ports.**
 
 ```ts
-export interface CategoryRepo {
+export interface CategoryRepository {
   list(scope: HouseholdScope): Promise<Category[]>;
   create(input: NewCategory): Promise<Category>;
   update(id: CategoryId, patch: CategoryPatch): Promise<Category>;
   archive(id: CategoryId, at: Date): Promise<void>;
 }
 
-export interface CategoryPrivacyRepo {
+export interface CategoryPrivacyRepository {
   get(categoryId: CategoryId): Promise<CategoryPrivacy>;
-  set(
-    categoryId: CategoryId,
-    level: CategoryPrivacyLevel,
-    by: UserId,
-  ): Promise<void>;
+  set(categoryId: CategoryId, level: CategoryPrivacyLevel, by: UserId): Promise<void>;
 }
 
 export interface HouseholdCategoryAggregateReader {
@@ -880,7 +844,7 @@ export interface HouseholdCategoryAggregateReader {
 
 - **Domain layer.** `Currency`, `Money`, `FxRate`, `FxRateTable` value objects. Pure functions `convertMoney(money, target, table)` and `convertMoneyAsOf(money, target, date, repo)`. `FxRateProvider` port.
 - **Application layer.** Use cases — `UpdateCurrencyPreferencesUseCase`, `GetCurrencyPreferencesUseCase`, `GetFxRateUseCase` (on-demand convert via API), `IngestEcbDailyRatesUseCase` (called by scheduled job).
-- **Infrastructure layer.** `EcbFxRateProvider implements FxRateProvider` (parses the daily ECB XML `eurofxref-daily.xml`; derives non-EUR pairs by cross-rate against EUR). `DrizzleFxRateRepo`. BullMQ `cron(0 16 * * 1-5)` for ECB (rates publish ~16:00 CET on weekdays). Today's rate is used until the next publication; weekend rates carry Friday forward.
+- **Infrastructure layer.** `EcbFxRateProvider implements FxRateProvider` (parses the daily ECB XML `eurofxref-daily.xml`; derives non-EUR pairs by cross-rate against EUR). `DrizzleFxRateRepository`. BullMQ `cron(0 16 * * 1-5)` for ECB (rates publish ~16:00 CET on weekdays). Today's rate is used until the next publication; weekend rates carry Friday forward.
 - **Presentation layer.** REST:
   - `GET /currencies` → supported list.
   - `GET /fx-rates?base=&date=` → table for that date.
@@ -891,7 +855,7 @@ export interface HouseholdCategoryAggregateReader {
 - **Domain types** from `@power-budget/core`: `Currency`, `Money`, `FxRate`, `FxRateTable`.
 - **State.** `State<FxSourceState, FxComputedState>` where source holds `ratesByDate` (date-keyed `FxRateTable` entries; infinite stale time — past rates never change), `viewerCurrency`.
 - **Application layer.** `ReactiveView<FxState>` owned by `createFxContext()`. Use cases: `EnsureRatesLoadedUseCase` (lazy-fetches the table for a given date if absent from source state). Selector `FxConversionSelector` wraps `convertMoney()` from `@power-budget/core` — called client-side using cached rates; never triggers a network request on its own.
-- **Adapters.** `HttpFxRateRepo implements FxRateRepo`.
+- **Adapters.** `HttpFxRateRepository implements FxRateRepository`.
 - **Presentation.** Component `MoneyView` — renders amount in original currency; cycles through interesting currencies on tap; shows rate source and date in a tooltip.
 
 **Key ports.**
@@ -901,17 +865,13 @@ export interface FxRateProvider {
   fetchForDate(date: Date): Promise<FxRate[]>;
 }
 
-export interface FxRateRepo {
+export interface FxRateRepository {
   saveBatch(rates: NewFxRate[]): Promise<void>;
   getTable(asOf: Date): Promise<FxRateTable>;
-  getRate(
-    base: CurrencyCode,
-    quote: CurrencyCode,
-    asOf: Date,
-  ): Promise<FxRate | null>;
+  getRate(base: CurrencyCode, quote: CurrencyCode, asOf: Date): Promise<FxRate | null>;
 }
 
-export interface CurrencyPreferencesRepo {
+export interface CurrencyPreferencesRepository {
   get(userId: UserId): Promise<UserCurrencyPreferences>;
   set(userId: UserId, prefs: UserCurrencyPreferences): Promise<void>;
 }
@@ -943,7 +903,7 @@ export interface CurrencyPreferencesRepo {
 
 - **Domain layer.** `NotificationEvent`, `NotificationKind`, `NotificationPayload<K>` discriminated union. `NotificationChannel` port. `TemplateRenderer` port. Domain service `OverBudgetDetector` (pure: takes plan actuals → set of crossed-threshold events).
 - **Application layer.** Use cases — `EnqueueNotificationUseCase` (writes to outbox in the producing transaction), `DispatchNotificationUseCase` (called by worker; idempotent on `id`), `EvaluateOverBudgetUseCase` (called after every mapping change for affected plan), `RunWeeklyDigestUseCase` (Monday 08:00 user-local; aggregates last week's actuals), `RunReconnectRemindersUseCase` (daily; emits 7d / 1d / on-expiry per connection). `OptInWeeklyDigestUseCase`, `SetOverBudgetThresholdsUseCase`.
-- **Infrastructure layer.** `ResendEmailChannel implements NotificationChannel` (Resend API; falls back to SES with the same port). `Mjml​TemplateRenderer implements TemplateRenderer` (MJML → HTML; ICU vars). `DrizzleNotificationOutboxRepo`. BullMQ consumer `notification-dispatch` with exponential backoff.
+- **Infrastructure layer.** `ResendEmailChannel implements NotificationChannel` (Resend API; falls back to SES with the same port). `Mjml​TemplateRenderer implements TemplateRenderer` (MJML → HTML; ICU vars). `DrizzleNotificationOutboxRepository`. BullMQ consumer `notification-dispatch` with exponential backoff.
 - **Presentation layer.** REST:
   - `GET /me/notification-preferences`.
   - `PATCH /me/notification-preferences` — body `{ weeklyDigest?, overBudgetWarnAt?, overBudgetCriticalAt? }`.
@@ -954,7 +914,7 @@ export interface CurrencyPreferencesRepo {
 - **Domain types** from `@power-budget/core`: `NotificationKind`, `NotificationPreferences`.
 - **State.** `State<NotificationsSourceState, NotificationsComputedState>` where source holds `preferences`, `isLoading`; no in-app inbox in MVP (backend-only delivery).
 - **Application layer.** `ReactiveView<NotificationsState>` owned by `createNotificationsContext()`. Use cases: `GetNotificationPreferencesUseCase`, `UpdateNotificationPreferencesUseCase`.
-- **Adapters.** `HttpNotificationPreferencesRepo implements NotificationPreferencesRepo`.
+- **Adapters.** `HttpNotificationPreferencesRepository implements NotificationPreferencesRepository`.
 - **Presentation.** `NotificationPreferencesScreen` — digest opt-in, threshold sliders.
 
 **Key ports.**
@@ -962,10 +922,7 @@ export interface CurrencyPreferencesRepo {
 ```ts
 export interface NotificationChannel {
   readonly kindSupported: NotificationKind[];
-  send(input: {
-    recipient: User;
-    rendered: RenderedNotification;
-  }): Promise<void>;
+  send(input: { recipient: User; rendered: RenderedNotification }): Promise<void>;
 }
 
 export interface TemplateRenderer {
@@ -976,7 +933,7 @@ export interface TemplateRenderer {
   }): Promise<RenderedNotification>;
 }
 
-export interface NotificationOutboxRepo {
+export interface NotificationOutboxRepository {
   enqueue(event: NewNotificationEvent): Promise<NotificationEventId>;
   claimPending(limit: number): Promise<NotificationEvent[]>;
   markSent(id: NotificationEventId, at: Date): Promise<void>;
@@ -1033,10 +990,7 @@ export interface MessageBundleLoader {
 }
 
 export interface LocaleResolver {
-  resolveForRequest(req: {
-    acceptLanguage?: string;
-    userPreference?: LocaleCode;
-  }): LocaleCode;
+  resolveForRequest(req: { acceptLanguage?: string; userPreference?: LocaleCode }): LocaleCode;
 }
 
 export interface FormatProfileProvider {
@@ -1078,18 +1032,14 @@ export interface FormatProfileProvider {
 - **Domain types** from `@power-budget/core`: `PlanActualsView`, `LeftoverEntry`.
 - **State.** `State<DashboardSourceState, DashboardComputedState>` where source holds `actualsView`, `isLoading`; computed holds `currencySwitcherMoney` (client-only — FX conversion using `FxConversionSelector` from the FX feature context; no server round-trip).
 - **Application layer.** `ReactiveView<DashboardState>` owned by `createDashboardContext()`. Use cases: `LoadDashboardUseCase` (fetches `PlanActualsView` from `GET /plans/:id/dashboard`), `SwitchDashboardCurrencyUseCase` (updates viewer's selected display currency; pure source-state mutation). `DashboardRefreshReaction` subscribes to mapping-change events from the transactions feature contract channel and re-triggers `LoadDashboardUseCase` automatically.
-- **Adapters.** `HttpDashboardRepo implements DashboardRepo`.
+- **Adapters.** `HttpDashboardRepository implements DashboardRepository`.
 - **Presentation.** Screen `Dashboard` (the home), components `PlanHeader`, `IncomeSection`, `ExpenseSection` (with `ProgressBar` red/amber/green), `UnplannedSection`, `LeftoverBucket`, `BottomLine` (with `MoneyView` switcher), `HistoryDrawer` (lazy-loads `GET /plans/:id/items/:itemId/history`).
 
 **Key ports.**
 
 ```ts
 export interface PlanActualsReader {
-  read(
-    planId: PlanId,
-    viewerUserId: UserId,
-    asOf: Date,
-  ): Promise<PlanActualsView>;
+  read(planId: PlanId, viewerUserId: UserId, asOf: Date): Promise<PlanActualsView>;
 }
 
 export interface HouseholdDashboardReader {
@@ -1125,7 +1075,7 @@ export interface HouseholdDashboardReader {
 
 - **Domain layer.** `AuditEvent` and `HouseholdScope` value objects. Domain service `AuditLogger` port (every use case takes one and writes one event per state change). `EncryptedString` value object + `Encryption` port (`encrypt`, `decrypt`).
 - **Application layer.** Cross-cutting use cases — `ExportHouseholdDataUseCase`, `DeleteHouseholdUseCase` (GDPR — soft-delete with 30 d hold then hard-delete), `RotateUserDekUseCase` (re-encrypts all `EncryptedString` columns for the user; runs as a background job).
-- **Infrastructure layer.** `DrizzleAuditEventRepo` (single `audit_log` table; INSERT-only role). `AwsKmsEncryption` or `EnvKekEncryption` implementations of `Encryption`. Postgres Row-Level Security policies on all tenant tables as defence-in-depth (see §6).
+- **Infrastructure layer.** `DrizzleAuditEventRepository` (single `audit_log` table; INSERT-only role). `AwsKmsEncryption` or `EnvKekEncryption` implementations of `Encryption`. Postgres Row-Level Security policies on all tenant tables as defence-in-depth (see §6).
 - **Presentation layer.** REST:
   - `POST /me/data-export` → `{ exportId }`; result fetched via `GET /me/data-export/:id` (signed URL).
   - `DELETE /households/:id` → schedules deletion (30 d soft hold).
@@ -1342,7 +1292,7 @@ sequenceDiagram
     participant Sched as Scheduler
     participant Q as BullMQ (bank-sync)
     participant Worker
-    participant Conn as BankConnectorPort
+    participant Conn as BankConnector
     participant Ext as Bank API
     participant DB as Postgres
 
@@ -1405,7 +1355,7 @@ sequenceDiagram
 
 **Sprint 3 — Categories, currencies, plans (no actuals yet).** Seeded categories in four locales. `i18n` infra wired into web (`react-intl` + bundles). `FX` ingest job + `currencies` & `fx_rates` tables. Plan CRUD + planned items + versioned edits. _Deliverable:_ create a personal monthly plan, see it on screen, edit it and see audit trail.
 
-**Sprint 4 — Bank Connections (GoCardless).** `BankConnectorPort` + GoCardless adapter. Connect flow (initiate + complete). Account listing. No sync yet. _Deliverable:_ user can connect PKO sandbox account; we hold a (sandbox) consent token; accounts visible in UI.
+**Sprint 4 — Bank Connections (GoCardless).** `BankConnector` + GoCardless adapter. Connect flow (initiate + complete). Account listing. No sync yet. _Deliverable:_ user can connect PKO sandbox account; we hold a (sandbox) consent token; accounts visible in UI.
 
 **Sprint 5 — Transactions ingest + Wise adapter + sync job.** BullMQ worker. `fetchTransactions` for GoCardless. Wise Personal API adapter. Idempotent upsert. Reconnect-reminder enqueue. Last-synced UI surfacing. _Deliverable:_ overnight sync runs unattended; balances and transactions appear; reconnect warning fires.
 

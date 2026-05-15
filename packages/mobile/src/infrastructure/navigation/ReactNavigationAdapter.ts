@@ -1,7 +1,7 @@
-import type { NavigationPort } from '@power-budget/shared-app/infrastructure';
+import type { Navigator } from '@power-budget/shared-app/infrastructure';
 import type { AppRoute } from '@power-budget/shared-app/contract';
 
-export class ReactNavigationAdapter implements NavigationPort {
+export class ReactNavigationAdapter implements Navigator {
   // Provided at runtime by the root navigator ref
   private _ref: { navigate: (name: string, params?: object) => void; goBack: () => void } | null =
     null;

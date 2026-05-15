@@ -1,6 +1,6 @@
 import type { AppRoute } from '../../contract/routes.js';
 
-export interface NavigationPort {
+export interface Navigator {
   navigate(route: AppRoute): void;
   replace(route: AppRoute): void;
   goBack(): void;

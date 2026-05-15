@@ -19,7 +19,7 @@ export interface HouseholdScope {
   readonly householdId: HouseholdId;
 }
 
-export interface TransactionRepo {
+export interface TransactionRepository {
   upsertByExternalId(input: NewTransaction): Promise<{ id: TransactionId; created: boolean }>;
   insertManual(input: NewManualTransaction): Promise<Transaction>;
   findById(id: TransactionId, scope: HouseholdScope): Promise<Transaction | null>;
@@ -27,7 +27,7 @@ export interface TransactionRepo {
   patch(id: TransactionId, patch: Partial<Pick<Transaction, 'notes' | 'ignored'>>): Promise<void>;
 }
 
-export interface MappingRepo {
+export interface MappingRepository {
   set(transactionId: TransactionId, plannedItemId: PlannedItemId | null, by: UserId): Promise<void>;
   bulkSet(
     input: { transactionId: TransactionId; plannedItemId: PlannedItemId }[],
@@ -36,7 +36,7 @@ export interface MappingRepo {
   findByTransaction(id: TransactionId): Promise<TransactionMapping | null>;
 }
 
-export interface TransferRepo {
+export interface TransferRepository {
   mark(
     transactionId: TransactionId,
     counterpart: TransactionId | null,

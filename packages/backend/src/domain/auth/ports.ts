@@ -13,14 +13,14 @@ export interface HouseholdScope {
   readonly householdId: HouseholdId;
 }
 
-export interface UserRepo {
+export interface UserRepository {
   findById(id: UserId): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
   create(user: NewUser): Promise<User>;
   updateLocalePreference(id: UserId, locale: LocaleCode): Promise<void>;
 }
 
-export interface HouseholdRepo {
+export interface HouseholdRepository {
   findById(id: HouseholdId): Promise<Household | null>;
   create(household: NewHousehold): Promise<Household>;
   addMember(
@@ -43,7 +43,7 @@ export interface TotpVerifier {
   verify(secret: string, code: string, window?: number): boolean;
 }
 
-export interface OAuthProviderPort {
+export interface OAuthProvider {
   buildAuthorizeUrl(state: string, redirectUri: string): string;
   exchange(
     code: string,
@@ -57,13 +57,13 @@ export interface RefreshTokenStore {
   revoke(token: string): Promise<void>;
 }
 
-export interface TotpSecretRepo {
+export interface TotpSecretRepository {
   findByUser(userId: UserId): Promise<import('./entities.js').TotpSecret | null>;
   save(secret: import('./entities.js').TotpSecret): Promise<void>;
   delete(userId: UserId): Promise<void>;
 }
 
-export interface HouseholdInviteRepo {
+export interface HouseholdInviteRepository {
   create(invite: Omit<HouseholdInvite, 'createdAt'>): Promise<HouseholdInvite>;
   findByTokenHash(tokenHash: string): Promise<HouseholdInvite | null>;
   accept(id: string, at: Date): Promise<void>;
