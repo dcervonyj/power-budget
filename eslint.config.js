@@ -31,7 +31,7 @@ module.exports = [
   // without type-aware rules via the block below.
   {
     files: ['**/*.ts', '**/*.tsx'],
-    ignores: ['**/src/test/integration/**'],
+    ignores: ['**/src/test/integration/**', '**/__tests__/**'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -66,11 +66,11 @@ module.exports = [
     },
   },
 
-  // ─── Integration tests: non-type-aware linting only ─────────────────────
-  // These files import @testcontainers/* which are not declared in the main
-  // tsconfig; type-aware rules are disabled until those deps are added.
+  // ─── Integration tests + __tests__ dirs: non-type-aware linting only ───────
+  // These files may import packages not in the main tsconfig (e.g. @testcontainers,
+  // eslint RuleTester fixtures); type-aware rules are disabled for them.
   {
-    files: ['**/src/test/integration/**/*.ts'],
+    files: ['**/src/test/integration/**/*.ts', '**/__tests__/**/*.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
