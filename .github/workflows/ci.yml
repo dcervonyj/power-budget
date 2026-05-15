@@ -54,6 +54,7 @@ jobs:
       - name: Check API types drift
         run: |
           pnpm --filter @power-budget/shared-app codegen
+          pnpm exec prettier --write packages/shared-app/src/contract/api-types.ts
           git diff --exit-code packages/shared-app/src/contract/api-types.ts
 
       - name: Collect coverage reports
