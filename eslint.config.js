@@ -26,8 +26,12 @@ module.exports = [
   // ─── Language options + type-aware rules ────────────────────────────────
   // `project: true` finds the nearest tsconfig.json for each linted file —
   // monorepo-friendly since every package has its own tsconfig.json.
+  // Integration test files are excluded because they depend on packages not
+  // declared in the main tsconfig (e.g. @testcontainers/*) — they are linted
+  // without type-aware rules via the block below.
   {
     files: ['**/*.ts', '**/*.tsx'],
+    ignores: ['**/src/test/integration/**'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -59,6 +63,19 @@ module.exports = [
 
       // ── react-intl placeholder (enabled in I18N-002) ────────────────────
       // 'react-intl/no-literal-string': 'error', // enabled in I18N-002
+    },
+  },
+
+  // ─── Integration tests: non-type-aware linting only ─────────────────────
+  // These files import @testcontainers/* which are not declared in the main
+  // tsconfig; type-aware rules are disabled until those deps are added.
+  {
+    files: ['**/src/test/integration/**/*.ts'],
+    languageOptions: {
+      parser: tsParser,
+      parserOptions: {
+        project: false,
+      },
     },
   },
 ];
