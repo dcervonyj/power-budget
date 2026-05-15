@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function TotpEnrollmentScreen() {
+export function TotpEnrollmentScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>TotpEnrollment</Text>
+      <Text>
+        <FormattedMessage id="screen.totpEnrollment.title" defaultMessage="TOTP Enrollment" />
+      </Text>
     </View>
   );
 }

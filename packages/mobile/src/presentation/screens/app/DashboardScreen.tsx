@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function DashboardScreen() {
+export function DashboardScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>Dashboard</Text>
+      <Text>
+        <FormattedMessage id="screen.dashboard.title" defaultMessage="Dashboard" />
+      </Text>
     </View>
   );
 }

@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function PlansListScreen() {
+export function PlansListScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>Plans</Text>
+      <Text>
+        <FormattedMessage id="screen.plansList.title" defaultMessage="Plans" />
+      </Text>
     </View>
   );
 }

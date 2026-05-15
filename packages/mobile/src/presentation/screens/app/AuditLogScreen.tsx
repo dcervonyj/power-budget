@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { FormattedMessage } from 'react-intl';
 
-export function AuditLogScreen() {
+export function AuditLogScreen(): React.JSX.Element {
   return (
     <View style={styles.container}>
-      <Text>AuditLog</Text>
+      <Text>
+        <FormattedMessage id="screen.auditLog.title" defaultMessage="Audit Log" />
+      </Text>
     </View>
   );
 }

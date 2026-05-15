@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { FormattedMessage } from 'react-intl';
 import { RequireAuth } from './guards/RequireAuth.js';
 
 // Auth screens — lazy loaded
@@ -73,7 +74,13 @@ const AuditLogScreen = lazy(() =>
 
 export function App() {
   return (
-    <Suspense fallback={<div>Loading…</div>}>
+    <Suspense
+      fallback={
+        <div>
+          <FormattedMessage id="app.loading" defaultMessage="Loading…" />
+        </div>
+      }
+    >
       <Routes>
         {/* Public auth routes */}
         <Route path="/login" element={<LoginScreen />} />
