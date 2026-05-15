@@ -47,7 +47,8 @@ jobs:
 
       - name: Check OpenAPI spec drift
         run: |
-          pnpm -F @power-budget/backend generate:openapi
+          cd packages/backend && pnpm run generate:openapi && cd ../..
+          pnpm exec prettier --write packages/backend/openapi.json
           git diff --exit-code packages/backend/openapi.json
 
       - name: Collect coverage reports
