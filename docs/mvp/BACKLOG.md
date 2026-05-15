@@ -236,15 +236,15 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 12
 
-| ID      | Title                             | Area     |
-| ------- | --------------------------------- | -------- |
-| BE-018  | GoCardless adapter                | Backend  |
-| BE-019  | Wise adapter                      | Backend  |
-| BE-036  | RLS policies + tenancy spec       | Backend  |
-| WEB-004 | Typed API client from OpenAPI     | Web      |
-| MOB-005 | Auth screens (mobile)             | Mobile   |
-| MOB-009 | Locale resolution + i18n (mobile) | Mobile   |
-| SEC-007 | 2FA-at-bank-connect gate          | Security |
+| ID      | Title                             | Area     | Status |
+| ------- | --------------------------------- | -------- | ------ |
+| BE-018  | GoCardless adapter                | Backend  | ✅ #71 |
+| BE-019  | Wise adapter                      | Backend  | ✅ #73 |
+| BE-036  | RLS policies + tenancy spec       | Backend  | ✅ #74 |
+| WEB-004 | Typed API client from OpenAPI     | Web      |        |
+| MOB-005 | Auth screens (mobile)             | Mobile   |        |
+| MOB-009 | Locale resolution + i18n (mobile) | Mobile   |        |
+| SEC-007 | 2FA-at-bank-connect gate          | Security | ✅ #75 |
 
 ### Wave 13
 
