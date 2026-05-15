@@ -1,4 +1,3 @@
-// Note: EnvKekEncryption will be added here after feat/sec-001-encryption merges.
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
@@ -14,6 +13,7 @@ import { DrizzleTotpSecretRepository } from './DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from './DrizzleHouseholdInviteRepository.js';
 import { DrizzleNotificationOutboxPort } from './DrizzleNotificationOutboxPort.js';
 import { DrizzleBankConnectionChecker } from './DrizzleBankConnectionChecker.js';
+import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 @Module({
   imports: [DatabaseModule, ConfigModule],
@@ -37,6 +37,12 @@ import { DrizzleBankConnectionChecker } from './DrizzleBankConnectionChecker.js'
       },
     },
     RedisRefreshTokenStore,
+    {
+      provide: EnvKekEncryption,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        new EnvKekEncryption(config.get<string>('KEK_BASE64') ?? ''),
+    },
   ],
   exports: [
     DrizzleUserRepository,
@@ -50,6 +56,7 @@ import { DrizzleBankConnectionChecker } from './DrizzleBankConnectionChecker.js'
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,
     RedisRefreshTokenStore,
+    EnvKekEncryption,
   ],
 })
 export class AuthModule {}
