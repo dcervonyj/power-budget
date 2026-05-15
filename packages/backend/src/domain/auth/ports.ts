@@ -100,3 +100,10 @@ export interface Encryption {
 export interface AppConfigPort {
   get(key: 'APP_BASE_URL'): string;
 }
+
+export interface TotpStepUpStore {
+  /** Records that userId just verified TOTP. TTL is enforced by the implementation. */
+  stamp(userId: UserId): Promise<void>;
+  /** Returns true if userId verified TOTP within the configured TTL window. */
+  isRecent(userId: UserId): Promise<boolean>;
+}

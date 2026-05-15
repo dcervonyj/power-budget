@@ -8,6 +8,7 @@ import { Argon2PasswordHashing } from './Argon2PasswordHashing.js';
 import { OtplibTotpVerifier } from './OtplibTotpVerifier.js';
 import { JwtAccessTokenIssuerAdapter } from './JwtAccessTokenIssuer.js';
 import { RedisRefreshTokenStore, REDIS_CLIENT } from './RedisRefreshTokenStore.js';
+import { RedisTotpStepUpStore } from './RedisTotpStepUpStore.js';
 import { DrizzleMagicLinkTokenRepository } from './DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from './DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from './DrizzleHouseholdInviteRepository.js';
@@ -37,6 +38,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
       },
     },
     RedisRefreshTokenStore,
+    RedisTotpStepUpStore,
     {
       provide: EnvKekEncryption,
       inject: [ConfigService],
@@ -56,6 +58,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,
     RedisRefreshTokenStore,
+    RedisTotpStepUpStore,
     EnvKekEncryption,
   ],
 })
