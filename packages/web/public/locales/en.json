@@ -100,5 +100,10 @@
   "screen.magicLink.error.requestFailed": "Could not send the link. Please try again.",
   "screen.oauthCallback.title": "OAuth Callback",
   "screen.oauthCallback.loading": "Completing login…",
-  "screen.oauthCallback.error": "Authentication failed. Please try again."
+  "screen.oauthCallback.error": "Authentication failed. Please try again.",
+  "component.moneyView.rateUnavailable": "Rate unavailable",
+  "component.moneyView.tooltip": "1 {from} = {rate} {to}",
+  "component.currencySwitcher.title": "Currency settings",
+  "component.currencySwitcher.baseCurrency.label": "Base currency",
+  "component.currencySwitcher.interestingCurrencies.label": "Also show in"
 }
