@@ -30,6 +30,7 @@ export const users = pgTable(
     defaultLocale: varchar('default_locale', { length: 10 }).notNull().default('en'),
     passwordHash: text('password_hash'),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    emailBouncing: boolean('email_bouncing').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -525,3 +526,5 @@ export type SelectBankConnection = InferSelectModel<typeof bankConnections>;
 export type SelectAuditLog = InferSelectModel<typeof auditLog>;
 export type SelectHouseholdExport = InferSelectModel<typeof householdExports>;
 export type InsertHouseholdExport = InferInsertModel<typeof householdExports>;
+export type SelectNotificationOutbox = InferSelectModel<typeof notificationsOutbox>;
+export type InsertNotificationOutbox = InferInsertModel<typeof notificationsOutbox>;

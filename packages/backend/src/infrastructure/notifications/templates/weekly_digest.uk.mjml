@@ -1,0 +1,35 @@
+<mjml>
+  <mj-head>
+    <mj-title>Щотижневий підсумок бюджету</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#2d6a4f">📊 Щотижневий підсумок бюджету</mj-text>
+        <mj-divider border-color="#2d6a4f" border-width="2px" />
+        <mj-text>Привіт, {{name}}!</mj-text>
+        <mj-text>
+          Ось ваш підсумок витрат для <strong>{{planName}}</strong>
+          ({{periodStart}} — {{periodEnd}}):
+        </mj-text>
+        <mj-table>
+          <tr style="background:#f0f0f0">
+            <td style="padding:8px">Витрачено</td>
+            <td style="padding:8px"><strong>{{totalSpent}} {{currency}}</strong></td>
+          </tr>
+          <tr>
+            <td style="padding:8px">Заплановано</td>
+            <td style="padding:8px"><strong>{{totalPlanned}} {{currency}}</strong></td>
+          </tr>
+        </mj-table>
+        <mj-text color="#888888" font-size="13px">
+          Увійдіть до Power Budget, щоб переглянути деталі.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

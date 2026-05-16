@@ -1,0 +1,28 @@
+<mjml>
+  <mj-head>
+    <mj-title>Перевищення бюджету</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#e53e3e">⚠️ Перевищення бюджету</mj-text>
+        <mj-divider border-color="#e53e3e" border-width="2px" />
+        <mj-text>Привіт, {{name}}!</mj-text>
+        <mj-text>
+          Ваші витрати в категорії <strong>{{category}}</strong> перевищили заплановану суму
+          у плані <strong>{{planName}}</strong>.
+        </mj-text>
+        <mj-text>
+          Поточні витрати: <strong>{{amount}} {{currency}}</strong>
+        </mj-text>
+        <mj-text color="#888888" font-size="13px">
+          Увійдіть до Power Budget, щоб переглянути витрати та скоригувати план.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

@@ -1,0 +1,28 @@
+<mjml>
+  <mj-head>
+    <mj-title>Over Budget Alert</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#e53e3e">⚠️ Over Budget Alert</mj-text>
+        <mj-divider border-color="#e53e3e" border-width="2px" />
+        <mj-text>Hi {{name}},</mj-text>
+        <mj-text>
+          Your spending in <strong>{{category}}</strong> has exceeded the planned amount in
+          your plan <strong>{{planName}}</strong>.
+        </mj-text>
+        <mj-text>
+          Current spend: <strong>{{amount}} {{currency}}</strong>
+        </mj-text>
+        <mj-text color="#888888" font-size="13px">
+          Log in to Power Budget to review your spending and adjust your plan.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
