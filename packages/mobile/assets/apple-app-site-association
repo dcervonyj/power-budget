@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.powerbudget.app",
+        "paths": [
+          "/auth/magic-link",
+          "/auth/oauth/google/callback"
+        ]
+      }
+    ]
+  }
+}

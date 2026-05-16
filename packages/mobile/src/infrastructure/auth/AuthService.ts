@@ -78,4 +78,12 @@ export class AuthService {
   async verifyTotp(code: string): Promise<void> {
     await this.apiClient.post('/auth/totp/verify', { code });
   }
+
+  async handleOAuthCallback(code: string, state: string | undefined): Promise<void> {
+    const response = await this.apiClient.post<LoginResponseData>('/auth/oauth/google/callback', {
+      code,
+      ...(state !== undefined ? { state } : {}),
+    });
+    await this.tokenStore.setTokens(response.data.accessToken, response.data.refreshToken);
+  }
 }
