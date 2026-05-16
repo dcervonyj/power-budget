@@ -246,39 +246,39 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | MOB-009 | Locale resolution + i18n (mobile) | Mobile   | ✅ #79 |
 | SEC-007 | 2FA-at-bank-connect gate          | Security | ✅ #75 |
 
-### Wave 13
+### Wave 13 ✅ Done
 
-| ID      | Title                                        | Area    |
-| ------- | -------------------------------------------- | ------- |
-| BE-024  | Bank-sync scheduler + processor              | Backend |
-| BE-030  | Dashboard query endpoint + materialised view | Backend |
-| BE-034  | Data export + household deletion             | Backend |
-| WEB-005 | Auth screens                                 | Web     |
-| WEB-008 | Plans list + plan editor                     | Web     |
-| WEB-015 | Categories management                        | Web     |
-| WEB-016 | Currency switcher + MoneyView                | Web     |
-| WEB-017 | Locale switcher + i18n provider              | Web     |
-| WEB-020 | Manual transaction entry                     | Web     |
-| MOB-006 | TOTP enrolment + iOS 2FA                     | Mobile  |
-| MOB-007 | Deep linking — magic-link + OAuth            | Mobile  |
-| MOB-008 | Biometric unlock                             | Mobile  |
-| MOB-012 | Plans list + planned-item editor             | Mobile  |
-| QA-005  | Tenancy spec — every endpoint                | QA      |
+| ID      | Title                                        | Area    | PR   |
+| ------- | -------------------------------------------- | ------- | ---- |
+| BE-024  | Bank-sync scheduler + processor              | Backend | #88  |
+| BE-030  | Dashboard query endpoint + materialised view | Backend | #87  |
+| BE-034  | Data export + household deletion             | Backend | #89  |
+| WEB-005 | Auth screens                                 | Web     | #83  |
+| WEB-008 | Plans list + plan editor                     | Web     | #81  |
+| WEB-015 | Categories management                        | Web     | #82  |
+| WEB-016 | Currency switcher + MoneyView                | Web     | #84  |
+| WEB-017 | Locale switcher + i18n provider              | Web     | #85  |
+| WEB-020 | Manual transaction entry                     | Web     | #86  |
+| MOB-006 | TOTP enrolment + iOS 2FA                     | Mobile  | #91  |
+| MOB-007 | Deep linking — magic-link + OAuth            | Mobile  | #94  |
+| MOB-008 | Biometric unlock                             | Mobile  | #93  |
+| MOB-012 | Plans list + planned-item editor             | Mobile  | #92  |
+| QA-005  | Tenancy spec — every endpoint                | QA      | #90  |
 
 ### Wave 14
 
-| ID      | Title                                               | Area     |
-| ------- | --------------------------------------------------- | -------- |
-| BE-029  | Notifications — outbox + channel + templates + cron | Backend  |
-| BE-031  | Dashboard household + unplanned endpoints           | Backend  |
-| WEB-006 | TOTP enrolment screen                               | Web      |
-| WEB-009 | Planned-item history drawer                         | Web      |
-| WEB-011 | OAuth bridge (Google + bank consent)                | Web      |
-| WEB-012 | Transactions list + detail                          | Web      |
-| WEB-019 | Audit-log drawer wired into plan items              | Web      |
-| MOB-010 | Dashboard (mobile)                                  | Mobile   |
-| MOB-011 | Transactions list + detail (mobile)                 | Mobile   |
-| SEC-005 | GDPR — privacy policy + data deletion runbook       | Security |
+| ID      | Title                                               | Area     | PR   |
+| ------- | --------------------------------------------------- | -------- | ---- |
+| BE-029  | Notifications — outbox + channel + templates + cron | Backend  | #95  |
+| BE-031  | Dashboard household + unplanned endpoints           | Backend  | #96  |
+| WEB-006 | TOTP enrolment screen                               | Web      | #100 |
+| WEB-009 | Planned-item history drawer                         | Web      | #99  |
+| WEB-011 | OAuth bridge (Google + bank consent)                | Web      | #97  |
+| WEB-012 | Transactions list + detail                          | Web      | #101 |
+| WEB-019 | Audit-log drawer wired into plan items              | Web      | #98  |
+| MOB-010 | Dashboard (mobile)                                  | Mobile   | #102 |
+| MOB-011 | Transactions list + detail (mobile)                 | Mobile   | #103 |
+| SEC-005 | GDPR — privacy policy + data deletion runbook       | Security | #104 |
 
 ### Wave 15
 
