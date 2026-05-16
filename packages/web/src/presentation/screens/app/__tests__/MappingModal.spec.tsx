@@ -10,7 +10,7 @@ import { darkTheme } from '@power-budget/design-tokens';
 vi.mock('../../../../AppProviders.js', () => ({
   apiClient: {
     get: vi.fn(),
-    post: vi.fn().mockResolvedValue({ data: {} }),
+    post: vi.fn().mockResolvedValue({ status: 200, data: {}, headers: {} }),
   },
 }));
 
@@ -56,15 +56,15 @@ describe('MappingModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPost.mockResolvedValue({ data: {} });
+    mockPost.mockResolvedValue({ status: 200, data: {}, headers: {} });
     mockGet.mockImplementation((url: string) => {
       if (url === '/plans?status=active') {
-        return Promise.resolve({ data: mockPlans });
+        return Promise.resolve({ status: 200, data: mockPlans, headers: {} });
       }
       if (url === '/plans/plan-1/items') {
-        return Promise.resolve({ data: mockItems });
+        return Promise.resolve({ status: 200, data: mockItems, headers: {} });
       }
-      return Promise.resolve({ data: [] });
+      return Promise.resolve({ status: 200, data: [], headers: {} });
     });
   });
 
