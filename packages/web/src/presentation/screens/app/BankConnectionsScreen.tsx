@@ -5,6 +5,9 @@ import { observer } from 'mobx-react-lite';
 import { useTheme } from '../../components/ThemeContext.js';
 import { Button } from '../../components/Button.js';
 import { BankConnectionsList } from '../../components/bank/BankConnectionsList.js';
+import { BankSyncFailureBanner } from '../../components/bank/BankSyncFailureBanner.js';
+import { SkeletonList } from '../../components/shared/SkeletonList.js';
+import { EmptyState } from '../../components/shared/EmptyState.js';
 import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 
 export const BankConnectionsScreen = observer(function BankConnectionsScreen(): React.JSX.Element {
@@ -24,6 +27,8 @@ export const BankConnectionsScreen = observer(function BankConnectionsScreen(): 
         color: theme.color.text.primary,
       }}
     >
+      <BankSyncFailureBanner />
+
       <div
         style={{
           display: 'flex',
@@ -51,12 +56,41 @@ export const BankConnectionsScreen = observer(function BankConnectionsScreen(): 
         </Button>
       </div>
 
-      <BankConnectionsList
-        store={bankConnectionStore}
-        onAddConnection={() => {
-          void navigate('/bank-connections/new');
-        }}
-      />
+      {bankConnectionStore.loading && bankConnectionStore.connections.length === 0 && (
+        <SkeletonList rows={3} rowHeight={72} />
+      )}
+
+      {!bankConnectionStore.loading && bankConnectionStore.connections.length === 0 && (
+        <EmptyState
+          icon="🏦"
+          title={
+            <FormattedMessage
+              id="component.shared.empty.noBankAccounts"
+              defaultMessage="No bank accounts connected"
+            />
+          }
+          action={{
+            label: (
+              <FormattedMessage
+                id="component.shared.empty.addAccount"
+                defaultMessage="Add account"
+              />
+            ),
+            onPress: () => {
+              void navigate('/bank-connections/new');
+            },
+          }}
+        />
+      )}
+
+      {bankConnectionStore.connections.length > 0 && (
+        <BankConnectionsList
+          store={bankConnectionStore}
+          onAddConnection={() => {
+            void navigate('/bank-connections/new');
+          }}
+        />
+      )}
     </div>
   );
 });

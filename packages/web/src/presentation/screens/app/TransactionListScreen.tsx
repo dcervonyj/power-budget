@@ -2,6 +2,9 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeContext.js';
+import { SkeletonList } from '../../components/shared/SkeletonList.js';
+import { EmptyState } from '../../components/shared/EmptyState.js';
+import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
 import {
   TransactionFilterBar,
   type TransactionFilters,
@@ -194,23 +197,47 @@ export function TransactionListScreen(): React.JSX.Element {
         categories={categories}
       />
 
-      {loading && (
-        <p style={{ color: theme.color.text.secondary }}>
-          <FormattedMessage id="app.loading" defaultMessage="Loading…" />
-        </p>
-      )}
+      {loading && <SkeletonList rows={8} rowHeight={56} />}
 
       {error !== null && !loading && (
-        <p style={{ color: theme.color.status.danger }}>{error}</p>
+        <ErrorBanner
+          message={error}
+          onRetry={() => {
+            setError(null);
+            setLoading(true);
+            void (async () => {
+              try {
+                const res = await apiClient.get<TransactionPage>(
+                  `/transactions?${buildQuery(filtersRef.current)}`,
+                );
+                const page = res.data;
+                setTransactions(page.items ?? []);
+                setNextCursor(page.nextCursor ?? null);
+              } catch {
+                setError(
+                  intl.formatMessage({
+                    id: 'screen.transactionList.error',
+                    defaultMessage: 'Failed to load transactions',
+                  }),
+                );
+              } finally {
+                setLoading(false);
+              }
+            })();
+          }}
+        />
       )}
 
       {!loading && error === null && transactions.length === 0 && (
-        <p style={{ color: theme.color.text.secondary }}>
-          <FormattedMessage
-            id="screen.transactionList.empty"
-            defaultMessage="No transactions found"
-          />
-        </p>
+        <EmptyState
+          icon="💸"
+          title={
+            <FormattedMessage
+              id="component.shared.empty.noTransactions"
+              defaultMessage="No transactions yet"
+            />
+          }
+        />
       )}
 
       {transactions.length > 0 && (
