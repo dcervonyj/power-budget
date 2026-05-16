@@ -68,6 +68,13 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
     return rows[0] ? this.toEntity(rows[0].household) : null;
   }
 
+  async scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void> {
+    await this.db
+      .update(schema.households)
+      .set({ deleteScheduledAt: scheduledFor })
+      .where(eq(schema.households.id, id));
+  }
+
   private toEntity(row: schema.SelectHousehold): Household {
     return {
       id: row.id as HouseholdId,

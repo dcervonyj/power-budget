@@ -4,6 +4,7 @@ export const QUEUE_OUTBOX_RELAY = 'outbox-relay';
 export const QUEUE_PERIOD_CLOSE = 'period-close';
 export const QUEUE_ECB_FX = 'ecb-fx';
 export const QUEUE_REFRESH_PLAN_ACTUALS = 'refresh-plan-actuals';
+export const QUEUE_HOUSEHOLD_EXPORT = 'household-export';
 export const QUEUE_DLQ = 'dlq';
 
 export const ALL_QUEUES = [
@@ -13,6 +14,7 @@ export const ALL_QUEUES = [
   QUEUE_PERIOD_CLOSE,
   QUEUE_ECB_FX,
   QUEUE_REFRESH_PLAN_ACTUALS,
+  QUEUE_HOUSEHOLD_EXPORT,
 ] as const;
 
 export type QueueName = (typeof ALL_QUEUES)[number];
