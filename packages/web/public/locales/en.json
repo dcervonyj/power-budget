@@ -130,5 +130,9 @@
   "component.auditLog.title": "Audit Log",
   "component.auditLog.empty": "No audit events",
   "component.auditLog.actor.system": "System",
-  "component.auditLog.loading": "Loading…"
+  "component.auditLog.loading": "Loading…",
+  "component.historyDrawer.title": "History",
+  "component.historyDrawer.empty": "No history yet",
+  "component.historyDrawer.actor": "by {actor}",
+  "component.historyDrawer.loading": "Loading…"
 }
