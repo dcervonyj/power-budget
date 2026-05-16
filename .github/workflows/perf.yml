@@ -1,0 +1,53 @@
+# Note: This job requires a running backend with seeded data. In CI, it runs when 'perf' label is present.
+name: Perf gate
+
+on:
+  pull_request:
+    types: [labeled]
+  workflow_dispatch:
+
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  perf-gate:
+    name: k6 dashboard perf gate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'perf'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install k6
+        run: |
+          curl https://github.com/grafana/k6/releases/download/v0.54.0/k6-v0.54.0-linux-amd64.tar.gz -L | tar xvz
+          sudo cp k6-v0.54.0-linux-amd64/k6 /usr/local/bin/k6
+
+      - name: Run perf test
+        env:
+          K6_BASE_URL: ${{ vars.K6_BASE_URL || 'http://localhost:3000' }}
+          K6_PLAN_ID: ${{ vars.K6_PLAN_ID || 'placeholder-plan-id' }}
+          K6_AUTH_TOKEN: ${{ secrets.K6_AUTH_TOKEN || 'placeholder-token' }}
+        run: k6 run --out json=k6-results.json tests/perf/dashboard.k6.js
+
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results
+          path: k6-results.json
+          if-no-files-found: ignore
