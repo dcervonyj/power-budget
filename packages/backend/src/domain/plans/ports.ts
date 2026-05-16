@@ -32,6 +32,8 @@ export interface PlanRepository {
   listActive(query: { userId: UserId; householdId: HouseholdId; date: Date }): Promise<Plan[]>;
   update(id: PlanId, patch: { readonly name?: string }, scope: HouseholdScope): Promise<Plan>;
   archive(id: PlanId, at: Date): Promise<void>;
+  /** System-level query — no HouseholdScope needed. Returns all non-archived plans ending on the given date. */
+  findByPeriodEnd(date: Date): Promise<Plan[]>;
 }
 
 export interface PlannedItemRepository {

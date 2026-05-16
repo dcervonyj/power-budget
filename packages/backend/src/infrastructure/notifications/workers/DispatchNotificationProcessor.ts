@@ -1,6 +1,10 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
-import type { NotificationRepository, EmailChannel, TemplateRenderer } from '../../../domain/notifications/ports.js';
+import type {
+  NotificationRepository,
+  EmailChannel,
+  TemplateRenderer,
+} from '../../../domain/notifications/ports.js';
 import { QUEUE_NOTIFICATION_DISPATCH } from '../../queue/queue.constants.js';
 
 export interface DispatchNotificationJobPayload {
@@ -12,6 +16,8 @@ const SUBJECT_BY_KIND: Record<string, string> = {
   weekly_digest: 'Your Weekly Budget Summary — Power Budget',
   reconnect_reminder: 'Bank Connection Expiring — Power Budget',
 };
+
+export { SUBJECT_BY_KIND };
 
 @Processor(QUEUE_NOTIFICATION_DISPATCH, { concurrency: 5 })
 export class DispatchNotificationProcessor extends WorkerHost {

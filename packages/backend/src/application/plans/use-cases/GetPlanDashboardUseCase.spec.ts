@@ -63,6 +63,7 @@ describe('GetPlanDashboardUseCase', () => {
       listActive: vi.fn(),
       update: vi.fn(),
       archive: vi.fn(),
+      findByPeriodEnd: vi.fn(),
     };
     actualsReader = { read: vi.fn() };
     useCase = new GetPlanDashboardUseCase(planRepo, actualsReader);
