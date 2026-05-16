@@ -265,7 +265,7 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | MOB-012 | Plans list + planned-item editor             | Mobile  | #92 |
 | QA-005  | Tenancy spec — every endpoint                | QA      | #90 |
 
-### Wave 14
+### Wave 14 ✅ Done
 
 | ID      | Title                                               | Area     | PR   |
 | ------- | --------------------------------------------------- | -------- | ---- |
