@@ -1,1 +1,10 @@
-{}
+{
+  "screen.dashboard.title": "Dashboard",
+  "screen.dashboard.income": "Income",
+  "screen.dashboard.expenses": "Expenses",
+  "screen.dashboard.unplanned": "Unplanned",
+  "screen.dashboard.bottomLine": "Net",
+  "screen.dashboard.planned": "Planned",
+  "screen.dashboard.actual": "Actual",
+  "screen.dashboard.noPlan": "No active plan"
+}
