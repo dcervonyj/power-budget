@@ -76,7 +76,7 @@ export function TransactionListScreen(): React.JSX.Element {
   // Load categories once
   useEffect(() => {
     void apiClient.get<unknown>('/categories').then((res: { data: unknown }) => {
-      setCategories(res.data as unknown as Category[]);
+      setCategories(res.data as Category[]);
     });
   }, []);
 

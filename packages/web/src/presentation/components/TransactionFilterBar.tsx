@@ -175,7 +175,7 @@ export function TransactionFilterBar({
           onChange={(e) => {
             set('currency', e.target.value.toUpperCase());
           }}
-          placeholder="EUR"
+          placeholder={intl.formatMessage({ id: 'screen.transactionList.filter.currencyPlaceholder', defaultMessage: 'EUR' })}
           maxLength={3}
           style={{ ...inputStyle, width: 72 }}
         />

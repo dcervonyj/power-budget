@@ -563,7 +563,10 @@ export function TransactionDetailModal({
                           marginLeft: theme.space.sm,
                         }}
                       >
-                        {planName} · {item.direction}
+                        {intl.formatMessage(
+                          { id: 'modal.transactionDetail.planAndDirection', defaultMessage: '{planName} · {direction}' },
+                          { planName, direction: item.direction },
+                        )}
                       </span>
                     </span>
                     <span
