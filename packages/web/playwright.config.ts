@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 const BASE_URL = process.env['BASE_URL'] ?? 'http://localhost:5173';
 
+// When not in full e2e mode, only run @smoke tagged tests (but always run setup)
+const smokeGrep = process.env['TEST_ENV'] === 'e2e' ? undefined : /smoke/;
+
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
@@ -15,6 +18,7 @@ export default defineConfig({
   },
   projects: [
     {
+      // Setup always runs regardless of grep — never apply grep here
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
     },
@@ -25,6 +29,7 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
+      grep: smokeGrep,
     },
     {
       name: 'firefox',
@@ -33,6 +38,7 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
+      grep: smokeGrep,
     },
     {
       name: 'webkit',
@@ -41,8 +47,7 @@ export default defineConfig({
         storageState: 'e2e/.auth/user.json',
       },
       dependencies: ['setup'],
+      grep: smokeGrep,
     },
   ],
-  // Only run smoke tests in CI if TEST_ENV=e2e
-  grep: process.env['TEST_ENV'] === 'e2e' ? undefined : /smoke/,
 });
