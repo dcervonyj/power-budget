@@ -115,7 +115,7 @@ const ConnectionCard = observer(function ConnectionCard({
             fontSize: theme.fontSize.sm,
             fontWeight: theme.fontWeight.medium,
             padding: `${String(theme.space.xs)}px ${String(theme.space.sm)}px`,
-            borderRadius: theme.radius.full ?? theme.radius.lg,
+            borderRadius: theme.radius.pill,
             backgroundColor: bg,
             color,
           }}
