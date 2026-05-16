@@ -1,0 +1,10 @@
+Power Budget — Inteligentne finanse osobiste
+
+Kontroluj swoje pieniądze z Power Budget — aplikacją do budżetowania dla gospodarstw domowych z priorytetem prywatności.
+
+FUNKCJE:
+• Wielowalutowy budżet z kursami wymiany w czasie rzeczywistym
+• Automatyczna synchronizacja transakcji bankowych (GoCardless PSD2, Wise API)
+• Wspólne plany gospodarstwa domowego z ustawieniami prywatności
+• Szczegółowa analityka wydatków według kategorii
+• Bezpieczne uwierzytelnianie biometryczne
