@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { observer } from 'mobx-react-lite';
+import { useLocalObservable } from 'mobx-react-lite';
 import { useTheme } from '../../components/ThemeContext.js';
 import { SkeletonList } from '../../components/shared/SkeletonList.js';
 import { EmptyState } from '../../components/shared/EmptyState.js';
@@ -10,6 +12,8 @@ import {
   type TransactionFilters,
 } from '../../components/TransactionFilterBar.js';
 import { TransactionRow } from '../../components/TransactionRow.js';
+import { BulkActionBar } from '../../components/BulkActionBar.js';
+import { MappingModal } from '../../components/MappingModal.js';
 import { apiClient } from '../../../AppProviders.js';
 import type { Transaction } from '../../components/TransactionDetailModal.js';
 
@@ -25,11 +29,37 @@ interface TransactionPage {
 
 const LIMIT = 50;
 
-export function TransactionListScreen(): React.JSX.Element {
+export const TransactionListScreen = observer(function TransactionListScreen(): React.JSX.Element {
   const theme = useTheme();
   const intl = useIntl();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const selection = useLocalObservable(() => ({
+    ids: new Set<string>(),
+    toggle(id: string): void {
+      if (this.ids.has(id)) {
+        this.ids.delete(id);
+      } else {
+        this.ids.add(id);
+      }
+    },
+    selectAll(txIds: string[]): void {
+      txIds.forEach((id) => this.ids.add(id));
+    },
+    clear(): void {
+      this.ids.clear();
+    },
+    get size(): number {
+      return this.ids.size;
+    },
+    get selectedIds(): string[] {
+      return Array.from(this.ids);
+    },
+  }));
+
+  const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   const filters: TransactionFilters = {
     from: searchParams.get('from') ?? '',
@@ -172,6 +202,25 @@ export function TransactionListScreen(): React.JSX.Element {
     void navigate(`/transactions/${id}`);
   };
 
+  const allSelected =
+    transactions.length > 0 && transactions.every((tx) => selection.ids.has(tx.id));
+  const someSelected = transactions.some((tx) => selection.ids.has(tx.id));
+
+  // Sync indeterminate state on the select-all checkbox
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someSelected && !allSelected;
+    }
+  }, [someSelected, allSelected]);
+
+  const handleSelectAll = (): void => {
+    if (allSelected) {
+      selection.clear();
+    } else {
+      selection.selectAll(transactions.map((tx) => tx.id));
+    }
+  };
+
   return (
     <div
       style={{
@@ -242,8 +291,53 @@ export function TransactionListScreen(): React.JSX.Element {
 
       {transactions.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.space.sm,
+              paddingLeft: theme.space.sm,
+              paddingBottom: theme.space.xs,
+            }}
+          >
+            <input
+              ref={selectAllRef}
+              type="checkbox"
+              aria-label={intl.formatMessage({
+                id: 'screen.transactionList.selectAll',
+                defaultMessage: 'Select all',
+              })}
+              checked={allSelected}
+              onChange={handleSelectAll}
+            />
+            <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+              <FormattedMessage id="screen.transactionList.selectAll" defaultMessage="Select all" />
+            </span>
+          </div>
+
           {transactions.map((tx) => (
-            <TransactionRow key={tx.id} transaction={tx} onClick={handleRowClick} />
+            <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: theme.space.sm }}>
+              <input
+                type="checkbox"
+                aria-label={intl.formatMessage(
+                  {
+                    id: 'screen.transactionList.selectRow',
+                    defaultMessage: 'Select transaction {id}',
+                  },
+                  { id: tx.id },
+                )}
+                checked={selection.ids.has(tx.id)}
+                onChange={() => {
+                  selection.toggle(tx.id);
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <TransactionRow transaction={tx} onClick={handleRowClick} />
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -262,6 +356,31 @@ export function TransactionListScreen(): React.JSX.Element {
           <FormattedMessage id="screen.transactionList.loadMore" defaultMessage="Load more" />
         </p>
       )}
+
+      <BulkActionBar
+        selectedIds={selection.selectedIds}
+        onMapAll={() => {
+          setIsMappingModalOpen(true);
+        }}
+        onClear={() => {
+          selection.clear();
+        }}
+        onActionComplete={() => {
+          selection.clear();
+        }}
+      />
+
+      <MappingModal
+        isOpen={isMappingModalOpen}
+        selectedIds={selection.selectedIds}
+        onClose={() => {
+          setIsMappingModalOpen(false);
+        }}
+        onSuccess={() => {
+          selection.clear();
+          setIsMappingModalOpen(false);
+        }}
+      />
     </div>
   );
-}
+});
