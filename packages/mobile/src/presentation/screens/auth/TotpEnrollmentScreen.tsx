@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, Alert, Text, Image } from 'react-native';
+import { View, ScrollView, StyleSheet, Alert, Text, Linking, TouchableOpacity } from 'react-native';
 import { useIntl, FormattedMessage } from 'react-intl';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import QRCode from 'react-native-qrcode-svg';
+import * as Clipboard from 'expo-clipboard';
+import * as Sharing from 'expo-sharing';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import { Button } from '../../components/Button.js';
 import { Input } from '../../components/Input.js';
@@ -12,24 +15,38 @@ const t = rnDarkTheme;
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'TotpEnrollment'>;
 
+type Phase = 'loading' | 'qr' | 'recovery';
+
+/** Extract the secret key from an otpauth:// URI */
+function extractSecret(otpauthUri: string): string {
+  try {
+    const url = new URL(otpauthUri);
+    return url.searchParams.get('secret') ?? '';
+  } catch {
+    return '';
+  }
+}
+
 export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
   const intl = useIntl();
-  const [qrCodeUri, setQrCodeUri] = useState<string | null>(null);
+  const [qrCodeUri, setQrCodeUri] = useState<string>('');
+  const [manualEntryKey, setManualEntryKey] = useState<string>('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [enrolling, setEnrolling] = useState(true);
+  const [phase, setPhase] = useState<Phase>('loading');
 
   useEffect(() => {
     void authService
       .enableTotp()
       .then(({ qrCodeUri: uri, recoveryCodes: codes }) => {
         setQrCodeUri(uri);
+        setManualEntryKey(extractSecret(uri));
         setRecoveryCodes(codes);
-        setEnrolling(false);
+        setPhase('qr');
       })
       .catch(() => {
-        setEnrolling(false);
+        setPhase('qr');
         Alert.alert(
           intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),
           intl.formatMessage({
@@ -39,6 +56,19 @@ export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
         );
       });
   }, []);
+
+  const handleOpenInAuthenticator = (): void => {
+    if (!qrCodeUri) return;
+    void Linking.openURL(qrCodeUri).catch(() => {
+      Alert.alert(
+        intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),
+        intl.formatMessage({
+          id: 'error.noAuthenticatorApp',
+          defaultMessage: 'No authenticator app found. Install one from the App Store.',
+        }),
+      );
+    });
+  };
 
   const handleVerify = async (): Promise<void> => {
     if (!code || code.length !== 6) {
@@ -55,7 +85,7 @@ export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
     setLoading(true);
     try {
       await authService.verifyTotp(code);
-      navigation.navigate('Login');
+      setPhase('recovery');
     } catch {
       Alert.alert(
         intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),
@@ -69,9 +99,44 @@ export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
     }
   };
 
-  if (enrolling) {
+  const handleCopyAll = async (): Promise<void> => {
+    await Clipboard.setStringAsync(recoveryCodes.join('\n'));
+    Alert.alert(
+      intl.formatMessage({ id: 'action.copied', defaultMessage: 'Copied' }),
+      intl.formatMessage({
+        id: 'screen.totp.recoveryCodesCopied',
+        defaultMessage: 'Recovery codes copied to clipboard.',
+      }),
+    );
+  };
+
+  const handleShare = async (): Promise<void> => {
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (!isAvailable) {
+      await Clipboard.setStringAsync(recoveryCodes.join('\n'));
+      Alert.alert(
+        intl.formatMessage({ id: 'action.copied', defaultMessage: 'Copied' }),
+        intl.formatMessage({
+          id: 'screen.totp.recoveryCodesCopied',
+          defaultMessage: 'Recovery codes copied to clipboard.',
+        }),
+      );
+      return;
+    }
+    // expo-sharing requires a file; copy to clipboard as fallback for text
+    await Clipboard.setStringAsync(recoveryCodes.join('\n'));
+    Alert.alert(
+      intl.formatMessage({ id: 'action.copied', defaultMessage: 'Copied' }),
+      intl.formatMessage({
+        id: 'screen.totp.recoveryCodesCopied',
+        defaultMessage: 'Recovery codes copied to clipboard.',
+      }),
+    );
+  };
+
+  if (phase === 'loading') {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, styles.centered]}>
         <Text style={styles.body}>
           <FormattedMessage id="screen.totp.loading" defaultMessage="Setting up 2FA…" />
         </Text>
@@ -79,10 +144,64 @@ export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
     );
   }
 
-  const qrImageUri =
-    qrCodeUri !== null
-      ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUri)}`
-      : null;
+  if (phase === 'recovery') {
+    return (
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>
+          <FormattedMessage id="screen.totp.recovery.title" defaultMessage="Recovery Codes" />
+        </Text>
+
+        <View style={styles.warningBox}>
+          <Text style={styles.warningText}>
+            <FormattedMessage
+              id="screen.totp.recovery.warning"
+              defaultMessage="⚠️ Save these codes — they won't be shown again. Use one if you lose access to your authenticator app."
+            />
+          </Text>
+        </View>
+
+        <View style={styles.codesContainer}>
+          {recoveryCodes.map((rc) => (
+            <Text key={rc} style={styles.code}>
+              {rc}
+            </Text>
+          ))}
+        </View>
+
+        <View style={styles.row}>
+          <View style={styles.flex1}>
+            <Button
+              variant="secondary"
+              onPress={() => {
+                void handleCopyAll();
+              }}
+            >
+              {intl.formatMessage({ id: 'action.copyAll', defaultMessage: 'Copy All' })}
+            </Button>
+          </View>
+          <View style={[styles.flex1, styles.rowGap]}>
+            <Button
+              variant="secondary"
+              onPress={() => {
+                void handleShare();
+              }}
+            >
+              {intl.formatMessage({ id: 'action.share', defaultMessage: 'Share' })}
+            </Button>
+          </View>
+        </View>
+
+        <Button
+          variant="primary"
+          onPress={() => {
+            navigation.navigate('Login');
+          }}
+        >
+          {intl.formatMessage({ id: 'action.done', defaultMessage: 'Done' })}
+        </Button>
+      </ScrollView>
+    );
+  }
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
@@ -100,31 +219,47 @@ export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
         />
       </Text>
 
-      {qrImageUri !== null && (
+      {qrCodeUri !== '' && (
         <View style={styles.qrContainer}>
-          <Image
-            source={{ uri: qrImageUri }}
-            style={styles.qrCode}
-            accessibilityLabel={intl.formatMessage({
-              id: 'screen.totp.qrAlt',
-              defaultMessage: 'QR Code',
-            })}
+          <QRCode
+            value={qrCodeUri}
+            size={200}
+            backgroundColor={t.colorSurfaceBase}
+            color={t.colorTextPrimary}
           />
         </View>
       )}
 
-      {recoveryCodes.length > 0 && (
-        <View style={styles.codesContainer}>
-          <Text style={styles.codesTitle}>
-            <FormattedMessage id="screen.totp.recoveryCodes" defaultMessage="Recovery Codes" />
+      {manualEntryKey !== '' && (
+        <View style={styles.manualKeyContainer}>
+          <Text style={styles.manualKeyLabel}>
+            <FormattedMessage
+              id="screen.totp.manualKey"
+              defaultMessage="Or enter this key manually:"
+            />
           </Text>
-          {recoveryCodes.map((rc) => (
-            <Text key={rc} style={styles.code}>
-              {rc}
-            </Text>
-          ))}
+          <TouchableOpacity
+            onPress={() => {
+              void Clipboard.setStringAsync(manualEntryKey);
+            }}
+            accessibilityLabel={intl.formatMessage({
+              id: 'screen.totp.manualKeyCopy',
+              defaultMessage: 'Copy manual entry key',
+            })}
+          >
+            <Text style={styles.manualKeyValue}>{manualEntryKey}</Text>
+          </TouchableOpacity>
         </View>
       )}
+
+      <Button variant="secondary" onPress={handleOpenInAuthenticator}>
+        {intl.formatMessage({
+          id: 'action.openInAuthenticator',
+          defaultMessage: 'Open in Authenticator',
+        })}
+      </Button>
+
+      <View style={styles.spacer} />
 
       <Input
         label={intl.formatMessage({ id: 'field.totpCode', defaultMessage: '2FA Code' })}
@@ -156,6 +291,10 @@ const styles = StyleSheet.create({
     padding: t.spaceLg,
     backgroundColor: t.colorSurfaceBase,
   },
+  centered: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   title: {
     fontSize: t.fontSizeXl,
     fontWeight: t.fontWeightBold,
@@ -172,10 +311,43 @@ const styles = StyleSheet.create({
   qrContainer: {
     alignItems: 'center',
     marginBottom: t.spaceLg,
+    padding: t.spaceMd,
+    backgroundColor: t.colorSurfaceBase,
+    borderRadius: t.radiusMd,
   },
-  qrCode: {
-    width: 200,
-    height: 200,
+  manualKeyContainer: {
+    backgroundColor: t.colorSurfaceMid,
+    padding: t.spaceMd,
+    borderRadius: t.radiusMd,
+    marginBottom: t.spaceMd,
+    alignItems: 'center',
+  },
+  manualKeyLabel: {
+    color: t.colorTextSecondary,
+    fontSize: t.fontSizeSm,
+    marginBottom: t.spaceXs,
+  },
+  manualKeyValue: {
+    color: t.colorTextPrimary,
+    fontSize: t.fontSizeMd,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+  },
+  spacer: {
+    height: t.spaceMd,
+  },
+  warningBox: {
+    backgroundColor: t.colorSurfaceMid,
+    borderLeftWidth: 4,
+    borderLeftColor: t.colorStatusWarning,
+    padding: t.spaceMd,
+    borderRadius: t.radiusSm,
+    marginBottom: t.spaceLg,
+  },
+  warningText: {
+    color: t.colorTextPrimary,
+    fontSize: t.fontSizeSm,
+    lineHeight: 20,
   },
   codesContainer: {
     backgroundColor: t.colorSurfaceMid,
@@ -183,14 +355,20 @@ const styles = StyleSheet.create({
     borderRadius: t.radiusMd,
     marginBottom: t.spaceLg,
   },
-  codesTitle: {
-    color: t.colorTextSecondary,
-    fontSize: t.fontSizeSm,
-    marginBottom: t.spaceSm,
-  },
   code: {
     color: t.colorTextPrimary,
     fontSize: t.fontSizeSm,
     fontFamily: 'monospace',
+    paddingVertical: t.spaceXs,
+  },
+  row: {
+    flexDirection: 'row',
+    marginBottom: t.spaceMd,
+  },
+  flex1: {
+    flex: 1,
+  },
+  rowGap: {
+    marginLeft: t.spaceSm,
   },
 });
