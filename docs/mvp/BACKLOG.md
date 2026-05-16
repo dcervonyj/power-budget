@@ -248,22 +248,22 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 13 ✅ Done
 
-| ID      | Title                                        | Area    | PR   |
-| ------- | -------------------------------------------- | ------- | ---- |
-| BE-024  | Bank-sync scheduler + processor              | Backend | #88  |
-| BE-030  | Dashboard query endpoint + materialised view | Backend | #87  |
-| BE-034  | Data export + household deletion             | Backend | #89  |
-| WEB-005 | Auth screens                                 | Web     | #83  |
-| WEB-008 | Plans list + plan editor                     | Web     | #81  |
-| WEB-015 | Categories management                        | Web     | #82  |
-| WEB-016 | Currency switcher + MoneyView                | Web     | #84  |
-| WEB-017 | Locale switcher + i18n provider              | Web     | #85  |
-| WEB-020 | Manual transaction entry                     | Web     | #86  |
-| MOB-006 | TOTP enrolment + iOS 2FA                     | Mobile  | #91  |
-| MOB-007 | Deep linking — magic-link + OAuth            | Mobile  | #94  |
-| MOB-008 | Biometric unlock                             | Mobile  | #93  |
-| MOB-012 | Plans list + planned-item editor             | Mobile  | #92  |
-| QA-005  | Tenancy spec — every endpoint                | QA      | #90  |
+| ID      | Title                                        | Area    | PR  |
+| ------- | -------------------------------------------- | ------- | --- |
+| BE-024  | Bank-sync scheduler + processor              | Backend | #88 |
+| BE-030  | Dashboard query endpoint + materialised view | Backend | #87 |
+| BE-034  | Data export + household deletion             | Backend | #89 |
+| WEB-005 | Auth screens                                 | Web     | #83 |
+| WEB-008 | Plans list + plan editor                     | Web     | #81 |
+| WEB-015 | Categories management                        | Web     | #82 |
+| WEB-016 | Currency switcher + MoneyView                | Web     | #84 |
+| WEB-017 | Locale switcher + i18n provider              | Web     | #85 |
+| WEB-020 | Manual transaction entry                     | Web     | #86 |
+| MOB-006 | TOTP enrolment + iOS 2FA                     | Mobile  | #91 |
+| MOB-007 | Deep linking — magic-link + OAuth            | Mobile  | #94 |
+| MOB-008 | Biometric unlock                             | Mobile  | #93 |
+| MOB-012 | Plans list + planned-item editor             | Mobile  | #92 |
+| QA-005  | Tenancy spec — every endpoint                | QA      | #90 |
 
 ### Wave 14
 
@@ -280,23 +280,23 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | MOB-011 | Transactions list + detail (mobile)                 | Mobile   | #103 |
 | SEC-005 | GDPR — privacy policy + data deletion runbook       | Security | #104 |
 
-### Wave 15
+### Wave 15 ✅ Done
 
-| ID      | Title                                    | Area     |
-| ------- | ---------------------------------------- | -------- |
-| BE-032  | Dashboard perf — k6 budget gate          | Backend  |
-| BE-033  | Outbox relay worker + period close       | Backend  |
-| WEB-007 | Onboarding wizard                        | Web      |
-| WEB-010 | Bank connections (web)                   | Web      |
-| WEB-013 | Dashboard screen                         | Web      |
-| WEB-018 | Settings screen (5 tabs)                 | Web      |
-| WEB-021 | Household drill-in (privacy-aware)       | Web      |
-| WEB-022 | Loading / empty / error states           | Web      |
-| MOB-014 | TestFlight pipeline + App Store metadata | Mobile   |
-| QA-003  | Playwright E2E setup                     | QA       |
-| QA-007  | Notification E2E test                    | QA       |
-| QA-008  | k6 dashboard perf SLI                    | QA       |
-| SEC-009 | Pen-test checklist                       | Security |
+| ID      | Title                                    | Area     | PR                                                         |
+| ------- | ---------------------------------------- | -------- | ---------------------------------------------------------- |
+| BE-032  | Dashboard perf — k6 budget gate          | Backend  | [#107](https://github.com/dcervonyj/power-budget/pull/107) |
+| BE-033  | Outbox relay worker + period close       | Backend  | [#109](https://github.com/dcervonyj/power-budget/pull/109) |
+| WEB-007 | Onboarding wizard                        | Web      | [#105](https://github.com/dcervonyj/power-budget/pull/105) |
+| WEB-010 | Bank connections (web)                   | Web      | [#110](https://github.com/dcervonyj/power-budget/pull/110) |
+| WEB-013 | Dashboard screen                         | Web      | [#115](https://github.com/dcervonyj/power-budget/pull/115) |
+| WEB-018 | Settings screen (5 tabs)                 | Web      | [#111](https://github.com/dcervonyj/power-budget/pull/111) |
+| WEB-021 | Household drill-in (privacy-aware)       | Web      | [#116](https://github.com/dcervonyj/power-budget/pull/116) |
+| WEB-022 | Loading / empty / error states           | Web      | [#117](https://github.com/dcervonyj/power-budget/pull/117) |
+| MOB-014 | TestFlight pipeline + App Store metadata | Mobile   | [#112](https://github.com/dcervonyj/power-budget/pull/112) |
+| QA-003  | Playwright E2E setup                     | QA       | [#113](https://github.com/dcervonyj/power-budget/pull/113) |
+| QA-007  | Notification E2E test                    | QA       | [#106](https://github.com/dcervonyj/power-budget/pull/106) |
+| QA-008  | k6 dashboard perf SLI                    | QA       | [#114](https://github.com/dcervonyj/power-budget/pull/114) |
+| SEC-009 | Pen-test checklist                       | Security | [#108](https://github.com/dcervonyj/power-budget/pull/108) |
 
 ### Wave 16 — final gate
 
