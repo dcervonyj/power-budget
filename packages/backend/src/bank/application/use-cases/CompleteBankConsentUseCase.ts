@@ -1,0 +1,30 @@
+import type { BankConnectionId } from '@power-budget/core';
+import type { BankConnectionRepository, BankConnectorRegistry } from '../../domain/ports.js';
+import { BankConsentNotFoundError } from '../../domain/errors.js';
+import type { CompleteBankConsentInput, CompleteBankConsentOutput } from '../models/index.js';
+export type { CompleteBankConsentInput, CompleteBankConsentOutput };
+
+export class CompleteBankConsentUseCase {
+  constructor(
+    private readonly connectionRepo: BankConnectionRepository,
+    private readonly registry: BankConnectorRegistry,
+  ) {}
+
+  async execute(input: CompleteBankConsentInput): Promise<CompleteBankConsentOutput> {
+    const connection = await this.connectionRepo.findByExternalConsentRef(input.externalConsentRef);
+    if (connection === null) {
+      throw new BankConsentNotFoundError();
+    }
+
+    const connector = this.registry.resolve(connection.provider);
+    const { consentToken, expiresAt } = await connector.completeConsent({
+      externalConsentRef: input.externalConsentRef,
+      callbackPayload: input.callbackPayload,
+    });
+
+    await this.connectionRepo.updateConsent(connection.id, consentToken, expiresAt);
+    await this.connectionRepo.markActive(connection.id);
+
+    return { connectionId: connection.id };
+  }
+}

@@ -1,0 +1,24 @@
+import type { PlanId, HouseholdId, PlanActualsView } from '@power-budget/core';
+import type { PlanRepository, PlanActualsReader, HouseholdScope } from '../../domain/ports.js';
+import type { GetPlanDashboardInput } from '../models/index.js';
+export type { GetPlanDashboardInput };
+
+export class GetPlanDashboardUseCase {
+  constructor(
+    private readonly planRepo: PlanRepository,
+    private readonly actualsReader: PlanActualsReader,
+  ) {}
+
+  async execute(input: GetPlanDashboardInput): Promise<PlanActualsView> {
+    const scope: HouseholdScope = { householdId: input.householdId };
+
+    const plan = await this.planRepo.findById(input.planId, scope);
+    if (plan === null) {
+      throw new Error(
+        `PLAN_NOT_FOUND: Plan ${input.planId} not found in household ${input.householdId}`,
+      );
+    }
+
+    return this.actualsReader.read(input.planId, input.asOf);
+  }
+}
