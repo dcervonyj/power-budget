@@ -9,7 +9,17 @@ export interface AppProvidersProps {
   children: React.ReactNode;
 }
 
-type SupportedLocale = 'en' | 'uk' | 'ru' | 'pl';
+export type SupportedLocale = 'en' | 'uk' | 'ru' | 'pl';
+
+interface LocaleContextValue {
+  locale: SupportedLocale;
+  setLocale: (locale: SupportedLocale) => void;
+}
+
+export const LocaleContext = React.createContext<LocaleContextValue>({
+  locale: 'en',
+  setLocale: () => undefined,
+});
 
 const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
 
@@ -64,7 +74,7 @@ function NavigationWirer(): null {
  * Wraps children with IntlProvider (react-intl) plus platform adapters.
  */
 export function AppProviders({ children }: AppProvidersProps): React.JSX.Element {
-  const [locale] = useState<SupportedLocale>(resolveLocale);
+  const [locale, setLocale] = useState<SupportedLocale>(resolveLocale);
   const [messages, setMessages] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -72,9 +82,11 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
   }, [locale]);
 
   return (
-    <IntlProvider locale={locale} messages={messages} defaultLocale="en">
-      <NavigationWirer />
-      {children}
-    </IntlProvider>
+    <LocaleContext.Provider value={{ locale, setLocale }}>
+      <IntlProvider locale={locale} messages={messages} defaultLocale="en">
+        <NavigationWirer />
+        {children}
+      </IntlProvider>
+    </LocaleContext.Provider>
   );
 }
