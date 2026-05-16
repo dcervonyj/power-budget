@@ -28,4 +28,18 @@ export type { AuditLogDrawerProps } from './AuditLogDrawer.js';
 export { PlannedItemHistoryDrawer } from './PlannedItemHistoryDrawer.js';
 export type { PlannedItemHistoryDrawerProps } from './PlannedItemHistoryDrawer.js';
 
+export { TransactionFilterBar } from './TransactionFilterBar.js';
+export type { TransactionFilterBarProps, TransactionFilters } from './TransactionFilterBar.js';
+
+export { TransactionRow } from './TransactionRow.js';
+export type { TransactionRowProps } from './TransactionRow.js';
+
+export { TransactionDetailModal } from './TransactionDetailModal.js';
+export type {
+  TransactionDetailModalProps,
+  Transaction,
+  TransactionMapping,
+} from './TransactionDetailModal.js';
+
+
 

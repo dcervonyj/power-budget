@@ -1,10 +1,24 @@
 import React from 'react';
-import { FormattedMessage } from 'react-intl';
+import { useParams, useNavigate } from 'react-router-dom';
+import { TransactionListScreen } from './TransactionListScreen.js';
+import { TransactionDetailModal } from '../../components/TransactionDetailModal.js';
 
 export function TransactionDetailScreen(): React.JSX.Element {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const handleClose = (): void => {
+    void navigate('/transactions');
+  };
+
   return (
-    <div>
-      <FormattedMessage id="screen.transactionDetail.title" defaultMessage="Transaction Detail" />
-    </div>
+    <>
+      <TransactionListScreen />
+      <TransactionDetailModal
+        transactionId={id ?? ''}
+        isOpen={id !== undefined && id !== ''}
+        onClose={handleClose}
+      />
+    </>
   );
 }
