@@ -25,3 +25,7 @@ export type { ManualTransactionFormProps } from './ManualTransactionForm.js';
 export { AuditLogDrawer } from './AuditLogDrawer.js';
 export type { AuditLogDrawerProps } from './AuditLogDrawer.js';
 
+export { PlannedItemHistoryDrawer } from './PlannedItemHistoryDrawer.js';
+export type { PlannedItemHistoryDrawerProps } from './PlannedItemHistoryDrawer.js';
+
+

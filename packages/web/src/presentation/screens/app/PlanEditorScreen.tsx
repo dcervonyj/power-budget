@@ -8,6 +8,7 @@ import { Select } from '../../components/Select.js';
 import { CustomPeriodPicker } from '../../components/CustomPeriodPicker.js';
 import type { CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
 import { apiClient } from '../../../AppProviders.js';
+import { PlannedItemHistoryDrawer } from '../../components/PlannedItemHistoryDrawer.js';
 
 type PlanPeriod = 'weekly' | 'monthly' | 'custom';
 type PlanStatus = 'active' | 'draft' | 'archived';
@@ -55,6 +56,7 @@ export function PlanEditorScreen(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [historyDrawer, setHistoryDrawer] = useState<{ planId: string; itemId: string } | null>(null);
 
   // Draft new item
   const [draftItem, setDraftItem] = useState<DraftItem>({
@@ -527,6 +529,14 @@ export function PlanEditorScreen(): React.JSX.Element {
                   </td>
                   <td style={cellStyle}>
                     <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setHistoryDrawer({ planId: id ?? '', itemId: item.id });
+                      }}
+                    >
+                      {intl.formatMessage({ id: 'screen.planEditor.historyButton', defaultMessage: 'History' })}
+                    </Button>
+                    <Button
                       variant="danger"
                       onClick={() => {
                         void handleRemoveItem(item.id);
@@ -624,6 +634,16 @@ export function PlanEditorScreen(): React.JSX.Element {
           </table>
         </div>
       </div>
+      {historyDrawer && (
+        <PlannedItemHistoryDrawer
+          planId={historyDrawer.planId}
+          itemId={historyDrawer.itemId}
+          isOpen={historyDrawer !== null}
+          onClose={() => {
+            setHistoryDrawer(null);
+          }}
+        />
+      )}
     </div>
   );
 }
