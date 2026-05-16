@@ -4,8 +4,12 @@ import type {
   UserId,
   HouseholdId,
   IsoDateTime,
+  IsoDate,
   LeftoverSnapshotId,
   LeftoverEntry,
+  TransactionId,
+  BankAccountId,
+  CategoryAggregate,
 } from '@power-budget/core';
 import type { PlanActualsView } from '@power-budget/core';
 import type {
@@ -69,4 +73,50 @@ export interface AuditLogPort {
     readonly subjectType: string;
     readonly subjectId: string;
   }): Promise<void>;
+}
+
+// ─── Unplanned transactions ───────────────────────────────────────────────────
+
+export interface UnplannedTransactionItem {
+  readonly id: TransactionId;
+  readonly description: string;
+  readonly amountMinor: bigint;
+  readonly currency: string;
+  readonly occurredOn: IsoDate;
+  readonly accountId: BankAccountId;
+  readonly source: string;
+}
+
+export interface UnplannedTransactionPage {
+  readonly items: UnplannedTransactionItem[];
+  readonly nextCursor: string | null;
+}
+
+export interface UnplannedTransactionQuery {
+  readonly householdId: HouseholdId;
+  readonly periodStart: IsoDate;
+  readonly periodEnd: IsoDate;
+  readonly direction: 'income' | 'expense';
+  readonly cursor?: string;
+  readonly limit?: number;
+}
+
+export interface UnplannedTransactionReader {
+  list(query: UnplannedTransactionQuery): Promise<UnplannedTransactionPage>;
+}
+
+// ─── Household dashboard ──────────────────────────────────────────────────────
+
+export interface HouseholdDashboardData {
+  readonly categories: CategoryAggregate[];
+}
+
+export interface HouseholdDashboardReader {
+  read(params: {
+    readonly householdId: HouseholdId;
+    readonly planId: PlanId;
+    readonly periodStart: IsoDate;
+    readonly periodEnd: IsoDate;
+    readonly viewerUserId: UserId;
+  }): Promise<HouseholdDashboardData>;
 }

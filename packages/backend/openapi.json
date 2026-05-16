@@ -1032,6 +1032,72 @@
         "tags": ["plans"]
       }
     },
+    "/plans/{id}/dashboard/unplanned": {
+      "get": {
+        "operationId": "PlansController_unplanned",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size (default 50)",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Pagination cursor (opaque, from previous response)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "direction",
+            "required": true,
+            "in": "query",
+            "description": "Filter by transaction direction",
+            "schema": {
+              "enum": ["income", "expense"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated unplanned transaction list"
+          },
+          "400": {
+            "description": "Missing or invalid direction parameter"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get paginated unplanned transactions for a plan period",
+        "tags": ["plans"]
+      }
+    },
     "/notifications/bounce": {
       "post": {
         "operationId": "NotificationsController_handleBounce",
@@ -1043,6 +1109,57 @@
         },
         "summary": "Handle email bounce webhook from Resend",
         "tags": ["notifications"]
+      }
+    },
+    "/households/{id}/dashboard": {
+      "get": {
+        "operationId": "HouseholdsController_dashboard",
+        "parameters": [
+          {
+            "name": "planId",
+            "required": true,
+            "in": "query",
+            "description": "Plan ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Household ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdDashboardResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get household-level category dashboard for a plan",
+        "tags": ["households"]
       }
     }
   },
@@ -1303,6 +1420,62 @@
           }
         },
         "required": ["provider", "bankId", "redirectUri"]
+      },
+      "HouseholdDashboardCategoryDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "description": "Category ID"
+          },
+          "categoryName": {
+            "type": "string",
+            "description": "Category name"
+          },
+          "privacyLevel": {
+            "type": "string",
+            "enum": ["full_detail", "total_with_counts", "total_only"],
+            "description": "Privacy level applied for the viewing user"
+          },
+          "totalAmountMinor": {
+            "type": "number",
+            "description": "Total amount in minor currency units (e.g. cents)"
+          },
+          "currency": {
+            "type": "string",
+            "description": "ISO 4217 currency code",
+            "example": "PLN"
+          },
+          "transactionCount": {
+            "type": "number",
+            "description": "Number of transactions (0 for total_only privacy)"
+          }
+        },
+        "required": [
+          "categoryId",
+          "categoryName",
+          "privacyLevel",
+          "totalAmountMinor",
+          "currency",
+          "transactionCount"
+        ]
+      },
+      "HouseholdDashboardResponseDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "description": "Plan ID this dashboard is computed for"
+          },
+          "categories": {
+            "description": "Per-category aggregates",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HouseholdDashboardCategoryDto"
+            }
+          }
+        },
+        "required": ["planId", "categories"]
       }
     }
   }

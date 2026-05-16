@@ -8,6 +8,7 @@ import { AuditPresentationModule } from './presentation/audit/AuditPresentationM
 import { BankPresentationModule } from './presentation/bank/BankPresentationModule.js';
 import { PlansPresentationModule } from './presentation/plans/PlansPresentationModule.js';
 import { NotificationsPresentationModule } from './presentation/notifications/NotificationsPresentationModule.js';
+import { HouseholdsPresentationModule } from './presentation/households/HouseholdsPresentationModule.js';
 import { RlsMiddleware } from './infrastructure/database/RlsMiddleware.js';
 
 @Module({
@@ -20,6 +21,7 @@ import { RlsMiddleware } from './infrastructure/database/RlsMiddleware.js';
     BankPresentationModule,
     PlansPresentationModule,
     NotificationsPresentationModule,
+    HouseholdsPresentationModule,
   ],
 })
 export class AppModule implements NestModule {
