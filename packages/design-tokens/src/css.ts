@@ -83,9 +83,13 @@ export function themesToCss(dark: Theme, light: Theme): string {
 }
 
 // When run directly as a script, emit CSS to stdout
-import { fileURLToPath } from 'node:url';
 import { darkTheme, lightTheme } from './tokens.js';
 
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (Array.isArray(process.argv) && process.argv[1] === fileURLToPath(import.meta.url)) {
   process.stdout.write(themesToCss(darkTheme, lightTheme));
+}
+
+function fileURLToPath(url: string | URL): string {
+  const href = url instanceof URL ? url.href : url;
+  return new URL(href).pathname;
 }
