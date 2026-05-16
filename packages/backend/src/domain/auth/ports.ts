@@ -1,4 +1,4 @@
-import type { UserId, HouseholdId, EncryptedString } from '@power-budget/core';
+import type { UserId, HouseholdId, EncryptedString, HouseholdExportId } from '@power-budget/core';
 import type {
   User,
   NewUser,
@@ -30,6 +30,7 @@ export interface HouseholdRepository {
   ): Promise<HouseholdMembership>;
   findMembership(householdId: HouseholdId, userId: UserId): Promise<HouseholdMembership | null>;
   findByUserId(userId: UserId): Promise<Household | null>;
+  scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void>;
 }
 
 export interface PasswordHashing {
@@ -106,4 +107,31 @@ export interface TotpStepUpStore {
   stamp(userId: UserId): Promise<void>;
   /** Returns true if userId verified TOTP within the configured TTL window. */
   isRecent(userId: UserId): Promise<boolean>;
+}
+
+export interface HouseholdExport {
+  readonly id: HouseholdExportId;
+  readonly householdId: HouseholdId;
+  readonly requestedByUserId: UserId;
+  readonly status: 'pending' | 'processing' | 'ready' | 'failed';
+  readonly downloadUrl: string | null;
+  readonly expiresAt: Date | null;
+  readonly createdAt: Date;
+}
+
+export interface HouseholdExportRepository {
+  create(input: {
+    id: HouseholdExportId;
+    householdId: HouseholdId;
+    requestedByUserId: UserId;
+  }): Promise<HouseholdExport>;
+  updateStatus(
+    id: HouseholdExportId,
+    update: { status: 'processing' | 'ready' | 'failed'; downloadUrl?: string; expiresAt?: Date },
+  ): Promise<void>;
+  findById(id: HouseholdExportId): Promise<HouseholdExport | null>;
+}
+
+export interface HouseholdExportQueuePort {
+  enqueue(payload: { exportId: HouseholdExportId; householdId: HouseholdId }): Promise<void>;
 }
