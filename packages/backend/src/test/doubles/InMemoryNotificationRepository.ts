@@ -4,8 +4,8 @@ import type {
   HouseholdMemberRow,
   NewNotificationOutbox,
   NotificationOutbox,
-} from '../../domain/notifications/entities.js';
-import type { NotificationRepository } from '../../domain/notifications/ports.js';
+} from '../../notifications/domain/entities.js';
+import type { NotificationRepository } from '../../notifications/domain/ports.js';
 
 // Internal mutable representation — avoids `as any` casts for markSent/markFailed/incrementAttempts
 interface StoredNotification {
@@ -89,9 +89,7 @@ export class InMemoryNotificationRepository implements NotificationRepository {
     }
   }
 
-  async findUserById(
-    userId: UserId,
-  ): Promise<{
+  async findUserById(userId: UserId): Promise<{
     email: string;
     displayName: string;
     locale: string;

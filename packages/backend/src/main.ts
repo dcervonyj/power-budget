@@ -7,7 +7,7 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import helmet from '@fastify/helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
-import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
+import { SentryExceptionFilter } from './shared/infrastructure/sentry/SentryExceptionFilter.js';
 
 Sentry.init({
   dsn: process.env['SENTRY_DSN'],

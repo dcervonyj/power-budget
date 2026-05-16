@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { HouseholdId, UserId } from '@power-budget/core';
-import { EnqueueNotificationUseCase } from '../application/notifications/use-cases/EnqueueNotificationUseCase.js';
-import { OverBudgetDetectorUseCase } from '../application/notifications/use-cases/OverBudgetDetectorUseCase.js';
+import { EnqueueNotificationUseCase } from '../notifications/application/use-cases/EnqueueNotificationUseCase.js';
+import { OverBudgetDetectorUseCase } from '../notifications/application/use-cases/OverBudgetDetectorUseCase.js';
 import { InMemoryNotificationRepository } from '../test/doubles/InMemoryNotificationRepository.js';
 import { InMemoryEmailChannel } from '../test/doubles/InMemoryEmailChannel.js';
 
