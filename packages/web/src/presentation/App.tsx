@@ -23,6 +23,11 @@ const TotpEnrollmentScreen = lazy(() =>
     default: m.TotpEnrollmentScreen,
   })),
 );
+const BankConsentCallbackScreen = lazy(() =>
+  import('./screens/auth/BankConsentCallbackScreen.js').then((m) => ({
+    default: m.BankConsentCallbackScreen,
+  })),
+);
 
 // App screens — lazy loaded
 const DashboardScreen = lazy(() =>
@@ -87,6 +92,7 @@ export function App() {
         <Route path="/register" element={<RegisterScreen />} />
         <Route path="/auth/magic-link" element={<MagicLinkScreen />} />
         <Route path="/auth/oauth/callback" element={<OAuthCallbackScreen />} />
+        <Route path="/auth/oauth/google/callback" element={<OAuthCallbackScreen />} />
 
         {/* Protected app routes */}
         <Route element={<RequireAuth />}>
@@ -99,6 +105,7 @@ export function App() {
           <Route path="/plans/:id/dashboard" element={<PlanDashboardScreen />} />
           <Route path="/bank-connections" element={<BankConnectionsScreen />} />
           <Route path="/bank-connections/new" element={<AddBankConnectionScreen />} />
+          <Route path="/bank/consent/callback" element={<BankConsentCallbackScreen />} />
           <Route path="/categories" element={<CategoriesScreen />} />
           <Route path="/household" element={<HouseholdScreen />} />
           <Route path="/settings" element={<SettingsScreen />} />

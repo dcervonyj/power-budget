@@ -1,27 +1,55 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { apiClient, tokenStore } from '../../../AppProviders.js';
+
+interface GoogleCallbackResponse {
+  accessToken: string;
+  refreshToken: string;
+}
 
 export function OAuthCallbackScreen(): React.JSX.Element {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const didRun = useRef(false);
 
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
   const hasError = searchParams.get('error') !== null;
 
   useEffect(() => {
-    if (code) {
-      const timer = setTimeout(() => {
-        navigate('/dashboard');
-      }, 500);
-      return () => {
-        clearTimeout(timer);
-      };
-    }
-    return undefined;
-  }, [code, navigate]);
+    if (didRun.current) return;
+    didRun.current = true;
 
-  if (hasError || !code) {
+    if (hasError || !code || !state) {
+      navigate('/login?error=oauth_failed', { replace: true });
+      return;
+    }
+
+    const storedNonce = sessionStorage.getItem('oauth_nonce');
+    if (state !== storedNonce) {
+      navigate('/login?error=oauth_failed', { replace: true });
+      return;
+    }
+
+    const completeOAuth = async (): Promise<void> => {
+      try {
+        const res = await apiClient.post<GoogleCallbackResponse>('/auth/oauth/google/callback', {
+          code,
+          state,
+        });
+        const data = res.data as unknown as GoogleCallbackResponse;
+        await tokenStore.setTokens(data.accessToken, data.refreshToken);
+        sessionStorage.removeItem('oauth_nonce');
+        navigate('/dashboard', { replace: true });
+      } catch {
+        navigate('/login?error=oauth_failed', { replace: true });
+      }
+    };
+    void completeOAuth();
+  }, [code, state, hasError, navigate]);
+
+  if (hasError || !code || !state) {
     return (
       <div>
         <p>
