@@ -116,12 +116,18 @@ export function AuditLogScreen(): React.JSX.Element {
                 >
                   {event.before && (
                     <div>
-                      <strong>Before:</strong> {JSON.stringify(event.before)}
+                      {intl.formatMessage(
+                        { id: 'common.beforeValue', defaultMessage: 'Before: {value}' },
+                        { value: JSON.stringify(event.before) },
+                      )}
                     </div>
                   )}
                   {event.after && (
                     <div>
-                      <strong>After:</strong> {JSON.stringify(event.after)}
+                      {intl.formatMessage(
+                        { id: 'common.afterValue', defaultMessage: 'After: {value}' },
+                        { value: JSON.stringify(event.after) },
+                      )}
                     </div>
                   )}
                 </div>
