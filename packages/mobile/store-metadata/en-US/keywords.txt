@@ -1,0 +1,1 @@
+budget,finance,money,personal finance,household,bank sync,multi-currency,savings,spending tracker,expense tracker
