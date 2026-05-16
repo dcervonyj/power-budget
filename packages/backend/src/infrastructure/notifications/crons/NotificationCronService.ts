@@ -1,18 +1,22 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
-import type { RunWeeklyDigestUseCase } from '../../../application/notifications/use-cases/RunWeeklyDigestUseCase.js';
-import type { RunReconnectRemindersUseCase } from '../../../application/notifications/use-cases/RunReconnectRemindersUseCase.js';
+import { RunWeeklyDigestUseCase } from '../../../application/notifications/use-cases/RunWeeklyDigestUseCase.js';
+import { RunReconnectRemindersUseCase } from '../../../application/notifications/use-cases/RunReconnectRemindersUseCase.js';
 import type { NotificationRepository } from '../../../domain/notifications/ports.js';
+import { DrizzleNotificationRepository } from '../DrizzleNotificationRepository.js';
 import { QUEUE_NOTIFICATION_DISPATCH } from '../../queue/queue.constants.js';
 import type { DispatchNotificationJobPayload } from '../workers/DispatchNotificationProcessor.js';
 
 @Injectable()
 export class NotificationCronService {
   constructor(
+    @Inject(RunWeeklyDigestUseCase)
     private readonly weeklyDigestUseCase: RunWeeklyDigestUseCase,
+    @Inject(RunReconnectRemindersUseCase)
     private readonly reconnectRemindersUseCase: RunReconnectRemindersUseCase,
+    @Inject(DrizzleNotificationRepository)
     private readonly notificationRepo: NotificationRepository,
     @InjectQueue(QUEUE_NOTIFICATION_DISPATCH)
     private readonly dispatchQueue: Queue<DispatchNotificationJobPayload>,

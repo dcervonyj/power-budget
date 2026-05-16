@@ -10,7 +10,9 @@
             "description": ""
           }
         },
-        "tags": ["Health"]
+        "tags": [
+          "Health"
+        ]
       }
     },
     "/auth/register": {
@@ -36,7 +38,9 @@
           }
         },
         "summary": "Register a new user",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/login": {
@@ -62,7 +66,9 @@
           }
         },
         "summary": "Login with email and password",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/magic-link/request": {
@@ -85,7 +91,9 @@
           }
         },
         "summary": "Request a magic-link login email",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/magic-link/consume": {
@@ -111,7 +119,9 @@
           }
         },
         "summary": "Consume a magic-link token and get tokens",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/oauth/google/start": {
@@ -124,7 +134,9 @@
           }
         },
         "summary": "Start Google OAuth flow (redirects to Google)",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/oauth/google/callback": {
@@ -152,7 +164,9 @@
           }
         },
         "summary": "Google OAuth callback",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/totp/enable": {
@@ -173,7 +187,9 @@
           }
         ],
         "summary": "Enable TOTP 2FA for the current user",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/totp/verify": {
@@ -204,7 +220,9 @@
           }
         ],
         "summary": "Verify and activate TOTP for the current user",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/refresh": {
@@ -230,7 +248,9 @@
           }
         },
         "summary": "Rotate refresh token and get a new access token",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/auth/logout": {
@@ -261,7 +281,9 @@
           }
         ],
         "summary": "Logout and revoke refresh token",
-        "tags": ["auth"]
+        "tags": [
+          "auth"
+        ]
       }
     },
     "/users/me": {
@@ -282,7 +304,9 @@
           }
         ],
         "summary": "Get the current authenticated user",
-        "tags": ["users"]
+        "tags": [
+          "users"
+        ]
       }
     },
     "/users/me/locale": {
@@ -313,7 +337,9 @@
           }
         ],
         "summary": "Update the current user locale preference",
-        "tags": ["users"]
+        "tags": [
+          "users"
+        ]
       }
     },
     "/households": {
@@ -344,7 +370,9 @@
           }
         ],
         "summary": "Create a new household",
-        "tags": ["households"]
+        "tags": [
+          "households"
+        ]
       }
     },
     "/households/invite": {
@@ -375,7 +403,9 @@
           }
         ],
         "summary": "Invite a user to the current household",
-        "tags": ["households"]
+        "tags": [
+          "households"
+        ]
       }
     },
     "/households/invite/{token}/accept": {
@@ -404,7 +434,9 @@
           }
         ],
         "summary": "Accept a household invitation",
-        "tags": ["households"]
+        "tags": [
+          "households"
+        ]
       }
     },
     "/households/export": {
@@ -428,7 +460,9 @@
           }
         ],
         "summary": "Request a household data export",
-        "tags": ["households"]
+        "tags": [
+          "households"
+        ]
       }
     },
     "/households/{id}": {
@@ -460,7 +494,9 @@
           }
         ],
         "summary": "Schedule household deletion (30-day hold)",
-        "tags": ["households"]
+        "tags": [
+          "households"
+        ]
       }
     },
     "/transactions": {
@@ -481,7 +517,9 @@
           }
         ],
         "summary": "List transactions for the current household",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       },
       "post": {
         "operationId": "TransactionsController_addManual",
@@ -510,7 +548,9 @@
           }
         ],
         "summary": "Add a manual transaction",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       }
     },
     "/transactions/{id}": {
@@ -542,7 +582,9 @@
           }
         ],
         "summary": "Get a single transaction by ID",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       },
       "patch": {
         "operationId": "TransactionsController_patch",
@@ -582,7 +624,9 @@
           }
         ],
         "summary": "Patch notes or ignored flag on a transaction",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       }
     },
     "/transactions/{id}/mapping": {
@@ -624,7 +668,9 @@
           }
         ],
         "summary": "Set or clear the planned-item mapping for a transaction",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       }
     },
     "/transactions/{id}/transfer": {
@@ -666,7 +712,9 @@
           }
         ],
         "summary": "Mark a transaction as a transfer between own accounts",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       },
       "delete": {
         "operationId": "TransactionsController_unmarkTransferHandler",
@@ -696,7 +744,9 @@
           }
         ],
         "summary": "Unmark a transaction as a transfer",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       }
     },
     "/transactions/bulk": {
@@ -727,7 +777,9 @@
           }
         ],
         "summary": "Bulk-map or bulk-act on a set of transactions",
-        "tags": ["transactions"]
+        "tags": [
+          "transactions"
+        ]
       }
     },
     "/audit-log": {
@@ -748,7 +800,9 @@
           }
         ],
         "summary": "List audit log events for the current household",
-        "tags": ["audit-log"]
+        "tags": [
+          "audit-log"
+        ]
       }
     },
     "/bank-connections/catalogue": {
@@ -761,7 +815,9 @@
           }
         },
         "summary": "List available banks for a given country",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       }
     },
     "/bank-connections": {
@@ -795,7 +851,9 @@
           }
         ],
         "summary": "Initiate a new bank connection (starts OAuth consent)",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       },
       "get": {
         "operationId": "BankController_listBankConnections",
@@ -814,7 +872,9 @@
           }
         ],
         "summary": "List bank connections for the current user",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       }
     },
     "/bank-connections/{id}/complete": {
@@ -860,7 +920,9 @@
           }
         ],
         "summary": "Complete bank OAuth consent callback",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       }
     },
     "/bank-connections/{id}/refresh": {
@@ -895,7 +957,9 @@
           }
         ],
         "summary": "Trigger a manual sync for a bank connection",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       }
     },
     "/bank-connections/{id}": {
@@ -930,7 +994,9 @@
           }
         ],
         "summary": "Disconnect (delete) a bank connection",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       }
     },
     "/bank-connections/{id}/reconnect": {
@@ -965,7 +1031,9 @@
           }
         ],
         "summary": "Re-initiate consent for an expired bank connection",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       }
     },
     "/bank-connections/{id}/accounts": {
@@ -994,7 +1062,9 @@
           }
         ],
         "summary": "List bank accounts for a connection",
-        "tags": ["bank-connections"]
+        "tags": [
+          "bank-connections"
+        ]
       }
     },
     "/plans/{id}/dashboard": {
@@ -1029,7 +1099,24 @@
           }
         ],
         "summary": "Get plan actuals dashboard",
-        "tags": ["plans"]
+        "tags": [
+          "plans"
+        ]
+      }
+    },
+    "/notifications/bounce": {
+      "post": {
+        "operationId": "NotificationsController_handleBounce",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Handle email bounce webhook from Resend",
+        "tags": [
+          "notifications"
+        ]
       }
     }
   },
@@ -1064,11 +1151,19 @@
           },
           "locale": {
             "type": "string",
-            "enum": ["en", "uk", "ru", "pl"],
+            "enum": [
+              "en",
+              "uk",
+              "ru",
+              "pl"
+            ],
             "default": "en"
           }
         },
-        "required": ["email", "password"]
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "LoginDto": {
         "type": "object",
@@ -1087,7 +1182,10 @@
             "example": "123456"
           }
         },
-        "required": ["email", "password"]
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "RequestMagicLinkDto": {
         "type": "object",
@@ -1097,7 +1195,9 @@
             "example": "user@example.com"
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "ConsumeMagicLinkDto": {
         "type": "object",
@@ -1107,7 +1207,9 @@
             "description": "Magic-link token from email"
           }
         },
-        "required": ["token"]
+        "required": [
+          "token"
+        ]
       },
       "VerifyTotpDto": {
         "type": "object",
@@ -1118,7 +1220,9 @@
             "example": "123456"
           }
         },
-        "required": ["code"]
+        "required": [
+          "code"
+        ]
       },
       "RefreshTokenDto": {
         "type": "object",
@@ -1128,7 +1232,9 @@
             "description": "Opaque refresh token"
           }
         },
-        "required": ["refreshToken"]
+        "required": [
+          "refreshToken"
+        ]
       },
       "LogoutDto": {
         "type": "object",
@@ -1138,18 +1244,27 @@
             "description": "Refresh token to revoke"
           }
         },
-        "required": ["refreshToken"]
+        "required": [
+          "refreshToken"
+        ]
       },
       "UpdateLocaleDto": {
         "type": "object",
         "properties": {
           "locale": {
             "type": "string",
-            "enum": ["en", "uk", "ru", "pl"],
+            "enum": [
+              "en",
+              "uk",
+              "ru",
+              "pl"
+            ],
             "example": "en"
           }
         },
-        "required": ["locale"]
+        "required": [
+          "locale"
+        ]
       },
       "CreateHouseholdDto": {
         "type": "object",
@@ -1164,7 +1279,9 @@
             "description": "ISO 4217 currency code"
           }
         },
-        "required": ["name"]
+        "required": [
+          "name"
+        ]
       },
       "InviteToHouseholdDto": {
         "type": "object",
@@ -1174,7 +1291,9 @@
             "example": "member@example.com"
           }
         },
-        "required": ["email"]
+        "required": [
+          "email"
+        ]
       },
       "AddManualTransactionDto": {
         "type": "object",
@@ -1213,7 +1332,13 @@
             "nullable": true
           }
         },
-        "required": ["accountId", "occurredOn", "amountMinor", "currency", "description"]
+        "required": [
+          "accountId",
+          "occurredOn",
+          "amountMinor",
+          "currency",
+          "description"
+        ]
       },
       "PatchTransactionDto": {
         "type": "object",
@@ -1238,7 +1363,9 @@
             "description": "Planned item ID to map to, or null to unmap"
           }
         },
-        "required": ["plannedItemId"]
+        "required": [
+          "plannedItemId"
+        ]
       },
       "MarkTransferDto": {
         "type": "object",
@@ -1262,21 +1389,31 @@
           },
           "op": {
             "type": "string",
-            "enum": ["map", "transfer", "ignore"]
+            "enum": [
+              "map",
+              "transfer",
+              "ignore"
+            ]
           },
           "payload": {
             "type": "object",
             "description": "Operation-specific payload"
           }
         },
-        "required": ["ids", "op"]
+        "required": [
+          "ids",
+          "op"
+        ]
       },
       "InitiateBankConnectionDto": {
         "type": "object",
         "properties": {
           "provider": {
             "type": "string",
-            "enum": ["gocardless", "wise_personal"]
+            "enum": [
+              "gocardless",
+              "wise_personal"
+            ]
           },
           "bankId": {
             "type": "string",
@@ -1289,7 +1426,11 @@
             "example": "https://app.power-budget.test/connect/callback"
           }
         },
-        "required": ["provider", "bankId", "redirectUri"]
+        "required": [
+          "provider",
+          "bankId",
+          "redirectUri"
+        ]
       }
     }
   }
