@@ -22,8 +22,8 @@ export function AuditLogScreen(): React.JSX.Element {
   useEffect(() => {
     const fetchEvents = async (): Promise<void> => {
       try {
-        const res = await apiClient.get('/audit-log');
-        const data = res.data as unknown as AuditEvent[];
+        const res = await apiClient.get<AuditEvent[]>('/audit-log');
+        const data = res.data;
         setEvents(Array.isArray(data) ? data : []);
       } catch {
         setError(

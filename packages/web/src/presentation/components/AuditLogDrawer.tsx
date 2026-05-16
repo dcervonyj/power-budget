@@ -39,10 +39,10 @@ export function AuditLogDrawer({
     setLoading(true);
     const fetchEvents = async (): Promise<void> => {
       try {
-        const res = await apiClient.get('/audit-log', {
-          params: { subjectType, subjectId },
-        });
-        const data = res.data as unknown as AuditEvent[];
+        const res = await apiClient.get<AuditEvent[]>(
+          `/audit-log?subjectType=${encodeURIComponent(subjectType)}&subjectId=${encodeURIComponent(subjectId)}`,
+        );
+        const data = res.data;
         setEvents(Array.isArray(data) ? data : []);
       } catch {
         setEvents([]);
