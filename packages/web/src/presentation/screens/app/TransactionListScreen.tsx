@@ -75,8 +75,8 @@ export function TransactionListScreen(): React.JSX.Element {
 
   // Load categories once
   useEffect(() => {
-    void apiClient.get<unknown>('/categories').then((res: { data: unknown }) => {
-      setCategories(res.data as Category[]);
+    void apiClient.get<Category[]>('/categories').then((res) => {
+      setCategories(res.data);
     });
   }, []);
 
@@ -90,11 +90,11 @@ export function TransactionListScreen(): React.JSX.Element {
 
     void (async () => {
       try {
-        const res = await apiClient.get<unknown>(
+        const res = await apiClient.get<TransactionPage>(
           `/transactions?${buildQuery(filtersRef.current)}`,
         );
         if (cancelled) return;
-        const page = res.data as unknown as TransactionPage;
+        const page = res.data;
         setTransactions(page.items ?? []);
         setNextCursor(page.nextCursor ?? null);
       } catch {
@@ -124,7 +124,7 @@ export function TransactionListScreen(): React.JSX.Element {
       const res = await apiClient.get<TransactionPage>(
         `/transactions?${buildQuery(filtersRef.current, nextCursor)}`,
       );
-      const page = res.data as unknown as TransactionPage;
+      const page = res.data;
       setTransactions((prev) => [...prev, ...(page.items ?? [])]);
       setNextCursor(page.nextCursor ?? null);
     } catch {

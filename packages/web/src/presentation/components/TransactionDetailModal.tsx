@@ -100,9 +100,9 @@ export function TransactionDetailModal({
 
     void (async () => {
       try {
-        const res = await apiClient.get<unknown>(`/transactions/${transactionId}`);
+        const res = await apiClient.get<Transaction>(`/transactions/${transactionId}`);
         if (cancelled) return;
-        const tx = res.data as unknown as Transaction;
+        const tx = res.data;
         setTransaction(tx);
         setNotes(tx.notes ?? '');
         setMapping(tx.mapping);
@@ -132,13 +132,13 @@ export function TransactionDetailModal({
     setPickerLoading(true);
     try {
       const res = await apiClient.get<Plan[]>('/plans');
-      const allPlans = res.data as unknown as Plan[];
+      const allPlans = res.data;
       setPlans(allPlans);
       const activePlans = allPlans.filter((p) => p.status === 'active' || p.status === 'draft');
       const itemResults = await Promise.all(
         activePlans.map(async (p) => {
-          const r = await apiClient.get<unknown>(`/plans/${p.id}/items`);
-          return { planId: p.id, items: r.data as unknown as PlannedItem[] };
+          const r = await apiClient.get<PlannedItem[]>(`/plans/${p.id}/items`);
+          return { planId: p.id, items: r.data };
         }),
       );
       const map = new Map<string, PlannedItem[]>();
