@@ -17,6 +17,7 @@
     "@power-budget/design-tokens": "workspace:^",
     "@power-budget/shared-app": "workspace:*",
     "@react-native-async-storage/async-storage": "^3.0.2",
+    "@react-native-community/datetimepicker": "^9.1.0",
     "@react-navigation/bottom-tabs": "^7.16.1",
     "@react-navigation/native": "^6.1.0",
     "@react-navigation/native-stack": "^6.9.0",
