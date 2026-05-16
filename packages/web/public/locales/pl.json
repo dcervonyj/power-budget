@@ -10,5 +10,9 @@
   "component.auditLog.title": "Dziennik audytu",
   "component.auditLog.empty": "Brak zdarzeń audytu",
   "component.auditLog.actor.system": "System",
-  "component.auditLog.loading": "Ładowanie…"
+  "component.auditLog.loading": "Ładowanie…",
+  "component.historyDrawer.title": "History",
+  "component.historyDrawer.empty": "No history yet",
+  "component.historyDrawer.actor": "by {actor}",
+  "component.historyDrawer.loading": "Loading…"
 }

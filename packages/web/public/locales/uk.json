@@ -10,5 +10,9 @@
   "component.auditLog.title": "Журнал аудиту",
   "component.auditLog.empty": "Немає подій аудиту",
   "component.auditLog.actor.system": "Система",
-  "component.auditLog.loading": "Завантаження…"
+  "component.auditLog.loading": "Завантаження…",
+  "component.historyDrawer.title": "History",
+  "component.historyDrawer.empty": "No history yet",
+  "component.historyDrawer.actor": "by {actor}",
+  "component.historyDrawer.loading": "Loading…"
 }
