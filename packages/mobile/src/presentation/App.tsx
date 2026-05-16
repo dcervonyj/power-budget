@@ -9,6 +9,7 @@ import { RootNavigator } from './navigation/RootNavigator.js';
 import { LocaleResolver, LOCALE_STORAGE_KEY } from '../infrastructure/locale/index.js';
 import type { SupportedLocale } from '../infrastructure/locale/index.js';
 import type { RootStackParamList } from './navigation/types.js';
+import { BiometricGate } from './components/BiometricGate.js';
 
 const resolver = new LocaleResolver();
 
@@ -80,10 +81,12 @@ export function App(): React.JSX.Element {
 
   return (
     <IntlProvider locale={locale} messages={messages} defaultLocale="en">
-      <NavigationContainer linking={linking}>
-        <RootNavigator />
-        <StatusBar style="auto" />
-      </NavigationContainer>
+      <BiometricGate>
+        <NavigationContainer linking={linking}>
+          <RootNavigator />
+          <StatusBar style="auto" />
+        </NavigationContainer>
+      </BiometricGate>
     </IntlProvider>
   );
 }
