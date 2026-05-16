@@ -125,5 +125,10 @@
   "component.manualTransactionForm.loading": "Saving…",
   "component.manualTransactionForm.error.required": "Please fill in all required fields.",
   "component.manualTransactionForm.error.submit": "Failed to save transaction. Please try again.",
-  "component.manualTransactionForm.loadingAccounts": "Loading accounts…"
+  "component.manualTransactionForm.loadingAccounts": "Loading accounts…",
+  "screen.auditLog.title": "Audit Log",
+  "component.auditLog.title": "Audit Log",
+  "component.auditLog.empty": "No audit events",
+  "component.auditLog.actor.system": "System",
+  "component.auditLog.loading": "Loading…"
 }

@@ -22,4 +22,6 @@ export { CurrencySwitcher } from './CurrencySwitcher.js';
 export { ManualTransactionForm } from './ManualTransactionForm.js';
 export type { ManualTransactionFormProps } from './ManualTransactionForm.js';
 
+export { AuditLogDrawer } from './AuditLogDrawer.js';
+export type { AuditLogDrawerProps } from './AuditLogDrawer.js';
 

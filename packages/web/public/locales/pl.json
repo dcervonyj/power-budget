@@ -5,5 +5,10 @@
   "screen.oauthCallback.loading": "Kończenie logowania…",
   "screen.oauthCallback.error": "Błąd uwierzytelniania. Spróbuj ponownie.",
   "screen.bankConsentCallback.loading": "Łączenie z bankiem…",
-  "screen.bankConsentCallback.error": "Błąd zgody bankowej. Spróbuj ponownie."
+  "screen.bankConsentCallback.error": "Błąd zgody bankowej. Spróbuj ponownie.",
+  "screen.auditLog.title": "Dziennik audytu",
+  "component.auditLog.title": "Dziennik audytu",
+  "component.auditLog.empty": "Brak zdarzeń audytu",
+  "component.auditLog.actor.system": "System",
+  "component.auditLog.loading": "Ładowanie…"
 }

@@ -5,5 +5,10 @@
   "screen.oauthCallback.loading": "Завершення входу…",
   "screen.oauthCallback.error": "Помилка автентифікації. Спробуйте ще раз.",
   "screen.bankConsentCallback.loading": "Підключення банку…",
-  "screen.bankConsentCallback.error": "Помилка підключення банку. Спробуйте ще раз."
+  "screen.bankConsentCallback.error": "Помилка підключення банку. Спробуйте ще раз.",
+  "screen.auditLog.title": "Журнал аудиту",
+  "component.auditLog.title": "Журнал аудиту",
+  "component.auditLog.empty": "Немає подій аудиту",
+  "component.auditLog.actor.system": "Система",
+  "component.auditLog.loading": "Завантаження…"
 }
