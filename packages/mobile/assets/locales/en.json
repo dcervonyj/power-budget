@@ -6,5 +6,18 @@
   "screen.dashboard.bottomLine": "Net",
   "screen.dashboard.planned": "Planned",
   "screen.dashboard.actual": "Actual",
-  "screen.dashboard.noPlan": "No active plan"
+  "screen.dashboard.noPlan": "No active plan",
+  "screen.transactionList.title": "Transactions",
+  "screen.transactionList.empty": "No transactions",
+  "screen.transactionList.filter": "Filter",
+  "screen.transactionDetail.title": "Transaction",
+  "screen.transactionDetail.mapping": "Mapped to",
+  "screen.transactionDetail.unmap": "Clear mapping",
+  "screen.transactionDetail.mapTo": "Map to planned item",
+  "screen.transactionDetail.markTransfer": "Mark as transfer",
+  "screen.transactionDetail.notes": "Notes",
+  "screen.transactionDetail.save": "Save",
+  "component.transactionStatus.unmapped": "Unmapped",
+  "component.transactionStatus.mapped": "Mapped",
+  "component.transactionStatus.transfer": "Transfer"
 }
