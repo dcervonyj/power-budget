@@ -4,11 +4,11 @@ import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type * as schema from '../../../drizzle/schema.js';
 import { startContainers, stopContainers, getPool } from './setup.js';
 import { withRollbackTransaction, makeUserId, makeHouseholdId } from './test-helpers.js';
-import { DrizzleUserRepository } from '../../infrastructure/auth/DrizzleUserRepository.js';
-import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHouseholdRepository.js';
-import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
-import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
-import { DrizzleHouseholdInviteRepository } from '../../infrastructure/auth/DrizzleHouseholdInviteRepository.js';
+import { DrizzleUserRepository } from '../../auth/infrastructure/DrizzleUserRepository.js';
+import { DrizzleHouseholdRepository } from '../../auth/infrastructure/DrizzleHouseholdRepository.js';
+import { DrizzleMagicLinkTokenRepository } from '../../auth/infrastructure/DrizzleMagicLinkTokenRepository.js';
+import { DrizzleTotpSecretRepository } from '../../auth/infrastructure/DrizzleTotpSecretRepository.js';
+import { DrizzleHouseholdInviteRepository } from '../../auth/infrastructure/DrizzleHouseholdInviteRepository.js';
 import type { UserId, HouseholdId } from '@power-budget/core';
 
 type DB = NodePgDatabase<typeof schema>;

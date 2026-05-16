@@ -1,4 +1,4 @@
-import type { EmailChannel } from '../../domain/notifications/ports.js';
+import type { EmailChannel } from '../../notifications/domain/ports.js';
 
 export interface SentEmail {
   to: string;

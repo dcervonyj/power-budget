@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
 import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { HealthModule } from './health/health.module';
-import { AuthPresentationModule } from './presentation/auth/AuthPresentationModule.js';
-import { TransactionsPresentationModule } from './presentation/transactions/TransactionsPresentationModule.js';
-import { AuditPresentationModule } from './presentation/audit/AuditPresentationModule.js';
-import { BankPresentationModule } from './presentation/bank/BankPresentationModule.js';
-import { PlansPresentationModule } from './presentation/plans/PlansPresentationModule.js';
-import { NotificationsPresentationModule } from './presentation/notifications/NotificationsPresentationModule.js';
-import { HouseholdsPresentationModule } from './presentation/households/HouseholdsPresentationModule.js';
-import { RlsMiddleware } from './infrastructure/database/RlsMiddleware.js';
+import { HealthModule } from './shared/health/health.module';
+import { AuthPresentationModule } from './auth/presentation/AuthPresentationModule.js';
+import { TransactionsPresentationModule } from './transactions/presentation/TransactionsPresentationModule.js';
+import { AuditPresentationModule } from './audit/presentation/AuditPresentationModule.js';
+import { BankPresentationModule } from './bank/presentation/BankPresentationModule.js';
+import { PlansPresentationModule } from './plans/presentation/PlansPresentationModule.js';
+import { NotificationsPresentationModule } from './notifications/presentation/NotificationsPresentationModule.js';
+import { HouseholdsPresentationModule } from './households/presentation/HouseholdsPresentationModule.js';
+import { RlsMiddleware } from './shared/infrastructure/database/RlsMiddleware.js';
 
 @Module({
   imports: [
