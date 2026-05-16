@@ -75,6 +75,7 @@ describe('ClonePlanFromPreviousUseCase', () => {
       listActive: vi.fn(),
       update: vi.fn(),
       archive: vi.fn(),
+      findByPeriodEnd: vi.fn(),
     };
     plannedItemRepo = {
       add: vi.fn(),

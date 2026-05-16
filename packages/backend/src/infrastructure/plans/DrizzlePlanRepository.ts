@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { and, eq, gte, lte } from 'drizzle-orm';
+import { and, eq, gte, isNull, lte } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { PlanId, HouseholdId, UserId, IsoDate, IsoDateTime } from '@power-budget/core';
 import type { PlanRepository, HouseholdScope } from '../../domain/plans/ports.js';
@@ -76,6 +76,15 @@ export class DrizzlePlanRepository implements PlanRepository {
       .update(schema.plans)
       .set({ archivedAt: at, updatedAt: at })
       .where(eq(schema.plans.id, id));
+  }
+
+  async findByPeriodEnd(date: Date): Promise<Plan[]> {
+    const dateStr = date.toISOString().slice(0, 10) as IsoDate;
+    const rows = await this.db
+      .select()
+      .from(schema.plans)
+      .where(and(eq(schema.plans.periodEnd, dateStr), isNull(schema.plans.archivedAt)));
+    return rows.map((r) => this.toEntity(r));
   }
 
   private toEntity(row: schema.SelectPlan): Plan {
