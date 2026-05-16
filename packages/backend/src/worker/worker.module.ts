@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { QueueModule } from '../infrastructure/queue/queue.module';
+import { BankModule } from '../infrastructure/bank/BankModule.js';
+import { QueueModule } from '../infrastructure/queue/queue.module.js';
 import { PlansModule } from '../infrastructure/plans/PlansModule.js';
 
 /**
@@ -9,6 +10,6 @@ import { PlansModule } from '../infrastructure/plans/PlansModule.js';
  * Per ARCHITECTURE.md §9: dedicated NestJS bootstrap process.
  */
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), QueueModule, PlansModule],
+  imports: [ConfigModule.forRoot({ isGlobal: true }), QueueModule, BankModule, PlansModule],
 })
 export class WorkerModule {}
