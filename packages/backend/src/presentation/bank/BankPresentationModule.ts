@@ -7,6 +7,7 @@ import { DrizzleBankConnectionRepository } from '../../infrastructure/bank/Drizz
 import { InMemoryBankConnectorRegistry } from '../../infrastructure/bank/InMemoryBankConnectorRegistry.js';
 import { DrizzleAuditEventRepository } from '../../infrastructure/audit/DrizzleAuditEventRepository.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
+import { BullMQBankSyncQueue } from '../../infrastructure/bank/BullMQBankSyncQueue.js';
 import { InitiateBankConnectionUseCase } from '../../application/bank/use-cases/InitiateBankConnectionUseCase.js';
 import { CompleteBankConsentUseCase } from '../../application/bank/use-cases/CompleteBankConsentUseCase.js';
 import { ListUserConnectionsUseCase } from '../../application/bank/use-cases/ListUserConnectionsUseCase.js';
@@ -46,8 +47,9 @@ import { BankController } from './BankController.js';
     },
     {
       provide: RefreshConnectionUseCase,
-      inject: [DrizzleBankConnectionRepository],
-      useFactory: (repo: DrizzleBankConnectionRepository) => new RefreshConnectionUseCase(repo),
+      inject: [DrizzleBankConnectionRepository, BullMQBankSyncQueue],
+      useFactory: (repo: DrizzleBankConnectionRepository, queue: BullMQBankSyncQueue) =>
+        new RefreshConnectionUseCase(repo, queue),
     },
     {
       provide: DisconnectBankUseCase,
