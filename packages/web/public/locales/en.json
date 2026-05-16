@@ -278,5 +278,15 @@
   "component.household.privacy.level.fullDetail": "Full detail",
   "component.household.amount": "Amount",
   "component.household.date": "Date",
-  "component.household.description": "Description"
+  "component.household.description": "Description",
+  "component.shared.loading": "Loading...",
+  "component.shared.retry": "Retry",
+  "component.shared.error.network": "Network error",
+  "component.shared.empty.noTransactions": "No transactions yet",
+  "component.shared.empty.noPlans": "No active budget plan",
+  "component.shared.empty.noBankAccounts": "No bank accounts connected",
+  "component.shared.empty.addAccount": "Add account",
+  "component.shared.empty.createPlan": "Create plan",
+  "component.bank.syncFailed": "Bank sync failed for {name}",
+  "component.bank.syncFailed.reconnect": "Reconnect"
 }

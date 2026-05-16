@@ -1,8 +1,13 @@
 import React, { useEffect } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeContext.js';
 import { ReconnectBanner } from '../../components/bank/ReconnectBanner.js';
+import { BankSyncFailureBanner } from '../../components/bank/BankSyncFailureBanner.js';
+import { SkeletonList } from '../../components/shared/SkeletonList.js';
+import { EmptyState } from '../../components/shared/EmptyState.js';
+import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
 import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 import { dashboardStore } from '../../../application/dashboard/DashboardStore.js';
 import { PlanHeader } from '../../components/dashboard/PlanHeader.js';
@@ -21,6 +26,7 @@ function selectDefaultPlan(plans: Plan[]): Plan | undefined {
 
 export const DashboardScreen = observer(function DashboardScreen(): React.JSX.Element {
   const theme = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     void bankConnectionStore.fetchConnections();
@@ -53,6 +59,26 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
       }}
     >
       <ReconnectBanner connections={bankConnectionStore.connections} />
+      <BankSyncFailureBanner />
+
+      {/* Error banner */}
+      {dashboardStore.error !== null && (
+        <ErrorBanner
+          message={
+            <FormattedMessage
+              id="screen.dashboard.error"
+              defaultMessage="Failed to load dashboard"
+            />
+          }
+          onRetry={() => {
+            if (dashboardStore.selectedPlanId) {
+              void dashboardStore.fetchActuals(dashboardStore.selectedPlanId);
+            } else {
+              void dashboardStore.fetchPlans();
+            }
+          }}
+        />
+      )}
 
       {/* Plan tab strip */}
       {dashboardStore.activePlans.length > 1 && (
@@ -95,35 +121,36 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading skeleton */}
       {dashboardStore.loading && !dashboardStore.actuals && (
-        <div style={{ color: theme.color.text.secondary, padding: theme.space.xl }}>
-          <FormattedMessage id="screen.dashboard.loading" defaultMessage="Loading dashboard…" />
-        </div>
-      )}
-
-      {/* Error */}
-      {dashboardStore.error !== null && (
-        <div
-          style={{
-            padding: theme.space.md,
-            borderRadius: theme.radius.md,
-            backgroundColor: `${theme.color.status.danger}22`,
-            color: theme.color.status.danger,
-            fontSize: theme.fontSize.sm,
-          }}
-        >
-          <FormattedMessage id="screen.dashboard.error" defaultMessage="Failed to load dashboard" />
-        </div>
+        <SkeletonList rows={5} rowHeight={64} />
       )}
 
       {/* No plans */}
       {!dashboardStore.loading &&
         dashboardStore.actuals === null &&
-        dashboardStore.error === null && (
-          <div style={{ color: theme.color.text.muted, padding: theme.space.xl }}>
-            <FormattedMessage id="screen.dashboard.noPlan" defaultMessage="No active plan" />
-          </div>
+        dashboardStore.error === null &&
+        dashboardStore.activePlans.length === 0 && (
+          <EmptyState
+            icon="📋"
+            title={
+              <FormattedMessage
+                id="component.shared.empty.noPlans"
+                defaultMessage="No active budget plan"
+              />
+            }
+            action={{
+              label: (
+                <FormattedMessage
+                  id="component.shared.empty.createPlan"
+                  defaultMessage="Create plan"
+                />
+              ),
+              onPress: () => {
+                void navigate('/plans');
+              },
+            }}
+          />
         )}
 
       {/* Dashboard widgets */}
