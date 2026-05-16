@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
-import type { BankAccountId, BankConnectionId, HouseholdId } from '@power-budget/core';
+import type { BankConnectionId, HouseholdId } from '@power-budget/core';
 import type {
   BankConnectionRepository,
   BankAccountRepository,
@@ -8,7 +8,6 @@ import type {
   BankConnectorRegistry,
 } from '../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
-import type { EncryptedString } from '../../domain/bank/entities.js';
 import { QUEUE_BANK_SYNC } from '../queue/queue.constants.js';
 
 export interface BankSyncJobPayload {
