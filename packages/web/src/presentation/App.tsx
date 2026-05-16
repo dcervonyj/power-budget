@@ -29,6 +29,13 @@ const BankConsentCallbackScreen = lazy(() =>
   })),
 );
 
+// Onboarding screen — lazy loaded
+const OnboardingScreen = lazy(() =>
+  import('./screens/onboarding/OnboardingScreen.js').then((m) => ({
+    default: m.OnboardingScreen,
+  })),
+);
+
 // App screens — lazy loaded
 const DashboardScreen = lazy(() =>
   import('./screens/app/DashboardScreen.js').then((m) => ({ default: m.DashboardScreen })),
@@ -97,6 +104,7 @@ export function App() {
         {/* Protected app routes */}
         <Route element={<RequireAuth />}>
           <Route path="/auth/totp-enroll" element={<TotpEnrollmentScreen />} />
+          <Route path="/onboarding" element={<OnboardingScreen />} />
           <Route path="/dashboard" element={<DashboardScreen />} />
           <Route path="/transactions" element={<TransactionListScreen />} />
           <Route path="/transactions/:id" element={<TransactionDetailScreen />} />
