@@ -5,6 +5,7 @@ process.env['KEK_BASE64'] ??= 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; //
 process.env['DATABASE_URL'] ??=
   'postgresql://power_budget:power_budget@localhost:5432/power_budget';
 process.env['REDIS_URL'] ??= 'redis://localhost:6379';
+process.env['RESEND_API_KEY'] ??= 're_placeholder_spec_gen';
 
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';

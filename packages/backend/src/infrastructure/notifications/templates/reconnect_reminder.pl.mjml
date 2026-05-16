@@ -1,0 +1,28 @@
+<mjml>
+  <mj-head>
+    <mj-title>Połączenie bankowe wygasa</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#d97706">🔗 Połączenie bankowe wygasa</mj-text>
+        <mj-divider border-color="#d97706" border-width="2px" />
+        <mj-text>Cześć, {{name}}!</mj-text>
+        <mj-text>
+          Twoje połączenie z <strong>{{connectionName}}</strong> wygasa
+          za <strong>{{daysUntilExpiry}} dni</strong>.
+        </mj-text>
+        <mj-text>
+          Proszę ponownie połączyć swoje konto bankowe, aby zapewnić ciągłą synchronizację.
+        </mj-text>
+        <mj-text color="#888888" font-size="13px">
+          Zaloguj się do Power Budget → Ustawienia → Połączenia bankowe.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

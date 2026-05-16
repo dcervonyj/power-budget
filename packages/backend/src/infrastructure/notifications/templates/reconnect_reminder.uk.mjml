@@ -1,0 +1,28 @@
+<mjml>
+  <mj-head>
+    <mj-title>Термін дії підключення закінчується</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#d97706">🔗 Підключення до банку закінчується</mj-text>
+        <mj-divider border-color="#d97706" border-width="2px" />
+        <mj-text>Привіт, {{name}}!</mj-text>
+        <mj-text>
+          Термін дії вашого підключення до <strong>{{connectionName}}</strong> закінчується
+          через <strong>{{daysUntilExpiry}} дн.</strong>.
+        </mj-text>
+        <mj-text>
+          Будь ласка, повторно підключіть банківський рахунок для безперебійної синхронізації.
+        </mj-text>
+        <mj-text color="#888888" font-size="13px">
+          Увійдіть до Power Budget → Налаштування → Банківські підключення.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
