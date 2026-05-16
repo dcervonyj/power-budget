@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-unsafe-assignment
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const mjml2html = require('mjml') as (input: string, opts?: { validationLevel?: string }) => { html: string; errors: Array<{ formattedMessage: string }> };
 import type { TemplateRenderer } from '../../domain/notifications/ports.js';
 

@@ -5,10 +5,7 @@ import type { Queue } from 'bullmq';
 import type { RunWeeklyDigestUseCase } from '../../../application/notifications/use-cases/RunWeeklyDigestUseCase.js';
 import type { RunReconnectRemindersUseCase } from '../../../application/notifications/use-cases/RunReconnectRemindersUseCase.js';
 import type { NotificationRepository } from '../../../domain/notifications/ports.js';
-import {
-  QUEUE_NOTIFICATION_DISPATCH,
-  QUEUE_OUTBOX_RELAY,
-} from '../../queue/queue.constants.js';
+import { QUEUE_NOTIFICATION_DISPATCH } from '../../queue/queue.constants.js';
 import type { DispatchNotificationJobPayload } from '../workers/DispatchNotificationProcessor.js';
 
 @Injectable()
