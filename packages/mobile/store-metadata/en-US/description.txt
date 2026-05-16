@@ -1,0 +1,20 @@
+Power Budget — Smart Personal Finance
+
+Take control of your money with Power Budget, the privacy-first budgeting app designed for households and individuals.
+
+FEATURES:
+• Multi-currency budgeting with real-time exchange rates
+• Automatic bank sync (GoCardless PSD2, Wise API)
+• Shared household plans with privacy controls
+• Detailed spending analytics by category
+• Secure biometric authentication
+• Offline-first with automatic sync
+
+PRIVACY-FIRST:
+Power Budget uses bank-grade encryption (AES-256-GCM) for all sensitive data. We never sell your financial data to third parties.
+
+SUPPORTED BANKS:
+Connect thousands of European banks via GoCardless PSD2 open banking, plus Wise for multi-currency accounts.
+
+HOUSEHOLD BUDGETING:
+Share a budget with your partner while maintaining privacy — control exactly what spending details are visible to each member.
