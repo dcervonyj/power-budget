@@ -64,7 +64,7 @@ describe('DashboardStore', () => {
 
   describe('fetchActuals', () => {
     it('stores actuals on success', async () => {
-      mockGet.mockResolvedValueOnce({ data: mockActuals });
+      mockGet.mockResolvedValueOnce({ status: 200, data: mockActuals, headers: {} });
 
       await store.fetchActuals('plan-1');
 
@@ -74,7 +74,7 @@ describe('DashboardStore', () => {
     });
 
     it('sets displayCurrency to actuals.currency after fetch', async () => {
-      mockGet.mockResolvedValueOnce({ data: mockActuals });
+      mockGet.mockResolvedValueOnce({ status: 200, data: mockActuals, headers: {} });
 
       await store.fetchActuals('plan-1');
 
@@ -94,9 +94,11 @@ describe('DashboardStore', () => {
     it('sets loading=true during fetch', async () => {
       let resolvePromise!: () => void;
       mockGet.mockReturnValueOnce(
-        new Promise<{ data: PlanActualsView }>((resolve) => {
-          resolvePromise = () => resolve({ data: mockActuals });
-        }),
+        new Promise<{ status: number; data: PlanActualsView; headers: Record<string, string> }>(
+          (resolve) => {
+            resolvePromise = () => resolve({ status: 200, data: mockActuals, headers: {} });
+          },
+        ),
       );
 
       const fetchPromise = store.fetchActuals('plan-1');
@@ -121,7 +123,7 @@ describe('DashboardStore', () => {
           currency: 'EUR',
         },
       ];
-      mockGet.mockResolvedValueOnce({ data: plans });
+      mockGet.mockResolvedValueOnce({ status: 200, data: plans, headers: {} });
 
       await store.fetchPlans();
 
@@ -170,7 +172,7 @@ describe('DashboardStore', () => {
 
   describe('selectPlan', () => {
     it('sets selectedPlanId and calls fetchActuals', () => {
-      mockGet.mockResolvedValueOnce({ data: mockActuals });
+      mockGet.mockResolvedValueOnce({ status: 200, data: mockActuals, headers: {} });
 
       store.selectPlan('plan-1');
 
