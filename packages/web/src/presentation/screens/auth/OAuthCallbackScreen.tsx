@@ -38,7 +38,7 @@ export function OAuthCallbackScreen(): React.JSX.Element {
           code,
           state,
         });
-        const data = res.data as unknown as GoogleCallbackResponse;
+        const data = res.data;
         await tokenStore.setTokens(data.accessToken, data.refreshToken);
         sessionStorage.removeItem('oauth_nonce');
         navigate('/dashboard', { replace: true });
