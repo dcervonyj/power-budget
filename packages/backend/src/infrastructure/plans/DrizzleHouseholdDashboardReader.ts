@@ -116,8 +116,8 @@ export class DrizzleHouseholdDashboardReader implements HouseholdDashboardReader
       householdId: row.householdId as HouseholdId,
       accountId: row.accountId as BankAccountId,
       externalId: row.externalId ?? null,
-      source: 'bank' as CoreTransaction['source'],
-      status: 'posted' as CoreTransaction['status'],
+      source: 'bank',
+      status: 'posted',
       amount: {
         amountMinor: row.amountMinor,
         currency: row.currency as CurrencyCode,

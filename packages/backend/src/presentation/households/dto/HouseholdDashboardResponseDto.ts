@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class HouseholdDashboardCategoryDto {
   @ApiProperty({ type: String, description: 'Category ID' })

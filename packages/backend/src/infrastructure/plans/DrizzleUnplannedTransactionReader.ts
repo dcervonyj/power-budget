@@ -63,7 +63,7 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
           and(
             eq(schema.transactions.occurredOn, parsed.occurredOn),
             lt(schema.transactions.id, parsed.id),
-          )!,
+          ),
         )!,
       );
     }
