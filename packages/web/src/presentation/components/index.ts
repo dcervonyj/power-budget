@@ -19,4 +19,7 @@ export { MoneyView } from './MoneyView.js';
 export type { MoneyViewProps } from './MoneyView.js';
 export { CurrencySwitcher } from './CurrencySwitcher.js';
 
+export { ManualTransactionForm } from './ManualTransactionForm.js';
+export type { ManualTransactionFormProps } from './ManualTransactionForm.js';
+
 

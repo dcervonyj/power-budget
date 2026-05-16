@@ -108,5 +108,20 @@
   "component.currencySwitcher.interestingCurrencies.label": "Also show in",
   "component.localeSwitcher.label": "Language",
   "screen.settings.title": "Settings",
-  "screen.settings.locale.section": "Language & Region"
+  "screen.settings.locale.section": "Language & Region",
+  "component.manualTransactionForm.title": "Add Manual Transaction",
+  "component.manualTransactionForm.account.label": "Account",
+  "component.manualTransactionForm.account.placeholder": "Select an account…",
+  "component.manualTransactionForm.occurredOn.label": "Date",
+  "component.manualTransactionForm.amount.label": "Amount",
+  "component.manualTransactionForm.amount.placeholder": "0.00",
+  "component.manualTransactionForm.currency.label": "Currency",
+  "component.manualTransactionForm.description.label": "Description",
+  "component.manualTransactionForm.notes.label": "Notes",
+  "component.manualTransactionForm.submit": "Add Transaction",
+  "component.manualTransactionForm.cancel": "Cancel",
+  "component.manualTransactionForm.loading": "Saving…",
+  "component.manualTransactionForm.error.required": "Please fill in all required fields.",
+  "component.manualTransactionForm.error.submit": "Failed to save transaction. Please try again.",
+  "component.manualTransactionForm.loadingAccounts": "Loading accounts…"
 }
