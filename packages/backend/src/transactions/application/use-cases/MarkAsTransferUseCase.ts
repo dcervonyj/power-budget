@@ -5,13 +5,8 @@ import type {
   TransferRepository,
 } from '../../domain/ports.js';
 import { TransactionNotFoundError, AlreadyMappedError } from '../../domain/errors.js';
-
-export interface MarkAsTransferInput {
-  readonly transactionId: TransactionId;
-  readonly counterpartId: TransactionId | null;
-  readonly by: UserId;
-  readonly householdId: HouseholdId;
-}
+import type { MarkAsTransferInput } from '../models/index.js';
+export type { MarkAsTransferInput };
 
 export class MarkAsTransferUseCase {
   constructor(

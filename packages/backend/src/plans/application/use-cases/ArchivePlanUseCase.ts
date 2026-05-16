@@ -1,11 +1,7 @@
 import type { PlanId, UserId, HouseholdId } from '@power-budget/core';
 import type { PlanRepository, AuditLogPort, HouseholdScope } from '../../domain/ports.js';
-
-export interface ArchivePlanInput {
-  readonly planId: PlanId;
-  readonly userId: UserId;
-  readonly householdId: HouseholdId;
-}
+import type { ArchivePlanInput } from '../models/index.js';
+export type { ArchivePlanInput };
 
 export class ArchivePlanUseCase {
   constructor(

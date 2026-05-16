@@ -3,17 +3,8 @@ import type { IsoDate, UserId, HouseholdId } from '@power-budget/core';
 import type { Plan, NewPlan, PlanType, PlanPeriodKind } from '../../domain/entities.js';
 import type { PlanRepository, AuditLogPort } from '../../domain/ports.js';
 import { PlanCloning } from '../../domain/plan-cloning.js';
-
-export interface CreatePlanInput {
-  readonly name: string;
-  readonly type: PlanType;
-  readonly periodKind: PlanPeriodKind;
-  readonly periodStart: IsoDate;
-  readonly periodEnd: IsoDate;
-  readonly baseCurrency: string;
-  readonly userId: UserId;
-  readonly householdId: HouseholdId;
-}
+import type { CreatePlanInput } from '../models/index.js';
+export type { CreatePlanInput };
 
 export class CreatePlanUseCase {
   constructor(

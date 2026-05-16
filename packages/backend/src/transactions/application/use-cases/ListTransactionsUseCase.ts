@@ -1,11 +1,8 @@
 import type { HouseholdId } from '@power-budget/core';
 import type { TransactionRepository } from '../../domain/ports.js';
 import type { Transaction, TransactionQuery, Page } from '../../domain/entities.js';
-
-export interface ListTransactionsInput {
-  readonly query: TransactionQuery;
-  readonly householdId: HouseholdId;
-}
+import type { ListTransactionsInput } from '../models/index.js';
+export type { ListTransactionsInput };
 
 export class ListTransactionsUseCase {
   constructor(private readonly transactionRepo: TransactionRepository) {}

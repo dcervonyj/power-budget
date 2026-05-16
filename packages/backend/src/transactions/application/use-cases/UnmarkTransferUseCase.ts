@@ -1,11 +1,8 @@
 import type { TransactionId, HouseholdId } from '@power-budget/core';
 import type { TransactionRepository, TransferRepository } from '../../domain/ports.js';
 import { TransactionNotFoundError } from '../../domain/errors.js';
-
-export interface UnmarkTransferInput {
-  readonly transactionId: TransactionId;
-  readonly householdId: HouseholdId;
-}
+import type { UnmarkTransferInput } from '../models/index.js';
+export type { UnmarkTransferInput };
 
 export class UnmarkTransferUseCase {
   constructor(

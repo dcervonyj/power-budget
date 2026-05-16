@@ -1,11 +1,7 @@
 import type { PlanId, PlannedItemId, HouseholdId } from '@power-budget/core';
 import type { PlanRepository, PlannedItemRepository, HouseholdScope } from '../../domain/ports.js';
-
-export interface RemovePlannedItemInput {
-  readonly planId: PlanId;
-  readonly itemId: PlannedItemId;
-  readonly householdId: HouseholdId;
-}
+import type { RemovePlannedItemInput } from '../models/index.js';
+export type { RemovePlannedItemInput };
 
 export class RemovePlannedItemUseCase {
   constructor(

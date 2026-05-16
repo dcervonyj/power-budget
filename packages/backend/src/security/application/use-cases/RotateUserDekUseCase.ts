@@ -4,15 +4,8 @@ import type {
   TotpSecretRepository,
   Encryption,
 } from '../../../auth/domain/ports.js';
-
-export interface RotateUserDekInput {
-  readonly userId: UserId;
-}
-
-export interface RotateUserDekOutput {
-  readonly fieldsRotated: number;
-  readonly skipped: boolean;
-}
+import type { RotateUserDekInput, RotateUserDekOutput } from '../models/index.js';
+export type { RotateUserDekInput, RotateUserDekOutput };
 
 /**
  * Re-encrypts all per-user sensitive fields under the current KEK.

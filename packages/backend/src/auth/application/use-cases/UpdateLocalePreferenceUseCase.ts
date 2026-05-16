@@ -1,11 +1,8 @@
 import type { UserId } from '@power-budget/core';
 import type { UserRepository } from '../../domain/ports.js';
 import type { LocaleCode } from '../../domain/entities.js';
-
-export interface UpdateLocalePreferenceInput {
-  readonly userId: UserId;
-  readonly locale: LocaleCode;
-}
+import type { UpdateLocalePreferenceInput } from '../models/index.js';
+export type { UpdateLocalePreferenceInput };
 
 export class UpdateLocalePreferenceUseCase {
   constructor(private readonly userRepo: UserRepository) {}

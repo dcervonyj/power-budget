@@ -2,17 +2,8 @@ import type { HouseholdId, CurrencyCode, IsoDate, BankAccountId } from '@power-b
 import { TransactionId } from '@power-budget/core';
 import type { TransactionRepository } from '../../domain/ports.js';
 import type { Transaction, NewManualTransaction } from '../../domain/entities.js';
-
-export interface AddManualTransactionInput {
-  readonly householdId: HouseholdId;
-  readonly accountId: BankAccountId;
-  readonly occurredOn: string;
-  readonly amountMinor: bigint;
-  readonly currency: string;
-  readonly description: string;
-  readonly merchant: string | null;
-  readonly notes: string | null;
-}
+import type { AddManualTransactionInput } from '../models/index.js';
+export type { AddManualTransactionInput };
 
 export class AddManualTransactionUseCase {
   constructor(

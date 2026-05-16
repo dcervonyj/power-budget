@@ -8,16 +8,8 @@ import type {
   RefreshTokenStore,
 } from '../../domain/ports.js';
 import { MagicLinkExpiredError } from '../../domain/errors.js';
-
-export interface ConsumeMagicLinkInput {
-  readonly token: string;
-}
-
-export interface ConsumeMagicLinkOutput {
-  readonly accessToken: string;
-  readonly refreshToken: string;
-  readonly userId: UserId;
-}
+import type { ConsumeMagicLinkInput, ConsumeMagicLinkOutput } from '../models/index.js';
+export type { ConsumeMagicLinkInput, ConsumeMagicLinkOutput };
 
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 

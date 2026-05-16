@@ -11,11 +11,8 @@ import {
   EmailMismatchError,
   AlreadyInHouseholdError,
 } from '../../domain/errors.js';
-
-export interface AcceptInviteInput {
-  readonly token: string;
-  readonly acceptingUserId: UserId;
-}
+import type { AcceptInviteInput } from '../models/index.js';
+export type { AcceptInviteInput };
 
 export class AcceptInviteUseCase {
   constructor(

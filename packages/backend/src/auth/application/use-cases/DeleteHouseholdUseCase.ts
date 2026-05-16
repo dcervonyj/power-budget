@@ -1,15 +1,8 @@
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdRepository } from '../../domain/ports.js';
 import { HouseholdNotFoundError } from '../../domain/errors.js';
-
-export interface DeleteHouseholdInput {
-  readonly householdId: HouseholdId;
-  readonly requestedByUserId: UserId;
-}
-
-export interface DeleteHouseholdOutput {
-  readonly scheduledFor: Date;
-}
+import type { DeleteHouseholdInput, DeleteHouseholdOutput } from '../models/index.js';
+export type { DeleteHouseholdInput, DeleteHouseholdOutput };
 
 export class DeleteHouseholdUseCase {
   private static readonly DELETE_DELAY_DAYS = 30;

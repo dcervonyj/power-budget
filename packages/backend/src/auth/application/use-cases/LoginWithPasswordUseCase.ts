@@ -14,18 +14,8 @@ import {
   TotpRequiredError,
   TotpInvalidError,
 } from '../../domain/errors.js';
-
-export interface LoginWithPasswordInput {
-  readonly email: string;
-  readonly password: string;
-  readonly totp?: string;
-}
-
-export interface LoginWithPasswordOutput {
-  readonly accessToken: string;
-  readonly refreshToken: string;
-  readonly userId: UserId;
-}
+import type { LoginWithPasswordInput, LoginWithPasswordOutput } from '../models/index.js';
+export type { LoginWithPasswordInput, LoginWithPasswordOutput };
 
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 

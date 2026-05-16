@@ -2,12 +2,8 @@ import type { UserId, HouseholdId, BankConnectionId } from '@power-budget/core';
 import type { BankConnectionRepository, BankConnectorRegistry } from '../../domain/ports.js';
 import type { AuditLogger } from '../../../audit/domain/ports.js';
 import { BankConnectionNotFoundError, BankConnectionForbiddenError } from '../../domain/errors.js';
-
-export interface DisconnectBankInput {
-  readonly connectionId: BankConnectionId;
-  readonly householdId: HouseholdId;
-  readonly userId: UserId;
-}
+import type { DisconnectBankInput } from '../models/index.js';
+export type { DisconnectBankInput };
 
 export class DisconnectBankUseCase {
   constructor(

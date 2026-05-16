@@ -1,10 +1,8 @@
 import type { PlannedItemId } from '@power-budget/core';
 import type { PlannedItemVersion } from '../../domain/entities.js';
 import type { PlannedItemVersionRepository } from '../../domain/ports.js';
-
-export interface GetPlannedItemHistoryInput {
-  readonly itemId: PlannedItemId;
-}
+import type { GetPlannedItemHistoryInput } from '../models/index.js';
+export type { GetPlannedItemHistoryInput };
 
 export class GetPlannedItemHistoryUseCase {
   constructor(private readonly versionRepo: PlannedItemVersionRepository) {}

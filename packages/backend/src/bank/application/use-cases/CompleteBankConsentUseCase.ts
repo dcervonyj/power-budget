@@ -1,15 +1,8 @@
 import type { BankConnectionId } from '@power-budget/core';
 import type { BankConnectionRepository, BankConnectorRegistry } from '../../domain/ports.js';
 import { BankConsentNotFoundError } from '../../domain/errors.js';
-
-export interface CompleteBankConsentInput {
-  readonly externalConsentRef: string;
-  readonly callbackPayload: Record<string, string>;
-}
-
-export interface CompleteBankConsentOutput {
-  readonly connectionId: BankConnectionId;
-}
+import type { CompleteBankConsentInput, CompleteBankConsentOutput } from '../models/index.js';
+export type { CompleteBankConsentInput, CompleteBankConsentOutput };
 
 export class CompleteBankConsentUseCase {
   constructor(

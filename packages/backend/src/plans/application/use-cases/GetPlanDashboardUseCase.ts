@@ -1,11 +1,7 @@
 import type { PlanId, HouseholdId, PlanActualsView } from '@power-budget/core';
 import type { PlanRepository, PlanActualsReader, HouseholdScope } from '../../domain/ports.js';
-
-export interface GetPlanDashboardInput {
-  readonly planId: PlanId;
-  readonly householdId: HouseholdId;
-  readonly asOf: Date;
-}
+import type { GetPlanDashboardInput } from '../models/index.js';
+export type { GetPlanDashboardInput };
 
 export class GetPlanDashboardUseCase {
   constructor(

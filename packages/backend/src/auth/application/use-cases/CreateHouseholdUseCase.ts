@@ -3,12 +3,8 @@ import type { UserId, HouseholdId } from '@power-budget/core';
 import type { Household, NewHousehold } from '../../domain/entities.js';
 import type { HouseholdRepository, UserRepository } from '../../domain/ports.js';
 import { AlreadyInHouseholdError } from '../../domain/errors.js';
-
-export interface CreateHouseholdInput {
-  readonly userId: UserId;
-  readonly name: string;
-  readonly baseCurrency?: string;
-}
+import type { CreateHouseholdInput } from '../models/index.js';
+export type { CreateHouseholdInput };
 
 export class CreateHouseholdUseCase {
   constructor(

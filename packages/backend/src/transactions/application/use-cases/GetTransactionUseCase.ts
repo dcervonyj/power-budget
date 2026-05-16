@@ -6,12 +6,8 @@ import type {
 } from '../../domain/ports.js';
 import type { Transaction, TransactionMapping, Transfer } from '../../domain/entities.js';
 import { TransactionNotFoundError } from '../../domain/errors.js';
-
-export interface TransactionDetail {
-  readonly transaction: Transaction;
-  readonly mapping: TransactionMapping | null;
-  readonly transfer: Transfer | null;
-}
+import type { TransactionDetail } from '../models/index.js';
+export type { TransactionDetail };
 
 export class GetTransactionUseCase {
   constructor(

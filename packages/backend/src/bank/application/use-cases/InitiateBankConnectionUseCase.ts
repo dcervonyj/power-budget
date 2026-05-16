@@ -5,19 +5,8 @@ import type { BankConnectionRepository, BankConnectorRegistry } from '../../doma
 import type { TotpSecretRepository } from '../../../auth/domain/ports.js';
 import { BankConnectionAlreadyActiveError } from '../../domain/errors.js';
 import { TotpEnrollmentRequiredError } from '../../../auth/domain/errors.js';
-
-export interface InitiateBankConnectionInput {
-  readonly userId: UserId;
-  readonly householdId: HouseholdId;
-  readonly provider: BankProvider;
-  readonly bankId: BankId;
-  readonly redirectUri: string;
-}
-
-export interface InitiateBankConnectionOutput {
-  readonly consentUrl: string;
-  readonly connectionId: BankConnectionId;
-}
+import type { InitiateBankConnectionInput, InitiateBankConnectionOutput } from '../models/index.js';
+export type { InitiateBankConnectionInput, InitiateBankConnectionOutput };
 
 export class InitiateBankConnectionUseCase {
   constructor(

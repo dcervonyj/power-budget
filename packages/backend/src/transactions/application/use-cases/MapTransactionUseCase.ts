@@ -6,14 +6,8 @@ import type {
   PlanActualsRefreshPort,
 } from '../../domain/ports.js';
 import { TransactionNotFoundError, AlreadyTransferError } from '../../domain/errors.js';
-
-export interface MapTransactionInput {
-  readonly transactionId: TransactionId;
-  readonly plannedItemId: PlannedItemId | null;
-  readonly by: UserId;
-  readonly householdId: HouseholdId;
-  readonly planId: PlanId;
-}
+import type { MapTransactionInput } from '../models/index.js';
+export type { MapTransactionInput };
 
 export class MapTransactionUseCase {
   constructor(

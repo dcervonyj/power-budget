@@ -7,18 +7,10 @@ import type {
   AppConfigPort,
 } from '../../domain/ports.js';
 import { UserNotFoundError } from '../../domain/errors.js';
+import type { InviteToHouseholdInput, InviteToHouseholdOutput } from '../models/index.js';
+export type { InviteToHouseholdInput, InviteToHouseholdOutput };
 
 const INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-export interface InviteToHouseholdInput {
-  readonly inviterUserId: UserId;
-  readonly inviteeEmail: string;
-  readonly householdId: HouseholdId;
-}
-
-export interface InviteToHouseholdOutput {
-  readonly inviteUrl: string;
-}
 
 export class InviteToHouseholdUseCase {
   constructor(

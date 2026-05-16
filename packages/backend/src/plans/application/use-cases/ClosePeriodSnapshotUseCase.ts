@@ -13,12 +13,8 @@ import type {
   LeftoverSnapshotRepository,
   HouseholdScope,
 } from '../../domain/ports.js';
-
-export interface ClosePeriodSnapshotInput {
-  readonly planId: PlanId;
-  readonly householdId: HouseholdId;
-  readonly closedAt: IsoDateTime;
-}
+import type { ClosePeriodSnapshotInput } from '../models/index.js';
+export type { ClosePeriodSnapshotInput };
 
 export class ClosePeriodSnapshotUseCase {
   constructor(
