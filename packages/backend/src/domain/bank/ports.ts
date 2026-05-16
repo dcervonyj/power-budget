@@ -51,6 +51,7 @@ export interface BankConnectionRepository {
     provider: BankProvider,
   ): Promise<BankConnection | null>;
   listByUser(userId: UserId): Promise<BankConnection[]>;
+  findActiveConnections(): Promise<BankConnection[]>;
   updateConsent(
     id: BankConnectionId,
     consent: EncryptedString,
@@ -79,4 +80,12 @@ export interface SyncRunRepository {
 export interface BankConnectorRegistry {
   resolve(provider: BankProvider): BankConnector;
   listProviders(): BankProvider[];
+}
+
+export interface BankSyncQueuePort {
+  enqueue(payload: {
+    connectionId: BankConnectionId;
+    householdId: HouseholdId;
+    since?: Date;
+  }): Promise<{ jobId: string }>;
 }

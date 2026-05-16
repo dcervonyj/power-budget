@@ -1,5 +1,5 @@
 import type { UserId, HouseholdId, BankConnectionId } from '@power-budget/core';
-import type { BankConnectionRepository } from '../../../domain/bank/ports.js';
+import type { BankConnectionRepository, BankSyncQueuePort } from '../../../domain/bank/ports.js';
 import {
   BankConnectionNotFoundError,
   BankConnectionForbiddenError,
@@ -16,7 +16,10 @@ export interface RefreshConnectionOutput {
 }
 
 export class RefreshConnectionUseCase {
-  constructor(private readonly connectionRepo: BankConnectionRepository) {}
+  constructor(
+    private readonly connectionRepo: BankConnectionRepository,
+    private readonly syncQueue: BankSyncQueuePort,
+  ) {}
 
   async execute(input: RefreshConnectionInput): Promise<RefreshConnectionOutput> {
     const connection = await this.connectionRepo.findById(input.connectionId, {
@@ -29,7 +32,11 @@ export class RefreshConnectionUseCase {
       throw new BankConnectionForbiddenError();
     }
 
-    // MVP: sync is triggered inline; in production this enqueues a BullMQ job
-    return { jobId: null };
+    const { jobId } = await this.syncQueue.enqueue({
+      connectionId: input.connectionId,
+      householdId: input.householdId,
+    });
+    return { jobId };
   }
 }
+
