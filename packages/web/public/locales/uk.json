@@ -14,5 +14,18 @@
   "component.historyDrawer.title": "History",
   "component.historyDrawer.empty": "No history yet",
   "component.historyDrawer.actor": "by {actor}",
-  "component.historyDrawer.loading": "Loading…"
+  "component.historyDrawer.loading": "Loading…",
+  "screen.totpEnrollment.title": "Enable Two-Factor Authentication",
+  "screen.totpEnrollment.scanQr": "Scan this QR code with your authenticator app",
+  "screen.totpEnrollment.secretBackup": "Or enter this code manually:",
+  "screen.totpEnrollment.codeLabel": "6-digit code",
+  "screen.totpEnrollment.verifyCode": "Enter the 6-digit code from your app to confirm",
+  "screen.totpEnrollment.verify": "Verify",
+  "screen.totpEnrollment.recoveryCodes.title": "Save your recovery codes",
+  "screen.totpEnrollment.recoveryCodes.warning": "These codes will only be shown once. Save them in a safe place.",
+  "screen.totpEnrollment.recoveryCodes.copy": "Copy all",
+  "screen.totpEnrollment.recoveryCodes.print": "Print",
+  "screen.totpEnrollment.recoveryCodes.done": "I've saved my recovery codes",
+  "screen.totpEnrollment.error.invalid": "Invalid code. Please try again.",
+  "screen.totpEnrollment.error.server": "Server error. Please try again."
 }
