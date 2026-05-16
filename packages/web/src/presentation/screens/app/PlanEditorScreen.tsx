@@ -534,7 +534,7 @@ export function PlanEditorScreen(): React.JSX.Element {
                         setHistoryDrawer({ planId: id ?? '', itemId: item.id });
                       }}
                     >
-                      📋
+                      {intl.formatMessage({ id: 'screen.planEditor.historyButton', defaultMessage: 'History' })}
                     </Button>
                     <Button
                       variant="danger"

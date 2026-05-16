@@ -130,8 +130,11 @@ export function PlannedItemHistoryDrawer({
                     key={field}
                     style={{ fontSize: theme.fontSize.sm, color: theme.color.text.secondary }}
                   >
-                    <strong style={{ color: theme.color.text.primary }}>{field}</strong>:{' '}
-                    {String(change.before)} → {String(change.after)}
+                    <strong style={{ color: theme.color.text.primary }}>{field}</strong>
+                    {intl.formatMessage(
+                      { id: 'drawer.history.fieldChange', defaultMessage: ': {before} → {after}' },
+                      { before: String(change.before), after: String(change.after) },
+                    )}
                   </div>
                 ))}
               </div>
