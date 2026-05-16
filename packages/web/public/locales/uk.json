@@ -1,1 +1,5 @@
-{}
+{
+  "component.localeSwitcher.label": "Language",
+  "screen.settings.title": "Settings",
+  "screen.settings.locale.section": "Language & Region"
+}

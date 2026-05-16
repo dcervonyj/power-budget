@@ -105,5 +105,8 @@
   "component.moneyView.tooltip": "1 {from} = {rate} {to}",
   "component.currencySwitcher.title": "Currency settings",
   "component.currencySwitcher.baseCurrency.label": "Base currency",
-  "component.currencySwitcher.interestingCurrencies.label": "Also show in"
+  "component.currencySwitcher.interestingCurrencies.label": "Also show in",
+  "component.localeSwitcher.label": "Language",
+  "screen.settings.title": "Settings",
+  "screen.settings.locale.section": "Language & Region"
 }
