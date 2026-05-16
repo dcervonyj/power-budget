@@ -10,7 +10,7 @@
     "./rn": "./dist/rn.js"
   },
   "scripts": {
-    "build": "tsc -b && node dist/css.js > dist/tokens.css",
+    "build": "tsc -b && node dist/cli.js > dist/tokens.css",
     "typecheck": "tsc -b --pretty",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
