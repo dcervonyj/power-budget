@@ -11,7 +11,7 @@ import type {
   CategoryId,
   PlanActualsView,
 } from '@power-budget/core';
-import type { BankConnectionRepository, BankConnectorRegistry } from '../src/domain/bank/ports.js';
+import type { BankConnectionRepository, BankConnectorRegistry, BankSyncQueuePort } from '../src/domain/bank/ports.js';
 import type { BankConnection } from '../src/domain/bank/entities.js';
 import {
   BankConnectionNotFoundError,
@@ -668,10 +668,12 @@ describe('Tenancy isolation — application layer', () => {
     describe('RefreshConnectionUseCase', () => {
       it('succeeds when connection belongs to requesting household and user', async () => {
         const connRepo = mock<BankConnectionRepository>();
+        const syncQueue = mock<BankSyncQueuePort>();
         const connA = makeBankConnection(HOUSEHOLD_A);
         connRepo.findById.mockResolvedValue(connA);
+        syncQueue.enqueue.mockResolvedValue({ jobId: 'job-1' });
 
-        const useCase = new RefreshConnectionUseCase(connRepo);
+        const useCase = new RefreshConnectionUseCase(connRepo, syncQueue);
         const result = await useCase.execute({
           connectionId: CONN_ID_A,
           householdId: HOUSEHOLD_A,
@@ -684,10 +686,11 @@ describe('Tenancy isolation — application layer', () => {
 
       it('throws BankConnectionNotFoundError when connection is in household B', async () => {
         const connRepo = mock<BankConnectionRepository>();
+        const syncQueue = mock<BankSyncQueuePort>();
         // Scoped repo returns null for wrong household
         connRepo.findById.mockResolvedValue(null);
 
-        const useCase = new RefreshConnectionUseCase(connRepo);
+        const useCase = new RefreshConnectionUseCase(connRepo, syncQueue);
 
         await expect(
           useCase.execute({
@@ -700,11 +703,12 @@ describe('Tenancy isolation — application layer', () => {
 
       it('throws BankConnectionForbiddenError when userId does not match connection owner', async () => {
         const connRepo = mock<BankConnectionRepository>();
+        const syncQueue = mock<BankSyncQueuePort>();
         // Connection found (correct household) but owned by USER_B
         const connOwnedByB = makeBankConnection(HOUSEHOLD_A, { userId: USER_B });
         connRepo.findById.mockResolvedValue(connOwnedByB);
 
-        const useCase = new RefreshConnectionUseCase(connRepo);
+        const useCase = new RefreshConnectionUseCase(connRepo, syncQueue);
 
         await expect(
           useCase.execute({

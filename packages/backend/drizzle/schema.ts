@@ -486,6 +486,32 @@ export const householdExports = pgTable(
   ],
 );
 
+// ─── Bank sync runs ───────────────────────────────────────────────────────────
+
+export const syncRuns = pgTable(
+  'sync_runs',
+  {
+    id: uuid('id').primaryKey(),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => bankConnections.id),
+    accountId: uuid('account_id').references(() => bankAccounts.id),
+    status: varchar('status', { length: 20 }).notNull().default('running'),
+    lastSuccessfulAt: timestamp('last_successful_at', { withTimezone: true }),
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('sync_runs_connection_idx').on(t.connectionId),
+    index('sync_runs_status_idx').on(t.status),
+  ],
+);
+
+export type SelectSyncRun = InferSelectModel<typeof syncRuns>;
+export type InsertSyncRun = InferInsertModel<typeof syncRuns>;
+
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type SelectUser = InferSelectModel<typeof users>;

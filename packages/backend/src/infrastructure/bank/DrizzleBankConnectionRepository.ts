@@ -116,6 +116,14 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
       .where(eq(schema.bankConnections.id, id));
   }
 
+  async findActiveConnections(): Promise<BankConnection[]> {
+    const rows = await this.db
+      .select()
+      .from(schema.bankConnections)
+      .where(eq(schema.bankConnections.status, 'active'));
+    return rows.map((r) => this.toEntity(r));
+  }
+
   private toEntity(row: schema.SelectBankConnection): BankConnection {
     return {
       id: row.id as BankConnectionId,
