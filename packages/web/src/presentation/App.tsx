@@ -2,6 +2,11 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import { RequireAuth } from './guards/RequireAuth.js';
+import { SettingsProfileTab } from './screens/settings/SettingsProfileTab.js';
+import { SettingsLocaleTab } from './screens/settings/SettingsLocaleTab.js';
+import { SettingsCurrencyTab } from './screens/settings/SettingsCurrencyTab.js';
+import { SettingsNotificationsTab } from './screens/settings/SettingsNotificationsTab.js';
+import { SettingsDataTab } from './screens/settings/SettingsDataTab.js';
 
 // Auth screens — lazy loaded
 const LoginScreen = lazy(() =>
@@ -116,7 +121,14 @@ export function App() {
           <Route path="/bank/consent/callback" element={<BankConsentCallbackScreen />} />
           <Route path="/categories" element={<CategoriesScreen />} />
           <Route path="/household" element={<HouseholdScreen />} />
-          <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/settings" element={<SettingsScreen />}>
+            <Route index element={<Navigate to="profile" replace />} />
+            <Route path="profile" element={<SettingsProfileTab />} />
+            <Route path="locale" element={<SettingsLocaleTab />} />
+            <Route path="currency" element={<SettingsCurrencyTab />} />
+            <Route path="notifications" element={<SettingsNotificationsTab />} />
+            <Route path="data" element={<SettingsDataTab />} />
+          </Route>
           <Route path="/audit" element={<AuditLogScreen />} />
         </Route>
 
