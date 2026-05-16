@@ -1031,6 +1031,19 @@
         "summary": "Get plan actuals dashboard",
         "tags": ["plans"]
       }
+    },
+    "/notifications/bounce": {
+      "post": {
+        "operationId": "NotificationsController_handleBounce",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Handle email bounce webhook from Resend",
+        "tags": ["notifications"]
+      }
     }
   },
   "info": {

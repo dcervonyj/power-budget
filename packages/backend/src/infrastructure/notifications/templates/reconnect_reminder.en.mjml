@@ -1,0 +1,28 @@
+<mjml>
+  <mj-head>
+    <mj-title>Bank Connection Expiring Soon</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#d97706">🔗 Bank Connection Expiring</mj-text>
+        <mj-divider border-color="#d97706" border-width="2px" />
+        <mj-text>Hi {{name}},</mj-text>
+        <mj-text>
+          Your bank connection to <strong>{{connectionName}}</strong> is expiring
+          in <strong>{{daysUntilExpiry}} day(s)</strong>.
+        </mj-text>
+        <mj-text>
+          Please reconnect your bank account to ensure uninterrupted transaction syncing.
+        </mj-text>
+        <mj-text color="#888888" font-size="13px">
+          Log in to Power Budget → Settings → Bank Connections to reconnect.
+        </mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
