@@ -23,7 +23,7 @@ export type AppTabParamList = {
 export type AppStackParamList = {
   Tabs: undefined;
   TransactionDetail: { transactionId: string };
-  PlanEditor: { planId: string };
+  PlanEditor: { planId?: string };
   PlanDashboard: { planId: string };
   BankConnections: undefined;
   AddBankConnection: undefined;
