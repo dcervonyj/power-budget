@@ -99,5 +99,19 @@
   "addBank.review.done": "Done",
   "common.back": "Back",
   "common.next": "Next",
-  "common.retry": "Retry"
+  "common.retry": "Retry",
+  "screen.dashboard.loading": "Loading dashboard…",
+  "screen.dashboard.error": "Failed to load dashboard",
+  "screen.dashboard.noPlan": "No active plan",
+  "screen.dashboard.income": "Income",
+  "screen.dashboard.expenses": "Expenses",
+  "screen.dashboard.unplanned": "Unplanned ({count})",
+  "screen.dashboard.leftover": "Leftover",
+  "screen.dashboard.bottomLine": "Net Balance",
+  "screen.dashboard.bottomLine.switchCurrency": "Switch currency",
+  "screen.dashboard.planned": "Planned",
+  "screen.dashboard.actual": "Actual",
+  "component.dashboard.health.good": "On track",
+  "component.dashboard.health.warning": "At risk",
+  "component.dashboard.health.danger": "Over budget"
 }
