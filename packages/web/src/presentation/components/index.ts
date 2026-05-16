@@ -13,3 +13,5 @@ export { CustomPeriodPicker } from './CustomPeriodPicker.js';
 export type { CustomPeriodPickerProps, CustomPeriodValue } from './CustomPeriodPicker.js';
 export { ClonePlanModal } from './ClonePlanModal.js';
 export type { ClonePlanModalProps } from './ClonePlanModal.js';
+export { CategoryPickerModal } from './CategoryPickerModal.js';
+export type { CategoryPickerModalProps, Category, CategoryPrivacy } from './CategoryPickerModal.js';
