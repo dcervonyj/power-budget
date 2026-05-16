@@ -24,3 +24,6 @@ export const HouseholdInviteId = defineId('HouseholdInviteId');
 
 export type MagicLinkTokenId = Brand<string, 'MagicLinkTokenId'>;
 export const MagicLinkTokenId = defineId('MagicLinkTokenId');
+
+export type HouseholdExportId = Brand<string, 'HouseholdExportId'>;
+export const HouseholdExportId = defineId('HouseholdExportId');

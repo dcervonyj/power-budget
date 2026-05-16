@@ -41,6 +41,8 @@ export const households = pgTable('households', {
   name: varchar('name', { length: 255 }).notNull(),
   baseCurrency: char('base_currency', { length: 3 }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  deleteScheduledAt: timestamp('delete_scheduled_at', { withTimezone: true }),
 });
 
 export const householdUsers = pgTable(
@@ -461,6 +463,29 @@ export const auditLog = pgTable(
   ],
 );
 
+// ─── Household Exports ────────────────────────────────────────────────────────
+
+export const householdExports = pgTable(
+  'household_exports',
+  {
+    id: uuid('id').primaryKey(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id),
+    requestedByUserId: uuid('requested_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    downloadUrl: text('download_url'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('household_exports_household_idx').on(t.householdId),
+    index('household_exports_status_idx').on(t.status),
+  ],
+);
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type SelectUser = InferSelectModel<typeof users>;
@@ -472,3 +497,5 @@ export type SelectTransaction = InferSelectModel<typeof transactions>;
 export type SelectCategory = InferSelectModel<typeof categories>;
 export type SelectBankConnection = InferSelectModel<typeof bankConnections>;
 export type SelectAuditLog = InferSelectModel<typeof auditLog>;
+export type SelectHouseholdExport = InferSelectModel<typeof householdExports>;
+export type InsertHouseholdExport = InferInsertModel<typeof householdExports>;
