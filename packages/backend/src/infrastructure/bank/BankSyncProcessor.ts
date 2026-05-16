@@ -48,7 +48,7 @@ export class BankSyncProcessor extends WorkerHost {
       const connector = this.connectorRegistry.resolve(connection.provider);
       const accounts = await connector.listAccounts(
         connectionId,
-        connection.encryptedConsent as EncryptedString,
+        connection.encryptedConsent,
       );
 
       await this.bankAccountRepo.upsertAll(accounts, connectionId, scope);
@@ -61,12 +61,12 @@ export class BankSyncProcessor extends WorkerHost {
 
         const rawTxs = await connector.fetchTransactions({
           accountExternalId: rawAccount.externalId,
-          consent: connection.encryptedConsent as EncryptedString,
+          consent: connection.encryptedConsent,
           since: sinceDt,
         });
 
         await this.ingestUseCase.execute({
-          accountId: dbAccount.id as BankAccountId,
+          accountId: dbAccount.id,
           rawTransactions: rawTxs,
           householdId,
         });
