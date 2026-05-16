@@ -113,5 +113,18 @@
   "screen.dashboard.actual": "Actual",
   "component.dashboard.health.good": "On track",
   "component.dashboard.health.warning": "At risk",
-  "component.dashboard.health.danger": "Over budget"
+  "component.dashboard.health.danger": "Over budget",
+  "screen.household.title": "Household",
+  "screen.household.selectCategory": "Select a category to view details",
+  "component.household.loading": "Loading...",
+  "component.household.error": "Failed to load category details",
+  "component.household.privacy.total": "Total spend",
+  "component.household.privacy.totalAndCount": "{count, plural, one {# transaction} other {# transactions}}",
+  "component.household.privacy.fullDetail": "Transaction details",
+  "component.household.privacy.level.total": "Summary only",
+  "component.household.privacy.level.totalAndCount": "Summary + count",
+  "component.household.privacy.level.fullDetail": "Full detail",
+  "component.household.amount": "Amount",
+  "component.household.date": "Date",
+  "component.household.description": "Description"
 }
