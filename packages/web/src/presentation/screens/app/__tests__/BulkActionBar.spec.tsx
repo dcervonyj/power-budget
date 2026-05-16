@@ -9,8 +9,8 @@ import { darkTheme } from '@power-budget/design-tokens';
 
 vi.mock('../../../../AppProviders.js', () => ({
   apiClient: {
-    get: vi.fn().mockResolvedValue({ data: [] }),
-    post: vi.fn().mockResolvedValue({ data: {} }),
+    get: vi.fn().mockResolvedValue({ status: 200, data: [], headers: {} }),
+    post: vi.fn().mockResolvedValue({ status: 200, data: {}, headers: {} }),
   },
 }));
 
@@ -30,7 +30,7 @@ describe('BulkActionBar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPost.mockResolvedValue({ data: {} });
+    mockPost.mockResolvedValue({ status: 200, data: {}, headers: {} });
   });
 
   it('renders nothing when no transactions selected', () => {

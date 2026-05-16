@@ -59,7 +59,7 @@ export function MappingModal({
     void (async () => {
       try {
         const res = await apiClient.get<Plan[]>('/plans?status=active');
-        const fetched = res.data as Plan[];
+        const fetched = res.data;
         setPlans(fetched);
         setSelectedPlanId(fetched[0]?.id ?? null);
       } finally {
@@ -79,7 +79,7 @@ export function MappingModal({
     void (async () => {
       try {
         const res = await apiClient.get<PlannedItem[]>(`/plans/${selectedPlanId}/items`);
-        const fetched = res.data as PlannedItem[];
+        const fetched = res.data;
         setItems(fetched);
         setSelectedItemId(fetched[0]?.id ?? null);
       } finally {
