@@ -15,6 +15,12 @@ export type {
   CreatePlanDto,
   UpdatePlanDto,
 } from './plans/index.js';
+export {
+  BiometricUnlockService,
+  biometricUnlockService,
+  BIOMETRIC_PREF_KEY,
+} from './biometrics/index.js';
+
 
 import { ApiClient } from '@power-budget/shared-app';
 import { ExpoSecureStoreTokenStore } from './tokens/ExpoSecureStoreTokenStore.js';
