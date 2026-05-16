@@ -183,7 +183,10 @@ export function DashboardScreen(): React.JSX.Element {
         <View style={styles.header}>
           <Text style={styles.planName}>{actuals.planName}</Text>
           <Text style={styles.planPeriod}>
-            {actuals.period.start} → {actuals.period.end}
+            {intl.formatMessage(
+              { id: 'screen.dashboard.period', defaultMessage: '{start} → {end}' },
+              { start: actuals.period.start, end: actuals.period.end },
+            )}
           </Text>
           <Text style={styles.planCurrency}>{actuals.baseCurrency}</Text>
         </View>
@@ -195,7 +198,7 @@ export function DashboardScreen(): React.JSX.Element {
           <FormattedMessage id="screen.dashboard.income" defaultMessage="Income" />
         </Text>
         {incomeItems.length === 0 ? (
-          <Text style={styles.emptySection}>—</Text>
+          <Text style={styles.emptySection}>{intl.formatMessage({ id: 'common.emptyIndicator', defaultMessage: '—' })}</Text>
         ) : (
           incomeItems.map((row) => (
             <View key={row.plannedItemId} style={styles.row}>
@@ -231,7 +234,7 @@ export function DashboardScreen(): React.JSX.Element {
           <FormattedMessage id="screen.dashboard.expenses" defaultMessage="Expenses" />
         </Text>
         {expenseItems.length === 0 ? (
-          <Text style={styles.emptySection}>—</Text>
+          <Text style={styles.emptySection}>{intl.formatMessage({ id: 'common.emptyIndicator', defaultMessage: '—' })}</Text>
         ) : (
           expenseItems.map((row) => {
             const ratio =
@@ -280,7 +283,12 @@ export function DashboardScreen(): React.JSX.Element {
             <FormattedMessage id="screen.dashboard.unplanned" defaultMessage="Unplanned" />
           </Text>
           <View style={styles.unplannedRow}>
-            <Text style={styles.unplannedCount}>{actuals.unplannedCount} transactions</Text>
+            <Text style={styles.unplannedCount}>
+              {intl.formatMessage(
+                { id: 'screen.dashboard.unplannedTransactions', defaultMessage: '{count} transactions' },
+                { count: actuals.unplannedCount },
+              )}
+            </Text>
             <MoneyText
               amountMinor={actuals.unplannedAmountMinor}
               currency={baseCurrency}
