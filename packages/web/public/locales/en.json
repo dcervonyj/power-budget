@@ -101,6 +101,8 @@
   "screen.oauthCallback.title": "OAuth Callback",
   "screen.oauthCallback.loading": "Completing login…",
   "screen.oauthCallback.error": "Authentication failed. Please try again.",
+  "screen.bankConsentCallback.loading": "Completing bank connection…",
+  "screen.bankConsentCallback.error": "Bank consent failed. Please try again.",
   "component.moneyView.rateUnavailable": "Rate unavailable",
   "component.moneyView.tooltip": "1 {from} = {rate} {to}",
   "component.currencySwitcher.title": "Currency settings",

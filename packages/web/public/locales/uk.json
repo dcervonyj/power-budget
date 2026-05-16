@@ -1,5 +1,9 @@
 {
   "component.localeSwitcher.label": "Language",
   "screen.settings.title": "Settings",
-  "screen.settings.locale.section": "Language & Region"
+  "screen.settings.locale.section": "Language & Region",
+  "screen.oauthCallback.loading": "Завершення входу…",
+  "screen.oauthCallback.error": "Помилка автентифікації. Спробуйте ще раз.",
+  "screen.bankConsentCallback.loading": "Підключення банку…",
+  "screen.bankConsentCallback.error": "Помилка підключення банку. Спробуйте ще раз."
 }
