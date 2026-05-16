@@ -361,7 +361,7 @@ export function ManualTransactionForm({
               border: 'none',
               borderRadius: theme.radius.md,
               background: theme.color.accent.default,
-              color: theme.color.text.onAccent,
+              color: theme.color.accent.onAccent,
               fontSize: theme.fontSize.md,
               cursor: submitting || accountsLoading ? 'not-allowed' : 'pointer',
               opacity: submitting || accountsLoading ? 0.7 : 1,
