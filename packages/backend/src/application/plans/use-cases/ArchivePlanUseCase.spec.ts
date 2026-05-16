@@ -37,6 +37,7 @@ describe('ArchivePlanUseCase', () => {
       listActive: vi.fn(),
       update: vi.fn(),
       archive: vi.fn(),
+      findByPeriodEnd: vi.fn(),
     };
     auditLog = { record: vi.fn() };
     useCase = new ArchivePlanUseCase(planRepo, auditLog);
