@@ -298,13 +298,13 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 | QA-008  | k6 dashboard perf SLI                    | QA       | [#114](https://github.com/dcervonyj/power-budget/pull/114) |
 | SEC-009 | Pen-test checklist                       | Security | [#108](https://github.com/dcervonyj/power-budget/pull/108) |
 
-### Wave 16 — final gate
+### Wave 16 — final gate ✅ Done
 
-| ID      | Title                                           | Area |
-| ------- | ----------------------------------------------- | ---- |
-| WEB-014 | Bulk action bar + mapping modal                 | Web  |
-| QA-006  | Visual regression — 4 locales × key screens     | QA   |
-| QA-009  | Manual test plan + partner-onboarding rehearsal | QA   |
+| ID      | Title                                           | Area | PR                                                         |
+| ------- | ----------------------------------------------- | ---- | ---------------------------------------------------------- |
+| WEB-014 | Bulk action bar + mapping modal                 | Web  | [#119](https://github.com/dcervonyj/power-budget/pull/119) |
+| QA-006  | Visual regression — 4 locales × key screens     | QA   | [#120](https://github.com/dcervonyj/power-budget/pull/120) |
+| QA-009  | Manual test plan + partner-onboarding rehearsal | QA   | [#118](https://github.com/dcervonyj/power-budget/pull/118) |
 
 ### Parallelism summary
 
