@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   },
   rowTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: t.spaceXs },
   rowDate: { fontSize: t.fontSizeSm, color: t.colorTextSecondary },
-  rowAmount: { fontSize: t.fontSizeSm, fontWeight: t.fontWeightMedium as '500' },
+  rowAmount: { fontSize: t.fontSizeSm, fontWeight: t.fontWeightMedium },
   rowDesc: { fontSize: t.fontSizeMd, color: t.colorTextPrimary, marginBottom: t.spaceXs },
   rowBottom: {
     flexDirection: 'row',

@@ -44,6 +44,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: t.fontSizeXs,
     color: t.colorSurfaceBase,
-    fontWeight: t.fontWeightMedium as '500',
+    fontWeight: t.fontWeightMedium,
   },
 });

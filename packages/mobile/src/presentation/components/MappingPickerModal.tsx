@@ -78,7 +78,7 @@ export function MappingPickerModal({
             {intl.formatMessage({ id: 'screen.transactionDetail.mapTo', defaultMessage: 'Map to planned item' })}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>✕</Text>
+            <Text style={styles.closeBtnText}>{intl.formatMessage({ id: 'common.closeButton', defaultMessage: '✕' })}</Text>
           </TouchableOpacity>
         </View>
         {loading ? (
@@ -107,10 +107,13 @@ export function MappingPickerModal({
                     <Text style={styles.dirLabel}>{dirLabel}</Text>
                     <View>
                       <Text style={styles.planName}>{plan.name}</Text>
-                      <Text style={styles.amount}>{amount} {item.currency}</Text>
+                      <Text style={styles.amount}>{intl.formatMessage(
+                        { id: 'common.amountWithCurrency', defaultMessage: '{amount} {currency}' },
+                        { amount, currency: item.currency },
+                      )}</Text>
                     </View>
                   </View>
-                  {isCurrent && <Text style={styles.currentTag}>✓</Text>}
+                  {isCurrent && <Text style={styles.currentTag}>{intl.formatMessage({ id: 'common.checkmark', defaultMessage: '✓' })}</Text>}
                 </TouchableOpacity>
               );
             }}
@@ -131,7 +134,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: t.colorBorderSubtle,
   },
-  headerTitle: { fontSize: t.fontSizeLg, fontWeight: t.fontWeightBold as '700', color: t.colorTextPrimary },
+  headerTitle: { fontSize: t.fontSizeLg, fontWeight: t.fontWeightBold, color: t.colorTextPrimary },
   closeBtn: { padding: t.spaceXs },
   closeBtnText: { fontSize: t.fontSizeLg, color: t.colorTextSecondary },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -150,7 +153,7 @@ const styles = StyleSheet.create({
   rowCurrent: { borderColor: t.colorAccentDefault },
   rowLeft: { flexDirection: 'row', alignItems: 'center' },
   dirLabel: { fontSize: t.fontSizeLg, color: t.colorAccentDefault, marginRight: t.spaceSm },
-  planName: { fontSize: t.fontSizeSm, color: t.colorTextPrimary, fontWeight: t.fontWeightMedium as '500' },
+  planName: { fontSize: t.fontSizeSm, color: t.colorTextPrimary, fontWeight: t.fontWeightMedium },
   amount: { fontSize: t.fontSizeXs, color: t.colorTextSecondary, marginTop: 2 },
   currentTag: { color: t.colorAccentDefault, fontSize: t.fontSizeLg },
 });

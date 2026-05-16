@@ -168,7 +168,7 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
   if (!transaction) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.emptyText}>Transaction not found</Text>
+        <Text style={styles.emptyText}>{intl.formatMessage({ id: 'screen.transactionDetail.notFound', defaultMessage: 'Transaction not found' })}</Text>
       </View>
     );
   }
@@ -303,15 +303,15 @@ const styles = StyleSheet.create({
   label: { fontSize: t.fontSizeSm, color: t.colorTextSecondary },
   description: {
     fontSize: t.fontSizeMd,
-    fontWeight: t.fontWeightMedium as '500',
+    fontWeight: t.fontWeightMedium,
     color: t.colorTextPrimary,
     marginBottom: t.spaceXs,
   },
   source: { fontSize: t.fontSizeXs, color: t.colorTextMuted, marginBottom: t.spaceSm },
-  amount: { fontSize: t.fontSizeLg, fontWeight: t.fontWeightBold as '700' },
+  amount: { fontSize: t.fontSizeLg, fontWeight: t.fontWeightBold },
   sectionTitle: {
     fontSize: t.fontSizeMd,
-    fontWeight: t.fontWeightBold as '700',
+    fontWeight: t.fontWeightBold,
     color: t.colorTextPrimary,
     marginBottom: t.spaceSm,
   },
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
   },
   mapBtnText: {
     fontSize: t.fontSizeSm,
-    fontWeight: t.fontWeightMedium as '500',
+    fontWeight: t.fontWeightMedium,
     color: t.colorAccentOnAccent,
   },
   toggleRow: {
@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   saveBtnDisabled: { opacity: 0.6 },
   saveBtnText: {
     fontSize: t.fontSizeSm,
-    fontWeight: t.fontWeightMedium as '500',
+    fontWeight: t.fontWeightMedium,
     color: t.colorAccentOnAccent,
   },
   emptyText: { color: t.colorTextSecondary, fontSize: t.fontSizeMd },
