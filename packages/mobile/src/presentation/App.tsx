@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import type { LinkingOptions } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { IntlProvider } from 'react-intl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,8 +8,42 @@ import { getLocales } from 'expo-localization';
 import { RootNavigator } from './navigation/RootNavigator.js';
 import { LocaleResolver, LOCALE_STORAGE_KEY } from '../infrastructure/locale/index.js';
 import type { SupportedLocale } from '../infrastructure/locale/index.js';
+import type { RootStackParamList } from './navigation/types.js';
 
 const resolver = new LocaleResolver();
+
+/**
+ * Deep linking configuration.
+ *
+ * Supported URLs:
+ *   Universal:  https://app.power-budget.com/auth/magic-link?token=<token>
+ *   Universal:  https://app.power-budget.com/auth/oauth/google/callback?code=<code>&state=<state>
+ *   Custom scheme: powerbudget://auth/magic-link?token=<token>
+ *   Custom scheme: powerbudget://auth/oauth/google/callback?code=<code>&state=<state>
+ */
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: ['https://app.power-budget.com', 'powerbudget://'],
+  config: {
+    screens: {
+      Auth: {
+        screens: {
+          MagicLink: 'auth/magic-link',
+          OAuthCallback: 'auth/oauth/google/callback',
+        },
+      },
+      App: {
+        screens: {
+          Tabs: {
+            screens: {
+              Dashboard: 'dashboard',
+              Plans: 'plans',
+            },
+          },
+        },
+      },
+    },
+  },
+};
 
 function getDeviceLanguage(): string {
   return getLocales()[0]?.languageCode ?? 'en';
@@ -45,7 +80,7 @@ export function App(): React.JSX.Element {
 
   return (
     <IntlProvider locale={locale} messages={messages} defaultLocale="en">
-      <NavigationContainer>
+      <NavigationContainer linking={linking}>
         <RootNavigator />
         <StatusBar style="auto" />
       </NavigationContainer>

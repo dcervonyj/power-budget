@@ -8,6 +8,7 @@ export type AuthStackParamList = {
   Register: undefined;
   MagicLink: undefined;
   TotpEnrollment: undefined;
+  OAuthCallback: { code: string; state?: string };
 };
 
 // App tab bar
