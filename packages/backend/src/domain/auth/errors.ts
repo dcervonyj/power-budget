@@ -75,3 +75,10 @@ export class TotpEnrollmentRequiredError extends Error {
     this.name = 'TotpEnrollmentRequiredError';
   }
 }
+
+export class HouseholdNotFoundError extends Error {
+  constructor() {
+    super('HOUSEHOLD_NOT_FOUND');
+    this.name = 'HouseholdNotFoundError';
+  }
+}

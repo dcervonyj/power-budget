@@ -2,8 +2,11 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { DatabaseModule } from '../database/database.module.js';
+import { QueueModule } from '../queue/queue.module.js';
 import { DrizzleUserRepository } from './DrizzleUserRepository.js';
 import { DrizzleHouseholdRepository } from './DrizzleHouseholdRepository.js';
+import { DrizzleHouseholdExportRepository } from './DrizzleHouseholdExportRepository.js';
+import { BullMQHouseholdExportQueue } from './BullMQHouseholdExportQueue.js';
 import { Argon2PasswordHashing } from './Argon2PasswordHashing.js';
 import { OtplibTotpVerifier } from './OtplibTotpVerifier.js';
 import { JwtAccessTokenIssuerAdapter } from './JwtAccessTokenIssuer.js';
@@ -17,10 +20,12 @@ import { DrizzleBankConnectionChecker } from './DrizzleBankConnectionChecker.js'
 import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule],
+  imports: [DatabaseModule, ConfigModule, QueueModule],
   providers: [
     DrizzleUserRepository,
     DrizzleHouseholdRepository,
+    DrizzleHouseholdExportRepository,
+    BullMQHouseholdExportQueue,
     DrizzleTotpSecretRepository,
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
@@ -49,6 +54,8 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
   exports: [
     DrizzleUserRepository,
     DrizzleHouseholdRepository,
+    DrizzleHouseholdExportRepository,
+    BullMQHouseholdExportQueue,
     DrizzleTotpSecretRepository,
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,

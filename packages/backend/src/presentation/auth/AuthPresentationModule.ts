@@ -9,6 +9,8 @@ import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { AppConfigAdapter } from './AppConfigAdapter.js';
 import { DrizzleUserRepository } from '../../infrastructure/auth/DrizzleUserRepository.js';
 import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHouseholdRepository.js';
+import { DrizzleHouseholdExportRepository } from '../../infrastructure/auth/DrizzleHouseholdExportRepository.js';
+import { BullMQHouseholdExportQueue } from '../../infrastructure/auth/BullMQHouseholdExportQueue.js';
 import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from '../../infrastructure/auth/DrizzleHouseholdInviteRepository.js';
@@ -33,6 +35,8 @@ import { UpdateLocalePreferenceUseCase } from '../../application/auth/use-cases/
 import { CreateHouseholdUseCase } from '../../application/auth/use-cases/CreateHouseholdUseCase.js';
 import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/InviteToHouseholdUseCase.js';
 import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInviteUseCase.js';
+import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
+import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 import type { OAuthProvider } from '../../domain/auth/ports.js';
 
 const STUB_OAUTH_PROVIDER: OAuthProvider = {
@@ -239,6 +243,20 @@ const STUB_OAUTH_PROVIDER: OAuthProvider = {
         userRepo: DrizzleUserRepository,
         inviteRepo: DrizzleHouseholdInviteRepository,
       ) => new AcceptInviteUseCase(householdRepo, userRepo, inviteRepo),
+    },
+    {
+      provide: ExportHouseholdDataUseCase,
+      inject: [DrizzleHouseholdExportRepository, BullMQHouseholdExportQueue],
+      useFactory: (
+        exportRepo: DrizzleHouseholdExportRepository,
+        exportQueue: BullMQHouseholdExportQueue,
+      ) => new ExportHouseholdDataUseCase(exportRepo, exportQueue),
+    },
+    {
+      provide: DeleteHouseholdUseCase,
+      inject: [DrizzleHouseholdRepository],
+      useFactory: (householdRepo: DrizzleHouseholdRepository) =>
+        new DeleteHouseholdUseCase(householdRepo),
     },
   ],
 })
