@@ -33,7 +33,7 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
     const enableTotp = async (): Promise<void> => {
       try {
         const res = await apiClient.post('/auth/totp/enable', {});
-        const data = res.data as unknown as TotpEnableResponse;
+        const data = res.data as TotpEnableResponse;
         setTotpData(data);
       } catch {
         setLoadError(
@@ -155,7 +155,12 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
               id="screen.totpEnrollment.recoveryCodes.copy"
               defaultMessage="Copy all"
             />
-            {copied ? ' ✓' : ''}
+            {copied
+              ? intl.formatMessage({
+                  id: 'screen.totpEnrollment.recoveryCodes.copiedIndicator',
+                  defaultMessage: ' ✓',
+                })
+              : null}
           </Button>
           <Button variant="secondary" onClick={handlePrint}>
             <FormattedMessage
