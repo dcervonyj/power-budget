@@ -940,6 +940,41 @@
         "summary": "List bank accounts for a connection",
         "tags": ["bank-connections"]
       }
+    },
+    "/plans/{id}/dashboard": {
+      "get": {
+        "operationId": "PlansController_dashboard",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Plan actuals view"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get plan actuals dashboard",
+        "tags": ["plans"]
+      }
     }
   },
   "info": {

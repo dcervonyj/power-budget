@@ -500,6 +500,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/plans/{id}/dashboard': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get plan actuals dashboard */
+    get: operations['PlansController_dashboard'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1619,6 +1636,48 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_dashboard: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Plan ID */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Plan actuals view */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
