@@ -7,21 +7,8 @@ import type {
 } from '../../domain/ports.js';
 import type { NewTransaction, TransactionMapping } from '../../domain/entities.js';
 import { IdempotentIngest } from '../../domain/idempotent-ingest.js';
-
-export interface RawTransaction {
-  readonly externalId: string | null;
-  readonly occurredOn: string;
-  readonly amountMinor: bigint;
-  readonly currency: string;
-  readonly description: string;
-  readonly merchant: string | null;
-}
-
-export interface IngestBankTransactionsInput {
-  readonly accountId: BankAccountId;
-  readonly rawTransactions: readonly RawTransaction[];
-  readonly householdId: HouseholdId;
-}
+import type { RawTransaction, IngestBankTransactionsInput } from '../models/index.js';
+export type { RawTransaction, IngestBankTransactionsInput };
 
 export class IngestBankTransactionsUseCase {
   constructor(

@@ -1,11 +1,7 @@
 import type { TransactionId, PlannedItemId, UserId, PlanId } from '@power-budget/core';
 import type { MappingRepository, PlanActualsRefreshPort } from '../../domain/ports.js';
-
-export interface BulkMapTransactionsInput {
-  readonly mappings: ReadonlyArray<{ transactionId: TransactionId; plannedItemId: PlannedItemId }>;
-  readonly by: UserId;
-  readonly planId: PlanId;
-}
+import type { BulkMapTransactionsInput } from '../models/index.js';
+export type { BulkMapTransactionsInput };
 
 export class BulkMapTransactionsUseCase {
   constructor(

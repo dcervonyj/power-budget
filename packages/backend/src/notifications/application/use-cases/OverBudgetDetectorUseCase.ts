@@ -1,18 +1,7 @@
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { EnqueueNotificationUseCase } from './EnqueueNotificationUseCase.js';
-
-export interface OverBudgetInput {
-  readonly recipientUserId: UserId;
-  readonly householdId: HouseholdId;
-  readonly categoryName: string;
-  readonly planName: string;
-  readonly actualAmountFormatted: string;
-  readonly plannedAmountFormatted: string;
-  readonly currency: string;
-  readonly recipientName: string;
-  /** ISO date like 2025-01 to scope dedupe to a period */
-  readonly period: string;
-}
+import type { OverBudgetInput } from '../models/index.js';
+export type { OverBudgetInput };
 
 export class OverBudgetDetectorUseCase {
   constructor(private readonly enqueueNotification: EnqueueNotificationUseCase) {}

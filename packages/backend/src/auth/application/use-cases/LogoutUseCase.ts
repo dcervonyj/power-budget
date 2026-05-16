@@ -1,8 +1,6 @@
 import type { RefreshTokenStore } from '../../domain/ports.js';
-
-export interface LogoutInput {
-  readonly refreshToken: string;
-}
+import type { LogoutInput } from '../models/index.js';
+export type { LogoutInput };
 
 export class LogoutUseCase {
   constructor(private readonly refreshTokenStore: RefreshTokenStore) {}

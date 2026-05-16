@@ -6,15 +6,8 @@ import type {
   AuditLogPort,
   HouseholdScope,
 } from '../../domain/ports.js';
-
-export interface UpdatePlannedItemInput {
-  readonly planId: PlanId;
-  readonly itemId: PlannedItemId;
-  readonly patch: PlannedItemPatch;
-  readonly reason?: string;
-  readonly userId: UserId;
-  readonly householdId: HouseholdId;
-}
+import type { UpdatePlannedItemInput } from '../models/index.js';
+export type { UpdatePlannedItemInput };
 
 export class UpdatePlannedItemUseCase {
   constructor(

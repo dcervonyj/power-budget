@@ -8,15 +8,8 @@ import type {
   HouseholdScope,
 } from '../../domain/ports.js';
 import { PlanCloning } from '../../domain/plan-cloning.js';
-
-export interface ClonePlanFromPreviousInput {
-  readonly sourcePlanId: PlanId;
-  readonly name?: string;
-  readonly periodStart?: IsoDate;
-  readonly periodEnd?: IsoDate;
-  readonly householdId: HouseholdId;
-  readonly userId: UserId;
-}
+import type { ClonePlanFromPreviousInput } from '../models/index.js';
+export type { ClonePlanFromPreviousInput };
 
 export class ClonePlanFromPreviousUseCase {
   constructor(

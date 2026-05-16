@@ -3,16 +3,8 @@ import type { PlanId, UserId, HouseholdId, Money } from '@power-budget/core';
 import type { PlannedItem, NewPlannedItem, PlannedDirection } from '../../domain/entities.js';
 import type { PlanRepository, PlannedItemRepository, HouseholdScope } from '../../domain/ports.js';
 import type { CategoryId } from '@power-budget/core';
-
-export interface AddPlannedItemInput {
-  readonly planId: PlanId;
-  readonly categoryId: CategoryId;
-  readonly direction: PlannedDirection;
-  readonly amount: Money;
-  readonly note?: string | null;
-  readonly userId: UserId;
-  readonly householdId: HouseholdId;
-}
+import type { AddPlannedItemInput } from '../models/index.js';
+export type { AddPlannedItemInput };
 
 export class AddPlannedItemUseCase {
   constructor(

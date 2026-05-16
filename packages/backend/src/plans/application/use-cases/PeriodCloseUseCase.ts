@@ -1,10 +1,8 @@
 import type { IsoDateTime } from '@power-budget/core';
 import type { PlanRepository } from '../../domain/ports.js';
 import { ClosePeriodSnapshotUseCase } from './ClosePeriodSnapshotUseCase.js';
-
-export interface PeriodCloseResult {
-  readonly plansProcessed: number;
-}
+import type { PeriodCloseResult } from '../models/index.js';
+export type { PeriodCloseResult };
 
 export class PeriodCloseUseCase {
   constructor(

@@ -1,9 +1,7 @@
 import type { BankCatalogEntry, CountryCode } from '../../domain/entities.js';
 import type { BankConnectorRegistry } from '../../domain/ports.js';
-
-export interface GetBankCatalogInput {
-  readonly country: CountryCode;
-}
+import type { GetBankCatalogInput } from '../models/index.js';
+export type { GetBankCatalogInput };
 
 export class GetBankCatalogUseCase {
   constructor(private readonly registry: BankConnectorRegistry) {}

@@ -5,12 +5,8 @@ import type {
   HouseholdDashboardReader,
   HouseholdDashboardData,
 } from '../../../plans/domain/ports.js';
-
-export interface GetHouseholdDashboardInput {
-  readonly householdId: HouseholdId;
-  readonly planId: PlanId;
-  readonly viewerUserId: UserId;
-}
+import type { GetHouseholdDashboardInput } from '../models/index.js';
+export type { GetHouseholdDashboardInput };
 
 export class GetHouseholdDashboardUseCase {
   constructor(

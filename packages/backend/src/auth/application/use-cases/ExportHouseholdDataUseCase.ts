@@ -1,16 +1,8 @@
 import { uuidv7 } from 'uuidv7';
 import type { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
 import type { HouseholdExportRepository, HouseholdExportQueuePort } from '../../domain/ports.js';
-
-export interface ExportHouseholdDataInput {
-  readonly householdId: HouseholdId;
-  readonly requestedByUserId: UserId;
-}
-
-export interface ExportHouseholdDataOutput {
-  readonly exportId: HouseholdExportId;
-  readonly status: 'pending';
-}
+import type { ExportHouseholdDataInput, ExportHouseholdDataOutput } from '../models/index.js';
+export type { ExportHouseholdDataInput, ExportHouseholdDataOutput };
 
 export class ExportHouseholdDataUseCase {
   constructor(

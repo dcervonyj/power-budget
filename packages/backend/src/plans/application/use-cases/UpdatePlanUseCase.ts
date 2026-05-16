@@ -1,13 +1,8 @@
 import type { PlanId, UserId, HouseholdId } from '@power-budget/core';
 import type { Plan } from '../../domain/entities.js';
 import type { PlanRepository, AuditLogPort, HouseholdScope } from '../../domain/ports.js';
-
-export interface UpdatePlanInput {
-  readonly planId: PlanId;
-  readonly patch: { readonly name?: string };
-  readonly userId: UserId;
-  readonly householdId: HouseholdId;
-}
+import type { UpdatePlanInput } from '../models/index.js';
+export type { UpdatePlanInput };
 
 export class UpdatePlanUseCase {
   constructor(

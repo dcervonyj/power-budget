@@ -10,18 +10,8 @@ import type {
 import { HouseholdInvariants } from '../../domain/invariants.js';
 import { EmailAlreadyRegisteredError } from '../../domain/errors.js';
 import type { LocaleCode } from '../../domain/entities.js';
-
-export interface RegisterUserInput {
-  readonly email: string;
-  readonly password: string;
-  readonly locale?: LocaleCode;
-}
-
-export interface RegisterUserOutput {
-  readonly accessToken: string;
-  readonly refreshToken: string;
-  readonly userId: UserId;
-}
+import type { RegisterUserInput, RegisterUserOutput } from '../models/index.js';
+export type { RegisterUserInput, RegisterUserOutput };
 
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 

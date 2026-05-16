@@ -1,16 +1,8 @@
 import type { UserId, HouseholdId, BankConnectionId } from '@power-budget/core';
 import type { BankConnectionRepository, BankSyncQueuePort } from '../../domain/ports.js';
 import { BankConnectionNotFoundError, BankConnectionForbiddenError } from '../../domain/errors.js';
-
-export interface RefreshConnectionInput {
-  readonly connectionId: BankConnectionId;
-  readonly householdId: HouseholdId;
-  readonly userId: UserId;
-}
-
-export interface RefreshConnectionOutput {
-  readonly jobId: string | null;
-}
+import type { RefreshConnectionInput, RefreshConnectionOutput } from '../models/index.js';
+export type { RefreshConnectionInput, RefreshConnectionOutput };
 
 export class RefreshConnectionUseCase {
   constructor(

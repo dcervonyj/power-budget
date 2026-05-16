@@ -1,15 +1,8 @@
 import type { UserId } from '@power-budget/core';
 import type { UserRepository, TotpVerifier, TotpSecretRepository } from '../../domain/ports.js';
 import { UserNotFoundError } from '../../domain/errors.js';
-
-export interface EnableTotpInput {
-  readonly userId: UserId;
-}
-
-export interface EnableTotpOutput {
-  readonly qrCodeUri: string;
-  readonly secret: string;
-}
+import type { EnableTotpInput, EnableTotpOutput } from '../models/index.js';
+export type { EnableTotpInput, EnableTotpOutput };
 
 export class EnableTotpUseCase {
   constructor(

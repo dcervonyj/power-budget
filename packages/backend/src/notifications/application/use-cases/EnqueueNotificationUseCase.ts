@@ -2,14 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { NotificationKind } from '../../domain/entities.js';
 import type { NotificationRepository } from '../../domain/ports.js';
-
-export interface EnqueueNotificationInput {
-  readonly recipientUserId: UserId;
-  readonly householdId?: HouseholdId | null;
-  readonly kind: NotificationKind;
-  readonly dedupeKey: string;
-  readonly payload: Record<string, unknown>;
-}
+import type { EnqueueNotificationInput } from '../models/index.js';
+export type { EnqueueNotificationInput };
 
 export class EnqueueNotificationUseCase {
   constructor(private readonly notificationRepo: NotificationRepository) {}

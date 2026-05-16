@@ -4,10 +4,8 @@ import type {
   MagicLinkTokenRepository,
   NotificationOutboxPort,
 } from '../../domain/ports.js';
-
-export interface RequestMagicLinkInput {
-  readonly email: string;
-}
+import type { RequestMagicLinkInput } from '../models/index.js';
+export type { RequestMagicLinkInput };
 
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000; // 15 minutes
 const TOKEN_BYTES = 32;

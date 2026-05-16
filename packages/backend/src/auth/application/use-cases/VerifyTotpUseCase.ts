@@ -1,11 +1,8 @@
 import type { UserId } from '@power-budget/core';
 import type { TotpVerifier, TotpSecretRepository, TotpStepUpStore } from '../../domain/ports.js';
 import { TotpInvalidError, UserNotFoundError } from '../../domain/errors.js';
-
-export interface VerifyTotpInput {
-  readonly userId: UserId;
-  readonly code: string;
-}
+import type { VerifyTotpInput } from '../models/index.js';
+export type { VerifyTotpInput };
 
 export class VerifyTotpUseCase {
   constructor(

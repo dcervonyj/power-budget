@@ -5,17 +5,8 @@ import {
   BankConnectionForbiddenError,
   BankConnectionInvalidStateError,
 } from '../../domain/errors.js';
-
-export interface ReconnectBankInput {
-  readonly connectionId: BankConnectionId;
-  readonly householdId: HouseholdId;
-  readonly userId: UserId;
-  readonly redirectUri: string;
-}
-
-export interface ReconnectBankOutput {
-  readonly consentUrl: string;
-}
+import type { ReconnectBankInput, ReconnectBankOutput } from '../models/index.js';
+export type { ReconnectBankInput, ReconnectBankOutput };
 
 export class ReconnectBankUseCase {
   constructor(

@@ -5,14 +5,8 @@ import type {
   UnplannedTransactionReader,
   UnplannedTransactionPage,
 } from '../../domain/ports.js';
-
-export interface GetUnplannedTransactionsInput {
-  readonly planId: PlanId;
-  readonly householdId: HouseholdId;
-  readonly direction: 'income' | 'expense';
-  readonly cursor?: string;
-  readonly limit?: number;
-}
+import type { GetUnplannedTransactionsInput } from '../models/index.js';
+export type { GetUnplannedTransactionsInput };
 
 export class GetUnplannedTransactionsUseCase {
   constructor(

@@ -2,12 +2,8 @@ import type { TransactionId, HouseholdId } from '@power-budget/core';
 import type { TransactionRepository } from '../../domain/ports.js';
 import type { Transaction } from '../../domain/entities.js';
 import { TransactionNotFoundError } from '../../domain/errors.js';
-
-export interface PatchTransactionInput {
-  readonly transactionId: TransactionId;
-  readonly householdId: HouseholdId;
-  readonly patch: Partial<Pick<Transaction, 'notes' | 'ignored'>>;
-}
+import type { PatchTransactionInput } from '../models/index.js';
+export type { PatchTransactionInput };
 
 export class PatchTransactionUseCase {
   constructor(private readonly transactionRepo: TransactionRepository) {}

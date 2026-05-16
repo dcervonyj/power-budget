@@ -7,18 +7,8 @@ import type {
   JwtAccessTokenIssuer,
   RefreshTokenStore,
 } from '../../domain/ports.js';
-
-export interface LoginWithGoogleInput {
-  readonly code: string;
-  readonly redirectUri: string;
-  readonly state: string;
-}
-
-export interface LoginWithGoogleOutput {
-  readonly accessToken: string;
-  readonly refreshToken: string;
-  readonly userId: UserId;
-}
+import type { LoginWithGoogleInput, LoginWithGoogleOutput } from '../models/index.js';
+export type { LoginWithGoogleInput, LoginWithGoogleOutput };
 
 const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 

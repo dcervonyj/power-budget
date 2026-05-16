@@ -5,16 +5,8 @@ import type {
   RefreshTokenStore,
 } from '../../domain/ports.js';
 import { InvalidCredentialsError } from '../../domain/errors.js';
-
-export interface RefreshTokenInput {
-  readonly refreshToken: string;
-}
-
-export interface RefreshTokenOutput {
-  readonly accessToken: string;
-  readonly refreshToken: string;
-  readonly userId: UserId;
-}
+import type { RefreshTokenInput, RefreshTokenOutput } from '../models/index.js';
+export type { RefreshTokenInput, RefreshTokenOutput };
 
 export class RefreshTokenUseCase {
   constructor(
