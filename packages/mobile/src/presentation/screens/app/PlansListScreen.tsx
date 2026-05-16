@@ -13,9 +13,9 @@ import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
-import type { AppTabParamList, AppStackParamList } from '../navigation/types.js';
-import { planService } from '../../infrastructure/index.js';
-import type { Plan } from '../../infrastructure/index.js';
+import type { AppTabParamList, AppStackParamList } from '../../navigation/types.js';
+import { planService } from '../../../infrastructure/index.js';
+import type { Plan } from '../../../infrastructure/index.js';
 
 const t = rnDarkTheme;
 
