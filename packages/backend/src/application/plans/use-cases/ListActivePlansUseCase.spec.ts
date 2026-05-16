@@ -15,6 +15,7 @@ function makePlanRepo(): PlanRepository {
     listActive: vi.fn(),
     update: vi.fn(),
     archive: vi.fn(),
+    findByPeriodEnd: vi.fn(),
   };
 }
 

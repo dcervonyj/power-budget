@@ -7,6 +7,7 @@ import { DrizzleNotificationRepository } from './DrizzleNotificationRepository.j
 import { ResendEmailChannel } from './ResendEmailChannel.js';
 import { MjmlTemplateRenderer } from './MjmlTemplateRenderer.js';
 import { DispatchNotificationProcessor } from './workers/DispatchNotificationProcessor.js';
+import { OutboxRelayProcessor } from './workers/OutboxRelayProcessor.js';
 import { NotificationCronService } from './crons/NotificationCronService.js';
 import { EnqueueNotificationUseCase } from '../../application/notifications/use-cases/EnqueueNotificationUseCase.js';
 import { RunWeeklyDigestUseCase } from '../../application/notifications/use-cases/RunWeeklyDigestUseCase.js';
@@ -53,6 +54,15 @@ import { RunReconnectRemindersUseCase } from '../../application/notifications/us
         email: ResendEmailChannel,
         renderer: MjmlTemplateRenderer,
       ) => new DispatchNotificationProcessor(repo, email, renderer),
+    },
+    {
+      provide: OutboxRelayProcessor,
+      inject: [DrizzleNotificationRepository, ResendEmailChannel, MjmlTemplateRenderer],
+      useFactory: (
+        repo: DrizzleNotificationRepository,
+        email: ResendEmailChannel,
+        renderer: MjmlTemplateRenderer,
+      ) => new OutboxRelayProcessor(repo, email, renderer),
     },
     NotificationCronService,
   ],
