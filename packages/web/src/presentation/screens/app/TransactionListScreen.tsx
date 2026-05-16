@@ -115,7 +115,6 @@ export function TransactionListScreen(): React.JSX.Element {
       cancelled = true;
     };
     // filtersKey is a stable primitive that changes only when filters change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtersKey, buildQuery, intl]);
 
   const loadMore = useCallback(async (): Promise<void> => {
