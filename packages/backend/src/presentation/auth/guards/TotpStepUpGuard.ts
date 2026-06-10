@@ -3,7 +3,9 @@ import { Reflector } from '@nestjs/core';
 import type { FastifyRequest } from 'fastify';
 import type { JwtRequestUser } from './JwtAuthGuard.js';
 import { REQUIRE_RECENT_TOTP_KEY } from '../decorators/RequireRecentTotp.js';
-import type { RedisTotpStepUpStore } from '../../../infrastructure/auth/RedisTotpStepUpStore.js';
+// Value import (not `import type`): the class must exist in decorator metadata
+// for Nest to resolve the constructor injection.
+import { RedisTotpStepUpStore } from '../../../infrastructure/auth/RedisTotpStepUpStore.js';
 
 @Injectable()
 export class TotpStepUpGuard implements CanActivate {
