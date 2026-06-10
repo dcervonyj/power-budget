@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
+import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
@@ -44,6 +45,25 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(nestApp, config);
     SwaggerModule.setup('docs', nestApp, document);
   }
+
+  // Browser clients (Cloudflare Pages, local Vite) live on other origins.
+  // CORS_ORIGINS: comma-separated exact origins; entries like *.example.com
+  // allow any direct subdomain (Cloudflare Pages preview deployments).
+  const corsOrigins = (process.env['CORS_ORIGINS'] ?? 'http://localhost:5173')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0)
+    .map((origin) =>
+      origin.startsWith('*.')
+        ? new RegExp(`^https://[a-z0-9-]+\\.${origin.slice(2).replaceAll('.', '\\.')}$`)
+        : origin,
+    );
+  await app.register(cors, {
+    origin: corsOrigins,
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    maxAge: 86400,
+  });
 
   await app.register(helmet, {
     contentSecurityPolicy: {
