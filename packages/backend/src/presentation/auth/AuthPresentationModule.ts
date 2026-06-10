@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
 import { AuthController } from './AuthController.js';
@@ -53,7 +54,14 @@ const STUB_OAUTH_PROVIDER: OAuthProvider = {
   controllers: [AuthController, UsersController, HouseholdsController],
   providers: [
     JwtAuthGuard,
-    TotpStepUpGuard,
+    {
+      // RedisTotpStepUpStore is a type-only import in the guard, so decorator
+      // metadata cannot resolve it — wire explicitly.
+      provide: TotpStepUpGuard,
+      inject: [Reflector, RedisTotpStepUpStore],
+      useFactory: (reflector: Reflector, stepUpStore: RedisTotpStepUpStore) =>
+        new TotpStepUpGuard(reflector, stepUpStore),
+    },
     AppConfigAdapter,
     {
       provide: RegisterUserUseCase,

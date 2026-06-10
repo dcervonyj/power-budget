@@ -1,0 +1,43 @@
+# Render Blueprint — free-tier test deployment (ADR-002).
+# One web service runs API + embedded BullMQ worker (START_WORKER=true).
+# Postgres lives on Neon, Redis on Upstash — set DATABASE_URL / REDIS_URL
+# in the Render dashboard (sync: false keeps them out of this file).
+
+services:
+  - type: web
+    name: power-budget-api
+    runtime: docker
+    plan: free
+    dockerfilePath: packages/backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: START_WORKER
+        value: "true"
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: KEK_BASE64
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: GOCARDLESS_SECRET_ID
+        sync: false
+      - key: GOCARDLESS_SECRET_KEY
+        sync: false
+      - key: AUDIT_REDACTION_THRESHOLD_MINOR
+        value: "1000000"

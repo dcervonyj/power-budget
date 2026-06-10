@@ -43,7 +43,13 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
       },
     },
     RedisRefreshTokenStore,
-    RedisTotpStepUpStore,
+    {
+      // The optional ttlSeconds ctor param breaks decorator-metadata wiring —
+      // instantiate explicitly with the default TTL.
+      provide: RedisTotpStepUpStore,
+      inject: [REDIS_CLIENT],
+      useFactory: (redis: Redis) => new RedisTotpStepUpStore(redis),
+    },
     {
       provide: EnvKekEncryption,
       inject: [ConfigService],
