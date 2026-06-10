@@ -17,6 +17,8 @@ services:
         value: staging
       - key: START_WORKER
         value: "true"
+      - key: CORS_ORIGINS
+        value: "https://power-budget.pages.dev,*.power-budget.pages.dev,http://localhost:5173"
       - key: DATABASE_URL
         sync: false
       - key: REDIS_URL
