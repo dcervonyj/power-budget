@@ -44,21 +44,21 @@ jobs:
         run: pnpm turbo run build
 
       - name: Upload web dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: web-dist
           path: packages/web/dist
           if-no-files-found: warn
 
       - name: Upload core dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: core-dist
           path: packages/core/dist
           if-no-files-found: warn
 
       - name: Upload shared-app dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: shared-app-dist
           path: packages/shared-app/dist
