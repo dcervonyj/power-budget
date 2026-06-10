@@ -7,6 +7,7 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import helmet from '@fastify/helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
+import { WorkerModule } from './worker/worker.module';
 import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
 
 Sentry.init({
@@ -65,6 +66,16 @@ async function bootstrap() {
   const port = process.env['PORT'] ?? 3000;
   await app.listen(port, '0.0.0.0');
   console.log(`API listening on port ${port}`);
+
+  // Free-tier topology (ADR-002): a single container runs API + worker.
+  // Standalone worker deployments use dist/src/worker.main.js instead.
+  if (process.env['START_WORKER'] === 'true') {
+    const worker = await NestFactory.createApplicationContext(WorkerModule, {
+      logger: ['log', 'warn', 'error'],
+    });
+    worker.enableShutdownHooks();
+    console.log('Embedded worker started (single-process free-tier topology)');
+  }
 }
 
 void bootstrap();
