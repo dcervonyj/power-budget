@@ -23,6 +23,7 @@
     "copy:i18n": "cp -r ../web/public/locales ./src/i18n/locales/"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
     "@fastify/helmet": "^13.0.2",
     "@fastify/static": "^9.1.3",
     "@nestjs/bullmq": "^11.0.4",

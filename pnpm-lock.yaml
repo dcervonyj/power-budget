@@ -35,6 +35,9 @@ importers:
 
   packages/backend:
     dependencies:
+      '@fastify/cors':
+        specifier: ^11.2.0
+        version: 11.2.0
       '@fastify/helmet':
         specifier: ^13.0.2
         version: 13.0.2
