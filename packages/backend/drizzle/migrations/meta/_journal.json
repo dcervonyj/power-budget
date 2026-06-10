@@ -22,6 +22,34 @@
       "when": 1778860930458,
       "tag": "0002_fancy_tomorrow_man",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1778860930460,
+      "tag": "0004_be-024_sync_runs",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778860930461,
+      "tag": "0004_be-030_plan_actuals_view",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778860930462,
+      "tag": "0004_be-034_exports_soft_delete",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1778860930463,
+      "tag": "0005_be-029_email_bouncing",
+      "breakpoints": true
     }
   ]
 }
