@@ -163,18 +163,18 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 6
 
-| ID       | Title                                   | Area    | Status                              |
-| -------- | --------------------------------------- | ------- | ----------------------------------- |
-| INF-009  | Deployment topology — Fly.io            | Infra   | ⏸ Deferred (needs external account) |
-| BE-005   | Drizzle schema — every MVP table        | Backend | ✅ Done (PR #38)                    |
-| BE-006   | Core `computePlanActuals`               | Backend | ✅ Done (PR #40)                    |
-| BE-007   | Core `computeLeftover` + `convertMoney` | Backend | ✅ Done (PR #41)                    |
-| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | ✅ Done (PR #42)                    |
-| BE-009   | Core `applyMappingSuggestion`           | Backend | ✅ Done (PR #43)                    |
-| BE-010   | Core locale-aware formatters            | Backend | ✅ Done (PR #39)                    |
-| MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs MOB-003)           |
-| I18N-002 | `react-intl` provider + lint rule       | i18n    | ✅ Done (PR #78)                    |
-| I18N-003 | Resource bundles — `en.json` baseline   | i18n    | ⏸ Deferred to Wave 7                |
+| ID       | Title                                   | Area    | Status                           |
+| -------- | --------------------------------------- | ------- | -------------------------------- |
+| INF-009  | Deployment topology — Render (ADR-002)  | Infra   | ✅ Done (repo side; see ADR-002) |
+| BE-005   | Drizzle schema — every MVP table        | Backend | ✅ Done (PR #38)                 |
+| BE-006   | Core `computePlanActuals`               | Backend | ✅ Done (PR #40)                 |
+| BE-007   | Core `computeLeftover` + `convertMoney` | Backend | ✅ Done (PR #41)                 |
+| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | ✅ Done (PR #42)                 |
+| BE-009   | Core `applyMappingSuggestion`           | Backend | ✅ Done (PR #43)                 |
+| BE-010   | Core locale-aware formatters            | Backend | ✅ Done (PR #39)                 |
+| MOB-004  | Secure storage for tokens               | Mobile  | ⏸ Blocked (needs MOB-003)        |
+| I18N-002 | `react-intl` provider + lint rule       | i18n    | ✅ Done (PR #78)                 |
+| I18N-003 | Resource bundles — `en.json` baseline   | i18n    | ⏸ Deferred to Wave 7             |
 
 ### Wave 7
 
@@ -450,17 +450,18 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
   - Generated SQL is committed under `drizzle/migrations/`.
   - Drizzle config bans `prisma`-style implicit runtime; SQL files are the source of truth.
 
-#### INF-009: Deployment topology — Fly.io API + worker
+#### INF-009: Deployment topology — Render API + embedded worker (revised by ADR-002)
 
 - **Area**: Infra
 - **Effort**: M (~2d)
-- **Description**: Provision Fly.io org + apps `power-budget-api` and `power-budget-worker` per ARCHITECTURE.md §10 Option A. Two `fly.toml` files sharing the same Docker image, different `CMD`. `min_machines_running=1` on API. Secrets injected via `fly secrets set` only.
+- **Status**: ✅ Done (repo side) — `packages/backend/Dockerfile`, `render.yaml`, deploy hook in `build.yml`. Account provisioning is a manual step; see ADR-002.
+- **Description**: Fly.io free tier no longer exists; per **ADR-002** the test deployment targets Render's free tier instead. One Docker image (`packages/backend/Dockerfile`), one free web service running API + embedded BullMQ worker (`START_WORKER=true`). Standalone worker topology (`dist/src/worker.main.js`) is preserved for a future paid setup. Secrets are set only in the Render dashboard.
 - **Blocked by**: INF-006
 - **Blocks**: INF-010, INF-011, INF-013, SEC-002
-- **Acceptance criteria**:
-  - Both Fly apps deploy a hello-world image successfully.
-  - API has TLS via Fly's auto-cert.
-  - Worker has no public HTTP listener.
+- **Acceptance criteria** (revised):
+  - Render service deploys from the `render.yaml` blueprint successfully.
+  - API has TLS via the `onrender.com` certificate.
+  - Container runs migrations (`drizzle/migrate.mjs`) before starting the API.
 
 #### INF-010: Managed Postgres (Neon) + managed Redis (Upstash)
 
