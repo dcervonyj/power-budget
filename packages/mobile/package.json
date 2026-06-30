@@ -39,7 +39,7 @@
     "react-native-screens": "~3.31.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.0",
+    "@babel/core": "^7.29.6",
     "@formatjs/cli": "^6.16.0",
     "@formatjs/cli-lib": "^8.7.0",
     "@types/node": "^25.8.0",
