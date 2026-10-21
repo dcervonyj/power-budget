@@ -39,6 +39,8 @@ test.describe('smoke', () => {
   });
 
   test('signed-in user reaches a protected route and can log out @smoke', async ({ page }) => {
+    // Fake tokens only work without an API; auth.spec.ts covers this against the real backend.
+    test.skip(process.env['TEST_ENV'] === 'e2e', 'fake tokens are rejected by the real backend');
     // Same key the LocalStorageTokenStore writes after login (the guard used to read
     // a different one, so no protected route was reachable).
     await page.addInitScript(() => {
