@@ -24,6 +24,6 @@ export class UnmarkTransferUseCase {
       throw new TransactionNotFoundError();
     }
 
-    await this.transferRepo.unmark(input.transactionId);
+    await this.transferRepo.unmark(input.transactionId, { householdId: input.householdId });
   }
 }

@@ -6,6 +6,7 @@ import type { PlannedItemVersionRepository } from '../../../domain/plans/ports.j
 import { GetPlannedItemHistoryUseCase } from './GetPlannedItemHistoryUseCase.js';
 
 const ITEM_ID = PlannedItemId.of('01900000-0000-7000-8000-000000000001');
+const HH_ID = 'hh-1' as PlannedItemVersion['householdId'];
 
 function makeVersion(): PlannedItemVersion {
   return {
@@ -29,10 +30,10 @@ describe('GetPlannedItemHistoryUseCase', () => {
     };
 
     const useCase = new GetPlannedItemHistoryUseCase(versionRepo);
-    const result = await useCase.execute({ itemId: ITEM_ID });
+    const result = await useCase.execute({ itemId: ITEM_ID, householdId: HH_ID });
 
     expect(result).toBe(versions);
-    expect(versionRepo.listByItem).toHaveBeenCalledWith(ITEM_ID);
+    expect(versionRepo.listByItem).toHaveBeenCalledWith(ITEM_ID, { householdId: HH_ID });
   });
 
   it('returns empty array when no history exists', async () => {
@@ -42,7 +43,7 @@ describe('GetPlannedItemHistoryUseCase', () => {
     };
 
     const useCase = new GetPlannedItemHistoryUseCase(versionRepo);
-    const result = await useCase.execute({ itemId: ITEM_ID });
+    const result = await useCase.execute({ itemId: ITEM_ID, householdId: HH_ID });
 
     expect(result).toEqual([]);
   });
