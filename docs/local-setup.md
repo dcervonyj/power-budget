@@ -2,11 +2,11 @@
 
 ## Prerequisites
 
-| Tool | Version | Notes |
-|---|---|---|
-| Docker Desktop | ≥ 4.30 | On macOS, [Colima](https://github.com/abiosoft/colima) or [OrbStack](https://orbstack.dev/) work too |
-| Node.js | 22.x | Use `nvm use` or install via [nvm](https://github.com/nvm-sh/nvm) |
-| pnpm | 9.x | Enable via `corepack enable` |
+| Tool           | Version | Notes                                                                                                |
+| -------------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| Docker Desktop | ≥ 4.30  | On macOS, [Colima](https://github.com/abiosoft/colima) or [OrbStack](https://orbstack.dev/) work too |
+| Node.js        | 22.x    | Use `nvm use` or install via [nvm](https://github.com/nvm-sh/nvm)                                    |
+| pnpm           | 9.x     | Enable via `corepack enable`                                                                         |
 
 ## First-time setup
 
@@ -19,33 +19,35 @@ pnpm dev:db:up
 
 ## Common commands
 
-| Command | Description |
-|---|---|
-| `pnpm dev:db:up` | Start Postgres + Redis + Mailpit (detached, waits for healthy) |
-| `pnpm dev:db:down` | Stop all local infrastructure containers |
-| `pnpm dev:db:reset` | **Destructive** — remove volumes and start fresh |
-| `pnpm dev:db:logs` | Tail logs from all infrastructure containers |
+| Command             | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `pnpm dev:db:up`    | Start Postgres + Redis + Mailpit (detached, waits for healthy) |
+| `pnpm dev:db:down`  | Stop all local infrastructure containers                       |
+| `pnpm dev:db:reset` | **Destructive** — remove volumes and start fresh               |
+| `pnpm dev:db:logs`  | Tail logs from all infrastructure containers                   |
 
 ## Environment variables
 
 Copy `.env.example` to `.env`. Never commit `.env`.
 
-| Variable | Default | Description |
-|---|---|---|
-| `POSTGRES_PORT` | `5432` | Host port for Postgres; change to avoid conflicts |
-| `REDIS_PORT` | `6379` | Host port for Redis |
-| `MAILPIT_SMTP_PORT` | `1025` | Host port for Mailpit SMTP |
-| `MAILPIT_UI_PORT` | `8025` | Host port for Mailpit web UI |
-| `POSTGRES_USER` | `power_budget` | Postgres superuser (dev-only) |
-| `POSTGRES_PASSWORD` | `power_budget` | Postgres password (dev-only) |
-| `POSTGRES_DB` | `power_budget` | Default database name |
-| `DATABASE_URL` | `postgres://power_budget:power_budget@localhost:5432/power_budget` | Full connection string for the backend |
-| `REDIS_URL` | `redis://localhost:6379` | Full Redis connection string |
-| `SMTP_HOST` | `localhost` | SMTP server host (points to Mailpit) |
-| `SMTP_PORT` | `1025` | SMTP port |
-| `SMTP_USER` | _(empty)_ | SMTP username (not required for Mailpit) |
-| `SMTP_PASSWORD` | _(empty)_ | SMTP password (not required for Mailpit) |
-| `SMTP_FROM` | `Power Budget <noreply@power-budget.local>` | Default sender address |
+| Variable                          | Default                                                                    | Description                                                 |
+| --------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `POSTGRES_PORT`                   | `5432`                                                                     | Host port for Postgres; change to avoid conflicts           |
+| `REDIS_PORT`                      | `6379`                                                                     | Host port for Redis                                         |
+| `MAILPIT_SMTP_PORT`               | `1025`                                                                     | Host port for Mailpit SMTP                                  |
+| `MAILPIT_UI_PORT`                 | `8025`                                                                     | Host port for Mailpit web UI                                |
+| `POSTGRES_USER`                   | `power_budget`                                                             | Postgres superuser (dev-only)                               |
+| `POSTGRES_PASSWORD`               | `power_budget`                                                             | Postgres password (dev-only)                                |
+| `POSTGRES_DB`                     | `power_budget`                                                             | Default database name                                       |
+| `APP_DB_USER` / `APP_DB_PASSWORD` | `power_budget_app`                                                         | Least-privilege app role created by the compose init script |
+| `DATABASE_URL`                    | `postgres://power_budget_app:power_budget_app@localhost:5432/power_budget` | Backend runtime connection (app role)                       |
+| `MIGRATION_DATABASE_URL`          | `postgres://power_budget:power_budget@localhost:5432/power_budget`         | Owner role for `db:migrate`, `db:roles`, drizzle-kit        |
+| `REDIS_URL`                       | `redis://localhost:6379`                                                   | Full Redis connection string                                |
+| `SMTP_HOST`                       | `localhost`                                                                | SMTP server host (points to Mailpit)                        |
+| `SMTP_PORT`                       | `1025`                                                                     | SMTP port                                                   |
+| `SMTP_USER`                       | _(empty)_                                                                  | SMTP username (not required for Mailpit)                    |
+| `SMTP_PASSWORD`                   | _(empty)_                                                                  | SMTP password (not required for Mailpit)                    |
+| `SMTP_FROM`                       | `Power Budget <noreply@power-budget.local>`                                | Default sender address                                      |
 
 ## Troubleshooting
 
@@ -66,7 +68,7 @@ pnpm dev:db:reset
 
 **Mailpit UI** — View captured outgoing emails at <http://localhost:8025>.
 
-**Connect to Postgres** — Use the `DATABASE_URL` from your `.env`:
+**Connect to Postgres** — Use the `DATABASE_URL` from your `.env` (or `MIGRATION_DATABASE_URL` for the owner role). See [db-roles-and-migrations](runbooks/db-roles-and-migrations.md):
 
 ```bash
 psql "$DATABASE_URL"

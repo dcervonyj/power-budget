@@ -6,6 +6,7 @@ export default defineConfig({
   out: './drizzle/migrations',
   dbCredentials: {
     url:
+      process.env['MIGRATION_DATABASE_URL'] ??
       process.env['DATABASE_URL'] ??
       'postgresql://power_budget:power_budget@localhost:5432/power_budget',
   },
