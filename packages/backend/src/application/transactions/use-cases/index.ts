@@ -13,6 +13,12 @@ export type { MapTransactionInput } from './MapTransactionUseCase.js';
 export { BulkMapTransactionsUseCase } from './BulkMapTransactionsUseCase.js';
 export type { BulkMapTransactionsInput } from './BulkMapTransactionsUseCase.js';
 
+export { BulkActOnTransactionsUseCase } from './BulkActOnTransactionsUseCase.js';
+export type {
+  BulkActOnTransactionsInput,
+  BulkTransactionAction,
+} from './BulkActOnTransactionsUseCase.js';
+
 export { MarkAsTransferUseCase } from './MarkAsTransferUseCase.js';
 export type { MarkAsTransferInput } from './MarkAsTransferUseCase.js';
 
