@@ -63,7 +63,7 @@ describe('Integration: partner privacy of transactions and connection accounts (
   });
 
   function call(
-    method: 'GET' | 'POST' | 'PATCH',
+    method: 'GET' | 'POST' | 'PATCH' | 'DELETE',
     url: string,
     accessToken: string,
     payload?: Record<string, unknown>,
@@ -237,5 +237,110 @@ describe('Integration: partner privacy of transactions and connection accounts (
 
     expect(res.statusCode).toBe(200);
     expect(res.json<{ id: string }[]>().map((a) => a.id)).toEqual([bob.accountId]);
+  });
+
+  describe("writes on a partner's transaction answer 404 and change nothing", () => {
+    async function insertPlannedItem(): Promise<string> {
+      const planId = uuidv7();
+      const itemId = uuidv7();
+      await getPool().query(
+        `INSERT INTO plans (id, household_id, owner_user_id, name, type, period_kind, period_start, period_end, base_currency)
+         VALUES ($1, $2, $3, 'Shared', 'household', 'monthly', '2026-10-01', '2026-10-31', 'PLN')`,
+        [planId, ann.householdId, ann.userId],
+      );
+      await getPool().query(
+        `INSERT INTO planned_items (id, plan_id, household_id, category_id, direction, amount_minor, currency)
+         VALUES ($1, $2, $3, $4, 'expense', 5000, 'PLN')`,
+        [itemId, planId, ann.householdId, uuidv7()],
+      );
+
+      return itemId;
+    }
+
+    async function countRows(sql: string, params: unknown[]): Promise<number> {
+      const { rows } = await getPool().query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM ${sql}`,
+        params,
+      );
+
+      return rows[0]!.n;
+    }
+
+    it('PATCH /transactions/:id/mapping', async () => {
+      const itemId = await insertPlannedItem();
+
+      const res = await call('PATCH', `/transactions/${bob.txId}/mapping`, ann.accessToken, {
+        plannedItemId: itemId,
+      });
+
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toMatchObject({ code: 'transaction_not_found' });
+      expect(await countRows('transaction_mappings', [])).toBe(0);
+      const own = await call('PATCH', `/transactions/${ann.txId}/mapping`, ann.accessToken, {
+        plannedItemId: itemId,
+      });
+      expect(own.statusCode).toBe(204);
+    });
+
+    it('POST /transactions/:id/transfer, for the transaction and for the counterpart', async () => {
+      const partnerTx = await call(
+        'POST',
+        `/transactions/${bob.txId}/transfer`,
+        ann.accessToken,
+        {},
+      );
+      expect(partnerTx.statusCode).toBe(404);
+
+      const partnerCounterpart = await call(
+        'POST',
+        `/transactions/${ann.txId}/transfer`,
+        ann.accessToken,
+        { counterpartTransactionId: bob.txId },
+      );
+      expect(partnerCounterpart.statusCode).toBe(404);
+      expect(partnerCounterpart.json()).toMatchObject({ code: 'transaction_not_found' });
+      expect(await countRows('transfers', [])).toBe(0);
+    });
+
+    it('DELETE /transactions/:id/transfer', async () => {
+      const marked = await call('POST', `/transactions/${bob.txId}/transfer`, bob.accessToken, {});
+      expect(marked.statusCode).toBe(204);
+
+      const res = await call('DELETE', `/transactions/${bob.txId}/transfer`, ann.accessToken);
+
+      expect(res.statusCode).toBe(404);
+      expect(await countRows('transfers WHERE tx_a_id = $1', [bob.txId])).toBe(1);
+    });
+
+    it('PATCH /transactions/:id with ignored (ignore)', async () => {
+      const res = await call('PATCH', `/transactions/${bob.txId}`, ann.accessToken, {
+        ignored: true,
+      });
+
+      expect(res.statusCode).toBe(404);
+      expect(await countRows('transactions WHERE id = $1 AND ignored', [bob.txId])).toBe(0);
+    });
+
+    it('POST /transactions/bulk rejects the whole batch, writing nothing', async () => {
+      const itemId = await insertPlannedItem();
+
+      const res = await call('POST', '/transactions/bulk', ann.accessToken, {
+        ids: [ann.txId, bob.txId],
+        op: 'map',
+        payload: { plannedItemId: itemId },
+      });
+
+      expect(res.statusCode).toBe(404);
+      expect(res.json()).toMatchObject({ code: 'transaction_not_found' });
+      expect(await countRows('transaction_mappings', [])).toBe(0);
+
+      const own = await call('POST', '/transactions/bulk', ann.accessToken, {
+        ids: [ann.txId],
+        op: 'map',
+        payload: { plannedItemId: itemId },
+      });
+      expect(own.statusCode).toBe(204);
+      expect(await countRows('transaction_mappings WHERE transaction_id = $1', [ann.txId])).toBe(1);
+    });
   });
 });

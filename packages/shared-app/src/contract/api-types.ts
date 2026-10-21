@@ -2460,7 +2460,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Transaction not found */
+      /** @description Transaction not found, or a partner's (transactions are private to the account owner) */
       404: {
         headers: {
           [name: string]: unknown;
@@ -2508,7 +2508,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Transaction not found */
+      /** @description Transaction not found, or a partner's (transactions are private to the account owner) */
       404: {
         headers: {
           [name: string]: unknown;
@@ -2547,7 +2547,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Transaction not found */
+      /** @description Transaction not found, or a partner's (transactions are private to the account owner) */
       404: {
         headers: {
           [name: string]: unknown;
@@ -2586,7 +2586,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Transaction not found */
+      /** @description Transaction not found, or a partner's (transactions are private to the account owner) */
       404: {
         headers: {
           [name: string]: unknown;
@@ -2621,7 +2621,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Transaction not found */
+      /** @description Transaction not found, or a partner's (transactions are private to the account owner) */
       404: {
         headers: {
           [name: string]: unknown;
@@ -2652,6 +2652,13 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description An id is not one of the caller's own transactions; nothing is written */
+      404: {
         headers: {
           [name: string]: unknown;
         };
