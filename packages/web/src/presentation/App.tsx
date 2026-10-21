@@ -18,11 +18,6 @@ const RegisterScreen = lazy(() =>
 const MagicLinkScreen = lazy(() =>
   import('./screens/auth/MagicLinkScreen.js').then((m) => ({ default: m.MagicLinkScreen })),
 );
-const OAuthCallbackScreen = lazy(() =>
-  import('./screens/auth/OAuthCallbackScreen.js').then((m) => ({
-    default: m.OAuthCallbackScreen,
-  })),
-);
 const TotpEnrollmentScreen = lazy(() =>
   import('./screens/auth/TotpEnrollmentScreen.js').then((m) => ({
     default: m.TotpEnrollmentScreen,
@@ -103,8 +98,6 @@ export function App() {
         <Route path="/login" element={<LoginScreen />} />
         <Route path="/register" element={<RegisterScreen />} />
         <Route path="/auth/magic-link" element={<MagicLinkScreen />} />
-        <Route path="/auth/oauth/callback" element={<OAuthCallbackScreen />} />
-        <Route path="/auth/oauth/google/callback" element={<OAuthCallbackScreen />} />
 
         {/* Protected app routes */}
         <Route element={<RequireAuth />}>

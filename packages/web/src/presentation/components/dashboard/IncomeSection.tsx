@@ -2,6 +2,7 @@ import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from '../ThemeContext.js';
+import { formatMinorUnits } from '../../i18n/formatMinorUnits.js';
 import type { PlannedItemActual } from '../../../domain/dashboard/PlanActualsView.js';
 
 export interface IncomeSectionProps {
@@ -80,16 +81,8 @@ export const IncomeSection = observer(function IncomeSection({
           defaultMessage: 'Actual',
         });
 
-        const formattedActual = intl.formatNumber(item.actual / 100, {
-          style: 'currency',
-          currency: item.currency,
-          maximumFractionDigits: 2,
-        });
-        const formattedPlanned = intl.formatNumber(item.planned / 100, {
-          style: 'currency',
-          currency: item.currency,
-          maximumFractionDigits: 2,
-        });
+        const formattedActual = formatMinorUnits(item.actual, item.currency, intl.locale);
+        const formattedPlanned = formatMinorUnits(item.planned, item.currency, intl.locale);
         const actualText = [actualLabel, formattedActual].join(': ');
         const titleText = [plannedLabel, formattedPlanned].join(': ');
 

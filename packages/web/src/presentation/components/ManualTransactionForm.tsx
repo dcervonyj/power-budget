@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { parseMoney, toLocalIsoDate } from '@power-budget/core';
 import { apiClient } from '../../AppProviders.js';
 import { useTheme } from './ThemeContext.js';
 
@@ -30,7 +31,16 @@ export interface ManualTransactionFormProps {
 }
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalIsoDate(new Date());
+}
+
+/** Exact minor units as the API's integer string, or null when the input is not an amount. */
+function toMinorUnitsString(amount: string, currency: string): string | null {
+  try {
+    return parseMoney(amount, currency).toString();
+  } catch {
+    return null;
+  }
 }
 
 export function ManualTransactionForm({
@@ -103,8 +113,9 @@ export function ManualTransactionForm({
       return;
     }
 
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount)) {
+    const normalisedCurrency = currency.trim().toUpperCase();
+    const amountMinor = toMinorUnitsString(amount, normalisedCurrency);
+    if (amountMinor === null) {
       setError('required');
       return;
     }
@@ -114,8 +125,8 @@ export function ManualTransactionForm({
       const res = await apiClient.post<{ id: string }>('/transactions', {
         accountId: selectedAccountId,
         occurredOn,
-        amountMinor: Math.round(parsedAmount * 100),
-        currency: currency.trim().toUpperCase(),
+        amountMinor,
+        currency: normalisedCurrency,
         description: description.trim(),
         notes: notes.trim() || null,
       });
@@ -256,9 +267,8 @@ export function ManualTransactionForm({
             </label>
             <input
               id="mtf-amount"
-              type="number"
-              step="0.01"
-              min="0"
+              type="text"
+              inputMode="decimal"
               value={amount}
               onChange={(e) => {
                 setAmount(e.target.value);

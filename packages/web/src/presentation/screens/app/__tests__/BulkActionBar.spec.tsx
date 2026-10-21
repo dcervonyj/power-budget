@@ -7,14 +7,23 @@ import { BulkActionBar } from '../../../components/BulkActionBar.js';
 import { apiClient } from '../../../../AppProviders.js';
 import { darkTheme } from '@power-budget/design-tokens';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  apiClient: {
+vi.mock('../../../../AppProviders.js', async () => {
+  const { BulkTransactionActions } =
+    await import('../../../../application/transactions/BulkTransactionActions.js');
+  const client = {
+    request: vi.fn(),
     get: vi.fn().mockResolvedValue({ status: 200, data: [], headers: {} }),
-    post: vi.fn().mockResolvedValue({ status: 200, data: {}, headers: {} }),
-  },
-}));
+    post: vi.fn().mockResolvedValue({ status: 204, data: undefined, headers: {} }),
+    put: vi.fn(),
+    patch: vi.fn().mockResolvedValue({ status: 200, data: undefined, headers: {} }),
+    delete: vi.fn(),
+  };
+
+  return { apiClient: client, bulkTransactionActions: new BulkTransactionActions(client) };
+});
 
 const mockPost = vi.mocked(apiClient.post);
+const mockPatch = vi.mocked(apiClient.patch);
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <IntlProvider locale="en" messages={{}}>
@@ -30,7 +39,8 @@ describe('BulkActionBar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockPost.mockResolvedValue({ status: 200, data: {}, headers: {} });
+    mockPost.mockResolvedValue({ status: 204, data: undefined, headers: {} });
+    mockPatch.mockResolvedValue({ status: 200, data: undefined, headers: {} });
   });
 
   it('renders nothing when no transactions selected', () => {
@@ -64,7 +74,7 @@ describe('BulkActionBar', () => {
     expect(onClear).toHaveBeenCalledOnce();
   });
 
-  it('calls POST /transactions/bulk with mark_transfer action', async () => {
+  it('marks each selected transaction as a transfer (bulk op transfer is a no-op in the API)', async () => {
     render(
       <BulkActionBar
         selectedIds={selectedIds}
@@ -76,10 +86,11 @@ describe('BulkActionBar', () => {
     );
     fireEvent.click(screen.getByText(/Mark as Transfer/i));
     await waitFor(() => {
-      expect(mockPost).toHaveBeenCalledWith('/transactions/bulk', {
-        action: 'mark_transfer',
-        ids: selectedIds,
-      });
+      expect(mockPost.mock.calls).toEqual([
+        ['/transactions/tx1/transfer', {}],
+        ['/transactions/tx2/transfer', {}],
+        ['/transactions/tx3/transfer', {}],
+      ]);
     });
     await waitFor(() => {
       expect(onActionComplete).toHaveBeenCalled();
@@ -89,7 +100,7 @@ describe('BulkActionBar', () => {
     });
   });
 
-  it('calls POST /transactions/bulk with ignore action', async () => {
+  it('patches each selected transaction as ignored', async () => {
     render(
       <BulkActionBar
         selectedIds={selectedIds}
@@ -101,10 +112,30 @@ describe('BulkActionBar', () => {
     );
     fireEvent.click(screen.getByText(/Ignore/i));
     await waitFor(() => {
-      expect(mockPost).toHaveBeenCalledWith('/transactions/bulk', {
-        action: 'ignore',
-        ids: selectedIds,
-      });
+      expect(mockPatch.mock.calls).toEqual([
+        ['/transactions/tx1', { ignored: true }],
+        ['/transactions/tx2', { ignored: true }],
+        ['/transactions/tx3', { ignored: true }],
+      ]);
     });
+    expect(mockPost).not.toHaveBeenCalled();
+  });
+
+  it('keeps the selection and shows an error when an action fails', async () => {
+    mockPatch.mockRejectedValueOnce(new Error('500'));
+    render(
+      <BulkActionBar
+        selectedIds={selectedIds}
+        onMapAll={onMapAll}
+        onClear={onClear}
+        onActionComplete={onActionComplete}
+      />,
+      { wrapper },
+    );
+    fireEvent.click(screen.getByText(/Ignore/i));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeDefined();
+    });
+    expect(onClear).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,12 @@
 export { formatMoney, formatDate, formatNumber } from './format.js';
-export type { SupportedLocale } from './format.js';
+export type { SupportedLocale, MinorUnitAmount } from './format.js';
+export {
+  getMinorUnitExponent,
+  parseMoney,
+  parseMinorUnits,
+  formatMoneyInput,
+} from './money-amount.js';
+export { toLocalIsoDate, parseLocalIsoDate } from './local-date.js';
 export { computePlanActuals } from './compute-plan-actuals.js';
 export type { ComputePlanActualsParams } from './compute-plan-actuals.js';
 export {

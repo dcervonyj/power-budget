@@ -24,5 +24,10 @@ export interface HttpClient {
     body: unknown,
     headers?: Record<string, string>,
   ): Promise<HttpResponse<T>>;
+  patch<T = unknown>(
+    url: string,
+    body: unknown,
+    headers?: Record<string, string>,
+  ): Promise<HttpResponse<T>>;
   delete<T = unknown>(url: string, headers?: Record<string, string>): Promise<HttpResponse<T>>;
 }

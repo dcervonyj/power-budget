@@ -21,7 +21,7 @@ import type { Plan } from '../../../application/dashboard/DashboardStore.js';
 const POLL_INTERVAL_MS = 30_000;
 
 function selectDefaultPlan(plans: Plan[]): Plan | undefined {
-  return plans.find((p) => p.type === 'personal' && p.periodType === 'monthly') ?? plans[0];
+  return plans.find((p) => p.type === 'personal' && p.periodKind === 'monthly') ?? plans[0];
 }
 
 export const DashboardScreen = observer(function DashboardScreen(): React.JSX.Element {

@@ -3,6 +3,7 @@ import { runInAction } from 'mobx';
 import { apiClient } from '../../AppProviders.js';
 import { DashboardStore } from './DashboardStore.js';
 import type { PlanActualsView } from '../../domain/dashboard/PlanActualsView.js';
+import type { PlanDashboardResponseDto } from '../../infrastructure/api/PlanDashboardMapper.js';
 
 vi.mock('../../AppProviders.js', () => ({
   apiClient: {
@@ -20,6 +21,62 @@ vi.mock('../settings/SettingsStore.js', () => ({
 }));
 
 const mockGet = vi.mocked(apiClient.get);
+
+function money(amountMinor: string) {
+  return { amountMinor, currency: 'EUR' };
+}
+
+/** What GET /plans/plan-1/dashboard answers (string minor units, nested lines). */
+const mockDashboard: PlanDashboardResponseDto = {
+  planId: 'plan-1',
+  period: { start: '2025-05-01', end: '2025-05-31' },
+  baseCurrency: 'EUR',
+  incomeLines: [
+    {
+      plannedItemId: 'i1',
+      categoryId: 'cat-salary',
+      direction: 'income',
+      planned: money('300000'),
+      actual: money('280000'),
+      remaining: money('20000'),
+      progressBand: 'ok',
+    },
+  ],
+  expenseLines: [
+    {
+      plannedItemId: 'i2',
+      categoryId: 'cat-rent',
+      direction: 'expense',
+      planned: money('100000'),
+      actual: money('95000'),
+      remaining: money('5000'),
+      progressBand: 'warning',
+    },
+  ],
+  totalPlannedIncome: money('300000'),
+  totalActualIncome: money('280000'),
+  totalPlannedExpenses: money('100000'),
+  totalActualExpenses: money('95000'),
+  unplannedExpenses: money('15000'),
+  unplannedIncome: money('0'),
+  net: money('185000'),
+  asOf: '2025-05-20',
+};
+
+const mockCategories = [
+  { id: 'cat-salary', name: 'Salary' },
+  { id: 'cat-rent', name: 'Rent' },
+];
+
+function mockDashboardResponses(): void {
+  mockGet.mockImplementation((url: string) =>
+    Promise.resolve({
+      status: 200,
+      data: url === '/categories' ? mockCategories : mockDashboard,
+      headers: {},
+    }),
+  );
+}
 
 const mockActuals: PlanActualsView = {
   planId: 'plan-1',
@@ -45,7 +102,7 @@ const mockActuals: PlanActualsView = {
       currency: 'EUR',
     },
   ],
-  unplannedCount: 3,
+  unplannedCount: null,
   unplannedTotal: 15000,
   totalIncomePlanned: 300000,
   totalIncomeActual: 280000,
@@ -59,12 +116,28 @@ describe('DashboardStore', () => {
 
   beforeEach(() => {
     store = new DashboardStore();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe('fetchActuals', () => {
-    it('stores actuals on success', async () => {
-      mockGet.mockResolvedValueOnce({ status: 200, data: mockActuals, headers: {} });
+    it('maps the dashboard response with plan and category names', async () => {
+      mockDashboardResponses();
+      runInAction(() => {
+        store.activePlans = [
+          {
+            id: 'plan-1',
+            name: 'May Budget',
+            type: 'personal',
+            ownerUserId: 'u1',
+            periodKind: 'monthly',
+            period: { start: '2025-05-01', end: '2025-05-31' },
+            baseCurrency: 'EUR',
+            archivedAt: null,
+            createdAt: '2025-05-01T00:00:00.000Z',
+            updatedAt: '2025-05-01T00:00:00.000Z',
+          },
+        ];
+      });
 
       await store.fetchActuals('plan-1');
 
@@ -73,8 +146,21 @@ describe('DashboardStore', () => {
       expect(store.error).toBeNull();
     });
 
+    it('still renders the lines when categories cannot be loaded', async () => {
+      mockGet.mockImplementation((url: string) =>
+        url === '/categories'
+          ? Promise.reject(new Error('404'))
+          : Promise.resolve({ status: 200, data: mockDashboard, headers: {} }),
+      );
+
+      await store.fetchActuals('plan-1');
+
+      expect(store.actuals?.items.map((i) => i.category)).toEqual(['', '']);
+      expect(store.actuals?.planName).toBe('');
+    });
+
     it('sets displayCurrency to actuals.currency after fetch', async () => {
-      mockGet.mockResolvedValueOnce({ status: 200, data: mockActuals, headers: {} });
+      mockDashboardResponses();
 
       await store.fetchActuals('plan-1');
 
@@ -82,7 +168,7 @@ describe('DashboardStore', () => {
     });
 
     it('sets error on failure', async () => {
-      mockGet.mockRejectedValueOnce(new Error('Network error'));
+      mockGet.mockRejectedValue(new Error('Network error'));
 
       await store.fetchActuals('plan-1');
 
@@ -93,13 +179,14 @@ describe('DashboardStore', () => {
 
     it('sets loading=true during fetch', async () => {
       let resolvePromise!: () => void;
-      mockGet.mockReturnValueOnce(
-        new Promise<{ status: number; data: PlanActualsView; headers: Record<string, string> }>(
-          (resolve) => {
-            resolvePromise = () => resolve({ status: 200, data: mockActuals, headers: {} });
-          },
-        ),
-      );
+      const pending = new Promise<void>((resolve) => {
+        resolvePromise = resolve;
+      });
+      mockGet.mockImplementation(async (url: string) => {
+        await pending;
+
+        return { status: 200, data: url === '/categories' ? [] : mockDashboard, headers: {} };
+      });
 
       const fetchPromise = store.fetchActuals('plan-1');
       expect(store.loading).toBe(true);
@@ -117,10 +204,9 @@ describe('DashboardStore', () => {
           id: 'p1',
           name: 'May Plan',
           type: 'personal' as const,
-          periodType: 'monthly' as const,
-          periodStart: '2025-05-01',
-          periodEnd: '2025-05-31',
-          currency: 'EUR',
+          periodKind: 'monthly' as const,
+          period: { start: '2025-05-01', end: '2025-05-31' },
+          baseCurrency: 'EUR',
         },
       ];
       mockGet.mockResolvedValueOnce({ status: 200, data: plans, headers: {} });
@@ -172,7 +258,7 @@ describe('DashboardStore', () => {
 
   describe('selectPlan', () => {
     it('sets selectedPlanId and calls fetchActuals', () => {
-      mockGet.mockResolvedValueOnce({ status: 200, data: mockActuals, headers: {} });
+      mockDashboardResponses();
 
       store.selectPlan('plan-1');
 
