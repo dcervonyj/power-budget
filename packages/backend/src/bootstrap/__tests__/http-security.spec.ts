@@ -2,9 +2,10 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { Controller, Get } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
-import type { FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance } from 'fastify';
 import { HttpTestApp } from '../../test/http/createHttpTestApp.js';
 import {
+  resolveTrustProxy,
   assertBootEnv,
   buildCorsOptions,
   configureHttpSecurity,
@@ -191,5 +192,34 @@ describe('configureHttpSecurity (HTTP)', () => {
     });
 
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
+  });
+});
+
+describe('resolveTrustProxy', () => {
+  it('defaults to one trusted hop', () => {
+    expect(resolveTrustProxy(undefined)).toBe(1);
+    expect(resolveTrustProxy('  ')).toBe(1);
+  });
+
+  it('parses booleans, hop counts and proxy lists', () => {
+    expect(resolveTrustProxy('false')).toBe(false);
+    expect(resolveTrustProxy('true')).toBe(true);
+    expect(resolveTrustProxy('2')).toBe(2);
+    expect(resolveTrustProxy('10.0.0.0/8,127.0.0.1')).toBe('10.0.0.0/8,127.0.0.1');
+  });
+
+  it('with the default, request.ip is the address the platform proxy saw, not a spoofed one', async () => {
+    const fastify = Fastify({ trustProxy: resolveTrustProxy(undefined) });
+    fastify.get('/ip', async (request) => ({ ip: request.ip }));
+
+    const res = await fastify.inject({
+      method: 'GET',
+      url: '/ip',
+      // Client-sent value first, the proxy appends the real client address.
+      headers: { 'x-forwarded-for': '6.6.6.6, 203.0.113.7' },
+    });
+    await fastify.close();
+
+    expect(res.json()).toEqual({ ip: '203.0.113.7' });
   });
 });

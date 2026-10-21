@@ -1,9 +1,8 @@
 import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
-import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
-import { RequireRecentTotp } from './decorators/RequireRecentTotp.js';
 import {
   RegisterDto,
   LoginDto,
@@ -26,6 +25,9 @@ import { LogoutUseCase } from '../../application/auth/use-cases/LogoutUseCase.js
 // exists and the stub provider let anyone mint tokens for a shared user.
 // Re-add them only together with a real OAuthProvider, state validation and
 // an emailVerified check.
+//
+// ThrottlerGuard (per IP and per account, see throttling.ts) guards every
+// endpoint that checks a credential (CLN-004 / audit H4).
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -60,10 +62,13 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ status: 201, description: 'Tokens issued' })
-  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials or TOTP code' })
+  @ApiResponse({ status: 403, description: 'TOTP is enabled: send `totp` (code requires_totp)' })
+  @ApiResponse({ status: 429, description: 'Too many attempts' })
   async login(@Body() dto: LoginDto) {
     const result = await this.loginWithPassword.execute({
       email: dto.email,
@@ -79,21 +84,29 @@ export class AuthController {
   }
 
   @Post('magic-link/request')
+  @UseGuards(ThrottlerGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Request a magic-link login email' })
   @ApiBody({ type: RequestMagicLinkDto })
   @ApiResponse({ status: 204, description: 'Magic link sent (if account exists)' })
+  @ApiResponse({ status: 429, description: 'Too many attempts' })
   async requestMagicLinkEndpoint(@Body() dto: RequestMagicLinkDto): Promise<void> {
     await this.requestMagicLink.execute({ email: dto.email });
   }
 
   @Post('magic-link/consume')
+  @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Consume a magic-link token and get tokens' })
   @ApiBody({ type: ConsumeMagicLinkDto })
   @ApiResponse({ status: 201, description: 'Tokens issued' })
-  @ApiResponse({ status: 401, description: 'Token invalid or expired' })
+  @ApiResponse({ status: 401, description: 'Token invalid or expired, or invalid TOTP code' })
+  @ApiResponse({
+    status: 403,
+    description: 'TOTP is enabled: resend the token with `totp` (code requires_totp)',
+  })
+  @ApiResponse({ status: 429, description: 'Too many attempts' })
   async consumeMagicLinkEndpoint(@Body() dto: ConsumeMagicLinkDto) {
-    const result = await this.consumeMagicLink.execute({ token: dto.token });
+    const result = await this.consumeMagicLink.execute({ token: dto.token, totp: dto.totp });
 
     return {
       accessToken: result.accessToken,
@@ -103,12 +116,17 @@ export class AuthController {
   }
 
   @Post('totp/enable')
-  @UseGuards(JwtAuthGuard, TotpStepUpGuard)
-  @RequireRecentTotp()
+  @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Enable TOTP 2FA for the current user' })
+  @ApiOperation({
+    summary: 'Start TOTP enrolment for the current user',
+    description:
+      'First enrolment needs no step-up. Replacing an enabled TOTP needs a recent ' +
+      'POST /auth/totp/verify. TOTP is enabled once the first code is verified.',
+  })
   @ApiResponse({ status: 201, description: 'TOTP secret and QR code URI' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'TOTP already enabled and no recent step-up' })
   async totpEnable(@CurrentUser() user: AuthenticatedUser) {
     const result = await this.enableTotp.execute({ userId: user.userId });
 
@@ -116,13 +134,21 @@ export class AuthController {
   }
 
   @Post('totp/verify')
-  @UseGuards(JwtAuthGuard)
+  // JwtAuthGuard first, so the account throttler can key on the user.
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Verify and activate TOTP for the current user' })
+  @ApiOperation({
+    summary: 'Verify a TOTP code',
+    description:
+      'Activates a pending enrolment and opens the 5-minute step-up window. ' +
+      'A code is accepted only once.',
+  })
   @ApiBody({ type: VerifyTotpDto })
   @ApiResponse({ status: 204, description: 'TOTP verified' })
-  @ApiResponse({ status: 401, description: 'Unauthorized or invalid code' })
+  @ApiResponse({ status: 401, description: 'Unauthorized, or invalid or reused code' })
+  @ApiResponse({ status: 403, description: 'No TOTP enrolment (code requires_totp_enrollment)' })
+  @ApiResponse({ status: 429, description: 'Too many attempts' })
   async totpVerify(
     @Body() dto: VerifyTotpDto,
     @CurrentUser() user: AuthenticatedUser,

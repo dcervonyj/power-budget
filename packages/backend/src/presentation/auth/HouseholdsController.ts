@@ -20,6 +20,8 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
+import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
+import { RequireRecentTotp } from './decorators/RequireRecentTotp.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
 import { CreateHouseholdDto, InviteToHouseholdDto } from './dto/households.dto.js';
 import { CreateHouseholdUseCase } from '../../application/auth/use-cases/CreateHouseholdUseCase.js';
@@ -107,12 +109,20 @@ export class HouseholdsController {
   }
 
   @Delete(':id')
+  // TOTP step-up (CLN-004, audit C3): POST /auth/totp/verify within 5 minutes.
+  @UseGuards(TotpStepUpGuard)
+  @RequireRecentTotp()
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Schedule household deletion (30-day hold)' })
   @ApiParam({ name: 'id', description: 'Household ID' })
   @ApiResponse({ status: 202, description: 'Deletion scheduled' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'No household or caller is not the owner' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'No household, caller is not the owner, or no recent TOTP verification ' +
+      '(codes requires_totp, requires_totp_enrollment)',
+  })
   @ApiResponse({ status: 404, description: 'Household not found' })
   async deleteHousehold(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     if (!user.householdId) {

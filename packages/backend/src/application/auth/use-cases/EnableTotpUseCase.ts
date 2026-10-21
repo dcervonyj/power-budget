@@ -1,10 +1,7 @@
 import type { UserId } from '@power-budget/core';
-import type {
-  UserRepository,
-  TotpVerifier,
-  TotpSecretRepository,
-} from '../../../domain/auth/ports.js';
+import type { UserRepository } from '../../../domain/auth/ports.js';
 import { UserNotFoundError } from '../../../domain/auth/errors.js';
+import type { TotpAuthenticator } from '../services/TotpAuthenticator.js';
 
 export interface EnableTotpInput {
   readonly userId: UserId;
@@ -18,8 +15,7 @@ export interface EnableTotpOutput {
 export class EnableTotpUseCase {
   constructor(
     private readonly userRepo: UserRepository,
-    private readonly totpVerifier: TotpVerifier,
-    private readonly totpSecretRepo: TotpSecretRepository,
+    private readonly totp: TotpAuthenticator,
   ) {}
 
   async execute(input: EnableTotpInput): Promise<EnableTotpOutput> {
@@ -28,15 +24,6 @@ export class EnableTotpUseCase {
       throw new UserNotFoundError();
     }
 
-    const { secret, otpauthUri } = this.totpVerifier.generateSecret(user.email);
-
-    await this.totpSecretRepo.save({
-      userId: user.id,
-      encryptedSecret: secret,
-      enrolledAt: new Date(),
-      verifiedAt: null,
-    });
-
-    return { qrCodeUri: otpauthUri, secret };
+    return this.totp.enrol(user);
   }
 }
