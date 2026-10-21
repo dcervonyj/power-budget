@@ -45,6 +45,16 @@ jobs:
       - name: Lint, typecheck & test
         run: pnpm turbo run lint typecheck test --continue
 
+      - name: Backend coverage
+        run: pnpm --filter @power-budget/backend test:coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          if [ -f packages/backend/coverage/coverage-summary.json ]; then
+            node -e "const t=require('./packages/backend/coverage/coverage-summary.json').total; console.log('## Backend coverage (application layer)\n\n| lines | statements | branches | functions |\n|---|---|---|---|\n| '+[t.lines,t.statements,t.branches,t.functions].map(m=>m.pct+'%').join(' | ')+' |')" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Check OpenAPI spec drift
         run: |
           cd packages/backend && pnpm run generate:openapi && cd ../..
@@ -69,6 +79,32 @@ jobs:
           path: |
             packages/*/coverage/
           if-no-files-found: ignore
+
+  integration:
+    name: Backend integration (Postgres + Redis, testcontainers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Docker is preinstalled on ubuntu runners; testcontainers starts
+      # postgres:16 and redis:7 itself and applies the drizzle migrations.
+      - name: Run backend integration tests
+        run: pnpm turbo run test:integration --filter=@power-budget/backend
 
   playwright:
     name: Playwright E2E (smoke)
