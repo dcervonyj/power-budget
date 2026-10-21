@@ -1,1 +1,23 @@
-{}
+{
+  "screen.dashboard.title": "Огляд",
+  "screen.dashboard.income": "Доходи",
+  "screen.dashboard.expenses": "Витрати",
+  "screen.dashboard.unplanned": "Поза планом",
+  "screen.dashboard.bottomLine": "Підсумок",
+  "screen.dashboard.planned": "План",
+  "screen.dashboard.actual": "Факт",
+  "screen.dashboard.noPlan": "Немає активного плану",
+  "screen.transactionList.title": "Транзакції",
+  "screen.transactionList.empty": "Транзакцій немає",
+  "screen.transactionList.filter": "Фільтр",
+  "screen.transactionDetail.title": "Транзакція",
+  "screen.transactionDetail.mapping": "Прив’язана до",
+  "screen.transactionDetail.unmap": "Прибрати прив’язку",
+  "screen.transactionDetail.mapTo": "Прив’язати до планової позиції",
+  "screen.transactionDetail.markTransfer": "Позначити як переказ",
+  "screen.transactionDetail.notes": "Нотатки",
+  "screen.transactionDetail.save": "Зберегти",
+  "component.transactionStatus.unmapped": "Не прив’язана",
+  "component.transactionStatus.mapped": "Прив’язана",
+  "component.transactionStatus.transfer": "Переказ"
+}
