@@ -6,6 +6,7 @@ import { DrizzleMappingRepository } from '../../infrastructure/transactions/Driz
 import { DrizzleTransactionRepository } from '../../infrastructure/transactions/DrizzleTransactionRepository.js';
 import { DrizzleTransferRepository } from '../../infrastructure/transactions/DrizzleTransferRepository.js';
 import { AddManualTransactionUseCase } from '../../application/transactions/use-cases/AddManualTransactionUseCase.js';
+import { BulkActOnTransactionsUseCase } from '../../application/transactions/use-cases/BulkActOnTransactionsUseCase.js';
 import { BulkMapTransactionsUseCase } from '../../application/transactions/use-cases/BulkMapTransactionsUseCase.js';
 import { GetTransactionUseCase } from '../../application/transactions/use-cases/GetTransactionUseCase.js';
 import { ListTransactionsUseCase } from '../../application/transactions/use-cases/ListTransactionsUseCase.js';
@@ -53,6 +54,12 @@ import { TransactionsController } from './TransactionsController.js';
       inject: [DrizzleTransactionRepository, DrizzleMappingRepository],
       useFactory: (txRepo: DrizzleTransactionRepository, mappingRepo: DrizzleMappingRepository) =>
         new BulkMapTransactionsUseCase(txRepo, mappingRepo),
+    },
+    {
+      provide: BulkActOnTransactionsUseCase,
+      inject: [DrizzleTransactionRepository, DrizzleTransferRepository],
+      useFactory: (txRepo: DrizzleTransactionRepository, transferRepo: DrizzleTransferRepository) =>
+        new BulkActOnTransactionsUseCase(txRepo, transferRepo),
     },
     {
       provide: MarkAsTransferUseCase,

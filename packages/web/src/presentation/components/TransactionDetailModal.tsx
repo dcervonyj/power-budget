@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
@@ -7,6 +7,7 @@ import { MoneyView } from './MoneyView.js';
 import { parseLocalIsoDate } from '@power-budget/core';
 import { apiClient, plansApi } from '../../AppProviders.js';
 import { TransactionMapModal } from './TransactionMapModal.js';
+import { readApiError } from '@power-budget/shared-app';
 import type { PatchTransactionDto, TransactionDetailDto } from '@power-budget/shared-app/contract';
 import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 import type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
@@ -23,6 +24,11 @@ export interface TransactionDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onUpdated?: (tx: Transaction) => void;
+  /**
+   * The transaction is gone or not the caller's (404 on read or write; a partner's
+   * transactions are private). Without it the modal shows the load error.
+   */
+  onGone?: (id: string) => void;
 }
 
 export function TransactionDetailModal({
@@ -30,6 +36,7 @@ export function TransactionDetailModal({
   isOpen,
   onClose,
   onUpdated,
+  onGone,
 }: TransactionDetailModalProps): React.JSX.Element | null {
   const theme = useTheme();
   const intl = useIntl();
@@ -50,6 +57,9 @@ export function TransactionDetailModal({
   const [togglingIgnored, setTogglingIgnored] = useState(false);
 
   const [catalogue, setCatalogue] = useState<PlannedItemCatalogue | null>(null);
+  // Read in the load effect without refetching when the parent passes a new callback.
+  const onGoneRef = useRef(onGone);
+  onGoneRef.current = onGone;
   const [showMapModal, setShowMapModal] = useState(false);
 
   // Reset state when opening a new transaction
@@ -77,8 +87,14 @@ export function TransactionDetailModal({
         setMapping(tx.mapping);
         setIsTransfer(tx.isTransfer);
         setIgnored(tx.ignored);
-      } catch {
-        if (!cancelled) {
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+        const gone = onGoneRef.current;
+        if (readApiError(err).status === 404 && gone) {
+          gone(transactionId);
+        } else {
           setFetchError(
             intl.formatMessage({
               id: 'screen.transactionDetail.fetchError',
@@ -120,14 +136,10 @@ export function TransactionDetailModal({
     const newMapping: TransactionMapping | null =
       plannedItemId === null
         ? null
-        : { plannedItemId, plannedItemName: '', categoryId: '', categoryName: '' };
+        : { plannedItemId, planName: '', planArchived: false, categoryName: '', by: 'manual' };
     setMapping(newMapping);
     if (transaction) {
-      const updatedTx: Transaction = {
-        ...transaction,
-        mapping: newMapping,
-        mappingStatus: newMapping === null ? 'unmapped' : 'mapped',
-      };
+      const updatedTx: Transaction = { ...transaction, mapping: newMapping };
       setTransaction(updatedTx);
       onUpdated?.(updatedTx);
     }
@@ -465,6 +477,13 @@ export function TransactionDetailModal({
             setShowMapModal(false);
           }}
           onMapped={handleMapped}
+          onGone={
+            onGone === undefined
+              ? undefined
+              : () => {
+                  onGone(transactionId);
+                }
+          }
         />
       )}
     </Modal>

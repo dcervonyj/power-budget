@@ -137,13 +137,37 @@ test.describe('web <-> backend contract', () => {
     const api = new BackendApi(request);
     const tokens = await api.register(uniqueEmail('contract-tx'));
 
+    // A cash account and a manual transaction on it (UI-015 adds them from the web app).
+    const account = await api.json<{ id: string }>(
+      await api.post('/accounts', tokens.accessToken, { name: 'Cash', currency: 'PLN' }),
+      201,
+    );
+    assertMatchesSpec('post', '/accounts', 201, account);
+    const created = await api.json<{ id: string }>(
+      await api.post('/transactions', tokens.accessToken, {
+        accountId: account.id,
+        occurredOn: '2026-10-21',
+        amountMinor: '-1250',
+        currency: 'PLN',
+        description: 'Contract cash',
+      }),
+      201,
+    );
+    assertMatchesSpec('post', '/transactions', 201, created);
+
     const page = await api.json<TransactionPageDto>(
       await api.get('/transactions?limit=10', tokens.accessToken),
       200,
     );
     assertMatchesSpec('get', '/transactions', 200, page);
-    // No manual account can be created yet (see transactions.spec.ts), so the page is empty.
-    expect(page.items.map((row) => TransactionMapper.fromListItem(row))).toEqual([]);
+    expect(page.items.map((row) => TransactionMapper.fromListItem(row))).toMatchObject([
+      {
+        id: created.id,
+        amount: { amountMinor: -1250n, currency: 'PLN' },
+        mapping: null,
+        isTransfer: false,
+      },
+    ]);
   });
 
   test('household invite, accept and household dashboard responses match the spec', async ({

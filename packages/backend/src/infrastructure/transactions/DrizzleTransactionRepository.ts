@@ -290,6 +290,26 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       );
   }
 
+  async setIgnored(
+    ids: readonly TransactionId[],
+    ignored: boolean,
+    scope: HouseholdScope,
+  ): Promise<void> {
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.db
+      .update(schema.transactions)
+      .set({ ignored })
+      .where(
+        and(
+          inArray(schema.transactions.id, [...ids]),
+          eq(schema.transactions.householdId, scope.householdId),
+        ),
+      );
+  }
+
   private ownedAccountJoin(ownerUserId: UserId): SQL | undefined {
     return and(
       eq(schema.bankAccounts.id, schema.transactions.accountId),

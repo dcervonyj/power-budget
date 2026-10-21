@@ -1,38 +1,50 @@
 import { parseMinorUnits } from '@power-budget/core';
-import type { TransactionDetailDto, TransactionDto } from '@power-budget/shared-app/contract';
 import type {
-  MappingStatus,
+  MappingSourceDto,
+  TransactionDetailDto,
+  TransactionDto,
+  TransactionListItemDto,
+  TransactionListMappingDto,
+} from '@power-budget/shared-app/contract';
+import type {
+  MappedBy,
   Transaction,
   TransactionMapping,
 } from '../../domain/transactions/Transaction.js';
 
 export const TransactionMapper = {
-  /**
-   * The list endpoint carries neither the mapping nor the transfer link (and ignores
-   * `unmappedOnly`), so the mapping is unknown until the detail is read.
-   */
-  fromListItem(dto: TransactionDto): Transaction {
-    return toTransaction(dto, null, false, 'unknown');
+  /** A `GET /transactions` row: it carries its mapping (with names), provenance and transfer. */
+  fromListItem(dto: TransactionListItemDto): Transaction {
+    return {
+      ...toTransaction(dto),
+      isTransfer: dto.transfer !== null && dto.transfer !== undefined,
+      mapping: fromListMapping(dto.mapping, dto.mappingSource),
+    };
   },
 
+  /**
+   * `GET /transactions/:id` names neither the plan nor the category, and carries no
+   * provenance; only user mappings exist today (CLN-023), so a mapping reads as manual.
+   */
   fromDetail(detail: TransactionDetailDto): Transaction {
-    const mapping = toMapping(detail.mapping);
-
-    return toTransaction(
-      detail.transaction,
-      mapping,
-      detail.transfer !== null,
-      mapping === null ? 'unmapped' : 'mapped',
-    );
+    return {
+      ...toTransaction(detail.transaction),
+      isTransfer: detail.transfer !== null,
+      mapping:
+        detail.mapping === null
+          ? null
+          : {
+              plannedItemId: detail.mapping.plannedItemId,
+              planName: '',
+              planArchived: false,
+              categoryName: '',
+              by: 'manual',
+            },
+    };
   },
 };
 
-function toTransaction(
-  dto: TransactionDto,
-  mapping: TransactionMapping | null,
-  isTransfer: boolean,
-  mappingStatus: MappingStatus,
-): Transaction {
+function toTransaction(dto: TransactionDto): Omit<Transaction, 'isTransfer' | 'mapping'> {
   return {
     id: dto.id,
     accountId: dto.accountId,
@@ -43,23 +55,39 @@ function toTransaction(
     source: dto.source,
     status: dto.status,
     suggestedPlannedItemId: dto.suggestedPlannedItemId,
-    isTransfer,
     ignored: dto.ignored,
     notes: dto.notes,
-    mapping,
-    mappingStatus,
   };
 }
 
-function toMapping(dto: TransactionDetailDto['mapping']): TransactionMapping | null {
-  if (dto === null) {
+// The list schema marks mapping and mappingSource optional (CLN-023: web fixtures); the
+// API always sends them.
+function fromListMapping(
+  dto: TransactionListMappingDto | null | undefined,
+  source: MappingSourceDto | undefined,
+): TransactionMapping | null {
+  if (dto === null || dto === undefined) {
     return null;
   }
 
   return {
     plannedItemId: dto.plannedItemId,
-    plannedItemName: '',
-    categoryId: '',
-    categoryName: '',
+    planName: dto.planName,
+    planArchived: dto.planArchived,
+    categoryName: dto.categoryName ?? '',
+    by: mappedBy(source),
   };
+}
+
+function mappedBy(source: MappingSourceDto | undefined): MappedBy {
+  switch (source) {
+    case 'rule':
+    case 'ai':
+      return source;
+    case 'manual':
+    case 'suggestion':
+    case 'none':
+    case undefined:
+      return 'manual';
+  }
 }
