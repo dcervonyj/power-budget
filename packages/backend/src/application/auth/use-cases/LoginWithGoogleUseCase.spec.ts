@@ -5,11 +5,10 @@ import type {
   UserRepository,
   HouseholdRepository,
   OAuthProvider,
-  JwtAccessTokenIssuer,
-  RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
+import type { LoginPolicy } from '../services/LoginPolicy.js';
 import { LoginWithGoogleUseCase } from './LoginWithGoogleUseCase.js';
-import { InvalidCredentialsError } from '../../../domain/auth/errors.js';
+import { InvalidCredentialsError, TotpRequiredError } from '../../../domain/auth/errors.js';
 import type { User, Household } from '../../../domain/auth/entities.js';
 
 const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
@@ -42,23 +41,20 @@ describe('LoginWithGoogleUseCase', () => {
   let userRepo: ReturnType<typeof mock<UserRepository>>;
   let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
   let oauthProvider: ReturnType<typeof mock<OAuthProvider>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
+  let loginPolicy: ReturnType<typeof mock<LoginPolicy>>;
   let useCase: LoginWithGoogleUseCase;
 
   beforeEach(() => {
     userRepo = mock<UserRepository>();
     householdRepo = mock<HouseholdRepository>();
     oauthProvider = mock<OAuthProvider>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
-    refreshTokenStore = mock<RefreshTokenStore>();
-    useCase = new LoginWithGoogleUseCase(
-      userRepo,
-      householdRepo,
-      oauthProvider,
-      jwtIssuer,
-      refreshTokenStore,
-    );
+    loginPolicy = mock<LoginPolicy>();
+    loginPolicy.issueSession.mockResolvedValue({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      userId: TEST_USER_ID,
+    });
+    useCase = new LoginWithGoogleUseCase(userRepo, householdRepo, oauthProvider, loginPolicy);
   });
 
   it('logs in an existing user via Google OAuth', async () => {
@@ -68,9 +64,6 @@ describe('LoginWithGoogleUseCase', () => {
       emailVerified: true,
     });
     userRepo.findByEmail.mockResolvedValue(makeUser());
-    householdRepo.findByUserId.mockResolvedValue(makeHousehold());
-    jwtIssuer.issue.mockReturnValue('access-token');
-    refreshTokenStore.issue.mockResolvedValue('refresh-token');
 
     const result = await useCase.execute({
       code: 'auth-code',
@@ -81,6 +74,22 @@ describe('LoginWithGoogleUseCase', () => {
     expect(result.accessToken).toBe('access-token');
     expect(result.userId).toBe(TEST_USER_ID);
     expect(userRepo.create).not.toHaveBeenCalled();
+    expect(loginPolicy.assertSecondFactor).toHaveBeenCalledWith(TEST_USER_ID, undefined);
+  });
+
+  it('applies the shared login policy: no session when the TOTP check fails', async () => {
+    oauthProvider.exchange.mockResolvedValue({
+      email: 'alice@example.com',
+      subject: 'google-sub-123',
+      emailVerified: true,
+    });
+    userRepo.findByEmail.mockResolvedValue(makeUser());
+    loginPolicy.assertSecondFactor.mockRejectedValue(new TotpRequiredError());
+
+    await expect(
+      useCase.execute({ code: 'c', redirectUri: 'https://app.example.com/cb', state: 's' }),
+    ).rejects.toThrow(TotpRequiredError);
+    expect(loginPolicy.issueSession).not.toHaveBeenCalled();
   });
 
   it('creates a new user when Google account is not registered', async () => {
@@ -98,9 +107,6 @@ describe('LoginWithGoogleUseCase', () => {
       role: 'owner',
       joinedAt: new Date(),
     });
-    householdRepo.findByUserId.mockResolvedValue(makeHousehold());
-    jwtIssuer.issue.mockReturnValue('access-token');
-    refreshTokenStore.issue.mockResolvedValue('refresh-token');
 
     const result = await useCase.execute({
       code: 'auth-code',
@@ -121,7 +127,7 @@ describe('LoginWithGoogleUseCase', () => {
     ).rejects.toThrow(InvalidCredentialsError);
     expect(userRepo.findByEmail).not.toHaveBeenCalled();
     expect(userRepo.create).not.toHaveBeenCalled();
-    expect(jwtIssuer.issue).not.toHaveBeenCalled();
+    expect(loginPolicy.issueSession).not.toHaveBeenCalled();
   });
 
   it('rejects an identity whose email is not verified by Google', async () => {
@@ -135,6 +141,6 @@ describe('LoginWithGoogleUseCase', () => {
       useCase.execute({ code: 'any', redirectUri: 'https://app.example.com/cb', state: 's' }),
     ).rejects.toThrow(InvalidCredentialsError);
     expect(userRepo.findByEmail).not.toHaveBeenCalled();
-    expect(jwtIssuer.issue).not.toHaveBeenCalled();
+    expect(loginPolicy.issueSession).not.toHaveBeenCalled();
   });
 });

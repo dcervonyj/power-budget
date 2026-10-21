@@ -13,6 +13,7 @@ export interface HttpSecurityEnv {
   readonly JWT_SECRET?: string;
   readonly CORS_ORIGINS?: string;
   readonly SWAGGER_ENABLED?: string;
+  readonly TRUST_PROXY?: string;
 }
 
 export class InvalidCorsOriginError extends Error {
@@ -74,6 +75,32 @@ export class CorsOriginPolicy {
 export function assertBootEnv(env: HttpSecurityEnv): void {
   resolveJwtSecret(env.JWT_SECRET, env.NODE_ENV);
   buildCorsOptions(env);
+}
+
+/** Fastify `trustProxy` value: `false`, `true`, a hop count, or a comma-separated list of proxy IPs/CIDRs. */
+export type TrustProxySetting = boolean | number | string;
+
+const DEFAULT_TRUSTED_PROXY_HOPS = 1;
+
+/**
+ * TRUST_PROXY decides which X-Forwarded-For entry becomes `request.ip`, the
+ * key of the per-IP rate limit (audit H4). Default: one hop, the platform load
+ * balancer (Render). `true` would trust every hop, so any client could pick its
+ * own IP by sending X-Forwarded-For; use it only behind a proxy that strips it.
+ */
+export function resolveTrustProxy(raw: string | undefined): TrustProxySetting {
+  const value = (raw ?? '').trim();
+  if (value.length === 0) {
+    return DEFAULT_TRUSTED_PROXY_HOPS;
+  }
+  if (value === 'true' || value === 'false') {
+    return value === 'true';
+  }
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+
+  return value;
 }
 
 /** Swagger UI and /docs-json are served only when SWAGGER_ENABLED=true. */

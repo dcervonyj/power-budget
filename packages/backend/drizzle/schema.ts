@@ -112,6 +112,8 @@ export const totpSecrets = pgTable('totp_secrets', {
   encryptedSecret: text('encrypted_secret').notNull(),
   enrolledAt: timestamp('enrolled_at', { withTimezone: true }).notNull().defaultNow(),
   verifiedAt: timestamp('verified_at', { withTimezone: true }),
+  // Last accepted TOTP time step (CLN-004, audit M9): a code is accepted once.
+  lastUsedTimeStep: bigint('last_used_time_step', { mode: 'number' }),
 });
 
 export const magicLinkTokens = pgTable('magic_link_tokens', {

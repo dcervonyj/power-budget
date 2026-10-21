@@ -98,7 +98,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Enable TOTP 2FA for the current user */
+    /**
+     * Start TOTP enrolment for the current user
+     * @description First enrolment needs no step-up. Replacing an enabled TOTP needs a recent POST /auth/totp/verify. TOTP is enabled once the first code is verified.
+     */
     post: operations['AuthController_totpEnable'];
     delete?: never;
     options?: never;
@@ -115,7 +118,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Verify and activate TOTP for the current user */
+    /**
+     * Verify a TOTP code
+     * @description Activates a pending enrolment and opens the 5-minute step-up window. A code is accepted only once.
+     */
     post: operations['AuthController_totpVerify'];
     delete?: never;
     options?: never;
@@ -798,6 +804,11 @@ export interface components {
     ConsumeMagicLinkDto: {
       /** @description Magic-link token from email */
       token: string;
+      /**
+       * @description TOTP code, required once 2FA is enabled (the link stays valid until then)
+       * @example 123456
+       */
+      totp?: string;
     };
     TotpEnrollmentDto: {
       /** @description otpauth:// URI to render as a QR code */
@@ -1486,8 +1497,22 @@ export interface operations {
           'application/json': components['schemas']['AuthTokensDto'];
         };
       };
-      /** @description Invalid credentials */
+      /** @description Invalid credentials or TOTP code */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description TOTP is enabled: send `totp` (code requires_totp) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1510,6 +1535,13 @@ export interface operations {
     responses: {
       /** @description Magic link sent (if account exists) */
       204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1539,8 +1571,22 @@ export interface operations {
           'application/json': components['schemas']['AuthTokensDto'];
         };
       };
-      /** @description Token invalid or expired */
+      /** @description Token invalid or expired, or invalid TOTP code */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description TOTP is enabled: resend the token with `totp` (code requires_totp) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1573,6 +1619,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description TOTP already enabled and no recent step-up */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   AuthController_totpVerify: {
@@ -1595,8 +1648,22 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Unauthorized or invalid code */
+      /** @description Unauthorized, or invalid or reused code */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No TOTP enrolment (code requires_totp_enrollment) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1908,7 +1975,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description No household or caller is not the owner */
+      /** @description No household, caller is not the owner, or no recent TOTP verification (codes requires_totp, requires_totp_enrollment) */
       403: {
         headers: {
           [name: string]: unknown;

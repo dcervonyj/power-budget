@@ -50,7 +50,7 @@ How the app binds the policies (`src/infrastructure/database/`):
 - `DbScopeInterceptor` (global `APP_INTERCEPTOR`) runs every HTTP handler in the scope of `req.user` (JWT). Unauthenticated requests have no scope and see no tenant rows.
 - `WorkerDbScopeModule` (worker only) makes `system` the fallback: processors and crons work across households.
 - `ScopedPool` wraps the pg pool: every statement outside a transaction runs as `BEGIN; set_config('app.household_id' | 'app.user_id' | 'app.rls_bypass', ..., true); <statement>; COMMIT`, and `db.transaction` gets the same settings after its `BEGIN`. Settings are transaction-local, so nothing leaks between pooled requests.
-- Pre-auth code that must read a tenant table uses `runInDbScope({ kind: 'system', reason }, ...)` explicitly, filtering by an id it already trusts (only `DrizzleBankConnectionChecker`, at login).
+- Pre-auth code that must read a tenant table uses `runInDbScope({ kind: 'system', reason }, ...)` explicitly, filtering by an id it already trusts. No code needs it today: `DrizzleBankConnectionChecker` (login) was removed in CLN-004, and the login path only reads `users`, `totp_secrets`, `magic_link_tokens` and `households`, which RLS does not cover.
 - `refresh_plan_actuals()` turns the bypass on for the refresh only and restores the caller's value.
 - Seed scripts set the bypass on their own connections.
 
