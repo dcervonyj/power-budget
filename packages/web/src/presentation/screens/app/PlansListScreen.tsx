@@ -4,21 +4,24 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeContext.js';
 import { Button } from '../../components/Button.js';
 import { ClonePlanModal } from '../../components/ClonePlanModal.js';
+import { toLocalIsoDate } from '@power-budget/core';
 import { apiClient } from '../../../AppProviders.js';
+import { settingsStore } from '../../../application/settings/SettingsStore.js';
+import {
+  PlanMapper,
+  type PlanDto,
+  type PlanSummary,
+} from '../../../infrastructure/api/PlanMapper.js';
 
-type PlanPeriod = 'weekly' | 'monthly' | 'custom';
-type PlanStatus = 'active' | 'draft' | 'archived';
+type PlanPeriod = PlanSummary['period'];
+type PlanStatus = PlanSummary['status'];
+type Plan = PlanSummary;
 
-interface Plan {
-  id: string;
-  name: string;
-  period: PlanPeriod;
-  status: PlanStatus;
-  baseCurrency: string;
-  startDate?: string;
-  endDate?: string;
-  version: number;
-  updatedAt: string;
+/** First day of the current month, local time: the start of a new monthly plan. */
+function currentMonthStart(): string {
+  const today = new Date();
+
+  return toLocalIsoDate(new Date(today.getFullYear(), today.getMonth(), 1));
 }
 
 export function PlansListScreen(): React.JSX.Element {
@@ -36,8 +39,8 @@ export function PlansListScreen(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get<Plan[]>('/plans');
-      setPlans(res.data);
+      const res = await apiClient.get<PlanDto[]>('/plans?status=all');
+      setPlans(res.data.map(PlanMapper.toPlan));
     } catch {
       setError(
         intl.formatMessage({
@@ -57,13 +60,15 @@ export function PlansListScreen(): React.JSX.Element {
   const handleCreate = async (): Promise<void> => {
     setCreating(true);
     try {
-      const res = await apiClient.post<Plan>('/plans', {
+      const res = await apiClient.post<PlanDto>('/plans', {
         name: intl.formatMessage({
           id: 'screen.plansList.defaultPlanName',
           defaultMessage: 'New Plan',
         }),
-        period: 'monthly' as PlanPeriod,
-        baseCurrency: 'USD',
+        type: 'personal',
+        periodKind: 'monthly',
+        periodStart: currentMonthStart(),
+        baseCurrency: settingsStore.baseCurrency,
       });
       void navigate(`/plans/${res.data.id}`);
     } catch {
@@ -82,7 +87,8 @@ export function PlansListScreen(): React.JSX.Element {
     const prevPlans = plans;
     setPlans((prev) => prev.filter((p) => p.id !== id));
     try {
-      await apiClient.delete(`/plans/${id}`);
+      // Plans are archived, not deleted (CLN-011).
+      await apiClient.post(`/plans/${id}/archive`, {});
     } catch {
       setPlans(prevPlans);
       setError(
@@ -120,11 +126,6 @@ export function PlansListScreen(): React.JSX.Element {
         return intl.formatMessage({
           id: 'screen.plansList.planStatus.active',
           defaultMessage: 'Active',
-        });
-      case 'draft':
-        return intl.formatMessage({
-          id: 'screen.plansList.planStatus.draft',
-          defaultMessage: 'Draft',
         });
       case 'archived':
         return intl.formatMessage({

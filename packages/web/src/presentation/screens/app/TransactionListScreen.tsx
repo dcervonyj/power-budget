@@ -16,21 +16,16 @@ import { BulkActionBar } from '../../components/BulkActionBar.js';
 import { MappingModal } from '../../components/MappingModal.js';
 import { apiClient } from '../../../AppProviders.js';
 import type { Transaction } from '../../../domain/transactions/Transaction.js';
+import type { TransactionPageDto } from '../../../infrastructure/api/TransactionMapper.js';
 import {
-  TransactionMapper,
-  type TransactionPageDto,
-} from '../../../infrastructure/api/TransactionMapper.js';
+  buildQuery,
+  toTransactions,
+} from '../../../application/transactions/TransactionListQuery.js';
 
 interface Category {
   id: string;
   name: string;
 }
-
-function toTransactions(page: TransactionPageDto): Transaction[] {
-  return page.items.map(TransactionMapper.fromListItem);
-}
-
-const LIMIT = 50;
 
 export const TransactionListScreen = observer(function TransactionListScreen(): React.JSX.Element {
   const theme = useTheme();
@@ -95,20 +90,6 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
 
-  const buildQuery = useCallback((f: TransactionFilters, cursor?: string): string => {
-    const params = new URLSearchParams();
-    if (f.from) params.set('from', f.from);
-    if (f.to) params.set('to', f.to);
-    if (f.category) params.set('categoryId', f.category);
-    if (f.status) params.set('status', f.status);
-    if (f.currency) params.set('currency', f.currency);
-    if (f.source) params.set('source', f.source);
-    if (f.q) params.set('q', f.q);
-    params.set('limit', String(LIMIT));
-    if (cursor) params.set('cursor', cursor);
-    return params.toString();
-  }, []);
-
   // Load categories once
   useEffect(() => {
     void apiClient.get<Category[]>('/categories').then((res) => {
@@ -131,7 +112,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
         );
         if (cancelled) return;
         const page = res.data;
-        setTransactions(toTransactions(page));
+        setTransactions(toTransactions(page, filtersRef.current));
         setNextCursor(page.nextCursor);
       } catch {
         if (!cancelled) {
@@ -151,7 +132,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
       cancelled = true;
     };
     // filtersKey is a stable primitive that changes only when filters change
-  }, [filtersKey, buildQuery, intl]);
+  }, [filtersKey, intl]);
 
   const loadMore = useCallback(async (): Promise<void> => {
     if (loadingMore || !nextCursor) return;
@@ -161,14 +142,14 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
         `/transactions?${buildQuery(filtersRef.current, nextCursor)}`,
       );
       const page = res.data;
-      setTransactions((prev) => [...prev, ...toTransactions(page)]);
+      setTransactions((prev) => [...prev, ...toTransactions(page, filtersRef.current)]);
       setNextCursor(page.nextCursor);
     } catch {
       // silently fail so user can try scrolling again
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, nextCursor, buildQuery]);
+  }, [loadingMore, nextCursor]);
 
   // IntersectionObserver for infinite scroll
   useEffect(() => {
@@ -263,7 +244,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
                   `/transactions?${buildQuery(filtersRef.current)}`,
                 );
                 const page = res.data;
-                setTransactions(toTransactions(page));
+                setTransactions(toTransactions(page, filtersRef.current));
                 setNextCursor(page.nextCursor);
               } catch {
                 setError(

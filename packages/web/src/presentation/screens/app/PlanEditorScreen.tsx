@@ -9,35 +9,20 @@ import { CustomPeriodPicker } from '../../components/CustomPeriodPicker.js';
 import type { CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
 import { formatMoneyInput, parseMinorUnits, parseMoney } from '@power-budget/core';
 import { apiClient } from '../../../AppProviders.js';
+import {
+  PlanMapper,
+  type PlanDto,
+  type PlanSummary,
+  type PlannedItemDto,
+  type PlannedItemSummary,
+} from '../../../infrastructure/api/PlanMapper.js';
+import { fetchCategoryNames } from '../../../infrastructure/api/CategoryNames.js';
 import { PlannedItemHistoryDrawer } from '../../components/PlannedItemHistoryDrawer.js';
 
-type PlanPeriod = 'weekly' | 'monthly' | 'custom';
-type PlanStatus = 'active' | 'draft' | 'archived';
-type Direction = 'income' | 'expense';
-
-interface Plan {
-  id: string;
-  name: string;
-  period: PlanPeriod;
-  status: PlanStatus;
-  baseCurrency: string;
-  startDate?: string;
-  endDate?: string;
-  version: number;
-  updatedAt: string;
-}
-
-interface PlannedItem {
-  id: string;
-  planId: string;
-  categoryId: string;
-  categoryName?: string;
-  direction: Direction;
-  /** Minor units; plan item endpoints come with CLN-011 (string per CLN-002, number before). */
-  amountMinor: string | number;
-  currency: string;
-  version: number;
-}
+type PlanPeriod = PlanSummary['period'];
+type Direction = PlannedItemSummary['direction'];
+type Plan = PlanSummary;
+type PlannedItem = PlannedItemSummary;
 
 interface DraftItem {
   draftId: string;
@@ -97,12 +82,13 @@ export function PlanEditorScreen(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const [planRes, itemsRes] = await Promise.all([
-        apiClient.get<Plan>(`/plans/${id}`),
-        apiClient.get<PlannedItem[]>(`/plans/${id}/items`),
+      const [planRes, itemsRes, categoryNames] = await Promise.all([
+        apiClient.get<PlanDto>(`/plans/${id}`),
+        apiClient.get<PlannedItemDto[]>(`/plans/${id}/items`),
+        fetchCategoryNames(apiClient),
       ]);
-      setPlan(planRes.data);
-      setItems(itemsRes.data);
+      setPlan(PlanMapper.toPlan(planRes.data));
+      setItems(itemsRes.data.map((dto) => PlanMapper.toItem(dto, categoryNames)));
     } catch {
       setError(
         intl.formatMessage({
@@ -124,12 +110,11 @@ export function PlanEditorScreen(): React.JSX.Element {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await apiClient.put<Plan>(`/plans/${plan.id}`, {
+      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, {
         name: plan.name,
         baseCurrency: plan.baseCurrency,
-        version: plan.version,
       });
-      setPlan(res.data);
+      setPlan(PlanMapper.toPlan(res.data));
     } catch {
       setSaveError(
         intl.formatMessage({
@@ -142,27 +127,16 @@ export function PlanEditorScreen(): React.JSX.Element {
     }
   };
 
-  const handlePeriodChange = async (newPeriod: PlanPeriod): Promise<void> => {
-    if (!plan) return;
-    const prevPlan = plan;
-    setPlan({ ...plan, period: newPeriod });
-    try {
-      const res = await apiClient.put<Plan>(`/plans/${plan.id}`, {
-        name: plan.name,
-        baseCurrency: plan.baseCurrency,
-        period: newPeriod,
-        version: plan.version,
-      });
-      setPlan(res.data);
-    } catch {
-      setPlan(prevPlan);
-      setSaveError(
-        intl.formatMessage({
-          id: 'screen.planEditor.saveError',
-          defaultMessage: 'Failed to save plan',
-        }),
-      );
-    }
+  const handlePeriodChange = (newPeriod: PlanPeriod): void => {
+    if (!plan || newPeriod === plan.period) return;
+    // PATCH /plans/:id cannot change the period kind (CLN-011): a weekly or
+    // monthly plan becomes another kind only through "Clone".
+    setSaveError(
+      intl.formatMessage({
+        id: 'screen.planEditor.periodKindReadOnly',
+        defaultMessage: 'The period type cannot be changed. Clone the plan to use another period.',
+      }),
+    );
   };
 
   const handleCustomDatesChange = async (dates: CustomPeriodValue): Promise<void> => {
@@ -170,14 +144,11 @@ export function PlanEditorScreen(): React.JSX.Element {
     const prevPlan = plan;
     setPlan({ ...plan, startDate: dates.startDate, endDate: dates.endDate });
     try {
-      const res = await apiClient.put<Plan>(`/plans/${plan.id}`, {
-        name: plan.name,
-        baseCurrency: plan.baseCurrency,
-        startDate: dates.startDate,
-        endDate: dates.endDate,
-        version: plan.version,
+      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, {
+        periodStart: dates.startDate,
+        periodEnd: dates.endDate,
       });
-      setPlan(res.data);
+      setPlan(PlanMapper.toPlan(res.data));
     } catch {
       setPlan(prevPlan);
       setSaveError(
@@ -195,13 +166,13 @@ export function PlanEditorScreen(): React.JSX.Element {
     if (!draftItem.categoryId || amountMinor === null) return;
 
     try {
-      const res = await apiClient.post<PlannedItem>(`/plans/${plan.id}/items`, {
+      const res = await apiClient.post<PlannedItemDto>(`/plans/${plan.id}/items`, {
         categoryId: draftItem.categoryId,
         direction: draftItem.direction,
         amountMinor,
         currency: draftItem.currency,
       });
-      setItems((prev) => [...prev, res.data]);
+      setItems((prev) => [...prev, PlanMapper.toItem(res.data)]);
       setDraftItem({
         draftId: crypto.randomUUID(),
         categoryId: '',
@@ -227,11 +198,13 @@ export function PlanEditorScreen(): React.JSX.Element {
     const prevItems = items;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, ...changes } : i)));
     try {
-      const res = await apiClient.put<PlannedItem>(`/plans/${plan.id}/items/${item.id}`, {
-        ...changes,
-        version: item.version,
+      // The API takes amountMinor and currency together.
+      const res = await apiClient.patch<PlannedItemDto>(`/plans/${plan.id}/items/${item.id}`, {
+        amountMinor: changes.amountMinor ?? item.amountMinor,
+        currency: changes.currency ?? item.currency,
       });
-      setItems((prev) => prev.map((i) => (i.id === item.id ? res.data : i)));
+      const updated = PlanMapper.toItem(res.data);
+      setItems((prev) => prev.map((i) => (i.id === item.id ? updated : i)));
     } catch {
       setItems(prevItems);
       setSaveError(
@@ -422,7 +395,7 @@ export function PlanEditorScreen(): React.JSX.Element {
           options={periodOptions}
           value={plan.period}
           onChange={(val) => {
-            void handlePeriodChange(val);
+            handlePeriodChange(val);
           }}
         />
 

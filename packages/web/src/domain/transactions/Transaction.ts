@@ -10,6 +10,12 @@ export interface TransactionMapping {
 
 export type TransactionSource = 'bank_sync' | 'manual';
 
+/**
+ * The list endpoint does not say whether a transaction is mapped; it is only
+ * known from the detail endpoint or from an `unmappedOnly` query.
+ */
+export type MappingStatus = 'mapped' | 'unmapped' | 'unknown';
+
 /** A transaction as the web screens use it; built from the API DTO by TransactionMapper. */
 export interface Transaction {
   id: string;
@@ -25,4 +31,5 @@ export interface Transaction {
   ignored: boolean;
   notes: string | null;
   mapping: TransactionMapping | null;
+  mappingStatus: MappingStatus;
 }

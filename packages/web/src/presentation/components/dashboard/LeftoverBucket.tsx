@@ -2,6 +2,7 @@ import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from '../ThemeContext.js';
+import { formatMinorUnits } from '../../i18n/formatMinorUnits.js';
 
 export interface LeftoverBucketProps {
   leftoverMinor: number;
@@ -18,11 +19,7 @@ export const LeftoverBucket = observer(function LeftoverBucket({
   const isPositive = leftoverMinor >= 0;
   const amountColor = isPositive ? theme.color.status.success : theme.color.status.danger;
 
-  const formattedAmount = intl.formatNumber(leftoverMinor / 100, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  });
+  const formattedAmount = formatMinorUnits(leftoverMinor, currency, intl.locale);
 
   return (
     <div

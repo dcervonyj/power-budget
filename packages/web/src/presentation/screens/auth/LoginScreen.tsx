@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Link, useNavigate } from 'react-router-dom';
+import { readApiError } from '@power-budget/shared-app';
 import { apiClient, tokenStore } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
 
@@ -9,35 +10,21 @@ interface LoginResponse {
   refreshToken: string;
 }
 
-type LoginError = 'invalidCredentials' | 'invalidTotp' | 'serverError' | null;
+type LoginError = 'invalidCredentials' | 'invalidTotp' | 'tooManyAttempts' | 'serverError' | null;
 
 type LoginOutcome = 'requiresTotp' | Exclude<LoginError, null>;
 
-function errorCode(err: unknown): string {
-  if (typeof err !== 'object' || err === null || !('response' in err)) {
-    return '';
-  }
-  const { response } = err;
-  if (typeof response !== 'object' || response === null || !('data' in response)) {
-    return '';
-  }
-  const { data } = response;
-  if (typeof data !== 'object' || data === null || !('code' in data)) {
-    return '';
-  }
-
-  return String(data.code);
-}
-
-/** Error bodies carry a stable `code` (CLN-002): 403 requires_totp, 401 totp_invalid ... */
+/** Error bodies carry a stable `code` (CLN-002/CLN-004): 403 requires_totp, 401 totp_invalid, 429 ... */
 function classifyLoginError(err: unknown): LoginOutcome {
-  switch (errorCode(err)) {
+  switch (readApiError(err).code) {
     case 'requires_totp':
       return 'requiresTotp';
     case 'totp_invalid':
       return 'invalidTotp';
     case 'invalid_credentials':
       return 'invalidCredentials';
+    case 'too_many_requests':
+      return 'tooManyAttempts';
     default:
       return 'serverError';
   }
@@ -126,6 +113,14 @@ export function LoginScreen(): React.JSX.Element {
             <FormattedMessage
               id="screen.login.error.invalidTotp"
               defaultMessage="Invalid authenticator code."
+            />
+          </p>
+        )}
+        {loginError === 'tooManyAttempts' && (
+          <p role="alert">
+            <FormattedMessage
+              id="auth.error.tooManyAttempts"
+              defaultMessage="Too many attempts. Please wait a few minutes and try again."
             />
           </p>
         )}

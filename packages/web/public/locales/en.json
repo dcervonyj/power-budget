@@ -9,7 +9,6 @@
   "screen.plansList.planPeriod.monthly": "Monthly",
   "screen.plansList.planPeriod.custom": "Custom",
   "screen.plansList.planStatus.active": "Active",
-  "screen.plansList.planStatus.draft": "Draft",
   "screen.plansList.planStatus.archived": "Archived",
   "screen.plansList.cloneButton": "Clone",
   "screen.plansList.deleteButton": "Delete",
@@ -287,5 +286,12 @@
   "settings.signOut": "Log out",
   "screen.login.error.invalidTotp": "Invalid authenticator code.",
   "bulk.error": "Some transactions could not be updated. Please try again.",
-  "screen.transactionDetail.source.bankSync": "Bank"
+  "screen.transactionDetail.source.bankSync": "Bank",
+  "auth.error.tooManyAttempts": "Too many attempts. Please wait a few minutes and try again.",
+  "screen.totpEnrollment.error.alreadyEnabled": "Two-factor authentication is already enabled.",
+  "settings.data.delete.totp": "Authenticator code (required to delete)",
+  "settings.data.delete.requiresTotp": "Enter a code from your authenticator app to confirm.",
+  "settings.data.delete.requiresTotpEnrollment": "Set up two-factor authentication first.",
+  "screen.planEditor.periodKindReadOnly": "The period type cannot be changed. Clone the plan to use another period.",
+  "screen.dashboard.unplannedTotal": "Unplanned"
 }

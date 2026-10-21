@@ -3,9 +3,11 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../ThemeContext.js';
+import { formatMinorUnits } from '../../i18n/formatMinorUnits.js';
 
 export interface UnplannedSectionProps {
-  count: number;
+  /** Null when the API gives only the total, not the number of transactions. */
+  count: number | null;
   totalMinor: number;
   currency: string;
 }
@@ -19,11 +21,7 @@ export const UnplannedSection = observer(function UnplannedSection({
   const navigate = useNavigate();
   const intl = useIntl();
 
-  const formattedTotal = intl.formatNumber(totalMinor / 100, {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: 2,
-  });
+  const formattedTotal = formatMinorUnits(totalMinor, currency, intl.locale);
 
   function handleClick(): void {
     navigate('/transactions?filter=unplanned');
@@ -54,11 +52,15 @@ export const UnplannedSection = observer(function UnplannedSection({
           color: theme.color.text.primary,
         }}
       >
-        <FormattedMessage
-          id="screen.dashboard.unplanned"
-          values={{ count }}
-          defaultMessage="Unplanned ({count})"
-        />
+        {count === null ? (
+          <FormattedMessage id="screen.dashboard.unplannedTotal" defaultMessage="Unplanned" />
+        ) : (
+          <FormattedMessage
+            id="screen.dashboard.unplanned"
+            values={{ count }}
+            defaultMessage="Unplanned ({count})"
+          />
+        )}
       </span>
       <span
         style={{

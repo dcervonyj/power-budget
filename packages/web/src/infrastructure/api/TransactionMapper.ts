@@ -1,6 +1,10 @@
 import { parseMinorUnits } from '@power-budget/core';
 import type { components } from '@power-budget/shared-app/contract';
-import type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
+import type {
+  MappingStatus,
+  Transaction,
+  TransactionMapping,
+} from '../../domain/transactions/Transaction.js';
 
 export type TransactionDto = components['schemas']['TransactionDto'];
 export type TransactionPageDto = components['schemas']['TransactionPageDto'];
@@ -13,13 +17,23 @@ export interface TransactionDetailDto {
 }
 
 export const TransactionMapper = {
-  fromListItem(dto: TransactionDto): Transaction {
-    // The list endpoint carries neither the mapping nor the transfer link yet.
-    return toTransaction(dto, null, false);
+  /**
+   * The list endpoint carries neither the mapping nor the transfer link, so the
+   * mapping is unknown unless the page was requested with `unmappedOnly=true`.
+   */
+  fromListItem(dto: TransactionDto, unmappedOnly: boolean): Transaction {
+    return toTransaction(dto, null, false, unmappedOnly ? 'unmapped' : 'unknown');
   },
 
   fromDetail(detail: TransactionDetailDto): Transaction {
-    return toTransaction(detail.transaction, toMapping(detail.mapping), detail.transfer !== null);
+    const mapping = toMapping(detail.mapping);
+
+    return toTransaction(
+      detail.transaction,
+      mapping,
+      detail.transfer !== null,
+      mapping === null ? 'unmapped' : 'mapped',
+    );
   },
 };
 
@@ -27,6 +41,7 @@ function toTransaction(
   dto: TransactionDto,
   mapping: TransactionMapping | null,
   isTransfer: boolean,
+  mappingStatus: MappingStatus,
 ): Transaction {
   return {
     id: dto.id,
@@ -40,6 +55,7 @@ function toTransaction(
     ignored: dto.ignored,
     notes: dto.notes,
     mapping,
+    mappingStatus,
   };
 }
 
