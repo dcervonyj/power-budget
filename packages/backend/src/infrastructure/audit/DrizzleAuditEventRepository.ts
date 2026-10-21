@@ -19,9 +19,9 @@ import * as schema from '../../../drizzle/schema.js';
  * Implements AuditEventRepository, AuditLogger, and the legacy AuditLogPort
  * (used by plans use cases). All writes go to the `audit_log` table.
  *
- * SECURITY NOTE: The application DB role must NOT have UPDATE or DELETE
- * privileges on `audit_log`. Enforce in production via:
- *   REVOKE UPDATE, DELETE ON audit_log FROM power_budget_app;
+ * Writers must go through RedactingAuditLogger (REDACTING_AUDIT_LOGGER / AUDIT_LOG_PORT);
+ * inject this class directly only to read. audit_log is append-only for the app role:
+ * `db:roles` revokes UPDATE/DELETE and RLS (0008_rls_tenancy) has no UPDATE/DELETE policy.
  */
 @Injectable()
 export class DrizzleAuditEventRepository

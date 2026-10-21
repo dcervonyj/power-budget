@@ -18,3 +18,17 @@ export class AlreadyTransferError extends Error {
     this.name = 'AlreadyTransferError';
   }
 }
+
+export class PlannedItemNotFoundError extends Error {
+  constructor() {
+    super('PLANNED_ITEM_NOT_FOUND');
+    this.name = 'PlannedItemNotFoundError';
+  }
+}
+
+export class BankAccountNotFoundError extends Error {
+  constructor() {
+    super('BANK_ACCOUNT_NOT_FOUND');
+    this.name = 'BankAccountNotFoundError';
+  }
+}

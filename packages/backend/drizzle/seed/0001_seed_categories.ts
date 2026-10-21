@@ -7,6 +7,11 @@ import { randomUUID } from 'node:crypto';
 
 async function seed(): Promise<void> {
   const pool = new Pool({ connectionString: process.env['DATABASE_URL'] });
+  // Seeds write across households (and the shared NULL-household catalogue): every
+  // connection of this one-off script runs with the RLS bypass (migration 0008_rls_tenancy).
+  pool.on('connect', (client) => {
+    void client.query("SELECT set_config('app.rls_bypass', 'on', false)");
+  });
   const db = drizzle(pool);
 
   console.log('Seeding default categories...');

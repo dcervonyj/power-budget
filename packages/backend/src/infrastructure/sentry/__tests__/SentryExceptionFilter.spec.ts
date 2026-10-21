@@ -17,7 +17,11 @@ import {
   TotpRequiredError,
 } from '../../../domain/auth/errors.js';
 import { BankConnectionInvalidStateError } from '../../../domain/bank/errors.js';
-import { TransactionNotFoundError } from '../../../domain/transactions/errors.js';
+import {
+  BankAccountNotFoundError,
+  PlannedItemNotFoundError,
+  TransactionNotFoundError,
+} from '../../../domain/transactions/errors.js';
 import { toValidationException } from '../../../presentation/http/validation.js';
 
 vi.mock('@sentry/node', () => ({ captureException: vi.fn() }));
@@ -52,6 +56,17 @@ describe('resolveError', () => {
     expect(resolveError(new TransactionNotFoundError())).toEqual({
       status: 404,
       body: { statusCode: 404, code: 'transaction_not_found', message: 'Transaction not found' },
+    });
+  });
+
+  it('maps the tenancy checks (foreign account or planned item) to 404', () => {
+    expect(resolveError(new BankAccountNotFoundError())).toEqual({
+      status: 404,
+      body: { statusCode: 404, code: 'bank_account_not_found', message: 'Bank account not found' },
+    });
+    expect(resolveError(new PlannedItemNotFoundError())).toEqual({
+      status: 404,
+      body: { statusCode: 404, code: 'planned_item_not_found', message: 'Planned item not found' },
     });
   });
 

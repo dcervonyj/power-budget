@@ -14,7 +14,7 @@ export interface UpdateUserProfileInput {
 
 /** PATCH /users/me: display name and preferences (locale, base currency, time zone). */
 export class UpdateUserProfileUseCase {
-  constructor(private readonly profileRepo: UserProfileRepository) {}
+  constructor(private readonly userProfileRepo: UserProfileRepository) {}
 
   async execute(input: UpdateUserProfileInput): Promise<UserProfile> {
     if (input.patch.timezone !== undefined) {
@@ -26,9 +26,9 @@ export class UpdateUserProfileUseCase {
         : input.patch;
 
     if (Object.keys(patch).length > 0) {
-      await this.profileRepo.update(input.userId, patch);
+      await this.userProfileRepo.update(input.userId, patch);
     }
-    const profile = await this.profileRepo.findById(input.userId);
+    const profile = await this.userProfileRepo.findById(input.userId);
     if (profile === null) {
       throw new UserNotFoundError();
     }

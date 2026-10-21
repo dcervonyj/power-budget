@@ -286,6 +286,7 @@ export class TransactionsController {
         plannedItemId,
       })),
       by: user.userId,
+      householdId: user.householdId,
       planId: STUB_PLAN_ID,
     });
   }

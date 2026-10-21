@@ -7,10 +7,10 @@ export interface GetUserProfileInput {
 }
 
 export class GetUserProfileUseCase {
-  constructor(private readonly profileRepo: UserProfileRepository) {}
+  constructor(private readonly userProfileRepo: UserProfileRepository) {}
 
   async execute(input: GetUserProfileInput): Promise<UserProfile> {
-    const profile = await this.profileRepo.findById(input.userId);
+    const profile = await this.userProfileRepo.findById(input.userId);
     if (profile === null) {
       throw new UserNotFoundError();
     }

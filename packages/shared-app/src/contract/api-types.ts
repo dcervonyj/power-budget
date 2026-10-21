@@ -732,6 +732,23 @@ export interface paths {
     patch: operations['CategoriesController_update'];
     trace?: never;
   };
+  '/fx-rates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** FX reference rates for a base currency as of a date */
+    get: operations['FxController_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1362,6 +1379,30 @@ export interface components {
       privacy?: 'full_detail' | 'total_with_counts' | 'total_only';
       /** @description true archives, false restores */
       archived?: boolean;
+    };
+    FxRatesResponseDto: {
+      /**
+       * Format: date
+       * @example 2026-10-20
+       */
+      date: string;
+      /**
+       * @example PLN
+       * @enum {string}
+       */
+      baseCurrency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+      /**
+       * @description 1 baseCurrency = rates[code] code, as decimal strings (never floats). The latest rate within 7 days of the date is used; codes without a rate are absent.
+       * @example {
+       *       "EUR": "0.2284774264",
+       *       "USD": "0.2562374337",
+       *       "UAH": "11.5603231178"
+       *     }
+       */
+      rates: {
+        [key: string]: string;
+      };
     };
   };
   responses: never;
@@ -3344,6 +3385,52 @@ export interface operations {
       };
       /** @description An active category with this name exists */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  FxController_list: {
+    parameters: {
+      query?: {
+        /** @description Base currency. Defaults to EUR. */
+        base?:
+          'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+        /** @description Rates as of this date (YYYY-MM-DD). Defaults to today (UTC). */
+        date?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FxRatesResponseDto'];
+        };
+      };
+      /** @description Invalid date or unsupported base currency */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No rates stored within 7 days of the date */
+      404: {
         headers: {
           [name: string]: unknown;
         };

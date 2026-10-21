@@ -46,7 +46,12 @@ import type {
   MappingSuggestionPort,
 } from '../src/domain/transactions/ports.js';
 import type { Transaction } from '../src/domain/transactions/entities.js';
-import { TransactionNotFoundError } from '../src/domain/transactions/errors.js';
+import {
+  BankAccountNotFoundError,
+  TransactionNotFoundError,
+} from '../src/domain/transactions/errors.js';
+import { MarkAsTransferUseCase } from '../src/application/transactions/use-cases/MarkAsTransferUseCase.js';
+import { BulkMapTransactionsUseCase } from '../src/application/transactions/use-cases/BulkMapTransactionsUseCase.js';
 import { ListTransactionsUseCase } from '../src/application/transactions/use-cases/ListTransactionsUseCase.js';
 import { GetTransactionUseCase } from '../src/application/transactions/use-cases/GetTransactionUseCase.js';
 import { MapTransactionUseCase } from '../src/application/transactions/use-cases/MapTransactionUseCase.js';
@@ -549,6 +554,7 @@ describe('Tenancy isolation — application layer', () => {
       it('creates transaction tagged with the provided householdId', async () => {
         const txRepo = mock<TransactionRepository>();
         const txA = makeTransaction(HOUSEHOLD_A);
+        txRepo.accountBelongsTo.mockResolvedValue(true);
         txRepo.insertManual.mockResolvedValue(txA);
 
         const useCase = new AddManualTransactionUseCase(txRepo, () => VALID_UUID);
@@ -572,6 +578,7 @@ describe('Tenancy isolation — application layer', () => {
       it('does not create transaction in household B when called with household A scope', async () => {
         const txRepo = mock<TransactionRepository>();
         const txA = makeTransaction(HOUSEHOLD_A);
+        txRepo.accountBelongsTo.mockResolvedValue(true);
         txRepo.insertManual.mockResolvedValue(txA);
 
         const useCase = new AddManualTransactionUseCase(txRepo, () => VALID_UUID);
@@ -589,6 +596,79 @@ describe('Tenancy isolation — application layer', () => {
         const insertedArg = txRepo.insertManual.mock.calls[0]![0];
         expect(insertedArg.householdId).toBe(HOUSEHOLD_A);
         expect(insertedArg.householdId).not.toBe(HOUSEHOLD_B);
+      });
+    });
+
+    describe('AddManualTransactionUseCase — foreign account (audit H10)', () => {
+      it('rejects an account of household B and writes nothing', async () => {
+        const txRepo = mock<TransactionRepository>();
+        txRepo.accountBelongsTo.mockResolvedValue(false);
+
+        const useCase = new AddManualTransactionUseCase(txRepo, () => VALID_UUID);
+
+        await expect(
+          useCase.execute({
+            householdId: HOUSEHOLD_A,
+            accountId: ACCOUNT_ID,
+            occurredOn: '2024-01-15',
+            amountMinor: 1000n,
+            currency: 'EUR',
+            description: 'Test transaction',
+            merchant: null,
+            notes: null,
+          }),
+        ).rejects.toThrow(BankAccountNotFoundError);
+
+        expect(txRepo.accountBelongsTo).toHaveBeenCalledWith(ACCOUNT_ID, {
+          householdId: HOUSEHOLD_A,
+        });
+        expect(txRepo.insertManual).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('MarkAsTransferUseCase — foreign counterpart (audit H10)', () => {
+      it('rejects a counterpart from household B and writes nothing', async () => {
+        const txRepo = mock<TransactionRepository>();
+        const mappingRepo = mock<MappingRepository>();
+        const transferRepo = mock<TransferRepository>();
+        txRepo.findById.mockImplementation(async (id, scope) =>
+          id === TX_ID_A && scope.householdId === HOUSEHOLD_A ? makeTransaction(HOUSEHOLD_A) : null,
+        );
+
+        const useCase = new MarkAsTransferUseCase(txRepo, mappingRepo, transferRepo);
+
+        await expect(
+          useCase.execute({
+            transactionId: TX_ID_A,
+            counterpartId: TX_ID_B,
+            by: USER_A,
+            householdId: HOUSEHOLD_A,
+          }),
+        ).rejects.toThrow(TransactionNotFoundError);
+
+        expect(txRepo.findById).toHaveBeenCalledWith(TX_ID_B, { householdId: HOUSEHOLD_A });
+        expect(transferRepo.mark).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('BulkMapTransactionsUseCase (audit H10)', () => {
+      it('hands the caller household scope to the repository', async () => {
+        const mappingRepo = mock<MappingRepository>();
+        const refreshPort = mock<PlanActualsRefreshPort>();
+
+        const useCase = new BulkMapTransactionsUseCase(mappingRepo, refreshPort);
+        await useCase.execute({
+          mappings: [{ transactionId: TX_ID_A, plannedItemId: PLANNED_ITEM_ID }],
+          by: USER_A,
+          householdId: HOUSEHOLD_A,
+          planId: PLAN_ID_A,
+        });
+
+        expect(mappingRepo.bulkSet).toHaveBeenCalledWith(
+          [{ transactionId: TX_ID_A, plannedItemId: PLANNED_ITEM_ID }],
+          USER_A,
+          { householdId: HOUSEHOLD_A },
+        );
       });
     });
 
@@ -742,7 +822,9 @@ describe('Tenancy isolation — application layer', () => {
           userId: USER_A,
         });
 
-        expect(connRepo.markDisconnected).toHaveBeenCalledWith(CONN_ID_A, expect.any(Date));
+        expect(connRepo.markDisconnected).toHaveBeenCalledWith(CONN_ID_A, expect.any(Date), {
+          householdId: HOUSEHOLD_A,
+        });
         expect(connRepo.findById).toHaveBeenCalledWith(CONN_ID_A, { householdId: HOUSEHOLD_A });
       });
 
