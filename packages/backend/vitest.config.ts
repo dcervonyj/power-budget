@@ -8,7 +8,9 @@ export default defineConfig({
     exclude: ['src/test/integration/**/*'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'lcov'],
+      reporter: ['text', 'lcov', 'json-summary'],
+      reportsDirectory: 'coverage',
+      // Gate applies to the application layer; the report below is for visibility.
       include: ['src/application/**'],
       thresholds: {
         lines: 80,
