@@ -6,6 +6,8 @@ import type {
   SyncRunId,
   EncryptedString,
   BankProvider,
+  CurrencyCode,
+  Money,
 } from '@power-budget/core';
 
 export type {
@@ -63,6 +65,41 @@ export interface BankAccount {
   readonly balanceMinor: bigint;
   readonly lastSyncedAt: Date | null;
   readonly createdAt: Date;
+}
+
+/** `bank`: synced from a connection; `manual`: a cash wallet the user keeps by hand. */
+export type AccountKind = 'bank' | 'manual';
+
+interface AccountBase {
+  readonly id: BankAccountId;
+  readonly householdId: HouseholdId;
+  /** Accounts are private to their owner (PRODUCT §4.9). */
+  readonly ownerUserId: UserId;
+  readonly name: string;
+  readonly currency: CurrencyCode;
+  readonly createdAt: Date;
+}
+
+export interface ConnectedAccount extends AccountBase {
+  readonly kind: 'bank';
+  readonly connectionId: BankConnectionId;
+  readonly balance: Money;
+  readonly lastSyncedAt: Date | null;
+}
+
+export interface ManualAccount extends AccountBase {
+  readonly kind: 'manual';
+}
+
+/** An account as `GET /accounts` lists it. */
+export type Account = ConnectedAccount | ManualAccount;
+
+export interface NewManualAccount {
+  readonly id: BankAccountId;
+  readonly householdId: HouseholdId;
+  readonly ownerUserId: UserId;
+  readonly name: string;
+  readonly currency: CurrencyCode;
 }
 
 export interface RawBankAccount {

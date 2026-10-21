@@ -12,10 +12,11 @@ import type {
   TransactionMapping,
   Transfer,
 } from '../../../../domain/transactions/entities.js';
-import type { TransactionId, HouseholdId } from '@power-budget/core';
+import type { TransactionId, HouseholdId, UserId } from '@power-budget/core';
 
 const txId = 'tx-1' as unknown as TransactionId;
 const householdId = 'hh-1' as unknown as HouseholdId;
+const viewer = 'user-1' as unknown as UserId;
 
 const fakeTx = { id: txId, householdId } as unknown as Transaction;
 const fakeMapping = { id: 'mapping-1', transactionId: txId } as unknown as TransactionMapping;
@@ -35,17 +36,19 @@ describe('GetTransactionUseCase', () => {
   });
 
   it('throws TransactionNotFoundError when not found', async () => {
-    txRepo.findById.mockResolvedValue(null);
+    txRepo.findOwnedById.mockResolvedValue(null);
 
-    await expect(useCase.execute(txId, householdId)).rejects.toThrow(TransactionNotFoundError);
+    await expect(useCase.execute(txId, householdId, viewer)).rejects.toThrow(
+      TransactionNotFoundError,
+    );
   });
 
   it('returns transaction with mapping and transfer', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     mappingRepo.findByTransaction.mockResolvedValue(fakeMapping);
     transferRepo.findByTransaction.mockResolvedValue(fakeTransfer);
 
-    const result = await useCase.execute(txId, householdId);
+    const result = await useCase.execute(txId, householdId, viewer);
 
     expect(result.transaction).toBe(fakeTx);
     expect(result.mapping).toBe(fakeMapping);
@@ -53,12 +56,13 @@ describe('GetTransactionUseCase', () => {
   });
 
   it('fetches mapping and transfer in parallel', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     mappingRepo.findByTransaction.mockResolvedValue(null);
     transferRepo.findByTransaction.mockResolvedValue(null);
 
-    const result = await useCase.execute(txId, householdId);
+    const result = await useCase.execute(txId, householdId, viewer);
 
+    expect(txRepo.findOwnedById).toHaveBeenCalledWith(txId, viewer, { householdId });
     expect(mappingRepo.findByTransaction).toHaveBeenCalledWith(txId, { householdId });
     expect(transferRepo.findByTransaction).toHaveBeenCalledWith(txId, { householdId });
     expect(result.mapping).toBeNull();

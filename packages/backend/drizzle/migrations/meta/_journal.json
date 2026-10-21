@@ -99,6 +99,13 @@
       "when": 1792595524974,
       "tag": "0013_cln-012_drop_plan_actuals_view",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792597970123,
+      "tag": "0014_cln-023_accounts_and_mapping_state",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,4 @@
-import type { TransactionId, HouseholdId } from '@power-budget/core';
+import type { TransactionId, HouseholdId, UserId } from '@power-budget/core';
 import type {
   TransactionRepository,
   TransferRepository,
@@ -8,6 +8,8 @@ import { TransactionNotFoundError } from '../../../domain/transactions/errors.js
 export interface UnmarkTransferInput {
   readonly transactionId: TransactionId;
   readonly householdId: HouseholdId;
+  /** Only the account owner unmarks; a partner's transaction reads as not found. */
+  readonly userId: UserId;
 }
 
 export class UnmarkTransferUseCase {
@@ -17,7 +19,7 @@ export class UnmarkTransferUseCase {
   ) {}
 
   async execute(input: UnmarkTransferInput): Promise<void> {
-    const tx = await this.transactionRepo.findById(input.transactionId, {
+    const tx = await this.transactionRepo.findOwnedById(input.transactionId, input.userId, {
       householdId: input.householdId,
     });
     if (tx === null) {

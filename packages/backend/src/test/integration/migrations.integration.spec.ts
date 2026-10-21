@@ -138,6 +138,69 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     },
   );
 
+  it('0014 backfills account owners from the connection under FORCE RLS (CLN-023)', async () => {
+    const pool = await createDatabase(`cln023_${SUFFIX}`);
+    const before = fullJournal().entries.find((e) => e.tag.startsWith('0014_'))!.idx - 1;
+    await migrate(drizzle(pool), { migrationsFolder: folderUpTo(before) });
+    const ids = {
+      user: '01900000-0000-7000-8000-000000000101',
+      household: '01900000-0000-7000-8000-000000000102',
+      connection: '01900000-0000-7000-8000-000000000103',
+      account: '01900000-0000-7000-8000-000000000104',
+      tx: '01900000-0000-7000-8000-000000000105',
+    };
+    const client = await pool.connect();
+    try {
+      // The owner is bound by FORCE RLS too: seed as system code would.
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.rls_bypass', 'on', true)");
+      await client.query(`INSERT INTO users (id, email) VALUES ($1, 'm@example.com')`, [ids.user]);
+      await client.query(
+        `INSERT INTO households (id, name, base_currency) VALUES ($1, 'h', 'PLN')`,
+        [ids.household],
+      );
+      await client.query(
+        `INSERT INTO bank_connections (id, household_id, user_id, provider, bank_id)
+         VALUES ($1, $2, $3, 'gocardless', 'TEST_BANK')`,
+        [ids.connection, ids.household, ids.user],
+      );
+      await client.query(
+        `INSERT INTO bank_accounts (id, household_id, connection_id, external_id, name, currency)
+         VALUES ($1, $2, $3, 'ext', 'Main', 'PLN')`,
+        [ids.account, ids.household, ids.connection],
+      );
+      await client.query(
+        `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency)
+         VALUES ($1, $2, $3, '2026-10-01', -100, 'PLN')`,
+        [ids.tx, ids.household, ids.account],
+      );
+      await client.query('COMMIT');
+    } finally {
+      client.release();
+    }
+
+    await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
+
+    const verify = await pool.connect();
+    try {
+      await verify.query('BEGIN');
+      await verify.query("SELECT set_config('app.rls_bypass', 'on', true)");
+      const account = await verify.query<{ owner_user_id: string; kind: string }>(
+        'SELECT owner_user_id, kind FROM bank_accounts WHERE id = $1',
+        [ids.account],
+      );
+      const tx = await verify.query<{ status: string }>(
+        'SELECT status FROM transactions WHERE id = $1',
+        [ids.tx],
+      );
+      await verify.query('COMMIT');
+      expect(account.rows).toEqual([{ owner_user_id: ids.user, kind: 'bank' }]);
+      expect(tx.rows).toEqual([{ status: 'posted' }]);
+    } finally {
+      verify.release();
+    }
+  });
+
   it('enables and forces row level security on every tenant data table (CLN-005)', async () => {
     const pool = await createDatabase(`rls_${SUFFIX}`);
     await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });

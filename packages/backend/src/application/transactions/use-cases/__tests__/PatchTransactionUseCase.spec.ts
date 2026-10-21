@@ -4,10 +4,11 @@ import { PatchTransactionUseCase } from '../PatchTransactionUseCase.js';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import { TransactionNotFoundError } from '../../../../domain/transactions/errors.js';
 import type { Transaction } from '../../../../domain/transactions/entities.js';
-import type { TransactionId, HouseholdId } from '@power-budget/core';
+import type { TransactionId, HouseholdId, UserId } from '@power-budget/core';
 
 const txId = 'tx-1' as unknown as TransactionId;
 const householdId = 'hh-1' as unknown as HouseholdId;
+const userId = 'user-1' as unknown as UserId;
 
 const fakeTx = { id: txId, householdId } as unknown as Transaction;
 
@@ -21,22 +22,25 @@ describe('PatchTransactionUseCase', () => {
   });
 
   it('throws TransactionNotFoundError when not found', async () => {
-    txRepo.findById.mockResolvedValue(null);
+    txRepo.findOwnedById.mockResolvedValue(null);
 
     await expect(
-      useCase.execute({ transactionId: txId, householdId, patch: { notes: 'note' } }),
+      useCase.execute({ transactionId: txId, householdId, userId, patch: { notes: 'note' } }),
     ).rejects.toThrow(TransactionNotFoundError);
   });
 
   it('patches transaction fields', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     txRepo.patch.mockResolvedValue(undefined);
 
     await useCase.execute({
       transactionId: txId,
       householdId,
+      userId,
       patch: { notes: 'updated', ignored: true },
     });
+
+    expect(txRepo.findOwnedById).toHaveBeenCalledWith(txId, userId, { householdId });
 
     expect(txRepo.patch).toHaveBeenCalledWith(
       txId,

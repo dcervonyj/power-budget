@@ -17,7 +17,8 @@ import type {
   PlanActivityReader,
 } from '../../domain/plans/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
-import { currencyOf, isoDateOf, isoDateTimeOf } from '../database/row-values.js';
+import { currencyOf, isoDateOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
+import { TRANSACTION_STATUSES } from '../../domain/transactions/entities.js';
 import * as schema from '../../../drizzle/schema.js';
 
 type TransactionRow = typeof schema.transactions.$inferSelect;
@@ -45,13 +46,10 @@ export class DrizzlePlanActivityReader implements PlanActivityReader {
 
     const [txRows, mappingRows, transferRows] = await Promise.all([
       this.db
-        .select({ tx: schema.transactions, ownerUserId: schema.bankConnections.userId })
+        // The account owner, for bank and manual (connection-less) accounts alike.
+        .select({ tx: schema.transactions, ownerUserId: schema.bankAccounts.ownerUserId })
         .from(schema.transactions)
         .innerJoin(schema.bankAccounts, eq(schema.transactions.accountId, schema.bankAccounts.id))
-        .innerJoin(
-          schema.bankConnections,
-          eq(schema.bankAccounts.connectionId, schema.bankConnections.id),
-        )
         .where(inPeriod),
       this.db
         .select()
@@ -94,7 +92,7 @@ export class DrizzlePlanActivityReader implements PlanActivityReader {
       accountId: BankAccountId.of(row.accountId),
       externalId: row.externalId,
       source: row.source === 'manual' ? 'manual' : 'bank',
-      status: 'posted',
+      status: oneOf(TRANSACTION_STATUSES, row.status, 'transaction status'),
       amount: { amountMinor: row.amountMinor, currency: currencyOf(row.currency) },
       description: row.description,
       merchantName: row.merchant,

@@ -39,3 +39,10 @@ export class InvalidCursorError extends Error {
     this.name = 'InvalidCursorError';
   }
 }
+
+export class TransactionCurrencyMismatchError extends Error {
+  constructor() {
+    super('TRANSACTION_CURRENCY_MISMATCH');
+    this.name = 'TransactionCurrencyMismatchError';
+  }
+}

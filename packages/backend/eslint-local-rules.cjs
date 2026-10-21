@@ -24,6 +24,11 @@ const SCOPED_METHODS = new Set([
   'updateConsent',
   'markActive',
   'markDisconnected',
+  'listOwned',
+  'createManual',
+  'findOwnedAccount',
+  'findOwnedById',
+  'findOwnedIds',
 ]);
 
 const REPOSITORY_NAME = /[Rr]epository$|[Rr]epo$/;

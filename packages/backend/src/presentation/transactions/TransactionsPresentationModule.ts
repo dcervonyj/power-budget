@@ -50,9 +50,9 @@ import { TransactionsController } from './TransactionsController.js';
     },
     {
       provide: BulkMapTransactionsUseCase,
-      inject: [DrizzleMappingRepository],
-      useFactory: (mappingRepo: DrizzleMappingRepository) =>
-        new BulkMapTransactionsUseCase(mappingRepo),
+      inject: [DrizzleTransactionRepository, DrizzleMappingRepository],
+      useFactory: (txRepo: DrizzleTransactionRepository, mappingRepo: DrizzleMappingRepository) =>
+        new BulkMapTransactionsUseCase(txRepo, mappingRepo),
     },
     {
       provide: MarkAsTransferUseCase,
