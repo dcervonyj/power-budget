@@ -1,19 +1,32 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { readApiError } from '@power-budget/shared-app';
 import { apiClient } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
 import { useTheme } from '../../components/ThemeContext.js';
 
+/** `POST /auth/totp/enable` answers `{ qrCodeUri, secret }`; recovery codes are not issued yet. */
 interface TotpEnableResponse {
   secret: string;
-  otpauthUri: string;
-  recoveryCodes: string[];
+  qrCodeUri: string;
+  recoveryCodes?: string[];
 }
 
 type Step = 'setup' | 'recovery';
-type VerifyError = 'invalid' | 'server' | null;
+type VerifyError = 'invalid' | 'tooManyAttempts' | 'server' | null;
+
+function classifyVerifyError(err: unknown): Exclude<VerifyError, null> {
+  switch (readApiError(err).code) {
+    case 'totp_invalid':
+      return 'invalid';
+    case 'too_many_requests':
+      return 'tooManyAttempts';
+    default:
+      return 'server';
+  }
+}
 
 export function TotpEnrollmentScreen(): React.JSX.Element {
   const intl = useIntl();
@@ -29,18 +42,31 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
 
+  const enrolmentStarted = useRef(false);
+
   useEffect(() => {
+    // Start enrolment once: every call issues a new pending secret, so a second
+    // call (StrictMode, locale load) would invalidate the QR code on screen.
+    if (enrolmentStarted.current) {
+      return;
+    }
+    enrolmentStarted.current = true;
     const enableTotp = async (): Promise<void> => {
       try {
-        const res = await apiClient.post('/auth/totp/enable', {});
-        const data = res.data as TotpEnableResponse;
-        setTotpData(data);
-      } catch {
+        const res = await apiClient.post<TotpEnableResponse>('/auth/totp/enable', {});
+        setTotpData(res.data);
+      } catch (err) {
+        // 403: TOTP is already on; replacing it needs a recent verification (CLN-004).
         setLoadError(
-          intl.formatMessage({
-            id: 'screen.totpEnrollment.error.server',
-            defaultMessage: 'Server error. Please try again.',
-          }),
+          readApiError(err).status === 403
+            ? intl.formatMessage({
+                id: 'screen.totpEnrollment.error.alreadyEnabled',
+                defaultMessage: 'Two-factor authentication is already enabled.',
+              })
+            : intl.formatMessage({
+                id: 'screen.totpEnrollment.error.server',
+                defaultMessage: 'Server error. Please try again.',
+              }),
         );
       }
     };
@@ -53,19 +79,16 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
     setIsVerifying(true);
     try {
       await apiClient.post('/auth/totp/verify', { code });
-      setRecoveryCodes(totpData?.recoveryCodes ?? []);
+      const codes = totpData?.recoveryCodes ?? [];
+      if (codes.length === 0) {
+        navigate('/dashboard');
+
+        return;
+      }
+      setRecoveryCodes(codes);
       setStep('recovery');
     } catch (err: unknown) {
-      const isApiErr =
-        typeof err === 'object' &&
-        err !== null &&
-        'response' in err &&
-        typeof (err as { response?: { status?: number } }).response?.status === 'number';
-      if (isApiErr && (err as { response: { status: number } }).response.status === 401) {
-        setVerifyError('invalid');
-      } else {
-        setVerifyError('server');
-      }
+      setVerifyError(classifyVerifyError(err));
     } finally {
       setIsVerifying(false);
     }
@@ -144,7 +167,10 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
           }}
         >
           {recoveryCodes.map((c) => (
-            <div key={c} style={{ padding: `${theme.space.xs}px 0`, color: theme.color.text.primary }}>
+            <div
+              key={c}
+              style={{ padding: `${theme.space.xs}px 0`, color: theme.color.text.primary }}
+            >
               {c}
             </div>
           ))}
@@ -202,7 +228,7 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
       </p>
 
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: theme.space.lg }}>
-        <QRCodeSVG value={totpData.otpauthUri} size={200} />
+        <QRCodeSVG value={totpData.qrCodeUri} size={200} />
       </div>
 
       <p style={{ color: theme.color.text.secondary, marginBottom: theme.space.xs }}>
@@ -227,7 +253,11 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
         {totpData.secret}
       </div>
 
-      <form onSubmit={(e) => { void handleVerify(e); }}>
+      <form
+        onSubmit={(e) => {
+          void handleVerify(e);
+        }}
+      >
         <p style={{ color: theme.color.text.secondary, marginBottom: theme.space.sm }}>
           <FormattedMessage
             id="screen.totpEnrollment.verifyCode"
@@ -249,6 +279,14 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
             <FormattedMessage
               id="screen.totpEnrollment.error.invalid"
               defaultMessage="Invalid code. Please try again."
+            />
+          </p>
+        )}
+        {verifyError === 'tooManyAttempts' && (
+          <p style={{ color: theme.color.status.danger }}>
+            <FormattedMessage
+              id="auth.error.tooManyAttempts"
+              defaultMessage="Too many attempts. Please wait a few minutes and try again."
             />
           </p>
         )}

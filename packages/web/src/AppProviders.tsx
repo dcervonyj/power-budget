@@ -4,6 +4,8 @@ import { IntlProvider } from 'react-intl';
 import { LocalStorageTokenStore } from './infrastructure/tokens/LocalStorageTokenStore.js';
 import { ReactRouterNavigationAdapter } from './infrastructure/navigation/ReactRouterNavigationAdapter.js';
 import { createApiClient } from './infrastructure/api/ApiClient.js';
+import { SignOut } from './application/auth/SignOut.js';
+import { BulkTransactionActions } from './application/transactions/BulkTransactionActions.js';
 
 export interface AppProvidersProps {
   children: React.ReactNode;
@@ -34,17 +36,28 @@ function resolveLocale(): SupportedLocale {
     : 'en';
 }
 
-async function loadMessages(locale: SupportedLocale): Promise<Record<string, string>> {
+type MessagesModule = { default: Record<string, string> };
+
+// A dynamic import of a JSON file resolves to a module object; the messages are
+// its `default` export. Passing the module itself to IntlProvider made every
+// non-English string fall back to the default message.
+function importMessages(locale: SupportedLocale): Promise<MessagesModule> {
   switch (locale) {
     case 'uk':
-      return (await import('../public/locales/uk.json')) as unknown as Record<string, string>;
+      return import('../public/locales/uk.json');
     case 'ru':
-      return (await import('../public/locales/ru.json')) as unknown as Record<string, string>;
+      return import('../public/locales/ru.json');
     case 'pl':
-      return (await import('../public/locales/pl.json')) as unknown as Record<string, string>;
-    default:
-      return (await import('../public/locales/en.json')) as unknown as Record<string, string>;
+      return import('../public/locales/pl.json');
+    case 'en':
+      return import('../public/locales/en.json');
   }
+}
+
+export async function loadMessages(locale: SupportedLocale): Promise<Record<string, string>> {
+  const messages = await importMessages(locale);
+
+  return messages.default;
 }
 
 // Singleton infrastructure adapters — created once, wired at runtime.
@@ -53,6 +66,8 @@ export const navigationAdapter = new ReactRouterNavigationAdapter();
 export const apiClient = createApiClient(tokenStore, () => {
   navigationAdapter.navigate({ type: 'auth/login' });
 });
+export const signOut = new SignOut(apiClient, tokenStore);
+export const bulkTransactionActions = new BulkTransactionActions(apiClient);
 
 /**
  * Inner component that has access to the router context and wires up the

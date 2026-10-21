@@ -1,5 +1,5 @@
 {
-  "id": "1982a90e-0df9-40d3-8a42-4d03906b0109",
+  "id": "6f45b0ea-cdf2-487d-b63e-fb3dd0b550e9",
   "prevId": "d332038e-204b-485b-86a7-332ff816d16b",
   "version": "7",
   "dialect": "postgresql",
@@ -2358,6 +2358,33 @@
               "expression": "occurred_on",
               "isExpression": false,
               "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transactions_household_date_id_idx": {
+          "name": "transactions_household_date_id_idx",
+          "columns": [
+            {
+              "expression": "household_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_on",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": false,
               "nulls": "last"
             }
           ],

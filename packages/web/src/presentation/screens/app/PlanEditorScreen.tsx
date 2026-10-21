@@ -7,42 +7,58 @@ import { Input } from '../../components/Input.js';
 import { Select } from '../../components/Select.js';
 import { CustomPeriodPicker } from '../../components/CustomPeriodPicker.js';
 import type { CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
+import {
+  formatMoneyInput,
+  isSupportedCurrency,
+  parseMinorUnits,
+  parseMoney,
+} from '@power-budget/core';
 import { apiClient } from '../../../AppProviders.js';
+import {
+  PlanMapper,
+  type CreatePlannedItemDto,
+  type PlanDto,
+  type PlanSummary,
+  type PlannedItemDto,
+  type PlannedItemSummary,
+  type UpdatePlanDto,
+  type UpdatePlannedItemDto,
+} from '../../../infrastructure/api/PlanMapper.js';
+import { fetchCategoryNames } from '../../../infrastructure/api/CategoryNames.js';
 import { PlannedItemHistoryDrawer } from '../../components/PlannedItemHistoryDrawer.js';
 
-type PlanPeriod = 'weekly' | 'monthly' | 'custom';
-type PlanStatus = 'active' | 'draft' | 'archived';
-type Direction = 'income' | 'expense';
-
-interface Plan {
-  id: string;
-  name: string;
-  period: PlanPeriod;
-  status: PlanStatus;
-  baseCurrency: string;
-  startDate?: string;
-  endDate?: string;
-  version: number;
-  updatedAt: string;
-}
-
-interface PlannedItem {
-  id: string;
-  planId: string;
-  categoryId: string;
-  categoryName?: string;
-  direction: Direction;
-  amountMinor: number;
-  currency: string;
-  version: number;
-}
+type PlanPeriod = PlanSummary['period'];
+type Direction = PlannedItemSummary['direction'];
+type Plan = PlanSummary;
+type PlannedItem = PlannedItemSummary;
 
 interface DraftItem {
   draftId: string;
   categoryId: string;
   direction: Direction;
-  amountMinor: string;
+  /** What the user typed, in major units ("12,50"). */
+  amount: string;
   currency: string;
+}
+
+/** Exact minor units as the API's integer string, or null when the input is not an amount. */
+function toMinorUnitsString(amount: string, currency: string): string | null {
+  if (!currency) {
+    return null;
+  }
+  try {
+    return parseMoney(amount, currency).toString();
+  } catch {
+    return null;
+  }
+}
+
+function toAmountInput(item: PlannedItem): string {
+  try {
+    return formatMoneyInput(parseMinorUnits(String(item.amountMinor)), item.currency);
+  } catch {
+    return '';
+  }
 }
 
 export function PlanEditorScreen(): React.JSX.Element {
@@ -56,14 +72,16 @@ export function PlanEditorScreen(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [historyDrawer, setHistoryDrawer] = useState<{ planId: string; itemId: string } | null>(null);
+  const [historyDrawer, setHistoryDrawer] = useState<{ planId: string; itemId: string } | null>(
+    null,
+  );
 
   // Draft new item
   const [draftItem, setDraftItem] = useState<DraftItem>({
     draftId: crypto.randomUUID(),
     categoryId: '',
     direction: 'expense',
-    amountMinor: '',
+    amount: '',
     currency: '',
   });
 
@@ -72,12 +90,13 @@ export function PlanEditorScreen(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const [planRes, itemsRes] = await Promise.all([
-        apiClient.get<Plan>(`/plans/${id}`),
-        apiClient.get<PlannedItem[]>(`/plans/${id}/items`),
+      const [planRes, itemsRes, categoryNames] = await Promise.all([
+        apiClient.get<PlanDto>(`/plans/${id}`),
+        apiClient.get<PlannedItemDto[]>(`/plans/${id}/items`),
+        fetchCategoryNames(apiClient),
       ]);
-      setPlan(planRes.data);
-      setItems(itemsRes.data);
+      setPlan(PlanMapper.toPlan(planRes.data));
+      setItems(itemsRes.data.map((dto) => PlanMapper.toItem(dto, categoryNames)));
     } catch {
       setError(
         intl.formatMessage({
@@ -99,12 +118,11 @@ export function PlanEditorScreen(): React.JSX.Element {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await apiClient.put<Plan>(`/plans/${plan.id}`, {
-        name: plan.name,
-        baseCurrency: plan.baseCurrency,
-        version: plan.version,
-      });
-      setPlan(res.data);
+      const body: UpdatePlanDto = isSupportedCurrency(plan.baseCurrency)
+        ? { name: plan.name, baseCurrency: plan.baseCurrency }
+        : { name: plan.name };
+      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, body);
+      setPlan(PlanMapper.toPlan(res.data));
     } catch {
       setSaveError(
         intl.formatMessage({
@@ -117,27 +135,16 @@ export function PlanEditorScreen(): React.JSX.Element {
     }
   };
 
-  const handlePeriodChange = async (newPeriod: PlanPeriod): Promise<void> => {
-    if (!plan) return;
-    const prevPlan = plan;
-    setPlan({ ...plan, period: newPeriod });
-    try {
-      const res = await apiClient.put<Plan>(`/plans/${plan.id}`, {
-        name: plan.name,
-        baseCurrency: plan.baseCurrency,
-        period: newPeriod,
-        version: plan.version,
-      });
-      setPlan(res.data);
-    } catch {
-      setPlan(prevPlan);
-      setSaveError(
-        intl.formatMessage({
-          id: 'screen.planEditor.saveError',
-          defaultMessage: 'Failed to save plan',
-        }),
-      );
-    }
+  const handlePeriodChange = (newPeriod: PlanPeriod): void => {
+    if (!plan || newPeriod === plan.period) return;
+    // PATCH /plans/:id cannot change the period kind (CLN-011): a weekly or
+    // monthly plan becomes another kind only through "Clone".
+    setSaveError(
+      intl.formatMessage({
+        id: 'screen.planEditor.periodKindReadOnly',
+        defaultMessage: 'The period type cannot be changed. Clone the plan to use another period.',
+      }),
+    );
   };
 
   const handleCustomDatesChange = async (dates: CustomPeriodValue): Promise<void> => {
@@ -145,14 +152,9 @@ export function PlanEditorScreen(): React.JSX.Element {
     const prevPlan = plan;
     setPlan({ ...plan, startDate: dates.startDate, endDate: dates.endDate });
     try {
-      const res = await apiClient.put<Plan>(`/plans/${plan.id}`, {
-        name: plan.name,
-        baseCurrency: plan.baseCurrency,
-        startDate: dates.startDate,
-        endDate: dates.endDate,
-        version: plan.version,
-      });
-      setPlan(res.data);
+      const body: UpdatePlanDto = { periodStart: dates.startDate, periodEnd: dates.endDate };
+      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, body);
+      setPlan(PlanMapper.toPlan(res.data));
     } catch {
       setPlan(prevPlan);
       setSaveError(
@@ -166,22 +168,24 @@ export function PlanEditorScreen(): React.JSX.Element {
 
   const handleAddItem = async (): Promise<void> => {
     if (!plan) return;
-    const amount = parseInt(draftItem.amountMinor, 10);
-    if (!draftItem.categoryId || isNaN(amount) || !draftItem.currency) return;
+    const currency = draftItem.currency.trim().toUpperCase();
+    const amountMinor = toMinorUnitsString(draftItem.amount, currency);
+    if (!draftItem.categoryId || amountMinor === null || !isSupportedCurrency(currency)) return;
 
     try {
-      const res = await apiClient.post<PlannedItem>(`/plans/${plan.id}/items`, {
+      const body: CreatePlannedItemDto = {
         categoryId: draftItem.categoryId,
         direction: draftItem.direction,
-        amountMinor: amount,
-        currency: draftItem.currency,
-      });
-      setItems((prev) => [...prev, res.data]);
+        amountMinor,
+        currency,
+      };
+      const res = await apiClient.post<PlannedItemDto>(`/plans/${plan.id}/items`, body);
+      setItems((prev) => [...prev, PlanMapper.toItem(res.data)]);
       setDraftItem({
         draftId: crypto.randomUUID(),
         categoryId: '',
         direction: 'expense',
-        amountMinor: '',
+        amount: '',
         currency: '',
       });
     } catch {
@@ -202,11 +206,18 @@ export function PlanEditorScreen(): React.JSX.Element {
     const prevItems = items;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, ...changes } : i)));
     try {
-      const res = await apiClient.put<PlannedItem>(`/plans/${plan.id}/items/${item.id}`, {
-        ...changes,
-        version: item.version,
-      });
-      setItems((prev) => prev.map((i) => (i.id === item.id ? res.data : i)));
+      // The API takes amountMinor and currency together.
+      const currency = changes.currency ?? item.currency;
+      if (!isSupportedCurrency(currency)) {
+        throw new Error(`Unsupported currency ${currency}`);
+      }
+      const body: UpdatePlannedItemDto = {
+        amountMinor: changes.amountMinor ?? item.amountMinor,
+        currency,
+      };
+      const res = await apiClient.patch<PlannedItemDto>(`/plans/${plan.id}/items/${item.id}`, body);
+      const updated = PlanMapper.toItem(res.data);
+      setItems((prev) => prev.map((i) => (i.id === item.id ? updated : i)));
     } catch {
       setItems(prevItems);
       setSaveError(
@@ -397,7 +408,7 @@ export function PlanEditorScreen(): React.JSX.Element {
           options={periodOptions}
           value={plan.period}
           onChange={(val) => {
-            void handlePeriodChange(val);
+            handlePeriodChange(val);
           }}
         />
 
@@ -498,11 +509,13 @@ export function PlanEditorScreen(): React.JSX.Element {
                   </td>
                   <td style={cellStyle}>
                     <input
-                      type="number"
-                      value={item.amountMinor}
-                      onChange={(e) => {
-                        const parsed = parseInt(e.target.value, 10);
-                        if (!isNaN(parsed)) {
+                      key={`${item.id}:${String(item.amountMinor)}`}
+                      type="text"
+                      inputMode="decimal"
+                      defaultValue={toAmountInput(item)}
+                      onBlur={(e) => {
+                        const parsed = toMinorUnitsString(e.target.value, item.currency);
+                        if (parsed !== null && parsed !== String(item.amountMinor)) {
                           void handleUpdateItem(item, { amountMinor: parsed });
                         }
                       }}
@@ -534,7 +547,10 @@ export function PlanEditorScreen(): React.JSX.Element {
                         setHistoryDrawer({ planId: id ?? '', itemId: item.id });
                       }}
                     >
-                      {intl.formatMessage({ id: 'screen.planEditor.historyButton', defaultMessage: 'History' })}
+                      {intl.formatMessage({
+                        id: 'screen.planEditor.historyButton',
+                        defaultMessage: 'History',
+                      })}
                     </Button>
                     <Button
                       variant="danger"
@@ -582,14 +598,15 @@ export function PlanEditorScreen(): React.JSX.Element {
                 </td>
                 <td style={cellStyle}>
                   <input
-                    type="number"
-                    value={draftItem.amountMinor}
+                    type="text"
+                    inputMode="decimal"
+                    value={draftItem.amount}
                     placeholder={intl.formatMessage({
                       id: 'screen.planEditor.itemAmountPlaceholder',
                       defaultMessage: 'Amount',
                     })}
                     onChange={(e) => {
-                      setDraftItem((d) => ({ ...d, amountMinor: e.target.value }));
+                      setDraftItem((d) => ({ ...d, amount: e.target.value }));
                     }}
                     aria-label={intl.formatMessage({
                       id: 'screen.planEditor.itemAmountPlaceholder',

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import { Link } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeContext.js';
 import { Button } from '../../components/Button.js';
 import { Input } from '../../components/Input.js';
@@ -14,9 +15,13 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
   const intl = useIntl();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const needsTotp =
+    settingsStore.deleteError === 'requires_totp' || settingsStore.deleteError === 'totp_invalid';
 
   function handleOpenDeleteModal(): void {
     setConfirmText('');
+    setTotpCode('');
     setDeleteModalOpen(true);
   }
 
@@ -27,7 +32,7 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
 
   async function handleConfirmDelete(): Promise<void> {
     if (confirmText !== CONFIRM_WORD) return;
-    await settingsStore.deleteAccount();
+    await settingsStore.deleteAccount(needsTotp ? totpCode : '');
     if (!settingsStore.deleteError) {
       setDeleteModalOpen(false);
     }
@@ -219,12 +224,55 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
             </span>
           )}
 
+          {needsTotp && (
+            <Input
+              id="settings-delete-totp"
+              label={intl.formatMessage({
+                id: 'settings.data.delete.totp',
+                defaultMessage: 'Authenticator code (required to delete)',
+              })}
+              value={totpCode}
+              onChange={setTotpCode}
+            />
+          )}
+
           {settingsStore.deleteError && (
-            <span style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}>
-              <FormattedMessage
-                id="settings.data.delete.error"
-                defaultMessage="Failed to schedule deletion. Please try again."
-              />
+            <span
+              role="alert"
+              style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
+            >
+              {settingsStore.deleteError === 'requires_totp' && (
+                <FormattedMessage
+                  id="settings.data.delete.requiresTotp"
+                  defaultMessage="Enter a code from your authenticator app to confirm."
+                />
+              )}
+              {settingsStore.deleteError === 'totp_invalid' && (
+                <FormattedMessage
+                  id="screen.login.error.invalidTotp"
+                  defaultMessage="Invalid authenticator code."
+                />
+              )}
+              {settingsStore.deleteError === 'requires_totp_enrollment' && (
+                <Link to="/auth/totp-enroll">
+                  <FormattedMessage
+                    id="settings.data.delete.requiresTotpEnrollment"
+                    defaultMessage="Set up two-factor authentication first."
+                  />
+                </Link>
+              )}
+              {settingsStore.deleteError === 'too_many_requests' && (
+                <FormattedMessage
+                  id="auth.error.tooManyAttempts"
+                  defaultMessage="Too many attempts. Please wait a few minutes and try again."
+                />
+              )}
+              {settingsStore.deleteError === 'delete_failed' && (
+                <FormattedMessage
+                  id="settings.data.delete.error"
+                  defaultMessage="Failed to schedule deletion. Please try again."
+                />
+              )}
             </span>
           )}
         </div>

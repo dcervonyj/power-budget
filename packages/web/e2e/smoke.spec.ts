@@ -38,6 +38,29 @@ test.describe('smoke', () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
+  test('signed-in user reaches a protected route and can log out @smoke', async ({ page }) => {
+    // Same key the LocalStorageTokenStore writes after login (the guard used to read
+    // a different one, so no protected route was reachable).
+    await page.addInitScript(() => {
+      if (!sessionStorage.getItem('pb_smoke_seeded')) {
+        sessionStorage.setItem('pb_smoke_seeded', '1');
+        localStorage.setItem('pb_access_token', 'smoke-access');
+        localStorage.setItem('pb_refresh_token', 'smoke-refresh');
+      }
+    });
+
+    const response = await tryGoto(page, '/settings/profile');
+    if (!response || response.status() >= 500) {
+      test.skip(true, 'Dev server not running');
+      return;
+    }
+
+    await expect(page).toHaveURL(/\/settings\/profile/);
+    await page.getByRole('button', { name: 'Log out' }).click();
+    await expect(page).toHaveURL(/\/login/);
+    expect(await page.evaluate(() => localStorage.getItem('pb_access_token'))).toBeNull();
+  });
+
   test('login page has expected elements @smoke', async ({ page }) => {
     const response = await tryGoto(page, '/login');
     if (!response || response.status() >= 500) {
