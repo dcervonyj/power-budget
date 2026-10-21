@@ -12,14 +12,33 @@ vi.hoisted(() => {
 });
 
 vi.mock('../../AppProviders.js', () => ({
-  apiClient: { get: vi.fn(), post: vi.fn(), delete: vi.fn(), request: vi.fn() },
+  apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn(), request: vi.fn() },
 }));
 
+import type { UserProfileDto } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 import { SettingsStore } from './SettingsStore.js';
 
+const mockGet = vi.mocked(apiClient.get);
 const mockPost = vi.mocked(apiClient.post);
+const mockPatch = vi.mocked(apiClient.patch);
 const mockDelete = vi.mocked(apiClient.delete);
+
+const profile: UserProfileDto = {
+  id: 'user-1',
+  email: 'ana@example.com',
+  displayName: 'Ana',
+  locale: 'pl',
+  localePreference: 'pl',
+  defaultLocale: 'en',
+  baseCurrency: 'PLN',
+  timezone: 'Europe/Warsaw',
+  householdId: 'hh-1',
+};
+
+function ok<T>(data: T): { status: number; data: T; headers: Record<string, string> } {
+  return { status: 200, data, headers: {} };
+}
 
 function apiError(status: number, code: string): Error & { response: unknown } {
   return Object.assign(new Error(`HTTP ${status}`), {
@@ -71,5 +90,89 @@ describe('SettingsStore.deleteAccount', () => {
     await store.deleteAccount();
 
     expect(store.deleteError).toBe('requires_totp_enrollment');
+  });
+});
+
+describe('SettingsStore profile (UserProfileDto)', () => {
+  let store: SettingsStore;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    store = new SettingsStore();
+  });
+
+  it('loads every profile field from GET /users/me', async () => {
+    mockGet.mockResolvedValueOnce(ok(profile));
+
+    await store.loadProfile();
+
+    expect(mockGet).toHaveBeenCalledWith('/users/me');
+    expect({
+      userId: store.userId,
+      email: store.email,
+      displayName: store.displayName,
+      timezone: store.timezone,
+      householdId: store.householdId,
+      baseCurrency: store.baseCurrency,
+      profileLoaded: store.profileLoaded,
+    }).toEqual({
+      userId: 'user-1',
+      email: 'ana@example.com',
+      displayName: 'Ana',
+      timezone: 'Europe/Warsaw',
+      householdId: 'hh-1',
+      baseCurrency: 'PLN',
+      profileLoaded: true,
+    });
+  });
+
+  it('keeps the cached base currency and no household when the profile has none', async () => {
+    mockGet.mockResolvedValueOnce(ok({ ...profile, baseCurrency: null, householdId: null }));
+    store.baseCurrency = 'EUR';
+
+    await store.loadProfile();
+
+    expect(store.baseCurrency).toBe('EUR');
+    expect(store.householdId).toBe('');
+  });
+
+  it('saves the display name and time zone with PATCH /users/me and applies the answer', async () => {
+    mockPatch.mockResolvedValueOnce(ok({ ...profile, displayName: 'Ana K.', timezone: 'UTC' }));
+    store.setDisplayName('  Ana K. ');
+    store.setTimezone('UTC');
+
+    await store.saveProfile();
+
+    expect(mockPatch).toHaveBeenCalledWith('/users/me', { displayName: 'Ana K.', timezone: 'UTC' });
+    expect(store.displayName).toBe('Ana K.');
+    expect(store.saveError).toBeNull();
+    expect(store.isSaving).toBe(false);
+  });
+
+  it('reports a failed save instead of hiding it', async () => {
+    mockPatch.mockRejectedValueOnce(new Error('HTTP 400'));
+    store.setDisplayName('Ana');
+
+    await store.saveProfile();
+
+    expect(mockPatch).toHaveBeenCalledWith('/users/me', { displayName: 'Ana' });
+    expect(store.saveError).toBe('save_failed');
+    expect(store.isSaving).toBe(false);
+  });
+
+  it('saves a supported base currency and refuses one the API rejects', async () => {
+    mockPatch.mockResolvedValueOnce(ok({ ...profile, baseCurrency: 'EUR' }));
+    store.setBaseCurrency('EUR');
+
+    await store.saveCurrency();
+
+    expect(mockPatch).toHaveBeenCalledWith('/users/me', { baseCurrency: 'EUR' });
+    expect(store.baseCurrency).toBe('EUR');
+
+    store.setBaseCurrency('JPY');
+    await store.saveCurrency();
+
+    expect(store.saveError).toBe('unsupported_currency');
+    expect(mockPatch).toHaveBeenCalledTimes(1);
   });
 });

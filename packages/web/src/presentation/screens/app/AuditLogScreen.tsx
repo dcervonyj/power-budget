@@ -1,30 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import { observer } from 'mobx-react-lite';
+import type { AuditEventDto, AuditPageDto } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../../AppProviders.js';
+import { settingsStore } from '../../../application/settings/SettingsStore.js';
+import { AuditEventItem } from '../../components/AuditEventItem.js';
 import { useTheme } from '../../components/ThemeContext.js';
 
-interface AuditEvent {
-  id: string;
-  actor: string | null;
-  action: string;
-  timestamp: string;
-  before?: Record<string, unknown> | null;
-  after?: Record<string, unknown> | null;
-}
-
-export function AuditLogScreen(): React.JSX.Element {
+export const AuditLogScreen = observer(function AuditLogScreen(): React.JSX.Element {
   const intl = useIntl();
   const theme = useTheme();
-  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [events, setEvents] = useState<AuditEventDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // The profile gives the user id that marks the user's own events.
+    if (!settingsStore.profileLoaded) {
+      void settingsStore.loadProfile();
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchEvents = async (): Promise<void> => {
       try {
-        const res = await apiClient.get<AuditEvent[]>('/audit-log');
-        const data = res.data;
-        setEvents(Array.isArray(data) ? data : []);
+        const res = await apiClient.get<AuditPageDto>('/audit-log');
+        setEvents(res.data.items);
       } catch {
         setError(
           intl.formatMessage({
@@ -64,78 +65,10 @@ export function AuditLogScreen(): React.JSX.Element {
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {events.map((event) => (
-            <li
-              key={event.id}
-              style={{
-                borderBottom: `1px solid ${theme.color.border.subtle}`,
-                paddingBottom: theme.space.md,
-                marginBottom: theme.space.md,
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: theme.space.xs,
-                  flexWrap: 'wrap' as const,
-                  gap: theme.space.xs,
-                }}
-              >
-                <span
-                  style={{
-                    color: theme.color.text.primary,
-                    fontWeight: theme.fontWeight.semibold,
-                  }}
-                >
-                  {event.actor ?? (
-                    <FormattedMessage
-                      id="component.auditLog.actor.system"
-                      defaultMessage="System"
-                    />
-                  )}
-                </span>
-                <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
-                  {new Date(event.timestamp).toLocaleString()}
-                </span>
-              </div>
-              <div
-                style={{
-                  color: theme.color.text.primary,
-                  marginBottom: event.before ?? event.after ? theme.space.xs : 0,
-                }}
-              >
-                {event.action}
-              </div>
-              {(event.before ?? event.after) && (
-                <div
-                  style={{
-                    fontSize: theme.fontSize.sm,
-                    color: theme.color.text.secondary,
-                    fontFamily: 'monospace',
-                  }}
-                >
-                  {event.before && (
-                    <div>
-                      {intl.formatMessage(
-                        { id: 'common.beforeValue', defaultMessage: 'Before: {value}' },
-                        { value: JSON.stringify(event.before) },
-                      )}
-                    </div>
-                  )}
-                  {event.after && (
-                    <div>
-                      {intl.formatMessage(
-                        { id: 'common.afterValue', defaultMessage: 'After: {value}' },
-                        { value: JSON.stringify(event.after) },
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </li>
+            <AuditEventItem key={event.id} event={event} currentUserId={settingsStore.userId} />
           ))}
         </ul>
       )}
     </div>
   );
-}
+});

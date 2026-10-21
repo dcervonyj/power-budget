@@ -1,4 +1,5 @@
 import type { HttpClient } from '@power-budget/shared-app';
+import type { MarkTransferDto, PatchTransactionDto } from '@power-budget/shared-app/contract';
 
 export type BulkAction = 'transfer' | 'ignore';
 
@@ -16,6 +17,8 @@ export class BulkTransactionActions {
   constructor(private readonly http: HttpClient) {}
 
   async map(ids: ReadonlyArray<string>, plannedItemId: string): Promise<void> {
+    // BulkMapDto types `payload` as an empty object (spec gap), so the body is not
+    // annotated with it; the backend reads `payload.plannedItemId`.
     await this.http.post('/transactions/bulk', {
       ids: Array.from(ids),
       op: 'map',
@@ -40,10 +43,14 @@ export class BulkTransactionActions {
   }
 
   private markTransfer(id: string): Promise<unknown> {
-    return this.http.post(`/transactions/${id}/transfer`, {});
+    const body: MarkTransferDto = {};
+
+    return this.http.post(`/transactions/${id}/transfer`, body);
   }
 
   private ignore(id: string): Promise<unknown> {
-    return this.http.patch(`/transactions/${id}`, { ignored: true });
+    const body: PatchTransactionDto = { ignored: true };
+
+    return this.http.patch(`/transactions/${id}`, body);
   }
 }

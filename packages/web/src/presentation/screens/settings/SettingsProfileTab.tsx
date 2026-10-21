@@ -101,6 +101,22 @@ export const SettingsProfileTab = observer(function SettingsProfileTab(): React.
           state="disabled"
           type="email"
         />
+
+        <Input
+          id="settings-timezone"
+          label={intl.formatMessage({
+            id: 'settings.profile.timezone',
+            defaultMessage: 'Time zone',
+          })}
+          placeholder={intl.formatMessage({
+            id: 'settings.profile.timezonePlaceholder',
+            defaultMessage: 'e.g. Europe/Warsaw',
+          })}
+          value={settingsStore.timezone}
+          onChange={(v) => {
+            settingsStore.setTimezone(v);
+          }}
+        />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: theme.space.md }}>
@@ -116,6 +132,17 @@ export const SettingsProfileTab = observer(function SettingsProfileTab(): React.
         {saved && (
           <span style={{ color: theme.color.status.success, fontSize: theme.fontSize.sm }}>
             <FormattedMessage id="common.saved" defaultMessage="Saved!" />
+          </span>
+        )}
+        {settingsStore.saveError !== null && (
+          <span
+            role="alert"
+            style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
+          >
+            <FormattedMessage
+              id="settings.saveError"
+              defaultMessage="Could not save. Please try again."
+            />
           </span>
         )}
       </div>

@@ -14,8 +14,8 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import type { AppTabParamList, AppStackParamList } from '../../navigation/types.js';
-import { planService } from '../../../infrastructure/index.js';
-import type { Plan } from '../../../infrastructure/index.js';
+import type { PlanDto } from '@power-budget/shared-app/contract';
+import { plansApi } from '../../../infrastructure/index.js';
 
 const t = rnDarkTheme;
 
@@ -28,7 +28,7 @@ function PlanCard({
   plan,
   onPress,
 }: {
-  readonly plan: Plan;
+  readonly plan: PlanDto;
   readonly onPress: () => void;
 }): React.JSX.Element {
   const intl = useIntl();
@@ -57,14 +57,13 @@ function PlanCard({
 
 export function PlansListScreen({ navigation }: Props): React.JSX.Element {
   const intl = useIntl();
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [plans, setPlans] = useState<PlanDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadPlans = useCallback(async () => {
     try {
-      const data = await planService.listPlans();
-      setPlans(data.filter((p) => p.archivedAt === null));
+      setPlans(await plansApi.list('active'));
     } catch {
       Alert.alert(
         intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),

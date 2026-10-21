@@ -14,7 +14,17 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import type { AppStackParamList } from '../../navigation/types.js';
+import type {
+  PatchTransactionDto,
+  SetMappingDto,
+  TransactionDetailDto,
+} from '@power-budget/shared-app/contract';
 import { apiClient } from '../../../infrastructure/index.js';
+import {
+  TransactionView,
+  formatAmountText,
+  isOutgoing,
+} from '../../../infrastructure/transactions/TransactionView.js';
 import { TransactionStatusChip } from '../../components/TransactionStatusChip.js';
 import type { TransactionStatus } from '../../components/TransactionStatusChip.js';
 import { MappingPickerModal } from '../../components/MappingPickerModal.js';
@@ -23,20 +33,7 @@ const t = rnDarkTheme;
 
 type Props = NativeStackScreenProps<AppStackParamList, 'TransactionDetail'>;
 
-interface Transaction {
-  id: string;
-  occurredOn: string;
-  description: string;
-  amountMinor: number;
-  currency: string;
-  source: string;
-  notes: string | null;
-  ignored: boolean;
-  isTransfer: boolean;
-  mapping: { plannedItemId: string; plannedItemName: string } | null;
-}
-
-function getStatus(tx: Transaction): TransactionStatus {
+function getStatus(tx: TransactionView): TransactionStatus {
   if (tx.isTransfer) return 'transfer';
   if (tx.mapping) return 'mapped';
   return 'unmapped';
@@ -45,7 +42,7 @@ function getStatus(tx: Transaction): TransactionStatus {
 export function TransactionDetailScreen({ route, navigation }: Props): React.JSX.Element {
   const intl = useIntl();
   const { transactionId } = route.params;
-  const [transaction, setTransaction] = useState<Transaction | null>(null);
+  const [transaction, setTransaction] = useState<TransactionView | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notes, setNotes] = useState('');
@@ -53,9 +50,10 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
 
   const loadTransaction = useCallback(async (): Promise<void> => {
     try {
-      const response = await apiClient.get<Transaction>(`/transactions/${transactionId}`);
-      setTransaction(response.data);
-      setNotes(response.data.notes ?? '');
+      const response = await apiClient.get<TransactionDetailDto>(`/transactions/${transactionId}`);
+      const view = TransactionView.fromDetail(response.data);
+      setTransaction(view);
+      setNotes(view.notes ?? '');
     } catch {
       Alert.alert(
         intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),
@@ -77,11 +75,8 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
     if (!transaction) return;
     setSaving(true);
     try {
-      await apiClient.request({
-        url: `/transactions/${transaction.id}`,
-        method: 'PATCH',
-        body: { notes: notes || null },
-      });
+      const body: PatchTransactionDto = { notes: notes || null };
+      await apiClient.patch(`/transactions/${transaction.id}`, body);
       setTransaction((prev) => (prev ? { ...prev, notes: notes || null } : prev));
     } catch {
       Alert.alert(
@@ -96,19 +91,12 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
   const handleSetMapping = async (plannedItemId: string): Promise<void> => {
     if (!transaction) return;
     const previous = transaction;
-    setTransaction((prev) =>
-      prev
-        ? { ...prev, mapping: { plannedItemId, plannedItemName: '' } }
-        : prev,
-    );
+    setTransaction((prev) => (prev ? { ...prev, mapping: { plannedItemId } } : prev));
     try {
-      await apiClient.request({
-        url: `/transactions/${transaction.id}/mapping`,
-        method: 'PATCH',
-        body: { plannedItemId },
-      });
-      const updated = await apiClient.get<Transaction>(`/transactions/${transaction.id}`);
-      setTransaction(updated.data);
+      const body: SetMappingDto = { plannedItemId };
+      await apiClient.patch(`/transactions/${transaction.id}/mapping`, body);
+      const updated = await apiClient.get<TransactionDetailDto>(`/transactions/${transaction.id}`);
+      setTransaction(TransactionView.fromDetail(updated.data));
     } catch {
       setTransaction(previous);
       Alert.alert(
@@ -123,16 +111,16 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
     const previous = transaction;
     setTransaction((prev) => (prev ? { ...prev, mapping: null } : prev));
     try {
-      await apiClient.request({
-        url: `/transactions/${transaction.id}/mapping`,
-        method: 'PATCH',
-        body: { plannedItemId: null },
-      });
+      const body: SetMappingDto = { plannedItemId: null };
+      await apiClient.patch(`/transactions/${transaction.id}/mapping`, body);
     } catch {
       setTransaction(previous);
       Alert.alert(
         intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),
-        intl.formatMessage({ id: 'error.mappingFailed', defaultMessage: 'Could not clear mapping.' }),
+        intl.formatMessage({
+          id: 'error.mappingFailed',
+          defaultMessage: 'Could not clear mapping.',
+        }),
       );
     }
   };
@@ -144,9 +132,16 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
     setTransaction((prev) => (prev ? { ...prev, isTransfer: nowTransfer } : prev));
     try {
       if (nowTransfer) {
-        await apiClient.request({ url: `/transactions/${transaction.id}/transfer`, method: 'POST', body: {} });
+        await apiClient.request({
+          url: `/transactions/${transaction.id}/transfer`,
+          method: 'POST',
+          body: {},
+        });
       } else {
-        await apiClient.request({ url: `/transactions/${transaction.id}/transfer`, method: 'DELETE' });
+        await apiClient.request({
+          url: `/transactions/${transaction.id}/transfer`,
+          method: 'DELETE',
+        });
       }
     } catch {
       setTransaction(previous);
@@ -168,7 +163,12 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
   if (!transaction) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.emptyText}>{intl.formatMessage({ id: 'screen.transactionDetail.notFound', defaultMessage: 'Transaction not found' })}</Text>
+        <Text style={styles.emptyText}>
+          {intl.formatMessage({
+            id: 'screen.transactionDetail.notFound',
+            defaultMessage: 'Transaction not found',
+          })}
+        </Text>
       </View>
     );
   }
@@ -191,10 +191,10 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
         <Text
           style={[
             styles.amount,
-            { color: transaction.amountMinor < 0 ? t.colorStatusDanger : t.colorStatusSuccess },
+            { color: isOutgoing(transaction.amount) ? t.colorStatusDanger : t.colorStatusSuccess },
           ]}
         >
-          {(transaction.amountMinor / 100).toFixed(2)} {transaction.currency}
+          {formatAmountText(transaction.amount)}
         </Text>
       </View>
 
@@ -206,11 +206,15 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
         {transaction.mapping ? (
           <View style={styles.mappingRow}>
             <Text style={styles.mappingName} numberOfLines={1}>
-              {transaction.mapping.plannedItemName || transaction.mapping.plannedItemId}
+              {/* The detail carries only the planned item id. */}
+              {transaction.mapping.plannedItemId}
             </Text>
             <TouchableOpacity onPress={() => void handleClearMapping()} style={styles.clearBtn}>
               <Text style={styles.clearBtnText}>
-                <FormattedMessage id="screen.transactionDetail.unmap" defaultMessage="Clear mapping" />
+                <FormattedMessage
+                  id="screen.transactionDetail.unmap"
+                  defaultMessage="Clear mapping"
+                />
               </Text>
             </TouchableOpacity>
           </View>
@@ -221,7 +225,10 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
             activeOpacity={0.75}
           >
             <Text style={styles.mapBtnText}>
-              <FormattedMessage id="screen.transactionDetail.mapTo" defaultMessage="Map to planned item" />
+              <FormattedMessage
+                id="screen.transactionDetail.mapTo"
+                defaultMessage="Map to planned item"
+              />
             </Text>
           </TouchableOpacity>
         )}
@@ -231,7 +238,10 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
       <View style={styles.card}>
         <View style={styles.toggleRow}>
           <Text style={styles.toggleLabel}>
-            <FormattedMessage id="screen.transactionDetail.markTransfer" defaultMessage="Mark as transfer" />
+            <FormattedMessage
+              id="screen.transactionDetail.markTransfer"
+              defaultMessage="Mark as transfer"
+            />
           </Text>
           <Switch
             value={transaction.isTransfer}
@@ -253,7 +263,10 @@ export function TransactionDetailScreen({ route, navigation }: Props): React.JSX
           onChangeText={setNotes}
           multiline
           numberOfLines={3}
-          placeholder={intl.formatMessage({ id: 'screen.transactionDetail.notes', defaultMessage: 'Notes' })}
+          placeholder={intl.formatMessage({
+            id: 'screen.transactionDetail.notes',
+            defaultMessage: 'Notes',
+          })}
           placeholderTextColor={t.colorTextMuted}
         />
         <TouchableOpacity

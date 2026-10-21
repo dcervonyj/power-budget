@@ -2,13 +2,9 @@ import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Link, useNavigate } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
+import type { AuthTokensDto, LoginDto } from '@power-budget/shared-app/contract';
 import { apiClient, tokenStore } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
-
-interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
-}
 
 type LoginError = 'invalidCredentials' | 'invalidTotp' | 'tooManyAttempts' | 'serverError' | null;
 
@@ -46,11 +42,8 @@ export function LoginScreen(): React.JSX.Element {
     setIsLoading(true);
     setLoginError(null);
     try {
-      const body: { email: string; password: string; totp?: string } = { email, password };
-      if (showTotp && totp) {
-        body.totp = totp;
-      }
-      const res = await apiClient.post<LoginResponse>('/auth/login', body);
+      const body: LoginDto = showTotp && totp ? { email, password, totp } : { email, password };
+      const res = await apiClient.post<AuthTokensDto>('/auth/login', body);
       await tokenStore.setTokens(res.data.accessToken, res.data.refreshToken);
       navigate('/dashboard');
     } catch (err) {

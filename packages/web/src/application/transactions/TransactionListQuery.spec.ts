@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildQuery, toTransactions } from './TransactionListQuery.js';
 import type { TransactionFilters } from '../../presentation/components/TransactionFilterBar.js';
-import type { TransactionDto } from '../../infrastructure/api/TransactionMapper.js';
+import type { TransactionDto } from '@power-budget/shared-app/contract';
 
 const noFilters: TransactionFilters = {
   from: '',
