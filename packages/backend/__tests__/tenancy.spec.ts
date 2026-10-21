@@ -61,12 +61,13 @@ import type {
   HouseholdRepository,
   UserRepository,
   HouseholdInviteRepository,
-  AppConfigPort,
 } from '../src/domain/auth/ports.js';
 import type { Household } from '../src/domain/auth/entities.js';
-import { AlreadyInHouseholdError, UserNotFoundError } from '../src/domain/auth/errors.js';
+import { AlreadyInHouseholdError, HouseholdOwnerRequiredError } from '../src/domain/auth/errors.js';
 import { CreateHouseholdUseCase } from '../src/application/auth/use-cases/CreateHouseholdUseCase.js';
 import { InviteToHouseholdUseCase } from '../src/application/auth/use-cases/InviteToHouseholdUseCase.js';
+import { HouseholdAccess } from '../src/application/auth/services/HouseholdAccess.js';
+import type { HouseholdInviteMailer } from '../src/application/auth/services/HouseholdInviteMailer.js';
 import type { AuditLogger } from '../src/domain/audit/ports.js';
 
 // ---------------------------------------------------------------------------
@@ -324,11 +325,37 @@ describe('Tenancy isolation — application layer', () => {
     });
 
     describe('InviteToHouseholdUseCase', () => {
+      function makeUseCase(
+        householdRepo: ReturnType<typeof mock<HouseholdRepository>>,
+        inviteRepo: ReturnType<typeof mock<HouseholdInviteRepository>>,
+        mailer: ReturnType<typeof mock<HouseholdInviteMailer>>,
+      ): InviteToHouseholdUseCase {
+        const userRepo = mock<UserRepository>();
+        userRepo.findById.mockResolvedValue({
+          id: USER_A,
+          email: 'owner@example.com',
+          displayName: 'Owner',
+          localePreference: null,
+          defaultLocale: 'en',
+          passwordHash: null,
+          emailVerifiedAt: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        return new InviteToHouseholdUseCase(
+          householdRepo,
+          userRepo,
+          inviteRepo,
+          new HouseholdAccess(householdRepo),
+          mailer,
+        );
+      }
+
       it('allows owner of household A to invite to household A', async () => {
         const householdRepo = mock<HouseholdRepository>();
-        const userRepo = mock<UserRepository>();
         const inviteRepo = mock<HouseholdInviteRepository>();
-        const config = mock<AppConfigPort>();
+        const mailer = mock<HouseholdInviteMailer>();
 
         householdRepo.findMembership.mockResolvedValue({
           householdId: HOUSEHOLD_A,
@@ -336,7 +363,13 @@ describe('Tenancy isolation — application layer', () => {
           role: 'owner',
           joinedAt: new Date(),
         });
-        inviteRepo.create.mockResolvedValue({
+        householdRepo.countMembers.mockResolvedValue(1);
+        mailer.issueToken.mockReturnValue({
+          token: 'raw',
+          tokenHash: 'hash',
+          expiresAt: new Date(Date.now() + 86400000),
+        });
+        inviteRepo.replaceOpen.mockResolvedValue({
           id: 'invite-1',
           householdId: HOUSEHOLD_A,
           email: 'invitee@example.com',
@@ -344,45 +377,43 @@ describe('Tenancy isolation — application layer', () => {
           expiresAt: new Date(Date.now() + 86400000),
           acceptedAt: null,
           createdAt: new Date(),
+          invitedByUserId: USER_A,
+          revokedAt: null,
         });
-        config.get.mockReturnValue('https://app.example.com');
 
-        const useCase = new InviteToHouseholdUseCase(householdRepo, userRepo, inviteRepo, config);
-        const result = await useCase.execute({
+        const result = await makeUseCase(householdRepo, inviteRepo, mailer).execute({
           inviterUserId: USER_A,
           inviteeEmail: 'invitee@example.com',
           householdId: HOUSEHOLD_A,
         });
 
-        expect(result.inviteUrl).toContain('https://app.example.com');
+        expect(result.email).toBe('invitee@example.com');
         expect(householdRepo.findMembership).toHaveBeenCalledWith(HOUSEHOLD_A, USER_A);
+        expect(inviteRepo.replaceOpen.mock.calls[0]?.[0].householdId).toBe(HOUSEHOLD_A);
       });
 
       it('throws when user tries to invite to another household they are not owner of', async () => {
         const householdRepo = mock<HouseholdRepository>();
-        const userRepo = mock<UserRepository>();
         const inviteRepo = mock<HouseholdInviteRepository>();
-        const config = mock<AppConfigPort>();
+        const mailer = mock<HouseholdInviteMailer>();
 
         // USER_A has no membership in HOUSEHOLD_B
         householdRepo.findMembership.mockResolvedValue(null);
 
-        const useCase = new InviteToHouseholdUseCase(householdRepo, userRepo, inviteRepo, config);
-
         await expect(
-          useCase.execute({
+          makeUseCase(householdRepo, inviteRepo, mailer).execute({
             inviterUserId: USER_A,
             inviteeEmail: 'victim@example.com',
             householdId: HOUSEHOLD_B,
           }),
-        ).rejects.toThrow(UserNotFoundError);
+        ).rejects.toThrow(HouseholdOwnerRequiredError);
+        expect(inviteRepo.replaceOpen).not.toHaveBeenCalled();
       });
 
       it('throws when user is only a member (not owner) of household', async () => {
         const householdRepo = mock<HouseholdRepository>();
-        const userRepo = mock<UserRepository>();
         const inviteRepo = mock<HouseholdInviteRepository>();
-        const config = mock<AppConfigPort>();
+        const mailer = mock<HouseholdInviteMailer>();
 
         householdRepo.findMembership.mockResolvedValue({
           householdId: HOUSEHOLD_A,
@@ -391,15 +422,14 @@ describe('Tenancy isolation — application layer', () => {
           joinedAt: new Date(),
         });
 
-        const useCase = new InviteToHouseholdUseCase(householdRepo, userRepo, inviteRepo, config);
-
         await expect(
-          useCase.execute({
+          makeUseCase(householdRepo, inviteRepo, mailer).execute({
             inviterUserId: USER_A,
             inviteeEmail: 'invitee@example.com',
             householdId: HOUSEHOLD_A,
           }),
-        ).rejects.toThrow(UserNotFoundError);
+        ).rejects.toThrow(HouseholdOwnerRequiredError);
+        expect(mailer.send).not.toHaveBeenCalled();
       });
     });
   });
