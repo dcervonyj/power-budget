@@ -1,22 +1,20 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
 import { Button } from './Button.js';
 import { MoneyView } from './MoneyView.js';
-import { formatMoney, parseLocalIsoDate, parseMinorUnits } from '@power-budget/core';
+import { parseLocalIsoDate } from '@power-budget/core';
 import { apiClient, plansApi } from '../../AppProviders.js';
-import { toSupportedLocale } from '../i18n/supportedLocale.js';
-import type {
-  PatchTransactionDto,
-  PlanDto,
-  PlannedItemDto,
-  SetMappingDto,
-  TransactionDetailDto,
-} from '@power-budget/shared-app/contract';
+import { TransactionMapModal } from './TransactionMapModal.js';
+import type { PatchTransactionDto, TransactionDetailDto } from '@power-budget/shared-app/contract';
 import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 import type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
 import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
+import {
+  loadPlannedItems,
+  type PlannedItemCatalogue,
+} from '../../application/transactions/PlannedItemLabels.js';
 
 export type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
 
@@ -45,19 +43,14 @@ export function TransactionDetailModal({
   const [notesError, setNotesError] = useState<string | null>(null);
 
   const [mapping, setMapping] = useState<TransactionMapping | null>(null);
-  const [mappingLoading, setMappingLoading] = useState(false);
-  const [mappingError, setMappingError] = useState<string | null>(null);
 
   const [isTransfer, setIsTransfer] = useState(false);
   const [ignored, setIgnored] = useState(false);
   const [togglingTransfer, setTogglingTransfer] = useState(false);
   const [togglingIgnored, setTogglingIgnored] = useState(false);
 
-  const [plans, setPlans] = useState<PlanDto[]>([]);
-  const [planItems, setPlanItems] = useState<Map<string, PlannedItemDto[]>>(new Map());
-  const [categoryNames, setCategoryNames] = useState<ReadonlyMap<string, string>>(new Map());
-  const [showPicker, setShowPicker] = useState(false);
-  const [pickerLoading, setPickerLoading] = useState(false);
+  const [catalogue, setCatalogue] = useState<PlannedItemCatalogue | null>(null);
+  const [showMapModal, setShowMapModal] = useState(false);
 
   // Reset state when opening a new transaction
   useEffect(() => {
@@ -68,8 +61,7 @@ export function TransactionDetailModal({
     setMapping(null);
     setIsTransfer(false);
     setIgnored(false);
-    setShowPicker(false);
-    setMappingError(null);
+    setShowMapModal(false);
     setNotesError(null);
     setLoading(true);
 
@@ -104,96 +96,42 @@ export function TransactionDetailModal({
     };
   }, [isOpen, transactionId, intl]);
 
-  const loadPickerData = useCallback(async (): Promise<void> => {
-    if (plans.length > 0) return;
-    setPickerLoading(true);
-    try {
-      const [activePlans, names] = await Promise.all([
-        plansApi.list('active'),
-        fetchCategoryNames(apiClient),
-      ]);
-      setPlans(activePlans);
-      setCategoryNames(names);
-      const itemResults = await Promise.all(
-        activePlans.map(async (p) => ({ planId: p.id, items: await plansApi.listItems(p.id) })),
-      );
-      setPlanItems(new Map(itemResults.map(({ planId, items }) => [planId, items])));
-    } catch {
-      // ignore — picker will be empty
-    } finally {
-      setPickerLoading(false);
-    }
-  }, [plans.length]);
-
   // A mapped transaction needs the plans and items to name its planned item.
   useEffect(() => {
-    if (mapping !== null) {
-      void loadPickerData();
+    if (mapping === null || catalogue !== null) {
+      return;
     }
-  }, [mapping, loadPickerData]);
+    let cancelled = false;
+    void loadPlannedItems(plansApi, () => fetchCategoryNames(apiClient)).then(
+      (loaded) => {
+        if (!cancelled) {
+          setCatalogue(loaded);
+        }
+      },
+      () => undefined,
+    );
 
-  const handleShowPicker = (): void => {
-    setShowPicker(true);
-    void loadPickerData();
+    return () => {
+      cancelled = true;
+    };
+  }, [mapping, catalogue]);
+
+  const handleMapped = (plannedItemId: string | null): void => {
+    const newMapping: TransactionMapping | null =
+      plannedItemId === null
+        ? null
+        : { plannedItemId, plannedItemName: '', categoryId: '', categoryName: '' };
+    setMapping(newMapping);
+    if (transaction) {
+      const updatedTx: Transaction = {
+        ...transaction,
+        mapping: newMapping,
+        mappingStatus: newMapping === null ? 'unmapped' : 'mapped',
+      };
+      setTransaction(updatedTx);
+      onUpdated?.(updatedTx);
+    }
   };
-
-  const handleMap = useCallback(
-    async (plannedItemId: string | null): Promise<void> => {
-      const previousMapping = mapping;
-
-      let newMapping: TransactionMapping | null = null;
-      if (plannedItemId !== null) {
-        for (const [planId, items] of planItems) {
-          const item = items.find((i) => i.id === plannedItemId);
-          if (item) {
-            const plan = plans.find((p) => p.id === planId);
-            const categoryName = categoryNames.get(item.categoryId) ?? '';
-            newMapping = {
-              plannedItemId: item.id,
-              plannedItemName: `${plan?.name ?? ''}${categoryName ? ` — ${categoryName}` : ''}`,
-              categoryId: item.categoryId,
-              categoryName,
-            };
-            break;
-          }
-        }
-      }
-
-      // Optimistic update
-      setMapping(newMapping);
-      setShowPicker(false);
-      setMappingLoading(true);
-      setMappingError(null);
-
-      try {
-        const body: SetMappingDto = { plannedItemId };
-        await apiClient.patch(`/transactions/${transactionId}/mapping`, body);
-        const updatedTx: Transaction | null = transaction
-          ? {
-              ...transaction,
-              mapping: newMapping,
-              mappingStatus: newMapping === null ? 'unmapped' : 'mapped',
-            }
-          : null;
-        if (updatedTx) {
-          setTransaction(updatedTx);
-          onUpdated?.(updatedTx);
-        }
-      } catch {
-        // Rollback
-        setMapping(previousMapping);
-        setMappingError(
-          intl.formatMessage({
-            id: 'screen.transactionDetail.mappingError',
-            defaultMessage: 'Failed to update mapping',
-          }),
-        );
-      } finally {
-        setMappingLoading(false);
-      }
-    },
-    [mapping, planItems, plans, categoryNames, transactionId, transaction, onUpdated, intl],
-  );
 
   const handleSaveNotes = async (): Promise<void> => {
     setSavingNotes(true);
@@ -276,6 +214,20 @@ export function TransactionDetailModal({
     }
   };
 
+  const statusLabel = (status: Transaction['status']): string => {
+    switch (status) {
+      case 'pending':
+        return intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' });
+      case 'posted':
+        return intl.formatMessage({ id: 'transaction.status.posted', defaultMessage: 'Booked' });
+      case 'cancelled':
+        return intl.formatMessage({
+          id: 'transaction.status.cancelled',
+          defaultMessage: 'Cancelled',
+        });
+    }
+  };
+
   const title = intl.formatMessage({
     id: 'screen.transactionDetail.title',
     defaultMessage: 'Transaction Details',
@@ -305,28 +257,9 @@ export function TransactionDetailModal({
     resize: 'vertical',
   };
 
-  // Build picker items: suggestions (current mapping item) float to top
-  const pickerItems: Array<{ planId: string; planName: string; item: PlannedItemDto }> = [];
-  for (const plan of plans) {
-    const items = planItems.get(plan.id) ?? [];
-    for (const item of items) {
-      pickerItems.push({ planId: plan.id, planName: plan.name, item });
-    }
-  }
-  // Float current mapping's item to top
-  const currentMappedId = mapping?.plannedItemId;
-  // GET /transactions/:id returns only the planned item id; the names come from the
-  // plans and categories loaded for the picker.
-  const mappedEntry = pickerItems.find(({ item }) => item.id === currentMappedId);
-  const mappedCategoryName =
-    mapping?.categoryName ||
-    (mappedEntry ? (categoryNames.get(mappedEntry.item.categoryId) ?? '') : '');
-  const mappedPlanName = mapping?.plannedItemName || (mappedEntry?.planName ?? '');
-  pickerItems.sort((a, b) => {
-    if (a.item.id === currentMappedId) return -1;
-    if (b.item.id === currentMappedId) return 1;
-    return 0;
-  });
+  const mappedLabel = mapping === null ? undefined : catalogue?.labels.get(mapping.plannedItemId);
+  const mappedCategoryName = mappedLabel?.categoryName ?? '';
+  const mappedPlanName = mappedLabel?.planName ?? '';
 
   return (
     <Modal title={title} isOpen={isOpen} onClose={onClose}>
@@ -378,154 +311,42 @@ export function TransactionDetailModal({
             <p
               style={{ margin: 0, fontSize: theme.fontSize.sm, color: theme.color.text.secondary }}
             >
-              {sourceLabel(transaction.source)}
+              {[sourceLabel(transaction.source), statusLabel(transaction.status)].join(' · ')}
             </p>
           </div>
 
-          {/* Mapping section */}
+          {/* Mapping section: read-only here; the Map modal edits it */}
           <div style={sectionStyle}>
             <p style={labelStyle}>
               <FormattedMessage id="screen.transactionDetail.mapping" defaultMessage="Mapped to" />
             </p>
 
-            {mappingError !== null && (
-              <p
-                style={{
-                  color: theme.color.status.danger,
-                  fontSize: theme.fontSize.sm,
-                  margin: `0 0 ${theme.space.sm}px`,
-                }}
-              >
-                {mappingError}
-              </p>
-            )}
-
-            {mapping !== null && !showPicker && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: theme.space.sm,
-                  backgroundColor: theme.color.surface.raised,
-                  borderRadius: theme.radius.sm,
-                  border: `1px solid ${theme.color.border.subtle}`,
-                  marginBottom: theme.space.sm,
-                }}
-              >
-                <div>
-                  <span
-                    style={{
-                      fontSize: theme.fontSize.sm,
-                      fontWeight: theme.fontWeight.medium,
-                      color: theme.color.text.primary,
-                    }}
-                  >
-                    {mappedCategoryName || mapping.plannedItemId}
-                  </span>
-                  {mappedPlanName && (
-                    <span
-                      style={{
-                        fontSize: theme.fontSize.xs,
-                        color: theme.color.text.secondary,
-                        marginLeft: theme.space.sm,
-                      }}
-                    >
-                      {mappedPlanName}
-                    </span>
-                  )}
-                </div>
-                <Button
-                  variant="danger"
-                  disabled={mappingLoading}
-                  onClick={() => {
-                    void handleMap(null);
-                  }}
-                >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: theme.space.sm,
+              }}
+            >
+              <span style={{ fontSize: theme.fontSize.sm, color: theme.color.text.primary }}>
+                {isTransfer ? (
                   <FormattedMessage
-                    id="screen.transactionDetail.unmap"
-                    defaultMessage="Clear mapping"
+                    id="component.transactionRow.transfer"
+                    defaultMessage="Transfer"
                   />
-                </Button>
-              </div>
-            )}
-
-            {!showPicker && (
-              <Button variant="secondary" loading={mappingLoading} onClick={handleShowPicker}>
-                <FormattedMessage
-                  id="screen.transactionDetail.mapTo"
-                  defaultMessage="Map to planned item"
-                />
-              </Button>
-            )}
-
-            {showPicker && (
-              <div
-                style={{
-                  border: `1px solid ${theme.color.border.subtle}`,
-                  borderRadius: theme.radius.sm,
-                  overflow: 'hidden',
-                }}
-              >
-                {pickerLoading && (
-                  <p
-                    style={{
-                      color: theme.color.text.secondary,
-                      padding: theme.space.md,
-                      margin: 0,
-                    }}
-                  >
-                    <FormattedMessage id="app.loading" defaultMessage="Loading…" />
-                  </p>
-                )}
-                {!pickerLoading && pickerItems.length === 0 && (
-                  <p
-                    style={{
-                      color: theme.color.text.secondary,
-                      padding: theme.space.md,
-                      margin: 0,
-                      fontSize: theme.fontSize.sm,
-                    }}
-                  >
-                    <FormattedMessage
-                      id="screen.transactionDetail.noPlannedItems"
-                      defaultMessage="No planned items available"
-                    />
-                  </p>
-                )}
-                {pickerItems.map(({ planName, item }) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => {
-                      void handleMap(item.id);
-                    }}
-                    style={{
-                      display: 'flex',
-                      width: '100%',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: `${theme.space.sm}px ${theme.space.md}px`,
-                      backgroundColor:
-                        item.id === currentMappedId
-                          ? `${theme.color.accent.default}22`
-                          : theme.color.surface.raised,
-                      border: 'none',
-                      borderBottom: `1px solid ${theme.color.border.subtle}`,
-                      cursor: 'pointer',
-                      color: theme.color.text.primary,
-                      textAlign: 'left',
-                    }}
-                  >
-                    <span>
-                      <span
-                        style={{
-                          fontSize: theme.fontSize.sm,
-                          fontWeight: theme.fontWeight.medium,
-                        }}
-                      >
-                        {categoryNames.get(item.categoryId) ?? item.categoryId}
-                      </span>
+                ) : mapping === null ? (
+                  <FormattedMessage
+                    id="screen.transactionDetail.notMapped"
+                    defaultMessage="Not mapped"
+                  />
+                ) : (
+                  <>
+                    <span style={{ fontWeight: theme.fontWeight.medium }}>
+                      {mappedCategoryName || mapping.plannedItemId}
+                    </span>
+                    {mappedPlanName !== '' && (
                       <span
                         style={{
                           fontSize: theme.fontSize.xs,
@@ -533,45 +354,31 @@ export function TransactionDetailModal({
                           marginLeft: theme.space.sm,
                         }}
                       >
-                        {intl.formatMessage(
-                          {
-                            id: 'modal.transactionDetail.planAndDirection',
-                            defaultMessage: '{planName} · {direction}',
-                          },
-                          { planName, direction: item.direction },
-                        )}
+                        {mappedPlanName}
                       </span>
-                    </span>
-                    <span
-                      style={{
-                        fontSize: theme.fontSize.sm,
-                        color: theme.color.text.secondary,
-                        marginLeft: theme.space.md,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {formatMoney(
-                        {
-                          amountMinor: parseMinorUnits(item.amount.amountMinor),
-                          currency: item.amount.currency,
-                        },
-                        toSupportedLocale(intl.locale),
-                      )}
-                    </span>
-                  </button>
-                ))}
-                <div style={{ padding: theme.space.sm }}>
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      setShowPicker(false);
-                    }}
-                  >
-                    <FormattedMessage id="common.cancel" defaultMessage="Cancel" />
-                  </Button>
-                </div>
-              </div>
-            )}
+                    )}
+                  </>
+                )}
+              </span>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setShowMapModal(true);
+                }}
+              >
+                {mapping === null ? (
+                  <FormattedMessage
+                    id="screen.transactionDetail.mapTo"
+                    defaultMessage="Map to planned item"
+                  />
+                ) : (
+                  <FormattedMessage
+                    id="screen.transactionDetail.changeMapping"
+                    defaultMessage="Change mapping"
+                  />
+                )}
+              </Button>
+            </div>
           </div>
 
           {/* Notes section */}
@@ -648,6 +455,17 @@ export function TransactionDetailModal({
             </Button>
           </div>
         </div>
+      )}
+      {transaction !== null && (
+        <TransactionMapModal
+          transaction={transaction}
+          currentPlannedItemId={mapping?.plannedItemId ?? null}
+          isOpen={showMapModal}
+          onClose={() => {
+            setShowMapModal(false);
+          }}
+          onMapped={handleMapped}
+        />
       )}
     </Modal>
   );
