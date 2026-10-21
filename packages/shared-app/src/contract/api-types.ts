@@ -698,17 +698,7 @@ export interface components {
        * @enum {string}
        */
       currency:
-        | 'PLN'
-        | 'EUR'
-        | 'USD'
-        | 'GBP'
-        | 'UAH'
-        | 'RUB'
-        | 'CHF'
-        | 'CZK'
-        | 'SEK'
-        | 'NOK'
-        | 'DKK';
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
       /** @example Coffee at Starbucks */
       description: string;
       /** @example Starbucks */
