@@ -30,6 +30,9 @@ export type LocaleCode = UserProfileDto['locale'];
 export type CreateHouseholdDto = Schemas['CreateHouseholdDto'];
 export type HouseholdCreatedDto = Schemas['HouseholdCreatedDto'];
 export type InviteToHouseholdDto = Schemas['InviteToHouseholdDto'];
+export type HouseholdInviteResponseDto = Schemas['HouseholdInviteResponseDto'];
+export type AcceptInviteDto = Schemas['AcceptInviteDto'];
+export type AcceptInviteResponseDto = Schemas['AcceptInviteResponseDto'];
 export type HouseholdExportRequestedDto = Schemas['HouseholdExportRequestedDto'];
 export type HouseholdDeletionScheduledDto = Schemas['HouseholdDeletionScheduledDto'];
 export type HouseholdDashboardCategoryDto = Schemas['HouseholdDashboardCategoryDto'];
@@ -98,6 +101,11 @@ export type PlannedItemChangeDto = Schemas['PlannedItemChangeDto'];
 export type PlannedItemVersionDto = Schemas['PlannedItemVersionDto'];
 export type PlannedItemActualsDto = Schemas['PlannedItemActualsDto'];
 export type PlanDashboardResponseDto = Schemas['PlanDashboardResponseDto'];
+/**
+ * Error `code` of the 503 from the plan and household dashboards (CLN-012) when an
+ * FX rate needed to convert into the plan's base currency is missing.
+ */
+export const FX_RATE_UNAVAILABLE = 'fx_rate_unavailable';
 export type UnplannedTransactionDto = Schemas['UnplannedTransactionDto'];
 export type UnplannedTransactionPageDto = Schemas['UnplannedTransactionPageDto'];
 /** The currencies the API accepts in request bodies (plans, items, manual transactions). */

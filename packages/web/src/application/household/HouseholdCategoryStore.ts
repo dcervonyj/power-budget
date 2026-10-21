@@ -1,11 +1,14 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import type {
-  HouseholdDashboardCategoryDto,
-  HouseholdDashboardResponseDto,
+import { readApiError } from '@power-budget/shared-app';
+import {
+  FX_RATE_UNAVAILABLE,
+  type HouseholdDashboardCategoryDto,
+  type HouseholdDashboardResponseDto,
 } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 
-export type HouseholdCategoryError = 'not_found' | 'failed';
+/** 503 fx_rate_unavailable (CLN-012) is `fx_unavailable`. */
+export type HouseholdCategoryError = 'not_found' | 'fx_unavailable' | 'failed';
 
 /**
  * One category of the household dashboard (`GET /households/:id/dashboard?planId=`).
@@ -35,9 +38,10 @@ export class HouseholdCategoryStore {
         this.error = found === undefined ? 'not_found' : null;
         this.loading = false;
       });
-    } catch {
+    } catch (err) {
+      const error = readApiError(err).code === FX_RATE_UNAVAILABLE ? 'fx_unavailable' : 'failed';
       runInAction(() => {
-        this.error = 'failed';
+        this.error = error;
         this.loading = false;
       });
     }

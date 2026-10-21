@@ -258,6 +258,11 @@ export const HouseholdCategoryDrillIn = observer(function HouseholdCategoryDrill
             id="component.household.notFound"
             defaultMessage="This category is not in the plan"
           />
+        ) : store.error === 'fx_unavailable' ? (
+          <FormattedMessage
+            id="common.fxRateUnavailable"
+            defaultMessage="Exchange rates are not available right now. Please try again later."
+          />
         ) : (
           <FormattedMessage
             id="component.household.error"

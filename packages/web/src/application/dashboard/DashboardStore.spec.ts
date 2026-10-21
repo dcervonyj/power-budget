@@ -173,7 +173,22 @@ describe('DashboardStore', () => {
       await store.fetchActuals('plan-1');
 
       expect(store.error).toBe('Failed to load dashboard');
+      expect(store.fxUnavailable).toBe(false);
       expect(store.loading).toBe(false);
+      expect(store.actuals).toBeNull();
+    });
+
+    it('flags a 503 fx_rate_unavailable so the screen can explain it', async () => {
+      mockGet.mockRejectedValue(
+        Object.assign(new Error('HTTP 503'), {
+          response: { status: 503, data: { statusCode: 503, code: 'fx_rate_unavailable' } },
+        }),
+      );
+
+      await store.fetchActuals('plan-1');
+
+      expect(store.fxUnavailable).toBe(true);
+      expect(store.error).toBe('Failed to load dashboard');
       expect(store.actuals).toBeNull();
     });
 
