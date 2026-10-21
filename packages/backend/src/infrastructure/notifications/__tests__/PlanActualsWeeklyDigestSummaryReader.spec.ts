@@ -59,7 +59,7 @@ function setup(plans: Plan[]): {
   actuals: PlanActualsReader;
 } {
   const repo = mock<PlanRepository>();
-  repo.listActive.mockResolvedValue(plans);
+  repo.list.mockResolvedValue(plans);
   const actuals = mock<PlanActualsReader>();
   actuals.read.mockResolvedValue(view());
 

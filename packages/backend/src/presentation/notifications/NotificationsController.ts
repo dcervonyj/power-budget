@@ -11,9 +11,9 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
-import type { NotificationRepository } from '../../domain/notifications/ports.js';
-import { DrizzleNotificationRepository } from '../../infrastructure/notifications/DrizzleNotificationRepository.js';
+import { RecordEmailBounceUseCase } from '../../application/notifications/use-cases/RecordEmailBounceUseCase.js';
 import { SvixWebhookVerifier } from '../../infrastructure/notifications/SvixWebhookVerifier.js';
+import { WebhookAcceptedDto } from './dto/webhook-response.dto.js';
 
 /**
  * Signed third-party payload: authenticity comes from the Svix signature, and
@@ -30,8 +30,8 @@ export interface BounceWebhookBody {
 @Controller('notifications')
 export class NotificationsController {
   constructor(
-    @Inject(DrizzleNotificationRepository)
-    private readonly notificationRepo: NotificationRepository,
+    @Inject(RecordEmailBounceUseCase)
+    private readonly recordEmailBounce: RecordEmailBounceUseCase,
     @Inject(SvixWebhookVerifier)
     private readonly webhookVerifier: SvixWebhookVerifier,
   ) {}
@@ -45,7 +45,7 @@ export class NotificationsController {
   @Post('bounce')
   @HttpCode(200)
   @ApiOperation({ summary: 'Handle email bounce webhook from Resend' })
-  @ApiResponse({ status: 200, description: 'Webhook accepted' })
+  @ApiResponse({ status: 200, description: 'Webhook accepted', type: WebhookAcceptedDto })
   @ApiResponse({ status: 401, description: 'Missing or invalid webhook signature' })
   async handleBounce(
     @Req() req: RawBodyRequest<FastifyRequest>,
@@ -53,7 +53,7 @@ export class NotificationsController {
     @Headers('svix-timestamp') svixTimestamp: string | undefined,
     @Headers('svix-signature') svixSignature: string | undefined,
     @Body() body: BounceWebhookBody,
-  ): Promise<{ ok: true }> {
+  ): Promise<WebhookAcceptedDto> {
     const signed = this.webhookVerifier.verify(req.rawBody, {
       id: svixId,
       timestamp: svixTimestamp,
@@ -63,9 +63,7 @@ export class NotificationsController {
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
-    if (body.type === 'email.bounced' && typeof body.email === 'string') {
-      await this.notificationRepo.setEmailBouncing(body.email);
-    }
+    await this.recordEmailBounce.execute({ type: body.type, email: body.email });
 
     return { ok: true };
   }

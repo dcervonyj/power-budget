@@ -1,5 +1,5 @@
 import { PlannedItemId } from '@power-budget/core';
-import type { PlanId, UserId, HouseholdId, Money } from '@power-budget/core';
+import type { PlanId, UserId, HouseholdId, Money, CategoryId } from '@power-budget/core';
 import type {
   PlannedItem,
   NewPlannedItem,
@@ -8,9 +8,11 @@ import type {
 import type {
   PlanRepository,
   PlannedItemRepository,
-  HouseholdScope,
+  AuditLogPort,
 } from '../../../domain/plans/ports.js';
-import type { CategoryId } from '@power-budget/core';
+import type { CategoryRepository } from '../../../domain/categories/ports.js';
+import { PlanAccess } from '../../../domain/plans/plan-access.js';
+import { findVisiblePlan } from '../plan-lookup.js';
 
 export interface AddPlannedItemInput {
   readonly planId: PlanId;
@@ -26,29 +28,41 @@ export class AddPlannedItemUseCase {
   constructor(
     private readonly planRepo: PlanRepository,
     private readonly plannedItemRepo: PlannedItemRepository,
+    private readonly categoryRepo: CategoryRepository,
+    private readonly auditLog: AuditLogPort,
     private readonly generateId: () => string,
   ) {}
 
   async execute(input: AddPlannedItemInput): Promise<PlannedItem> {
-    const scope: HouseholdScope = { householdId: input.householdId };
+    const scope = { householdId: input.householdId };
+    const plan = await findVisiblePlan(this.planRepo, input);
+    PlanAccess.assertNotArchived(plan);
 
-    const plan = await this.planRepo.findById(input.planId, scope);
-    if (plan === null) {
-      throw new Error(
-        `PLAN_NOT_FOUND: Plan ${input.planId} not found in household ${input.householdId}`,
-      );
+    // System categories and the household's own active categories only.
+    const category = await this.categoryRepo.findById(input.categoryId, scope);
+    if (category === null || category.archivedAt !== null) {
+      throw new Error(`CATEGORY_NOT_FOUND: Category ${input.categoryId} not found`);
     }
 
     const newItem: NewPlannedItem = {
       id: PlannedItemId.of(this.generateId()),
-      planId: input.planId,
+      planId: plan.id,
       householdId: input.householdId,
       categoryId: input.categoryId,
       direction: input.direction,
       amount: input.amount,
       note: input.note ?? null,
     };
+    const created = await this.plannedItemRepo.add(newItem);
 
-    return this.plannedItemRepo.add(newItem);
+    await this.auditLog.record({
+      householdId: input.householdId,
+      actorUserId: input.userId,
+      action: 'PLANNED_ITEM_ADDED',
+      subjectType: 'PlannedItem',
+      subjectId: created.id,
+    });
+
+    return created;
   }
 }

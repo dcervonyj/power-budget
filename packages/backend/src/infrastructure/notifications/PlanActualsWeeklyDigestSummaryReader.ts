@@ -1,3 +1,4 @@
+import { IsoDate } from '@power-budget/core';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { WeeklyDigestSummary } from '../../domain/notifications/entities.js';
 import type { WeeklyDigestSummaryReader } from '../../domain/notifications/ports.js';
@@ -18,10 +19,12 @@ export class PlanActualsWeeklyDigestSummaryReader implements WeeklyDigestSummary
     member: { readonly householdId: HouseholdId; readonly userId: UserId },
     at: Date,
   ): Promise<WeeklyDigestSummary | null> {
-    const plans = await this.planRepo.listActive({
-      userId: member.userId,
+    const day = IsoDate.of(at.toISOString().slice(0, 10));
+    const plans = await this.planRepo.list({
       householdId: member.householdId,
-      date: at,
+      viewerUserId: member.userId,
+      status: 'active',
+      overlapping: { start: day, end: day },
     });
     const plan = this.pickPlan(plans, member.userId);
     if (plan === undefined) {
@@ -38,7 +41,7 @@ export class PlanActualsWeeklyDigestSummaryReader implements WeeklyDigestSummary
     };
   }
 
-  /** listActive returns every plan of the household; another member's personal plan is private. */
+  /** Defence in depth: list() already hides archived plans and other members' personal plans. */
   private pickPlan(plans: readonly Plan[], userId: UserId): Plan | undefined {
     const live = plans.filter(isNotArchived);
 
