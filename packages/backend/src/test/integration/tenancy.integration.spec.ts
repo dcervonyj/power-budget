@@ -418,8 +418,17 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       });
     }
 
-    // GET bodies with bigint amounts are serialised by CLN-002 (audit C8); PATCH returns no
-    // body, so it proves the scope end to end without depending on that fix.
+    it('lists and reads only own transactions', async () => {
+      const headers = { authorization: `Bearer ${tokenFor(A)}` };
+
+      const list = await app.inject({ method: 'GET', url: '/transactions', headers });
+      const own = await app.inject({ method: 'GET', url: `/transactions/${A.txId}`, headers });
+
+      expect(list.statusCode).toBe(200);
+      expect(list.json<{ items: { id: string }[] }>().items.map((t) => t.id)).toEqual([A.txId]);
+      expect(own.statusCode).toBe(200);
+    });
+
     it('patches an own transaction and 404s a foreign id without touching it', async () => {
       const headers = { authorization: `Bearer ${tokenFor(A)}` };
 
@@ -462,7 +471,8 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
         },
       });
 
-      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+      expect(res.statusCode).toBe(404);
+      expect(res.json<{ code: string }>().code).toBe('bank_account_not_found');
       expect(await count(`transactions WHERE description = 'forged'`)).toBe(0);
     });
 

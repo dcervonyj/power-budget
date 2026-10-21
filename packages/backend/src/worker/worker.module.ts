@@ -6,6 +6,7 @@ import { WorkerDbScopeModule } from '../infrastructure/database/WorkerDbScopeMod
 import { BankWorkerModule } from '../infrastructure/bank/BankWorkerModule.js';
 import { PlansWorkerModule } from '../infrastructure/plans/PlansWorkerModule.js';
 import { NotificationsWorkerModule } from '../infrastructure/notifications/NotificationsWorkerModule.js';
+import { FxWorkerModule } from '../infrastructure/fx/FxWorkerModule.js';
 
 /**
  * Worker-only module: no HTTP server, no presentation layer.
@@ -25,6 +26,7 @@ import { NotificationsWorkerModule } from '../infrastructure/notifications/Notif
     BankWorkerModule,
     PlansWorkerModule,
     NotificationsWorkerModule,
+    FxWorkerModule,
   ],
 })
 export class WorkerModule {}

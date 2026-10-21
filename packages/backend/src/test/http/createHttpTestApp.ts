@@ -7,6 +7,7 @@ import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fas
 import * as jwt from 'jsonwebtoken';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import { SentryExceptionFilter } from '../../infrastructure/sentry/SentryExceptionFilter.js';
+import { validationPipeProvider } from '../../presentation/http/validation.js';
 
 /**
  * Minimal Nest + Fastify app for HTTP-level tests (no database, no Redis).
@@ -43,6 +44,10 @@ export async function createHttpTestApp(options: HttpTestAppOptions): Promise<Ht
     controllers: options.controllers,
     providers: [
       { provide: ConfigService, useValue: new ConfigService(env) },
+      // Same global ValidationPipe as AppModule. Note: vitest (esbuild) emits no
+      // decorator metadata, so DTO bodies are only validated where the pipe gets
+      // an explicit metatype; full DTO validation is covered by test:integration.
+      validationPipeProvider,
       ...(options.providers ?? []),
     ],
   }).compile();

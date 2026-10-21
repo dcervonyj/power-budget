@@ -1,4 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
+import type { CategoryAggregate } from '@power-budget/core';
+import { minorUnitsToString } from '../../http/money.js';
 
 export class HouseholdDashboardCategoryDto {
   @ApiProperty({ type: String, description: 'Category ID' })
@@ -13,8 +15,12 @@ export class HouseholdDashboardCategoryDto {
   })
   privacyLevel!: 'full_detail' | 'total_with_counts' | 'total_only';
 
-  @ApiProperty({ type: Number, description: 'Total amount in minor currency units (e.g. cents)' })
-  totalAmountMinor!: number;
+  @ApiProperty({
+    type: String,
+    description: 'Total amount in minor currency units (e.g. cents) as an integer string',
+    example: '150000',
+  })
+  totalAmountMinor!: string;
 
   @ApiProperty({ type: String, description: 'ISO 4217 currency code', example: 'PLN' })
   currency!: string;
@@ -29,4 +35,17 @@ export class HouseholdDashboardResponseDto {
 
   @ApiProperty({ type: [HouseholdDashboardCategoryDto], description: 'Per-category aggregates' })
   categories!: HouseholdDashboardCategoryDto[];
+}
+
+export function toHouseholdDashboardCategoryDto(
+  aggregate: CategoryAggregate,
+): HouseholdDashboardCategoryDto {
+  return {
+    categoryId: aggregate.categoryId,
+    categoryName: aggregate.category.name,
+    privacyLevel: aggregate.privacyLevel,
+    totalAmountMinor: minorUnitsToString(aggregate.totalAmount.amountMinor),
+    currency: aggregate.totalAmount.currency,
+    transactionCount: aggregate.transactionCount,
+  };
 }

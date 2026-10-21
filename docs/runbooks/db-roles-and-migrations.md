@@ -42,6 +42,8 @@ Migration `0008_rls_tenancy` (journal idx 8) replaces the never-applied `0003_rl
 
 Identity, membership and outbox tables (`users`, `sessions`, `auth_methods`, `totp_secrets`, `magic_link_tokens`, `households`, `household_users`, `household_invites`, `notifications_outbox`) are read before a household is known and are scoped in the repositories only.
 
+Global, non-tenant tables (no RLS, no `household_id`): `currencies` and `fx_rates` (shared ECB/NBP reference data, written by the worker FX cron, read by `GET /fx-rates`). Currency preferences live on `users` and are user-scoped. The notification outbox claim (`SELECT ... FOR UPDATE SKIP LOCKED` in `DrizzleNotificationRepository`) runs in the worker's system scope on a table without RLS, so it works unchanged under the app role. The weekly digest and period-close jobs read tenant tables in the worker's system scope.
+
 How the app binds the policies (`src/infrastructure/database/`):
 
 - `DbScope` (AsyncLocalStorage): `household` (householdId + userId), `user` (no household yet) or `system` (RLS bypass).

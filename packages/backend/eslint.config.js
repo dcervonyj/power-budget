@@ -27,19 +27,13 @@ module.exports = [
       'local-rules/no-repo-without-scope': [
         'error',
         {
-          // Identity and tenant-root repositories: keyed by user or household id, no HouseholdScope.
+          // Identity and tenant-root repositories (keyed by user or household id) and user-level
+          // currency preferences: no HouseholdScope. FX rates are global (no tenant methods).
           unscopedRepositories: [
-            '^(user|household|session|totpSecret|magicLinkToken|invite)Repo(sitory)?$',
+            '^(user|household|session|totpSecret|magicLinkToken|invite|currencyPreferences)Repo(sitory)?$',
           ],
         },
       ],
-    },
-  },
-  {
-    // FX rates are global and currency preferences belong to the user.
-    files: ['src/application/fx/**/*.ts', 'src/infrastructure/fx/**/*.ts'],
-    rules: {
-      'local-rules/no-repo-without-scope': 'off',
     },
   },
 ];
