@@ -6,10 +6,7 @@ import { BackendApi, PASSWORD, uniqueEmail } from './support/api.js';
 test.skip(!FULL_STACK, 'needs the e2e stack (TEST_ENV=e2e)');
 
 test.describe('auth journey', () => {
-  // FIXME(CLN-017): registering in the web app fails with "Something went wrong".
-  // RegisterScreen posts `displayName`, which RegisterDto does not declare, so the
-  // API rejects the body with 400 (unknown property) before it registers anyone.
-  test.fixme('registers in the UI and is sent to the login screen', async ({ page }) => {
+  test('registers in the UI and is sent to the login screen', async ({ page }) => {
     await page.goto('/register');
     await page.getByLabel('Email').fill(uniqueEmail('register'));
     await page.getByLabel('Password').fill(PASSWORD);
@@ -18,9 +15,7 @@ test.describe('auth journey', () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  // FIXME(CLN-017): same cause as above: the 400 comes before the duplicate check,
-  // so the screen shows the generic error instead of the 409 message.
-  test.fixme('refuses to register an email twice', async ({ page, request }) => {
+  test('refuses to register an email twice', async ({ page, request }) => {
     const email = uniqueEmail('duplicate');
     await new BackendApi(request).register(email);
 
