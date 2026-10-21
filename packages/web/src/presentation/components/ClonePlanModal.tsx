@@ -6,6 +6,7 @@ import { CustomPeriodPicker } from './CustomPeriodPicker.js';
 import type { CustomPeriodValue } from './CustomPeriodPicker.js';
 import { useTheme } from './ThemeContext.js';
 import { apiClient } from '../../AppProviders.js';
+import type { ClonePlanDto } from '../../infrastructure/api/PlanMapper.js';
 
 type PlanPeriod = 'weekly' | 'monthly' | 'custom';
 
@@ -57,12 +58,12 @@ export function ClonePlanModal({
     setLoading(true);
     setError(null);
     try {
-      await apiClient.post(`/plans/${planId}/clone`, {
-        period,
-        ...(period === 'custom'
-          ? { startDate: customDates.startDate, endDate: customDates.endDate }
-          : {}),
-      });
+      // CLN-011: the clone keeps the period kind; without dates it covers the next period.
+      const body: ClonePlanDto =
+        period === 'custom'
+          ? { periodStart: customDates.startDate, periodEnd: customDates.endDate }
+          : {};
+      await apiClient.post(`/plans/${planId}/clone`, body);
       onCloned();
       onClose();
     } catch {

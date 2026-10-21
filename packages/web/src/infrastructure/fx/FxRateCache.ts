@@ -1,4 +1,6 @@
-import type { ApiClient } from '@power-budget/shared-app';
+import type { ApiClient, components } from '@power-budget/shared-app';
+
+type FxRatesResponseDto = components['schemas']['FxRatesResponseDto'];
 
 export interface FxRateTable {
   baseCurrency: string;
@@ -25,11 +27,27 @@ export async function fetchAndCacheRates(apiClient: ApiClient): Promise<FxRateTa
   const cached = getCachedRates();
   if (cached) return cached;
   try {
-    const res = await apiClient.get<FxRateTable>('/fx-rates');
-    const table: FxRateTable = { ...res.data, fetchedAt: new Date().toISOString() };
+    const res = await apiClient.get<FxRatesResponseDto>('/fx-rates');
+    const table = toRateTable(res.data, new Date().toISOString());
     localStorage.setItem(CACHE_KEY, JSON.stringify(table));
     return table;
   } catch {
     return null;
   }
+}
+
+/**
+ * `GET /fx-rates` sends decimal strings (CLN-013). The table is only used for
+ * approximate cross-currency display, so the rates become numbers here.
+ */
+export function toRateTable(dto: FxRatesResponseDto, fetchedAt: string): FxRateTable {
+  const rates: Record<string, number> = {};
+  for (const [code, rate] of Object.entries(dto.rates)) {
+    const value = Number(rate);
+    if (Number.isFinite(value) && value > 0) {
+      rates[code] = value;
+    }
+  }
+
+  return { baseCurrency: dto.baseCurrency, rates, fetchedAt };
 }

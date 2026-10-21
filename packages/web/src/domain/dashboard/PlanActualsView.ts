@@ -14,7 +14,8 @@ export interface PlanActualsView {
   periodEnd: string; // ISO date
   currency: string;
   items: PlannedItemActual[];
-  unplannedCount: number;
+  /** Null when the API does not say how many unplanned transactions there are. */
+  unplannedCount: number | null;
   unplannedTotal: number; // minor units
   totalIncomePlanned: number;
   totalIncomeActual: number;
