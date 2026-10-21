@@ -19,6 +19,10 @@ import {
 } from 'class-validator';
 import { CURRENCIES } from '@power-budget/core';
 import {
+  TRANSACTION_STATUSES,
+  type TransactionStatus,
+} from '../../../domain/transactions/entities.js';
+import {
   ClampMax,
   ISO_DATE_PATTERN,
   MINOR_UNITS_PATTERN,
@@ -29,6 +33,8 @@ import {
 export const TRANSACTIONS_PAGE_MAX = 200;
 export const BULK_IDS_MAX = 500;
 const CURRENCY_CODES = Object.keys(CURRENCIES);
+/** At least one non-zero digit. */
+const NON_ZERO_PATTERN = /[1-9]/;
 
 export class ListTransactionsQueryDto {
   @ApiPropertyOptional({ type: String, description: 'Filter by bank account ID' })
@@ -60,11 +66,24 @@ export class ListTransactionsQueryDto {
   @MaxLength(200)
   q?: string;
 
-  @ApiPropertyOptional({ type: Boolean, description: 'Return only unmapped transactions' })
+  @ApiPropertyOptional({
+    type: Boolean,
+    description:
+      'Return only transactions that still need a decision: no mapping, not a transfer, not ignored',
+  })
   @IsOptional()
   @ToBoolean()
   @IsBoolean()
   unmappedOnly?: boolean;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: [...TRANSACTION_STATUSES],
+    description: 'Booking status filter (`posted` is booked)',
+  })
+  @IsOptional()
+  @IsIn([...TRANSACTION_STATUSES])
+  status?: TransactionStatus;
 
   @ApiPropertyOptional({
     type: String,
@@ -89,7 +108,10 @@ export class ListTransactionsQueryDto {
 }
 
 export class AddManualTransactionDto {
-  @ApiProperty({ type: String, description: 'Bank account ID' })
+  @ApiProperty({
+    type: String,
+    description: "One of the caller's own accounts (`GET /accounts`); another user's reads as 404",
+  })
   @IsUUID()
   accountId!: string;
 
@@ -104,14 +126,19 @@ export class AddManualTransactionDto {
   @ApiProperty({
     type: String,
     description:
-      'Amount in minor currency units (e.g. cents) as an integer string; a safe JSON integer is also accepted',
+      'Non-zero amount in minor units of `currency` (10^exponent per unit, e.g. cents for PLN) as an integer string; negative = outgoing. A safe JSON integer is also accepted; decimals are rejected',
     example: '-1500',
   })
   @ToMinorUnitsString()
   @Matches(MINOR_UNITS_PATTERN, { message: 'amountMinor must be an integer amount in minor units' })
+  @Matches(NON_ZERO_PATTERN, { message: 'amountMinor must not be zero' })
   amountMinor!: string;
 
-  @ApiProperty({ type: String, enum: CURRENCY_CODES, description: 'ISO 4217 currency code' })
+  @ApiProperty({
+    type: String,
+    enum: CURRENCY_CODES,
+    description: 'ISO 4217 currency code; must be the account currency (400 otherwise)',
+  })
   @IsIn(CURRENCY_CODES)
   currency!: string;
 

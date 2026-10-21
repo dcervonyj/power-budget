@@ -40,9 +40,8 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
       // Only the viewer's own accounts: a partner's transactions stay private
       sql`EXISTS (
         SELECT 1 FROM bank_accounts ba
-        JOIN bank_connections bc ON bc.id = ba.connection_id
         WHERE ba.id = ${schema.transactions.accountId}
-          AND bc.user_id = ${query.ownerUserId}
+          AND ba.owner_user_id = ${query.ownerUserId}
       )`,
       // Not mapped
       sql`NOT EXISTS (

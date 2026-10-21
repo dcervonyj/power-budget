@@ -717,6 +717,7 @@
     },
     "/transactions": {
       "get": {
+        "description": "Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.",
         "operationId": "TransactionsController_list",
         "parameters": [],
         "responses": {
@@ -770,10 +771,13 @@
             }
           },
           "400": {
-            "description": "Invalid body"
+            "description": "Invalid body, zero amount, or amount not in the account currency"
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Account not found or not the caller's own"
           }
         },
         "security": [
@@ -1362,6 +1366,80 @@
         ],
         "summary": "List bank accounts for a connection",
         "tags": ["bank-connections"]
+      }
+    },
+    "/accounts": {
+      "get": {
+        "description": "A partner's accounts are never listed: accounts are private to their owner; the partner's spending is shared only through category totals.",
+        "operationId": "AccountsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Own accounts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the caller's own accounts (bank and manual)",
+        "tags": ["accounts"]
+      },
+      "post": {
+        "operationId": "AccountsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateManualAccountDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "The caller has no household"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a manual (cash) account for manual transactions",
+        "tags": ["accounts"]
       }
     },
     "/plans": {
@@ -2643,6 +2721,177 @@
         },
         "required": ["amountMinor", "currency"]
       },
+      "TransactionListMappingDto": {
+        "type": "object",
+        "properties": {
+          "plannedItemId": {
+            "type": "string"
+          },
+          "planId": {
+            "type": "string"
+          },
+          "planName": {
+            "type": "string"
+          },
+          "planArchived": {
+            "type": "boolean",
+            "description": "The plan is archived (mappings into it still show)"
+          },
+          "categoryId": {
+            "type": "string"
+          },
+          "categoryName": {
+            "type": "string",
+            "nullable": true,
+            "description": "Null only when the category row is missing"
+          },
+          "categorySeedKey": {
+            "type": "string",
+            "nullable": true,
+            "description": "Seed key of a system category (for a localised name); null for own categories"
+          },
+          "mappedAt": {
+            "type": "string",
+            "example": "2024-06-15T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "plannedItemId",
+          "planId",
+          "planName",
+          "planArchived",
+          "categoryId",
+          "categoryName",
+          "categorySeedKey",
+          "mappedAt"
+        ]
+      },
+      "TransactionTransferLinkDto": {
+        "type": "object",
+        "properties": {
+          "transferId": {
+            "type": "string"
+          },
+          "counterpartTransactionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "The other side of the transfer; null for a standalone transfer"
+          }
+        },
+        "required": ["transferId", "counterpartTransactionId"]
+      },
+      "TransactionListItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string"
+          },
+          "externalId": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurredOn": {
+            "type": "string",
+            "example": "2024-06-15"
+          },
+          "amount": {
+            "$ref": "#/components/schemas/MoneyDto"
+          },
+          "description": {
+            "type": "string"
+          },
+          "merchant": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": ["bank_sync", "manual"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "posted", "cancelled"],
+            "description": "Booking status: `pending`, `posted` (booked by the bank) or `cancelled`"
+          },
+          "ignored": {
+            "type": "boolean"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "suggestedPlannedItemId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-06-15T10:00:00.000Z"
+          },
+          "mapping": {
+            "nullable": true,
+            "description": "The planned item the transaction is mapped to (any plan, archived included)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TransactionListMappingDto"
+              }
+            ]
+          },
+          "mappingSource": {
+            "type": "string",
+            "enum": ["manual", "rule", "ai", "suggestion", "none"],
+            "description": "How the planned item was chosen: `manual` (a user), `rule` (a learned rule), `ai` (the classifier), `suggestion` (not mapped; a suggested item waits for confirmation) or `none`. Only `manual` and `none` occur today"
+          },
+          "transfer": {
+            "nullable": true,
+            "description": "Set when the transaction is marked as a transfer between own accounts",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TransactionTransferLinkDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "accountId",
+          "externalId",
+          "occurredOn",
+          "amount",
+          "description",
+          "merchant",
+          "source",
+          "status",
+          "ignored",
+          "notes",
+          "suggestedPlannedItemId",
+          "createdAt"
+        ]
+      },
+      "TransactionPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransactionListItemDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": ["items", "nextCursor", "hasMore"]
+      },
       "TransactionDto": {
         "type": "object",
         "properties": {
@@ -2676,7 +2925,8 @@
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "posted", "cancelled"]
+            "enum": ["pending", "posted", "cancelled"],
+            "description": "Booking status: `pending`, `posted` (booked by the bank) or `cancelled`"
           },
           "ignored": {
             "type": "boolean"
@@ -2710,25 +2960,6 @@
           "createdAt"
         ]
       },
-      "TransactionPageDto": {
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/TransactionDto"
-            }
-          },
-          "nextCursor": {
-            "type": "string",
-            "nullable": true
-          },
-          "hasMore": {
-            "type": "boolean"
-          }
-        },
-        "required": ["items", "nextCursor", "hasMore"]
-      },
       "TransactionDetailDto": {
         "type": "object",
         "properties": {
@@ -2753,7 +2984,7 @@
         "properties": {
           "accountId": {
             "type": "string",
-            "description": "Bank account ID"
+            "description": "One of the caller's own accounts (`GET /accounts`); another user's reads as 404"
           },
           "occurredOn": {
             "type": "string",
@@ -2762,13 +2993,13 @@
           },
           "amountMinor": {
             "type": "string",
-            "description": "Amount in minor currency units (e.g. cents) as an integer string; a safe JSON integer is also accepted",
+            "description": "Non-zero amount in minor units of `currency` (10^exponent per unit, e.g. cents for PLN) as an integer string; negative = outgoing. A safe JSON integer is also accepted; decimals are rejected",
             "example": "-1500"
           },
           "currency": {
             "type": "string",
             "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
-            "description": "ISO 4217 currency code"
+            "description": "ISO 4217 currency code; must be the account currency (400 otherwise)"
           },
           "description": {
             "type": "string",
@@ -3098,6 +3329,78 @@
           "lastSyncedAt",
           "createdAt"
         ]
+      },
+      "AccountDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["bank", "manual"],
+            "description": "`bank`: synced from a bank connection; `manual`: a cash wallet kept by hand"
+          },
+          "name": {
+            "type": "string",
+            "example": "Cash"
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
+            "description": "ISO 4217 currency code"
+          },
+          "connectionId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Bank connection; null for manual"
+          },
+          "balance": {
+            "nullable": true,
+            "description": "Balance reported by the bank; null for a manual account (not tracked)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MoneyDto"
+              }
+            ]
+          },
+          "lastSyncedAt": {
+            "type": "string",
+            "nullable": true,
+            "example": "2024-06-15T10:00:00.000Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-06-15T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "currency",
+          "connectionId",
+          "balance",
+          "lastSyncedAt",
+          "createdAt"
+        ]
+      },
+      "CreateManualAccountDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Cash",
+            "maxLength": 100
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
+            "description": "ISO 4217 currency code"
+          }
+        },
+        "required": ["name", "currency"]
       },
       "DateRangeDto": {
         "type": "object",

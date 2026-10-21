@@ -580,12 +580,13 @@ describe('Tenancy isolation — application layer', () => {
       it('creates transaction tagged with the provided householdId', async () => {
         const txRepo = mock<TransactionRepository>();
         const txA = makeTransaction(HOUSEHOLD_A);
-        txRepo.accountBelongsTo.mockResolvedValue(true);
+        txRepo.findOwnedAccount.mockResolvedValue({ id: ACCOUNT_ID, currency: 'EUR' });
         txRepo.insertManual.mockResolvedValue(txA);
 
         const useCase = new AddManualTransactionUseCase(txRepo, () => VALID_UUID);
         const result = await useCase.execute({
           householdId: HOUSEHOLD_A,
+          userId: USER_A,
           accountId: ACCOUNT_ID,
           occurredOn: '2024-01-15',
           amountMinor: 1000n,
@@ -604,12 +605,13 @@ describe('Tenancy isolation — application layer', () => {
       it('does not create transaction in household B when called with household A scope', async () => {
         const txRepo = mock<TransactionRepository>();
         const txA = makeTransaction(HOUSEHOLD_A);
-        txRepo.accountBelongsTo.mockResolvedValue(true);
+        txRepo.findOwnedAccount.mockResolvedValue({ id: ACCOUNT_ID, currency: 'EUR' });
         txRepo.insertManual.mockResolvedValue(txA);
 
         const useCase = new AddManualTransactionUseCase(txRepo, () => VALID_UUID);
         await useCase.execute({
           householdId: HOUSEHOLD_A,
+          userId: USER_A,
           accountId: ACCOUNT_ID,
           occurredOn: '2024-01-15',
           amountMinor: 1000n,
@@ -628,13 +630,14 @@ describe('Tenancy isolation — application layer', () => {
     describe('AddManualTransactionUseCase — foreign account (audit H10)', () => {
       it('rejects an account of household B and writes nothing', async () => {
         const txRepo = mock<TransactionRepository>();
-        txRepo.accountBelongsTo.mockResolvedValue(false);
+        txRepo.findOwnedAccount.mockResolvedValue(null);
 
         const useCase = new AddManualTransactionUseCase(txRepo, () => VALID_UUID);
 
         await expect(
           useCase.execute({
             householdId: HOUSEHOLD_A,
+            userId: USER_A,
             accountId: ACCOUNT_ID,
             occurredOn: '2024-01-15',
             amountMinor: 1000n,
@@ -645,7 +648,7 @@ describe('Tenancy isolation — application layer', () => {
           }),
         ).rejects.toThrow(BankAccountNotFoundError);
 
-        expect(txRepo.accountBelongsTo).toHaveBeenCalledWith(ACCOUNT_ID, {
+        expect(txRepo.findOwnedAccount).toHaveBeenCalledWith(ACCOUNT_ID, USER_A, {
           householdId: HOUSEHOLD_A,
         });
         expect(txRepo.insertManual).not.toHaveBeenCalled();

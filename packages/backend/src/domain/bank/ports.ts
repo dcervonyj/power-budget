@@ -1,7 +1,10 @@
 import type { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
 import type {
+  Account,
   BankAccount,
   BankConnection,
+  ManualAccount,
+  NewManualAccount,
   BankCatalogEntry,
   BankProvider,
   CountryCode,
@@ -62,12 +65,20 @@ export interface BankConnectionRepository {
 }
 
 export interface BankAccountRepository {
+  /** Accounts synced from a connection belong to the connection's user (`ownerUserId`). */
   upsertAll(
     accounts: RawBankAccount[],
     connectionId: BankConnectionId,
+    ownerUserId: UserId,
     scope: HouseholdScope,
   ): Promise<void>;
   listByConnection(connectionId: BankConnectionId, scope: HouseholdScope): Promise<BankAccount[]>;
+}
+
+/** Every account kind (bank and manual), owner-filtered: accounts are private. */
+export interface AccountRepository {
+  listOwned(ownerUserId: UserId, scope: HouseholdScope): Promise<Account[]>;
+  createManual(input: NewManualAccount, scope: HouseholdScope): Promise<ManualAccount>;
 }
 
 export interface SyncRunRepository {

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { uuidv7 } from 'uuidv7';
 import { BankModule } from '../../infrastructure/bank/BankModule.js';
 import { AuditModule, REDACTING_AUDIT_LOGGER } from '../../infrastructure/audit/AuditModule.js';
 import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
@@ -17,11 +18,15 @@ import { DisconnectBankUseCase } from '../../application/bank/use-cases/Disconne
 import { ReconnectBankUseCase } from '../../application/bank/use-cases/ReconnectBankUseCase.js';
 import { GetBankCatalogUseCase } from '../../application/bank/use-cases/GetBankCatalogUseCase.js';
 import { ListConnectionAccountsUseCase } from '../../application/bank/use-cases/ListConnectionAccountsUseCase.js';
+import { ListAccountsUseCase } from '../../application/bank/use-cases/ListAccountsUseCase.js';
+import { CreateManualAccountUseCase } from '../../application/bank/use-cases/CreateManualAccountUseCase.js';
+import { DrizzleAccountRepository } from '../../infrastructure/bank/DrizzleAccountRepository.js';
 import { BankController } from './BankController.js';
+import { AccountsController } from './AccountsController.js';
 
 @Module({
   imports: [BankModule, AuditModule, AuthModule, ConfigModule],
-  controllers: [BankController],
+  controllers: [BankController, AccountsController],
   providers: [
     {
       provide: InitiateBankConnectionUseCase,
@@ -81,6 +86,16 @@ import { BankController } from './BankController.js';
       provide: ListConnectionAccountsUseCase,
       inject: [DrizzleBankAccountRepository],
       useFactory: (repo: DrizzleBankAccountRepository) => new ListConnectionAccountsUseCase(repo),
+    },
+    {
+      provide: ListAccountsUseCase,
+      inject: [DrizzleAccountRepository],
+      useFactory: (repo: DrizzleAccountRepository) => new ListAccountsUseCase(repo),
+    },
+    {
+      provide: CreateManualAccountUseCase,
+      inject: [DrizzleAccountRepository],
+      useFactory: (repo: DrizzleAccountRepository) => new CreateManualAccountUseCase(repo, uuidv7),
     },
   ],
 })
