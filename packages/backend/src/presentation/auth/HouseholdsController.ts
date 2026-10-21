@@ -34,6 +34,14 @@ import {
   HouseholdInviteResponseDto,
   InviteToHouseholdDto,
 } from './dto/households.dto.js';
+import {
+  HouseholdCreatedDto,
+  HouseholdDeletionScheduledDto,
+  HouseholdExportRequestedDto,
+  toHouseholdCreatedDto,
+  toHouseholdDeletionScheduledDto,
+  toHouseholdExportRequestedDto,
+} from './dto/households-response.dto.js';
 import { CreateHouseholdUseCase } from '../../application/auth/use-cases/CreateHouseholdUseCase.js';
 import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/InviteToHouseholdUseCase.js';
 import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInviteUseCase.js';
@@ -66,16 +74,19 @@ export class HouseholdsController {
   @Post()
   @ApiOperation({ summary: 'Create a new household' })
   @ApiBody({ type: CreateHouseholdDto })
-  @ApiResponse({ status: 201, description: 'Household created' })
+  @ApiResponse({ status: 201, description: 'Household created', type: HouseholdCreatedDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async create(@Body() dto: CreateHouseholdDto, @CurrentUser() user: AuthenticatedUser) {
+  async create(
+    @Body() dto: CreateHouseholdDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<HouseholdCreatedDto> {
     const result = await this.createHousehold.execute({
       userId: user.userId,
       name: dto.name,
       baseCurrency: dto.baseCurrency,
     });
 
-    return { householdId: result.id };
+    return toHouseholdCreatedDto(result.id);
   }
 
   @Post('invites')
@@ -199,17 +210,21 @@ export class HouseholdsController {
   @Post('export')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Request a household data export' })
-  @ApiResponse({ status: 201, description: 'Export requested' })
+  @ApiResponse({ status: 201, description: 'Export requested', type: HouseholdExportRequestedDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'No household' })
-  async requestExport(@CurrentUser() user: AuthenticatedUser) {
+  async requestExport(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<HouseholdExportRequestedDto> {
     if (!user.householdId) {
       throw new ForbiddenException('No household');
     }
-    return this.exportData.execute({
+    const output = await this.exportData.execute({
       householdId: user.householdId,
       requestedByUserId: user.userId,
     });
+
+    return toHouseholdExportRequestedDto(output);
   }
 
   @Delete(':id')
@@ -219,7 +234,11 @@ export class HouseholdsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Schedule household deletion (30-day hold)' })
   @ApiParam({ name: 'id', description: 'Household ID' })
-  @ApiResponse({ status: 202, description: 'Deletion scheduled' })
+  @ApiResponse({
+    status: 202,
+    description: 'Deletion scheduled',
+    type: HouseholdDeletionScheduledDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
@@ -228,7 +247,10 @@ export class HouseholdsController {
       '(codes requires_totp, requires_totp_enrollment)',
   })
   @ApiResponse({ status: 404, description: 'Household not found' })
-  async deleteHousehold(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async deleteHousehold(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<HouseholdDeletionScheduledDto> {
     if (!user.householdId) {
       throw new ForbiddenException('No household');
     }
@@ -238,10 +260,12 @@ export class HouseholdsController {
     }
 
     try {
-      return await this.scheduleDelete.execute({
+      const output = await this.scheduleDelete.execute({
         householdId: user.householdId,
         requestedByUserId: user.userId,
       });
+
+      return toHouseholdDeletionScheduledDto(output);
     } catch (err) {
       throw this.toHttpError(err);
     }

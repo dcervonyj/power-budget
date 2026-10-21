@@ -49,6 +49,9 @@ import { HouseholdAccess } from '../../application/auth/services/HouseholdAccess
 import { HouseholdInviteMailer } from '../../application/auth/services/HouseholdInviteMailer.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
+import { GetUserProfileUseCase } from '../../application/auth/use-cases/GetUserProfileUseCase.js';
+import { UpdateUserProfileUseCase } from '../../application/auth/use-cases/UpdateUserProfileUseCase.js';
+import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleUserProfileRepository.js';
 
 @Module({
   imports: [
@@ -185,6 +188,18 @@ import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteH
       provide: UpdateLocalePreferenceUseCase,
       inject: [DrizzleUserRepository],
       useFactory: (userRepo: DrizzleUserRepository) => new UpdateLocalePreferenceUseCase(userRepo),
+    },
+    {
+      provide: GetUserProfileUseCase,
+      inject: [DrizzleUserProfileRepository],
+      useFactory: (profileRepo: DrizzleUserProfileRepository) =>
+        new GetUserProfileUseCase(profileRepo),
+    },
+    {
+      provide: UpdateUserProfileUseCase,
+      inject: [DrizzleUserProfileRepository],
+      useFactory: (profileRepo: DrizzleUserProfileRepository) =>
+        new UpdateUserProfileUseCase(profileRepo),
     },
     {
       provide: CreateHouseholdUseCase,

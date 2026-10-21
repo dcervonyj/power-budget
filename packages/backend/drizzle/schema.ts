@@ -29,6 +29,9 @@ export const users = pgTable(
     displayName: varchar('display_name', { length: 255 }).notNull().default(''),
     localePreference: varchar('locale_preference', { length: 10 }),
     defaultLocale: varchar('default_locale', { length: 10 }).notNull().default('en'),
+    // Preferences (CLN-011): NULL base currency means "use the household's".
+    baseCurrency: char('base_currency', { length: 3 }),
+    timezone: varchar('timezone', { length: 64 }).notNull().default('UTC'),
     passwordHash: text('password_hash'),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     emailBouncing: boolean('email_bouncing').notNull().default(false),

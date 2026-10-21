@@ -1,14 +1,15 @@
-import type { PlanId, HouseholdId } from '@power-budget/core';
+import type { PlanId, HouseholdId, UserId } from '@power-budget/core';
 import type {
   PlanRepository,
-  HouseholdScope,
   UnplannedTransactionReader,
   UnplannedTransactionPage,
 } from '../../../domain/plans/ports.js';
+import { findVisiblePlan } from '../plan-lookup.js';
 
 export interface GetUnplannedTransactionsInput {
   readonly planId: PlanId;
   readonly householdId: HouseholdId;
+  readonly userId: UserId;
   readonly direction: 'income' | 'expense';
   readonly cursor?: string;
   readonly limit?: number;
@@ -21,12 +22,8 @@ export class GetUnplannedTransactionsUseCase {
   ) {}
 
   async execute(input: GetUnplannedTransactionsInput): Promise<UnplannedTransactionPage> {
-    const scope: HouseholdScope = { householdId: input.householdId };
-
-    const plan = await this.planRepo.findById(input.planId, scope);
-    if (plan === null) {
-      throw new Error(`PLAN_NOT_FOUND: Plan ${input.planId} not found in household ${input.householdId}`);
-    }
+    // A partner's personal plan is not visible either (PLAN_NOT_FOUND).
+    const plan = await findVisiblePlan(this.planRepo, input);
 
     return this.unplannedReader.list({
       householdId: input.householdId,

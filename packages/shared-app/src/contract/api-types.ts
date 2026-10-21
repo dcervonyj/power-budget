@@ -11,6 +11,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    /** Liveness check */
     get: operations['HealthController_health'];
     put?: never;
     post?: never;
@@ -169,14 +170,15 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Get the current authenticated user */
+    /** Get the current user profile and preferences */
     get: operations['UsersController_getMe'];
     put?: never;
     post?: never;
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    /** Update the display name and preferences (locale, base currency, time zone) */
+    patch: operations['UsersController_patchMe'];
     trace?: never;
   };
   '/users/me/locale': {
@@ -192,7 +194,11 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    /** Update the current user locale preference */
+    /**
+     * Update the current user locale preference
+     * @deprecated
+     * @description Deprecated: use PATCH /users/me with `locale`.
+     */
     patch: operations['UsersController_updateLocalePreference'];
     trace?: never;
   };
@@ -550,6 +556,129 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/plans': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List plans: household plans plus your own personal plans */
+    get: operations['PlansController_list'];
+    put?: never;
+    /** Create a plan */
+    post: operations['PlansController_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/plans/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a plan */
+    get: operations['PlansController_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Rename a plan, move its period or change its base currency */
+    patch: operations['PlansController_update'];
+    trace?: never;
+  };
+  '/plans/{id}/archive': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Archive a plan (idempotent). Archived plans are read-only */
+    post: operations['PlansController_archive'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/plans/{id}/clone': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Clone a plan and its planned items into a new period (default: the next one) */
+    post: operations['PlansController_clone'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/plans/{id}/items': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List the planned items of a plan */
+    get: operations['PlansController_items'];
+    put?: never;
+    /** Add a planned item */
+    post: operations['PlansController_createItem'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/plans/{id}/items/{itemId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Remove a planned item; transactions mapped to it become unplanned */
+    delete: operations['PlansController_deleteItem'];
+    options?: never;
+    head?: never;
+    /** Change a planned item (the change is kept in its history) */
+    patch: operations['PlansController_patchItem'];
+    trace?: never;
+  };
+  '/plans/{id}/items/{itemId}/history': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Change history of a planned item, newest first */
+    get: operations['PlansController_history'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/plans/{id}/dashboard': {
     parameters: {
       query?: never;
@@ -618,6 +747,41 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/categories': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List system categories and the household's own categories */
+    get: operations['CategoriesController_list'];
+    put?: never;
+    /** Create a household category */
+    post: operations['CategoriesController_create'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/categories/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Rename, restyle, archive/restore or set the privacy of a category */
+    patch: operations['CategoriesController_update'];
+    trace?: never;
+  };
   '/fx-rates': {
     parameters: {
       query?: never;
@@ -639,6 +803,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    HealthStatusDto: {
+      /**
+       * @example ok
+       * @enum {string}
+       */
+      status: 'ok';
+      /** @example 2024-06-15T10:00:00.000Z */
+      ts: string;
+    };
     RegisterDto: {
       /** @example user@example.com */
       email: string;
@@ -649,6 +822,13 @@ export interface components {
        * @enum {string}
        */
       locale: 'en' | 'uk' | 'ru' | 'pl';
+    };
+    AuthTokensDto: {
+      userId: string;
+      /** @description Short-lived JWT access token */
+      accessToken: string;
+      /** @description Opaque refresh token */
+      refreshToken: string;
     };
     LoginDto: {
       /** @example user@example.com */
@@ -674,6 +854,12 @@ export interface components {
        */
       totp?: string;
     };
+    TotpEnrollmentDto: {
+      /** @description otpauth:// URI to render as a QR code */
+      qrCodeUri: string;
+      /** @description Base32 TOTP secret for manual entry */
+      secret: string;
+    };
     VerifyTotpDto: {
       /**
        * @description 6-digit TOTP code
@@ -688,6 +874,67 @@ export interface components {
     LogoutDto: {
       /** @description Refresh token to revoke */
       refreshToken: string;
+    };
+    UserProfileDto: {
+      /** Format: uuid */
+      id: string;
+      /** @example anna@example.com */
+      email: string;
+      /** @example Anna */
+      displayName: string;
+      /**
+       * @description Effective locale: the preference, else the default
+       * @enum {string}
+       */
+      locale: 'en' | 'uk' | 'ru' | 'pl';
+      /** @enum {string|null} */
+      localePreference: 'en' | 'uk' | 'ru' | 'pl' | null;
+      /** @enum {string} */
+      defaultLocale: 'en' | 'uk' | 'ru' | 'pl';
+      /**
+       * @description Effective base currency: the user's preference, else the household's
+       * @enum {string|null}
+       */
+      baseCurrency:
+        | 'PLN'
+        | 'EUR'
+        | 'USD'
+        | 'GBP'
+        | 'UAH'
+        | 'RUB'
+        | 'CHF'
+        | 'CZK'
+        | 'SEK'
+        | 'NOK'
+        | 'DKK'
+        | null;
+      /**
+       * @description IANA time zone name
+       * @example Europe/Warsaw
+       */
+      timezone: string;
+      /** Format: uuid */
+      householdId: string | null;
+    };
+    UpdateUserProfileDto: {
+      /** @example Anna */
+      displayName?: string;
+      /**
+       * @example pl
+       * @enum {string}
+       */
+      locale?: 'en' | 'uk' | 'ru' | 'pl';
+      /**
+       * @example PLN
+       * @enum {string}
+       */
+      baseCurrency?:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+      /**
+       * @description IANA time zone name
+       * @example Europe/Warsaw
+       */
+      timezone?: string;
     };
     UpdateLocaleDto: {
       /**
@@ -704,6 +951,9 @@ export interface components {
        * @example PLN
        */
       baseCurrency?: string;
+    };
+    HouseholdCreatedDto: {
+      householdId: string;
     };
     InviteToHouseholdDto: {
       /** @example member@example.com */
@@ -733,6 +983,18 @@ export interface components {
       householdId: string;
       /** @description New access token scoped to the joined household (the refresh token stays valid) */
       accessToken: string;
+    };
+    HouseholdExportRequestedDto: {
+      exportId: string;
+      /** @enum {string} */
+      status: 'pending';
+    };
+    HouseholdDeletionScheduledDto: {
+      /**
+       * @description When the household and its data will be purged
+       * @example 2024-07-15T10:00:00.000Z
+       */
+      scheduledFor: string;
     };
     MoneyDto: {
       /**
@@ -825,6 +1087,37 @@ export interface components {
       /** @description Operation-specific payload */
       payload?: Record<string, never>;
     };
+    AuditEventDto: {
+      id: string;
+      householdId: string;
+      /** @description User who performed the action */
+      actorId: string;
+      /** @example Plan */
+      subjectType: string;
+      subjectId: string;
+      /** @example PLAN_CREATED */
+      action: string;
+      /** @description Redacted event context */
+      meta: {
+        [key: string]: unknown;
+      };
+      /** @example 2024-06-15T10:00:00.000Z */
+      occurredAt: string;
+    };
+    AuditPageDto: {
+      items: components['schemas']['AuditEventDto'][];
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
+    BankCatalogEntryDto: {
+      /** @example PKO_BPKOPLPW */
+      bankId: string;
+      /** @example PKO Bank Polski */
+      name: string;
+      /** @example PL */
+      countryCode: string;
+      logoUrl: string | null;
+    };
     InitiateBankConnectionDto: {
       /** @enum {string} */
       provider: 'gocardless' | 'wise_personal';
@@ -839,12 +1132,45 @@ export interface components {
        */
       redirectUri: string;
     };
+    BankConsentLinkDto: {
+      /** @description Provider consent page to redirect the user to */
+      consentUrl: string;
+      connectionId: string;
+    };
+    BankConsentCompletedDto: {
+      connectionId: string;
+    };
+    BankConnectionDto: {
+      id: string;
+      householdId: string;
+      userId: string;
+      /** @enum {string} */
+      provider: 'gocardless' | 'wise_personal';
+      /** @example PKO_BPKOPLPW */
+      bankId: string;
+      /** @enum {string} */
+      status: 'active' | 'expired' | 'disconnected' | 'reconnect_required';
+      /** @example 2024-09-15T10:00:00.000Z */
+      expiresAt: string | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      disconnectedAt: string | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      createdAt: string;
+    };
+    BankRefreshEnqueuedDto: {
+      /** @description Sync job id, null if deduplicated */
+      jobId: string | null;
+    };
     ReconnectBankDto: {
       /**
        * @description OAuth redirect URI after consent
        * @example https://app.power-budget.test/connect/callback
        */
       redirectUri?: string;
+    };
+    BankReconnectLinkDto: {
+      /** @description Provider consent page to redirect the user to */
+      consentUrl: string;
     };
     BankAccountDto: {
       id: string;
@@ -868,6 +1194,143 @@ export interface components {
       start: string;
       /** @example 2024-06-30 */
       end: string;
+    };
+    PlanDto: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @enum {string} */
+      type: 'personal' | 'household';
+      /**
+       * Format: uuid
+       * @description Set for personal plans
+       */
+      ownerUserId: string | null;
+      /** @enum {string} */
+      periodKind: 'weekly' | 'monthly' | 'custom';
+      period: components['schemas']['DateRangeDto'];
+      /** @example PLN */
+      baseCurrency: string;
+      /** Format: date-time */
+      archivedAt: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    CreatePlanDto: {
+      /** @example October budget */
+      name: string;
+      /**
+       * @description personal plans are visible to their owner only
+       * @enum {string}
+       */
+      type: 'personal' | 'household';
+      /** @enum {string} */
+      periodKind: 'weekly' | 'monthly' | 'custom';
+      /** @example 2026-10-01 */
+      periodStart: string;
+      /**
+       * @description Required for custom plans; derived from the start for weekly and monthly
+       * @example 2026-10-31
+       */
+      periodEnd?: string;
+      /**
+       * @example PLN
+       * @enum {string}
+       */
+      baseCurrency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+    };
+    UpdatePlanDto: {
+      name?: string;
+      /**
+       * @description Moves the period; weekly and monthly plans derive the end again
+       * @example 2026-11-01
+       */
+      periodStart?: string;
+      /** @example 2026-11-30 */
+      periodEnd?: string;
+      /** @enum {string} */
+      baseCurrency?:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+    };
+    ClonePlanDto: {
+      /** @description Defaults to the source name */
+      name?: string;
+      /**
+       * @description Defaults to the day after the source period ends
+       * @example 2026-11-01
+       */
+      periodStart?: string;
+      /** @example 2026-11-30 */
+      periodEnd?: string;
+    };
+    PlannedItemDto: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      planId: string;
+      /** Format: uuid */
+      categoryId: string;
+      /** @enum {string} */
+      direction: 'income' | 'expense';
+      amount: components['schemas']['MoneyDto'];
+      note: string | null;
+      /** Format: date-time */
+      createdAt: string;
+      /** Format: date-time */
+      updatedAt: string;
+    };
+    CreatePlannedItemDto: {
+      /** Format: uuid */
+      categoryId: string;
+      /** @enum {string} */
+      direction: 'income' | 'expense';
+      /**
+       * @description Planned amount in minor units as an integer string (a safe JSON integer is accepted)
+       * @example 150000
+       */
+      amountMinor: string;
+      /**
+       * @example PLN
+       * @enum {string}
+       */
+      currency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+      note?: string | null;
+    };
+    UpdatePlannedItemDto: {
+      /**
+       * @description Send together with currency
+       * @example 160000
+       */
+      amountMinor?: string;
+      /** @enum {string} */
+      currency?:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+      note?: string | null;
+      /** @description Stored in the item history */
+      reason?: string;
+    };
+    PlannedItemChangeDto: {
+      amount?: components['schemas']['MoneyDto'];
+      note?: string | null;
+    };
+    PlannedItemVersionDto: {
+      /** Format: uuid */
+      id: string;
+      /** Format: uuid */
+      plannedItemId: string;
+      /** @description Values before the change */
+      before: components['schemas']['PlannedItemChangeDto'] | null;
+      /** @description Values after the change */
+      after: components['schemas']['PlannedItemChangeDto'];
+      /** Format: uuid */
+      changedBy: string;
+      /** Format: date-time */
+      changedAt: string;
+      reason: string | null;
     };
     PlannedItemActualsDto: {
       plannedItemId: string;
@@ -916,6 +1379,13 @@ export interface components {
       items: components['schemas']['UnplannedTransactionDto'][];
       nextCursor: string | null;
     };
+    WebhookAcceptedDto: {
+      /**
+       * @example true
+       * @enum {boolean}
+       */
+      ok: true;
+    };
     HouseholdDashboardCategoryDto: {
       /** @description Category ID */
       categoryId: string;
@@ -944,6 +1414,51 @@ export interface components {
       planId: string;
       /** @description Per-category aggregates */
       categories: components['schemas']['HouseholdDashboardCategoryDto'][];
+    };
+    CategoryDto: {
+      /** Format: uuid */
+      id: string;
+      name: string;
+      /** @enum {string} */
+      kind: 'income' | 'expense';
+      /** @example tag */
+      icon: string;
+      /** @example #6B7280 */
+      color: string;
+      /** @description Seeded category shared by all households (read-only) */
+      isSystem: boolean;
+      /** @example expense.groceries */
+      seedKey: string | null;
+      /** @enum {string} */
+      privacy: 'full_detail' | 'total_with_counts' | 'total_only';
+      archived: boolean;
+      /** Format: date-time */
+      archivedAt: string | null;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    CreateCategoryDto: {
+      /** @example Coffee */
+      name: string;
+      /**
+       * @description Defaults to expense
+       * @enum {string}
+       */
+      kind?: 'income' | 'expense';
+      /** @example coffee */
+      icon?: string;
+      /** @example #6B7280 */
+      color?: string;
+    };
+    UpdateCategoryDto: {
+      name?: string;
+      icon?: string;
+      /** @example #10B981 */
+      color?: string;
+      /** @enum {string} */
+      privacy?: 'full_detail' | 'total_with_counts' | 'total_only';
+      /** @description true archives, false restores */
+      archived?: boolean;
     };
     FxRatesResponseDto: {
       /**
@@ -987,11 +1502,14 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
+      /** @description Service is up */
       200: {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['HealthStatusDto'];
+        };
       };
     };
   };
@@ -1013,7 +1531,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['AuthTokensDto'];
+        };
       };
       /** @description Email already in use */
       409: {
@@ -1042,7 +1562,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['AuthTokensDto'];
+        };
       };
       /** @description Invalid credentials or TOTP code */
       401: {
@@ -1114,7 +1636,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['AuthTokensDto'];
+        };
       };
       /** @description Token invalid or expired, or invalid TOTP code */
       401: {
@@ -1153,7 +1677,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['TotpEnrollmentDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -1232,7 +1758,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['AuthTokensDto'];
+        };
       };
       /** @description Refresh token invalid or expired */
       401: {
@@ -1283,6 +1811,46 @@ export interface operations {
     responses: {
       /** @description Current user profile */
       200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserProfileDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  UsersController_patchMe: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateUserProfileDto'];
+      };
+    };
+    responses: {
+      /** @description Updated profile */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UserProfileDto'];
+        };
+      };
+      /** @description Invalid field (e.g. unknown time zone) */
+      400: {
         headers: {
           [name: string]: unknown;
         };
@@ -1344,7 +1912,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['HouseholdCreatedDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -1606,7 +2176,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['HouseholdExportRequestedDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -1641,7 +2213,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['HouseholdDeletionScheduledDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -1791,8 +2365,17 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Transaction updated */
+      /** @description Updated transaction */
       200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TransactionDetailDto'];
+        };
+      };
+      /** @description Invalid id or body */
+      400: {
         headers: {
           [name: string]: unknown;
         };
@@ -1970,6 +2553,15 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['AuditPageDto'];
+        };
+      };
+      /** @description Invalid query parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
         content?: never;
       };
       /** @description Unauthorized */
@@ -1995,7 +2587,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['BankCatalogEntryDto'][];
+        };
       };
     };
   };
@@ -2013,7 +2607,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['BankConnectionDto'][];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -2042,7 +2638,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['BankConsentLinkDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -2082,7 +2680,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['BankConsentCompletedDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -2117,7 +2717,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['BankRefreshEnqueuedDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -2205,7 +2807,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['BankReconnectLinkDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -2260,12 +2864,547 @@ export interface operations {
       };
     };
   };
+  PlansController_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Plans ordered by period start */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanDto'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreatePlanDto'];
+      };
+    };
+    responses: {
+      /** @description Plan created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanDto'];
+        };
+      };
+      /** @description Invalid body or period */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description An active plan of this type and period overlaps */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The plan */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdatePlanDto'];
+      };
+    };
+    responses: {
+      /** @description Updated plan */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan archived, or the new period overlaps */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_archive: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Plan archived */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_clone: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Source plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ClonePlanDto'];
+      };
+    };
+    responses: {
+      /** @description The new plan */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlanDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description An active plan of this type and period overlaps */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_items: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Planned items */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlannedItemDto'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_createItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreatePlannedItemDto'];
+      };
+    };
+    responses: {
+      /** @description Planned item created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlannedItemDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan or category not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan archived */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_deleteItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Planned item ID (UUIDv7) */
+        itemId: unknown;
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Planned item removed */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan or planned item not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan archived */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_patchItem: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Planned item ID (UUIDv7) */
+        itemId: unknown;
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdatePlannedItemDto'];
+      };
+    };
+    responses: {
+      /** @description Updated planned item */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlannedItemDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan or planned item not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan archived */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  PlansController_history: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Planned item ID (UUIDv7) */
+        itemId: unknown;
+        /** @description Plan ID (UUIDv7) */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description History entries */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PlannedItemVersionDto'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Plan or planned item not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   PlansController_dashboard: {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Plan ID */
+        /** @description Plan ID (UUIDv7) */
         id: unknown;
       };
       cookie?: never;
@@ -2316,7 +3455,7 @@ export interface operations {
       };
       header?: never;
       path: {
-        /** @description Plan ID */
+        /** @description Plan ID (UUIDv7) */
         id: unknown;
       };
       cookie?: never;
@@ -2376,7 +3515,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['WebhookAcceptedDto'];
+        };
       };
       /** @description Missing or invalid webhook signature */
       401: {
@@ -2426,6 +3567,140 @@ export interface operations {
       };
       /** @description Household or plan not found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CategoriesController_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Categories */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CategoryDto'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CategoriesController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateCategoryDto'];
+      };
+    };
+    responses: {
+      /** @description Category created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CategoryDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description An active category with this name exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  CategoriesController_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Category ID */
+        id: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateCategoryDto'];
+      };
+    };
+    responses: {
+      /** @description Updated category */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['CategoryDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description System categories are read-only */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Category not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description An active category with this name exists */
+      409: {
         headers: {
           [name: string]: unknown;
         };

@@ -1,17 +1,18 @@
 import { PlanId, PlannedItemId } from '@power-budget/core';
 import type { IsoDate, UserId, HouseholdId } from '@power-budget/core';
-import type { Plan, NewPlan, NewPlannedItem } from '../../../domain/plans/entities.js';
+import type { Plan, NewPlan, NewPlannedItem, PlannedItem } from '../../../domain/plans/entities.js';
 import type {
   PlanRepository,
   PlannedItemRepository,
   AuditLogPort,
-  HouseholdScope,
 } from '../../../domain/plans/ports.js';
-import { PlanCloning } from '../../../domain/plans/plan-cloning.js';
+import { PlanCloning, PlanPeriods } from '../../../domain/plans/plan-cloning.js';
+import { findVisiblePlan } from '../plan-lookup.js';
 
 export interface ClonePlanFromPreviousInput {
   readonly sourcePlanId: PlanId;
   readonly name?: string;
+  /** Defaults to the next contiguous period of the source plan. */
   readonly periodStart?: IsoDate;
   readonly periodEnd?: IsoDate;
   readonly householdId: HouseholdId;
@@ -27,21 +28,35 @@ export class ClonePlanFromPreviousUseCase {
   ) {}
 
   async execute(input: ClonePlanFromPreviousInput): Promise<Plan> {
-    const scope: HouseholdScope = { householdId: input.householdId };
+    const source = await findVisiblePlan(this.planRepo, {
+      planId: input.sourcePlanId,
+      householdId: input.householdId,
+      userId: input.userId,
+    });
 
-    const source = await this.planRepo.findById(input.sourcePlanId, scope);
-    if (source === null) {
-      throw new Error(`PLAN_NOT_FOUND: Source plan ${input.sourcePlanId} not found`);
-    }
-
-    const overridePeriod = this.buildOverridePeriod(input.periodStart, input.periodEnd);
+    const overridePeriod =
+      input.periodStart !== undefined
+        ? PlanPeriods.resolve(source.periodKind, input.periodStart, input.periodEnd)
+        : undefined;
     const cloneBase = PlanCloning.buildClone(source, PlanId.of(this.generateId()), overridePeriod);
     const newPlanData: NewPlan =
       input.name !== undefined ? { ...cloneBase, name: input.name } : cloneBase;
 
-    const newPlan = await this.planRepo.create(newPlanData);
+    const overlapping = await this.planRepo.list({
+      householdId: input.householdId,
+      viewerUserId: input.userId,
+      status: 'active',
+      overlapping: newPlanData.period,
+    });
+    PlanCloning.assertNoDuplicateActivePlan(overlapping, newPlanData);
 
-    await this.cloneItems(input.sourcePlanId, newPlan.id, input.householdId);
+    const newPlan = await this.planRepo.create(newPlanData);
+    const items = await this.plannedItemRepo.listByPlan(source.id, {
+      householdId: input.householdId,
+    });
+    for (const item of items) {
+      await this.plannedItemRepo.add(this.cloneItem(item, newPlan));
+    }
 
     await this.auditLog.record({
       householdId: input.householdId,
@@ -54,34 +69,15 @@ export class ClonePlanFromPreviousUseCase {
     return newPlan;
   }
 
-  private buildOverridePeriod(
-    start: IsoDate | undefined,
-    end: IsoDate | undefined,
-  ): { start: IsoDate; end: IsoDate } | undefined {
-    if (start !== undefined && end !== undefined) {
-      return { start, end };
-    }
-
-    return undefined;
-  }
-
-  private async cloneItems(
-    sourcePlanId: PlanId,
-    newPlanId: PlanId,
-    householdId: HouseholdId,
-  ): Promise<void> {
-    const items = await this.plannedItemRepo.listByPlan(sourcePlanId, { householdId });
-
-    const additions = items.map((item): NewPlannedItem => ({
+  private cloneItem(item: PlannedItem, newPlan: Plan): NewPlannedItem {
+    return {
       id: PlannedItemId.of(this.generateId()),
-      planId: newPlanId,
-      householdId,
+      planId: newPlan.id,
+      householdId: newPlan.householdId,
       categoryId: item.categoryId,
       direction: item.direction,
       amount: item.amount,
       note: item.note,
-    }));
-
-    await Promise.all(additions.map((item) => this.plannedItemRepo.add(item)));
+    };
   }
 }
