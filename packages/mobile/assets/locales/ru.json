@@ -1,1 +1,23 @@
-{}
+{
+  "screen.dashboard.title": "Сводка",
+  "screen.dashboard.income": "Доходы",
+  "screen.dashboard.expenses": "Расходы",
+  "screen.dashboard.unplanned": "Вне плана",
+  "screen.dashboard.bottomLine": "Итог",
+  "screen.dashboard.planned": "План",
+  "screen.dashboard.actual": "Факт",
+  "screen.dashboard.noPlan": "Нет активного плана",
+  "screen.transactionList.title": "Транзакции",
+  "screen.transactionList.empty": "Транзакций нет",
+  "screen.transactionList.filter": "Фильтр",
+  "screen.transactionDetail.title": "Транзакция",
+  "screen.transactionDetail.mapping": "Привязана к",
+  "screen.transactionDetail.unmap": "Убрать привязку",
+  "screen.transactionDetail.mapTo": "Привязать к плановой позиции",
+  "screen.transactionDetail.markTransfer": "Отметить как перевод",
+  "screen.transactionDetail.notes": "Заметки",
+  "screen.transactionDetail.save": "Сохранить",
+  "component.transactionStatus.unmapped": "Не привязана",
+  "component.transactionStatus.mapped": "Привязана",
+  "component.transactionStatus.transfer": "Перевод"
+}
