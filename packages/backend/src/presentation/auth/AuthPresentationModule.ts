@@ -118,12 +118,14 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
         DrizzleUserRepository,
         DrizzleMagicLinkTokenRepository,
         DrizzleNotificationOutboxPort,
+        AppConfigAdapter,
       ],
       useFactory: (
         userRepo: DrizzleUserRepository,
         magicLinkTokenRepo: DrizzleMagicLinkTokenRepository,
         notificationOutbox: DrizzleNotificationOutboxPort,
-      ) => new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox),
+        config: AppConfigAdapter,
+      ) => new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox, config),
     },
     {
       provide: ConsumeMagicLinkUseCase,

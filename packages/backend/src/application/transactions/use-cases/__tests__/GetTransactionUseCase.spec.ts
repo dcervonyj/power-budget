@@ -59,8 +59,8 @@ describe('GetTransactionUseCase', () => {
 
     const result = await useCase.execute(txId, householdId);
 
-    expect(mappingRepo.findByTransaction).toHaveBeenCalledWith(txId);
-    expect(transferRepo.findByTransaction).toHaveBeenCalledWith(txId);
+    expect(mappingRepo.findByTransaction).toHaveBeenCalledWith(txId, { householdId });
+    expect(transferRepo.findByTransaction).toHaveBeenCalledWith(txId, { householdId });
     expect(result.mapping).toBeNull();
     expect(result.transfer).toBeNull();
   });

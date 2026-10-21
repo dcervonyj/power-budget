@@ -18,6 +18,7 @@ import type {
   TransactionQuery,
 } from '../../domain/transactions/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
+import { containsPattern } from '../database/likePattern.js';
 import * as schema from '../../../drizzle/schema.js';
 import type { TransactionSource } from '../../domain/transactions/entities.js';
 
@@ -34,6 +35,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
           .from(schema.transactions)
           .where(
             and(
+              eq(schema.transactions.householdId, input.householdId),
               eq(schema.transactions.accountId, input.accountId),
               eq(schema.transactions.externalId, input.externalId),
             ),
@@ -88,6 +90,21 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     return this.toEntity(rows[0]!);
   }
 
+  async accountBelongsTo(accountId: BankAccountId, scope: HouseholdScope): Promise<boolean> {
+    const rows = await this.db
+      .select({ id: schema.bankAccounts.id })
+      .from(schema.bankAccounts)
+      .where(
+        and(
+          eq(schema.bankAccounts.id, accountId),
+          eq(schema.bankAccounts.householdId, scope.householdId),
+        ),
+      )
+      .limit(1);
+
+    return rows.length > 0;
+  }
+
   async findById(id: TransactionId, scope: HouseholdScope): Promise<Transaction | null> {
     const rows = await this.db
       .select()
@@ -114,7 +131,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       conditions.push(lte(schema.transactions.occurredOn, query.dateTo));
     }
     if (query.search) {
-      conditions.push(ilike(schema.transactions.description, `%${query.search}%`));
+      conditions.push(ilike(schema.transactions.description, containsPattern(query.search)));
     }
     if (query.cursor) {
       conditions.push(gt(schema.transactions.id, query.cursor));
@@ -142,6 +159,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   async patch(
     id: TransactionId,
     patch: Partial<Pick<Transaction, 'notes' | 'ignored' | 'suggestedPlannedItemId'>>,
+    scope: HouseholdScope,
   ): Promise<void> {
     const updates: Record<string, unknown> = {};
     if (patch.notes !== undefined) {
@@ -155,7 +173,12 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       return;
     }
 
-    await this.db.update(schema.transactions).set(updates).where(eq(schema.transactions.id, id));
+    await this.db
+      .update(schema.transactions)
+      .set(updates)
+      .where(
+        and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
+      );
   }
 
   private toEntity(row: schema.SelectTransaction): Transaction {

@@ -4,7 +4,7 @@ import type { Plan } from '../../../../domain/plans/entities.js';
 import type { PlanRepository } from '../../../../domain/plans/ports.js';
 import type { ClosePeriodSnapshotInput } from '../ClosePeriodSnapshotUseCase.js';
 import { ClosePeriodSnapshotUseCase } from '../ClosePeriodSnapshotUseCase.js';
-import { PeriodCloseUseCase } from '../PeriodCloseUseCase.js';
+import { PeriodCloseFailedError, PeriodCloseUseCase } from '../PeriodCloseUseCase.js';
 
 const PLAN_ID_1 = 'plan-1' as PlanId;
 const PLAN_ID_2 = 'plan-2' as PlanId;
@@ -78,7 +78,7 @@ describe('PeriodCloseUseCase', () => {
     expect(closePeriodSnapshot.execute).not.toHaveBeenCalled();
   });
 
-  it('is idempotent — continues processing remaining plans when one fails', async () => {
+  it('closes the remaining plans, then fails the job so BullMQ retries the failed one', async () => {
     const now = new Date('2024-02-01T00:30:00Z');
     const yesterdayPlans = [
       makePlan(PLAN_ID_1, '2024-01-31' as IsoDate),
@@ -89,10 +89,12 @@ describe('PeriodCloseUseCase', () => {
       .mockRejectedValueOnce(new Error('DB error'))
       .mockResolvedValueOnce(undefined);
 
-    const result = await useCase.execute(now);
+    const failure = await useCase.execute(now).catch((err: unknown) => err);
 
-    // First plan failed, second succeeded
-    expect(result).toEqual({ plansProcessed: 1 });
+    expect(failure).toBeInstanceOf(PeriodCloseFailedError);
+    expect(failure).toMatchObject({ plansProcessed: 1 });
+    expect([...(failure as PeriodCloseFailedError).failures.keys()]).toEqual([PLAN_ID_1]);
+    expect((failure as PeriodCloseFailedError).message).toContain('DB error');
     expect(closePeriodSnapshot.execute).toHaveBeenCalledTimes(2);
   });
 });

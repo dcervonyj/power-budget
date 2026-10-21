@@ -86,6 +86,17 @@ const BY_MESSAGE_CODE: Readonly<Record<string, HttpErrorMapping>> = {
     'transaction_not_found',
     'Transaction not found',
   ),
+  // Tenancy checks (CLN-005): an id from another household reads as not found.
+  BANK_ACCOUNT_NOT_FOUND: mapping(
+    HttpStatus.NOT_FOUND,
+    'bank_account_not_found',
+    'Bank account not found',
+  ),
+  PLANNED_ITEM_NOT_FOUND: mapping(
+    HttpStatus.NOT_FOUND,
+    'planned_item_not_found',
+    'Planned item not found',
+  ),
   ALREADY_MAPPED: mapping(HttpStatus.CONFLICT, 'already_mapped', 'Transaction is already mapped'),
   ALREADY_TRANSFER: mapping(
     HttpStatus.CONFLICT,
@@ -103,11 +114,6 @@ const BY_MESSAGE_CODE: Readonly<Record<string, HttpErrorMapping>> = {
     HttpStatus.BAD_REQUEST,
     'plan_period_invalid',
     'Invalid plan period',
-  ),
-  PLANNED_ITEM_NOT_FOUND: mapping(
-    HttpStatus.NOT_FOUND,
-    'planned_item_not_found',
-    'Planned item not found',
   ),
   CATEGORY_NOT_FOUND: mapping(HttpStatus.NOT_FOUND, 'category_not_found', 'Category not found'),
   CATEGORY_DUPLICATE: mapping(
