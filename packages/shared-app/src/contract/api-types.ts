@@ -1356,6 +1356,7 @@ export interface components {
       totalActualExpenses: components['schemas']['MoneyDto'];
       unplannedExpenses: components['schemas']['MoneyDto'];
       unplannedIncome: components['schemas']['MoneyDto'];
+      /** @description (actual + unplanned income) - (actual + unplanned expenses), in the base currency */
       net: components['schemas']['MoneyDto'];
       /** @example 2024-06-15 */
       asOf: string;
@@ -1376,6 +1377,7 @@ export interface components {
       source: string;
     };
     UnplannedTransactionPageDto: {
+      /** @description Only the caller's own transactions; a partner's count in the dashboard totals only */
       items: components['schemas']['UnplannedTransactionDto'][];
       nextCursor: string | null;
     };
@@ -1392,21 +1394,21 @@ export interface components {
       /** @description Category name */
       categoryName: string;
       /**
-       * @description Privacy level applied for the viewing user
+       * @description Level applied to the partner's transactions in this category (total_only when not configured); the viewer's own are always counted
        * @enum {string}
        */
       privacyLevel: 'full_detail' | 'total_with_counts' | 'total_only';
       /**
-       * @description Total amount in minor currency units (e.g. cents) as an integer string
+       * @description Both members' total in the plan's base currency, minor units as an integer string. Expense categories: spend net of refunds; income categories: received
        * @example 150000
        */
       totalAmountMinor: string;
       /**
-       * @description ISO 4217 currency code
+       * @description The plan's base currency (ISO 4217)
        * @example PLN
        */
       currency: string;
-      /** @description Number of transactions (0 for total_only privacy) */
+      /** @description The viewer's own transactions, plus the partner's unless privacyLevel is total_only */
       transactionCount: number;
     };
     HouseholdDashboardResponseDto: {
@@ -3441,6 +3443,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description Exchange rate unavailable (fx_rate_unavailable) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   PlansController_unplanned: {
@@ -3567,6 +3576,13 @@ export interface operations {
       };
       /** @description Household or plan not found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Exchange rate unavailable (fx_rate_unavailable) */
+      503: {
         headers: {
           [name: string]: unknown;
         };

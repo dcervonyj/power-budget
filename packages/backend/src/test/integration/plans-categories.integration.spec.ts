@@ -456,7 +456,7 @@ describe('Plans, categories and preferences API (real app)', () => {
         kind: 'expense',
         color: '#112233',
         isSystem: false,
-        privacy: 'full_detail',
+        privacy: 'total_only',
         archived: false,
       });
 

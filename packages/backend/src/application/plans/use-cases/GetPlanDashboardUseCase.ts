@@ -19,6 +19,6 @@ export class GetPlanDashboardUseCase {
     // A partner's personal plan is not visible either (PLAN_NOT_FOUND).
     const plan = await findVisiblePlan(this.planRepo, input);
 
-    return this.actualsReader.read(plan.id, input.asOf);
+    return this.actualsReader.read(plan, input.asOf);
   }
 }

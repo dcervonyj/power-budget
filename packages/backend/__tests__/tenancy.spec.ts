@@ -42,7 +42,6 @@ import type {
   TransactionRepository,
   MappingRepository,
   TransferRepository,
-  PlanActualsRefreshPort,
   MappingSuggestionPort,
 } from '../src/domain/transactions/ports.js';
 import type { Transaction } from '../src/domain/transactions/entities.js';
@@ -534,15 +533,13 @@ describe('Tenancy isolation — application layer', () => {
         const txRepo = mock<TransactionRepository>();
         const mappingRepo = mock<MappingRepository>();
         const transferRepo = mock<TransferRepository>();
-        const refreshPort = mock<PlanActualsRefreshPort>();
         const txA = makeTransaction(HOUSEHOLD_A);
 
         txRepo.findById.mockResolvedValue(txA);
         transferRepo.findByTransaction.mockResolvedValue(null);
         mappingRepo.set.mockResolvedValue(undefined);
-        refreshPort.scheduleRefresh.mockResolvedValue(undefined);
 
-        const useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo, refreshPort);
+        const useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo);
         await useCase.execute({
           transactionId: TX_ID_A,
           plannedItemId: PLANNED_ITEM_ID,
@@ -559,12 +556,11 @@ describe('Tenancy isolation — application layer', () => {
         const txRepo = mock<TransactionRepository>();
         const mappingRepo = mock<MappingRepository>();
         const transferRepo = mock<TransferRepository>();
-        const refreshPort = mock<PlanActualsRefreshPort>();
 
         // Scoped repo returns null for wrong household
         txRepo.findById.mockResolvedValue(null);
 
-        const useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo, refreshPort);
+        const useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo);
 
         await expect(
           useCase.execute({
@@ -684,9 +680,8 @@ describe('Tenancy isolation — application layer', () => {
     describe('BulkMapTransactionsUseCase (audit H10)', () => {
       it('hands the caller household scope to the repository', async () => {
         const mappingRepo = mock<MappingRepository>();
-        const refreshPort = mock<PlanActualsRefreshPort>();
 
-        const useCase = new BulkMapTransactionsUseCase(mappingRepo, refreshPort);
+        const useCase = new BulkMapTransactionsUseCase(mappingRepo);
         await useCase.execute({
           mappings: [{ transactionId: TX_ID_A, plannedItemId: PLANNED_ITEM_ID }],
           by: USER_A,

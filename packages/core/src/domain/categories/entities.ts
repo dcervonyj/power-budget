@@ -42,8 +42,10 @@ export interface CategoryAggregate {
   readonly categoryId: CategoryId;
   readonly category: Category;
   readonly totalAmount: Money;
+  /** The viewer's own transactions, plus the partner's unless privacyLevel is total_only. */
   readonly transactionCount: number;
-  /** Present only when privacyLevel === 'full_detail' */
+  /** The viewer's own transactions, plus the partner's when privacyLevel is full_detail; absent when empty. */
   readonly transactions?: readonly TransactionSummary[];
+  /** The level applied to the partner's transactions in this category. */
   readonly privacyLevel: CategoryPrivacyLevel;
 }
