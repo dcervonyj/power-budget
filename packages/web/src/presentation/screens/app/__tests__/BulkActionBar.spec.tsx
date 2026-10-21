@@ -138,4 +138,14 @@ describe('BulkActionBar', () => {
     });
     expect(onClear).not.toHaveBeenCalled();
   });
+
+  it('wraps on narrow widths instead of overflowing horizontally', () => {
+    render(<BulkActionBar selectedIds={selectedIds} onMapAll={onMapAll} onClear={onClear} />, {
+      wrapper,
+    });
+
+    const bar = screen.getByText(/3 selected/).parentElement;
+    expect(bar?.style.flexWrap).toBe('wrap');
+    expect(bar?.style.maxWidth).toBe('100%');
+  });
 });

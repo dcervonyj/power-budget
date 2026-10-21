@@ -14,9 +14,20 @@ import {
 import { TransactionRow } from '../../components/TransactionRow.js';
 import { BulkActionBar } from '../../components/BulkActionBar.js';
 import { MappingModal } from '../../components/MappingModal.js';
-import { apiClient, categoriesApi } from '../../../AppProviders.js';
+import { TransactionMapModal } from '../../components/TransactionMapModal.js';
+import { apiClient, categoriesApi, plansApi } from '../../../AppProviders.js';
+import { fetchCategoryNames } from '../../../infrastructure/api/CategoryNames.js';
+import { loadPlannedItems } from '../../../application/transactions/PlannedItemLabels.js';
+import {
+  TransactionMappingStore,
+  type MappingView,
+} from '../../../application/transactions/TransactionMappingStore.js';
 import type { Transaction } from '../../../domain/transactions/Transaction.js';
-import type { CategoryDto, TransactionPageDto } from '@power-budget/shared-app/contract';
+import type {
+  CategoryDto,
+  TransactionDetailDto,
+  TransactionPageDto,
+} from '@power-budget/shared-app/contract';
 import {
   buildQuery,
   toTransactions,
@@ -52,6 +63,15 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
   }));
 
   const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+  const [mapTarget, setMapTarget] = useState<Transaction | null>(null);
+  const [mappingStore] = useState(
+    () =>
+      new TransactionMappingStore(async (id) => {
+        const res = await apiClient.get<TransactionDetailDto>(`/transactions/${id}`);
+
+        return res.data;
+      }),
+  );
   const selectAllRef = useRef<HTMLInputElement>(null);
 
   const filters: TransactionFilters = {
@@ -90,6 +110,21 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     // Without categories the category filter stays empty; the list still loads.
     void categoriesApi.list().then(setCategories, () => undefined);
   }, []);
+
+  // Name the planned items rows are mapped to (active plans only).
+  useEffect(() => {
+    void loadPlannedItems(plansApi, () => fetchCategoryNames(apiClient)).then(
+      (catalogue) => {
+        mappingStore.setLabels(catalogue.labels);
+      },
+      () => undefined,
+    );
+  }, [mappingStore]);
+
+  // The list carries no mapping: read it for every row that arrives.
+  useEffect(() => {
+    mappingStore.load(transactions.map((tx) => tx.id));
+  }, [transactions, mappingStore]);
 
   // Reset and load first page when filters change
   useEffect(() => {
@@ -180,9 +215,28 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     void navigate(`/transactions/${id}`);
   };
 
+  const handleRowMap = (id: string): void => {
+    setMapTarget(transactions.find((tx) => tx.id === id) ?? null);
+  };
+
+  const handleMapped = (plannedItemId: string | null): void => {
+    if (mapTarget !== null) {
+      mappingStore.record(mapTarget.id, { plannedItemId, transfer: false });
+    }
+  };
+
+  // Also runs after a partly failed bulk action: reload what did change, keep the selection.
+  const handleBulkDone = (): void => {
+    mappingStore.reset(transactions.map((tx) => tx.id));
+  };
+
+  const visibleTransactions = transactions.filter((tx) =>
+    matchesStatus(mappingStore.viewOf(tx), filters.status),
+  );
+
   const allSelected =
-    transactions.length > 0 && transactions.every((tx) => selection.ids.has(tx.id));
-  const someSelected = transactions.some((tx) => selection.ids.has(tx.id));
+    visibleTransactions.length > 0 && visibleTransactions.every((tx) => selection.ids.has(tx.id));
+  const someSelected = visibleTransactions.some((tx) => selection.ids.has(tx.id));
 
   // Sync indeterminate state on the select-all checkbox
   useEffect(() => {
@@ -195,7 +249,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     if (allSelected) {
       selection.clear();
     } else {
-      selection.selectAll(transactions.map((tx) => tx.id));
+      selection.selectAll(visibleTransactions.map((tx) => tx.id));
     }
   };
 
@@ -293,7 +347,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
             </span>
           </div>
 
-          {transactions.map((tx) => (
+          {visibleTransactions.map((tx) => (
             <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: theme.space.sm }}>
               <input
                 type="checkbox"
@@ -313,7 +367,12 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
                 }}
               />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <TransactionRow transaction={tx} onClick={handleRowClick} />
+                <TransactionRow
+                  transaction={tx}
+                  mapping={mappingStore.viewOf(tx)}
+                  onClick={handleRowClick}
+                  onMap={handleRowMap}
+                />
               </div>
             </div>
           ))}
@@ -343,9 +402,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
         onClear={() => {
           selection.clear();
         }}
-        onActionComplete={() => {
-          selection.clear();
-        }}
+        onActionComplete={handleBulkDone}
       />
 
       <MappingModal
@@ -356,9 +413,37 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
         }}
         onSuccess={() => {
           selection.clear();
+          handleBulkDone();
           setIsMappingModalOpen(false);
         }}
       />
+
+      {mapTarget !== null && (
+        <TransactionMapModal
+          transaction={mapTarget}
+          currentPlannedItemId={currentPlannedItemId(mappingStore.viewOf(mapTarget))}
+          isOpen
+          onClose={() => {
+            setMapTarget(null);
+          }}
+          onMapped={handleMapped}
+        />
+      )}
     </div>
   );
 });
+
+function matchesStatus(view: MappingView, status: TransactionFilters['status']): boolean {
+  if (status === '' || view.kind === 'checking') {
+    return true;
+  }
+  if (status === 'transfer') {
+    return view.kind === 'transfer';
+  }
+
+  return status === view.kind;
+}
+
+function currentPlannedItemId(view: MappingView): string | null {
+  return view.kind === 'mapped' ? view.plannedItemId : null;
+}
