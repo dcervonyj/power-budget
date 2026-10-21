@@ -15,6 +15,7 @@ export * from './use-cases/AcceptInviteUseCase.js';
 export * from './use-cases/ResendHouseholdInviteUseCase.js';
 export * from './use-cases/RevokeHouseholdInviteUseCase.js';
 export * from './use-cases/ListHouseholdInvitesUseCase.js';
+export * from './use-cases/ListHouseholdMembersUseCase.js';
 export * from './use-cases/HouseholdInviteView.js';
 export * from './services/HouseholdAccess.js';
 export * from './services/HouseholdInviteMailer.js';

@@ -44,6 +44,15 @@ export interface HouseholdMembership {
   readonly joinedAt: Date;
 }
 
+/** A member of a household with the user details the household screen shows (UI-013). */
+export interface HouseholdMember {
+  readonly userId: UserId;
+  readonly email: string;
+  readonly displayName: string;
+  readonly role: HouseholdRole;
+  readonly joinedAt: Date;
+}
+
 export interface Session {
   readonly id: SessionId;
   readonly userId: UserId;

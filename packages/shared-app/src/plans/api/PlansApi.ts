@@ -3,15 +3,20 @@ import type {
   ClonePlanDto,
   CreatePlanDto,
   CreatePlannedItemDto,
+  PlanDashboardResponseDto,
   PlanDto,
   PlannedItemDto,
   PlannedItemVersionDto,
+  UnplannedTransactionPageDto,
   UpdatePlanDto,
   UpdatePlannedItemDto,
 } from '../../contract/dto.js';
 
 /** `GET /plans?status=`; the API lists active plans when no status is sent. */
 export type PlanStatusFilter = 'active' | 'archived' | 'all';
+
+/** Which side of the unplanned list: money spent or money received outside the plan. */
+export type UnplannedDirection = 'income' | 'expense';
 
 /** The plan endpoints (CLN-011), typed with the generated API contract. */
 export class PlansApi {
@@ -77,6 +82,30 @@ export class PlansApi {
 
   async deleteItem(planId: string, itemId: string): Promise<void> {
     await this.http.delete(`/plans/${planId}/items/${itemId}`);
+  }
+
+  /** Planned vs actual per item, unplanned totals and the net, in the plan's base currency. */
+  async dashboard(planId: string): Promise<PlanDashboardResponseDto> {
+    const res = await this.http.get<PlanDashboardResponseDto>(`/plans/${planId}/dashboard`);
+
+    return res.data;
+  }
+
+  /** One page of the caller's own unplanned transactions (a partner's count in the totals only). */
+  async unplanned(
+    planId: string,
+    direction: UnplannedDirection,
+    cursor: string | null = null,
+  ): Promise<UnplannedTransactionPageDto> {
+    const query =
+      cursor === null
+        ? `direction=${direction}`
+        : `direction=${direction}&cursor=${encodeURIComponent(cursor)}`;
+    const res = await this.http.get<UnplannedTransactionPageDto>(
+      `/plans/${planId}/dashboard/unplanned?${query}`,
+    );
+
+    return res.data;
   }
 
   async itemHistory(planId: string, itemId: string): Promise<PlannedItemVersionDto[]> {

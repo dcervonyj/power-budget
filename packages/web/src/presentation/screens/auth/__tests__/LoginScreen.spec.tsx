@@ -2,7 +2,7 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { LoginScreen } from '../LoginScreen.js';
@@ -91,5 +91,38 @@ describe('LoginScreen', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
     expect(await screen.findByText('Something went wrong. Please try again.')).toBeDefined();
+  });
+
+  it('returns to the page RequireAuth came from, e.g. the invite link', async () => {
+    mockPost.mockResolvedValueOnce({
+      status: 201,
+      data: { accessToken: 'a', refreshToken: 'r' },
+      headers: {},
+    });
+    render(
+      <IntlProvider locale="en" messages={{}}>
+        <ThemeProvider theme={darkTheme}>
+          <MemoryRouter
+            initialEntries={[
+              {
+                pathname: '/login',
+                state: { from: { pathname: '/invite/accept', search: '?token=raw' } },
+              },
+            ]}
+          >
+            <Routes>
+              <Route path="/login" element={<LoginScreen />} />
+              <Route path="/invite/accept" element={<p>invite-route</p>} />
+            </Routes>
+          </MemoryRouter>
+        </ThemeProvider>
+      </IntlProvider>,
+    );
+    fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'a@b.c' } });
+    fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'secret' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+
+    expect(await screen.findByText('invite-route')).toBeInTheDocument();
   });
 });

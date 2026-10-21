@@ -40,7 +40,8 @@ interface TransactionsByItem {
   readonly unmapped: readonly Transaction[];
 }
 
-function progressBand(plannedMinor: bigint, actualMinor: bigint): ProgressBand {
+/** ok below 80% of the plan, warning from 80%, over from 100% (any actual on a zero plan). */
+export function progressBand(plannedMinor: bigint, actualMinor: bigint): ProgressBand {
   if (plannedMinor === 0n) {
     return actualMinor > 0n ? 'over' : 'ok';
   }

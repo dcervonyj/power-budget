@@ -9,3 +9,4 @@ export * from './categories/index.js';
 export * from './currency/index.js';
 export * from './notifications/index.js';
 export * from './dashboard/index.js';
+export * from './households/index.js';

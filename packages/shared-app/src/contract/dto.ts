@@ -33,6 +33,7 @@ export type InviteToHouseholdDto = Schemas['InviteToHouseholdDto'];
 export type HouseholdInviteResponseDto = Schemas['HouseholdInviteResponseDto'];
 export type AcceptInviteDto = Schemas['AcceptInviteDto'];
 export type AcceptInviteResponseDto = Schemas['AcceptInviteResponseDto'];
+export type HouseholdMemberResponseDto = Schemas['HouseholdMemberResponseDto'];
 export type HouseholdExportRequestedDto = Schemas['HouseholdExportRequestedDto'];
 export type HouseholdDeletionScheduledDto = Schemas['HouseholdDeletionScheduledDto'];
 export type HouseholdDashboardCategoryDto = Schemas['HouseholdDashboardCategoryDto'];
