@@ -1031,6 +1031,7 @@
     },
     "/transactions/bulk": {
       "post": {
+        "description": "`map` sets `payload.plannedItemId` on every id; `transfer` marks each id as a standalone transfer (ids already a transfer stay as they are); `ignore` sets `ignored`. All or nothing: every id must be on the caller's own accounts, and nothing is written when one is not.",
         "operationId": "TransactionsController_bulkMap",
         "parameters": [],
         "requestBody": {
@@ -1052,6 +1053,9 @@
           },
           "404": {
             "description": "An id is not one of the caller's own transactions; nothing is written"
+          },
+          "409": {
+            "description": "`transfer`: one of the transactions is mapped to a planned item; nothing is written"
           }
         },
         "security": [

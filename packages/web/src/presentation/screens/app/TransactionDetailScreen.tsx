@@ -1,24 +1,10 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { TransactionListScreen } from './TransactionListScreen.js';
-import { TransactionDetailModal } from '../../components/TransactionDetailModal.js';
 
+/** /transactions and /transactions/:id: the list, with the detail modal open over it for an id. */
 export function TransactionDetailScreen(): React.JSX.Element {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
 
-  const handleClose = (): void => {
-    void navigate('/transactions');
-  };
-
-  return (
-    <>
-      <TransactionListScreen />
-      <TransactionDetailModal
-        transactionId={id ?? ''}
-        isOpen={id !== undefined && id !== ''}
-        onClose={handleClose}
-      />
-    </>
-  );
+  return <TransactionListScreen detailId={id} />;
 }

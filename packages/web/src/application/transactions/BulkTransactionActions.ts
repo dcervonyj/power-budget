@@ -1,17 +1,15 @@
 import type { HttpClient } from '@power-budget/shared-app';
-import type { MarkTransferDto, PatchTransactionDto } from '@power-budget/shared-app/contract';
+import type { BulkMapDto } from '@power-budget/shared-app/contract';
 
 export type BulkAction = 'transfer' | 'ignore';
 
-const CONCURRENCY = 10;
+/** `POST /transactions/bulk` takes at most this many ids. */
+const MAX_IDS = 500;
 
 /**
- * Bulk actions on transactions, shaped to the current API.
- *
- * `POST /transactions/bulk` takes `{ ids, op, payload }` but only applies `op: 'map'`;
- * it answers 204 for `transfer` and `ignore` without changing anything (audit H25).
- * Until the backend implements them, those two go through the per-transaction
- * endpoints, which do work.
+ * Bulk actions on transactions through `POST /transactions/bulk`. The API applies each
+ * request all or nothing: one id that is not the caller's own is a 404 (nothing written),
+ * and `transfer` with a mapped transaction is a 409 `already_mapped`.
  */
 export class BulkTransactionActions {
   constructor(private readonly http: HttpClient) {}
@@ -26,31 +24,11 @@ export class BulkTransactionActions {
     });
   }
 
+  /** More than MAX_IDS ids go in several requests; each one is all or nothing. */
   async apply(action: BulkAction, ids: ReadonlyArray<string>): Promise<void> {
-    for (let start = 0; start < ids.length; start += CONCURRENCY) {
-      const batch = ids.slice(start, start + CONCURRENCY);
-      await Promise.all(batch.map(this.requestFor(action)));
+    for (let start = 0; start < ids.length; start += MAX_IDS) {
+      const body: BulkMapDto = { ids: ids.slice(start, start + MAX_IDS), op: action };
+      await this.http.post('/transactions/bulk', body);
     }
-  }
-
-  private requestFor(action: BulkAction): (id: string) => Promise<unknown> {
-    switch (action) {
-      case 'transfer':
-        return this.markTransfer.bind(this);
-      case 'ignore':
-        return this.ignore.bind(this);
-    }
-  }
-
-  private markTransfer(id: string): Promise<unknown> {
-    const body: MarkTransferDto = {};
-
-    return this.http.post(`/transactions/${id}/transfer`, body);
-  }
-
-  private ignore(id: string): Promise<unknown> {
-    const body: PatchTransactionDto = { ignored: true };
-
-    return this.http.patch(`/transactions/${id}`, body);
   }
 }

@@ -1,6 +1,10 @@
 import type { PlansApi } from '@power-budget/shared-app';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
-import type { PlannedItemLabel } from './TransactionMappingStore.js';
+
+export interface PlannedItemLabel {
+  readonly planName: string;
+  readonly categoryName: string;
+}
 
 export interface PlannedItemOption {
   readonly item: PlannedItemDto;

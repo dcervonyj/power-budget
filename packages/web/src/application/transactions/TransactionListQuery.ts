@@ -6,9 +6,9 @@ import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js
 const LIMIT = 50;
 
 /**
- * `GET /transactions` accepts from, to, q, cursor and limit; any other query
- * parameter is a 400. `unmappedOnly` is accepted but not applied by the API, so
- * currency, source and mapping status are filtered on the page.
+ * `GET /transactions` filters from, to, q, `unmappedOnly` and booking `status` in SQL
+ * under the keyset cursor (CLN-023); any other query parameter is a 400. Currency and
+ * source have no API filter yet and are filtered on the page.
  */
 export function buildQuery(f: TransactionFilters, cursor?: string): string {
   const params = new URLSearchParams();
@@ -23,6 +23,9 @@ export function buildQuery(f: TransactionFilters, cursor?: string): string {
   }
   if (f.status === 'unmapped') {
     params.set('unmappedOnly', 'true');
+  }
+  if (f.booking) {
+    params.set('status', f.booking);
   }
   params.set('limit', String(LIMIT));
   if (cursor) {

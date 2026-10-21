@@ -1,12 +1,16 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
+import type { TransactionStatus } from '../../domain/transactions/Transaction.js';
 
 export interface TransactionFilters {
   from: string;
   to: string;
   category: string;
-  status: '' | 'mapped' | 'unmapped' | 'transfer';
+  /** Mapping filter, applied by the API (`unmappedOnly`). */
+  status: '' | 'unmapped';
+  /** Booking status, applied by the API (`status`). */
+  booking: '' | TransactionStatus;
   currency: string;
   source: '' | 'gocardless' | 'wise' | 'manual';
   q: string;
@@ -136,27 +140,46 @@ export function TransactionFilterBar({
         <select
           value={filters.status}
           onChange={(e) => {
-            set('status', e.target.value as TransactionFilters['status']);
+            set('status', toMappingFilter(e.target.value));
           }}
           style={inputStyle}
         >
           <option value="">{allLabel}</option>
-          <option value="mapped">
-            {intl.formatMessage({
-              id: 'screen.transactionList.filter.status.mapped',
-              defaultMessage: 'Mapped',
-            })}
-          </option>
           <option value="unmapped">
             {intl.formatMessage({
               id: 'screen.transactionList.filter.status.unmapped',
               defaultMessage: 'Unmapped',
             })}
           </option>
-          <option value="transfer">
+        </select>
+      </div>
+
+      <div style={fieldStyle}>
+        <label htmlFor="tx-filter-booking" style={labelStyle}>
+          {intl.formatMessage({
+            id: 'screen.transactionList.filter.booking',
+            defaultMessage: 'Booking',
+          })}
+        </label>
+        <select
+          id="tx-filter-booking"
+          value={filters.booking}
+          onChange={(e) => {
+            set('booking', toBooking(e.target.value));
+          }}
+          style={inputStyle}
+        >
+          <option value="">{allLabel}</option>
+          <option value="pending">
+            {intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' })}
+          </option>
+          <option value="posted">
+            {intl.formatMessage({ id: 'transaction.status.posted', defaultMessage: 'Booked' })}
+          </option>
+          <option value="cancelled">
             {intl.formatMessage({
-              id: 'screen.transactionList.filter.status.transfer',
-              defaultMessage: 'Transfers',
+              id: 'transaction.status.cancelled',
+              defaultMessage: 'Cancelled',
             })}
           </option>
         </select>
@@ -175,7 +198,10 @@ export function TransactionFilterBar({
           onChange={(e) => {
             set('currency', e.target.value.toUpperCase());
           }}
-          placeholder={intl.formatMessage({ id: 'screen.transactionList.filter.currencyPlaceholder', defaultMessage: 'EUR' })}
+          placeholder={intl.formatMessage({
+            id: 'screen.transactionList.filter.currencyPlaceholder',
+            defaultMessage: 'EUR',
+          })}
           maxLength={3}
           style={{ ...inputStyle, width: 72 }}
         />
@@ -239,4 +265,20 @@ export function TransactionFilterBar({
       </div>
     </div>
   );
+}
+
+/** URL and select values outside the known set read as "all". */
+export function toMappingFilter(value: string | null): TransactionFilters['status'] {
+  return value === 'unmapped' ? 'unmapped' : '';
+}
+
+export function toBooking(value: string | null): TransactionFilters['booking'] {
+  switch (value) {
+    case 'pending':
+    case 'posted':
+    case 'cancelled':
+      return value;
+    default:
+      return '';
+  }
 }

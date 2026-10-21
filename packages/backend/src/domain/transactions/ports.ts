@@ -52,6 +52,8 @@ export interface TransactionRepository {
     patch: Partial<Pick<Transaction, 'notes' | 'ignored' | 'suggestedPlannedItemId'>>,
     scope: HouseholdScope,
   ): Promise<void>;
+  /** One statement for the batch: sets `ignored` on every id in `scope`. */
+  setIgnored(ids: readonly TransactionId[], ignored: boolean, scope: HouseholdScope): Promise<void>;
 }
 
 export interface MappingRepository {
@@ -82,6 +84,17 @@ export interface TransferRepository {
     by: UserId,
     scope: HouseholdScope,
   ): Promise<TransferId>;
+  /**
+   * All-or-nothing, in one database transaction: marks each id as a standalone transfer.
+   * Throws TransactionNotFoundError when an id is not in `scope` and AlreadyMappedError when
+   * one is mapped to a planned item; ids that already are a transfer (either side) stay as
+   * they are.
+   */
+  bulkMarkStandalone(
+    ids: readonly TransactionId[],
+    by: UserId,
+    scope: HouseholdScope,
+  ): Promise<void>;
   unmark(transactionId: TransactionId, scope: HouseholdScope): Promise<void>;
   findByTransaction(id: TransactionId, scope: HouseholdScope): Promise<Transfer | null>;
 }
