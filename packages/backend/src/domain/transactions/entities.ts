@@ -142,6 +142,11 @@ export interface TransactionListItem {
 
 export interface TransactionQuery {
   readonly householdId: HouseholdId;
+  /**
+   * Only transactions on this user's accounts: transactions are private to the account
+   * owner, a partner sees them only as dashboard aggregates (PRODUCT §4.3, §4.9).
+   */
+  readonly ownerUserId: UserId;
   readonly accountId?: BankAccountId;
   readonly dateFrom?: IsoDate;
   readonly dateTo?: IsoDate;

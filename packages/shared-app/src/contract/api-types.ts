@@ -339,8 +339,8 @@ export interface paths {
       cookie?: never;
     };
     /**
-     * List transactions for the current household
-     * @description Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.
+     * List the caller's own transactions
+     * @description Only transactions on the caller's accounts; a partner's appear only as dashboard aggregates. Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.
      */
     get: operations['TransactionsController_list'];
     put?: never;
@@ -549,7 +549,7 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List bank accounts for a connection */
+    /** List bank accounts of one of the caller's own connections */
     get: operations['BankController_listAccounts'];
     put?: never;
     post?: never;
@@ -2977,6 +2977,13 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Connection not found or the partner's */
+      404: {
         headers: {
           [name: string]: unknown;
         };

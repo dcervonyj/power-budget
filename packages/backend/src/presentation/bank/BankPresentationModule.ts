@@ -84,8 +84,11 @@ import { AccountsController } from './AccountsController.js';
     },
     {
       provide: ListConnectionAccountsUseCase,
-      inject: [DrizzleBankAccountRepository],
-      useFactory: (repo: DrizzleBankAccountRepository) => new ListConnectionAccountsUseCase(repo),
+      inject: [DrizzleBankConnectionRepository, DrizzleBankAccountRepository],
+      useFactory: (
+        connectionRepo: DrizzleBankConnectionRepository,
+        accountRepo: DrizzleBankAccountRepository,
+      ) => new ListConnectionAccountsUseCase(connectionRepo, accountRepo),
     },
     {
       provide: ListAccountsUseCase,
