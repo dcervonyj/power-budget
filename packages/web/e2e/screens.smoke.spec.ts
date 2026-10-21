@@ -1,11 +1,13 @@
 import { test, expect, type Page, type Route } from '@playwright/test';
+import { FULL_STACK, STACK } from './support/stack.js';
 
 // UI-013: the plan dashboard, the household screen (invite partner) and the
 // accept-invite page against a stubbed API, so they run without a backend. Tagged
 // @smoke like smoke.spec.ts; they skip when no dev server answers. The full-stack
 // versions live in household.spec.ts / plans.spec.ts (CLN-017, TEST_ENV=e2e).
 
-const API = 'http://localhost:3000';
+// The API the web build talks to: the e2e backend on the stack, else the dev default.
+const API = FULL_STACK ? STACK.apiUrl : (process.env['VITE_API_URL'] ?? 'http://localhost:3000');
 const SCREENSHOT_DIR = process.env['UI013_SCREENSHOT_DIR'];
 
 const plan = {
