@@ -60,30 +60,58 @@ describe('assertBootEnv', () => {
 
 describe('parseCorsOrigins / buildCorsOptions', () => {
   it('allows no cross-origin access when CORS_ORIGINS is unset (no localhost default)', () => {
-    expect(parseCorsOrigins(undefined)).toEqual([]);
+    expect(parseCorsOrigins(undefined).rules).toEqual([]);
     expect(buildCorsOptions({}).origin).toBe(false);
   });
 
-  it.each(['*', 'https://*', 'https://*.example.com', '*example.com', 'example.com', 'null'])(
-    'rejects the unsafe entry %s',
-    (entry) => {
-      expect(() => parseCorsOrigins(entry)).toThrow(InvalidCorsOriginError);
-    },
-  );
+  it.each([
+    '*',
+    'https://*',
+    'https://*.example.com',
+    '*example.com',
+    '*.com',
+    '*.exa_mple.com',
+    '*.example.com/',
+    'example.com',
+    'null',
+  ])('rejects the unsafe entry %s', (entry) => {
+    expect(() => parseCorsOrigins(entry)).toThrow(InvalidCorsOriginError);
+  });
 
-  it('turns *.domain into an HTTPS single-label subdomain pattern', () => {
-    const [pattern] = parseCorsOrigins('*.power-budget.pages.dev');
+  it('lets *.domain match exactly one HTTPS DNS label', () => {
+    const policy = parseCorsOrigins('*.power-budget.pages.dev');
 
-    expect(pattern).toBeInstanceOf(RegExp);
-    const regex = pattern as RegExp;
-    expect(regex.test('https://preview-1.power-budget.pages.dev')).toBe(true);
-    expect(regex.test('http://preview-1.power-budget.pages.dev')).toBe(false);
-    expect(regex.test('https://a.b.power-budget.pages.dev')).toBe(false);
-    expect(regex.test('https://evil-power-budget.pages.dev')).toBe(false);
+    expect(policy.isAllowed('https://preview-1.power-budget.pages.dev')).toBe(true);
+    expect(policy.isAllowed('https://power-budget.pages.dev')).toBe(false);
+    expect(policy.isAllowed('http://preview-1.power-budget.pages.dev')).toBe(false);
+    expect(policy.isAllowed('https://preview-1.power-budget.pages.dev:8443')).toBe(false);
+    expect(policy.isAllowed('https://a.b.power-budget.pages.dev')).toBe(false);
+    expect(policy.isAllowed('https://evil-power-budget.pages.dev')).toBe(false);
+  });
+
+  it('rejects look-alike hosts where a dot is replaced or the domain is a prefix', () => {
+    const policy = parseCorsOrigins('*.power-budget.pages.dev,https://power-budget.pages.dev');
+
+    expect(policy.isAllowed('https://preview.power-budgetXpages.dev')).toBe(false);
+    expect(policy.isAllowed('https://preview.power-budget.pagesXdev')).toBe(false);
+    expect(policy.isAllowed('https://preview.power-budget.pages.dev.attacker.test')).toBe(false);
+    expect(policy.isAllowed('https://power-budget.pages.dev.attacker.test')).toBe(false);
+    expect(policy.isAllowed('https://power-budgetXpages.dev')).toBe(false);
+    expect(policy.isAllowed(undefined)).toBe(false);
+  });
+
+  it('matches exact origins only verbatim', () => {
+    const policy = parseCorsOrigins('https://power-budget.pages.dev');
+
+    expect(policy.isAllowed('https://power-budget.pages.dev')).toBe(true);
+    expect(policy.isAllowed('https://power-budget.pages.dev:443')).toBe(false);
+    expect(policy.isAllowed('http://power-budget.pages.dev')).toBe(false);
   });
 
   it('does not allow credentials (bearer tokens only)', () => {
-    expect(buildCorsOptions({ CORS_ORIGINS: 'https://app.example.com' }).credentials).toBe(false);
+    expect(buildCorsOptions({ CORS_ORIGINS: 'https://power-budget.pages.dev' }).credentials).toBe(
+      false,
+    );
   });
 });
 
@@ -131,6 +159,26 @@ describe('configureHttpSecurity (HTTP)', () => {
 
     expect(res.headers['access-control-allow-origin']).toBe('https://power-budget.pages.dev');
     expect(res.headers['access-control-allow-credentials']).toBeUndefined();
+  });
+
+  it('answers a preview subdomain but not a look-alike host over HTTP', async () => {
+    app = await createApp({ CORS_ORIGINS: '*.power-budget.pages.dev' });
+
+    const preview = await app.inject({
+      method: 'GET',
+      url: '/ping',
+      headers: { origin: 'https://preview-1.power-budget.pages.dev' },
+    });
+    const lookAlike = await app.inject({
+      method: 'GET',
+      url: '/ping',
+      headers: { origin: 'https://preview-1.power-budgetXpages.dev' },
+    });
+
+    expect(preview.headers['access-control-allow-origin']).toBe(
+      'https://preview-1.power-budget.pages.dev',
+    );
+    expect(lookAlike.headers['access-control-allow-origin']).toBeUndefined();
   });
 
   it('does not answer localhost or other origins on a deployment', async () => {
