@@ -1,21 +1,38 @@
 import React, { useEffect } from 'react';
-import { FormattedMessage, FormattedNumber, useIntl } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import { formatMoney, parseMinorUnits } from '@power-budget/core';
+import type { HouseholdDashboardCategoryDto } from '@power-budget/shared-app/contract';
 import { useTheme } from '../ThemeContext.js';
+import { toSupportedLocale } from '../../i18n/supportedLocale.js';
 import type { HouseholdCategoryStore } from '../../../application/household/HouseholdCategoryStore.js';
-import type {
-  CategoryAggregate,
-  TransactionSummary,
-} from '../../../domain/household/CategoryAggregate.js';
 
 export interface HouseholdCategoryDrillInProps {
   store: HouseholdCategoryStore;
+  householdId: string;
+  planId: string;
   categoryId: string;
+}
+
+type CategoryLine = HouseholdDashboardCategoryDto;
+
+/** Exact minor units (integer string) formatted with the currency's exponent. */
+function TotalAmount({ category }: { category: CategoryLine }): React.JSX.Element {
+  const intl = useIntl();
+
+  return (
+    <>
+      {formatMoney(
+        { amountMinor: parseMinorUnits(category.totalAmountMinor), currency: category.currency },
+        toSupportedLocale(intl.locale),
+      )}
+    </>
+  );
 }
 
 // ── Total-only view ──────────────────────────────────────────────────────────
 
-function TotalView({ aggregate }: { aggregate: CategoryAggregate }): React.JSX.Element {
+function TotalView({ category }: { category: CategoryLine }): React.JSX.Element {
   const theme = useTheme();
   const accentColor = theme.color.status.success;
 
@@ -64,12 +81,7 @@ function TotalView({ aggregate }: { aggregate: CategoryAggregate }): React.JSX.E
           color: accentColor,
         }}
       >
-        <FormattedNumber
-          value={aggregate.totalMinor / 100}
-          style="currency"
-          currency={aggregate.currency}
-          maximumFractionDigits={2}
-        />
+        <TotalAmount category={category} />
       </span>
     </div>
   );
@@ -77,10 +89,10 @@ function TotalView({ aggregate }: { aggregate: CategoryAggregate }): React.JSX.E
 
 // ── Total + count view ───────────────────────────────────────────────────────
 
-function TotalAndCountView({ aggregate }: { aggregate: CategoryAggregate }): React.JSX.Element {
+function TotalAndCountView({ category }: { category: CategoryLine }): React.JSX.Element {
   const theme = useTheme();
   const accentColor = theme.color.status.warning;
-  const count = aggregate.transactionCount ?? 0;
+  const count = category.transactionCount;
 
   return (
     <div
@@ -121,12 +133,7 @@ function TotalAndCountView({ aggregate }: { aggregate: CategoryAggregate }): Rea
               color: theme.color.text.primary,
             }}
           >
-            <FormattedNumber
-              value={aggregate.totalMinor / 100}
-              style="currency"
-              currency={aggregate.currency}
-              maximumFractionDigits={2}
-            />
+            <TotalAmount category={category} />
           </span>
         </div>
 
@@ -154,66 +161,9 @@ function TotalAndCountView({ aggregate }: { aggregate: CategoryAggregate }): Rea
 
 // ── Full detail view ─────────────────────────────────────────────────────────
 
-function TransactionRow({
-  tx,
-  currency,
-}: {
-  tx: TransactionSummary;
-  currency: string;
-}): React.JSX.Element {
+function FullDetailView({ category }: { category: CategoryLine }): React.JSX.Element {
   const theme = useTheme();
-
-  return (
-    <tr>
-      <td
-        style={{
-          padding: `${String(theme.space.sm)}px ${String(theme.space.md)}px`,
-          fontSize: theme.fontSize.sm,
-          color: theme.color.text.secondary,
-          borderBottom: `1px solid ${theme.color.border.subtle}`,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {tx.date}
-      </td>
-      <td
-        style={{
-          padding: `${String(theme.space.sm)}px ${String(theme.space.md)}px`,
-          fontSize: theme.fontSize.sm,
-          color: theme.color.text.primary,
-          borderBottom: `1px solid ${theme.color.border.subtle}`,
-          width: '100%',
-        }}
-      >
-        {tx.description}
-      </td>
-      <td
-        style={{
-          padding: `${String(theme.space.sm)}px ${String(theme.space.md)}px`,
-          fontSize: theme.fontSize.sm,
-          fontWeight: theme.fontWeight.medium,
-          color: theme.color.text.primary,
-          borderBottom: `1px solid ${theme.color.border.subtle}`,
-          textAlign: 'right',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        <FormattedNumber
-          value={tx.amountMinor / 100}
-          style="currency"
-          currency={currency}
-          maximumFractionDigits={2}
-        />
-      </td>
-    </tr>
-  );
-}
-
-function FullDetailView({ aggregate }: { aggregate: CategoryAggregate }): React.JSX.Element {
-  const theme = useTheme();
-  const intl = useIntl();
   const accentColor = theme.color.accent.default;
-  const transactions = aggregate.transactions ?? [];
 
   return (
     <div
@@ -250,82 +200,18 @@ function FullDetailView({ aggregate }: { aggregate: CategoryAggregate }): React.
             color: theme.color.text.primary,
           }}
         >
-          <FormattedNumber
-            value={aggregate.totalMinor / 100}
-            style="currency"
-            currency={aggregate.currency}
-            maximumFractionDigits={2}
-          />
+          <TotalAmount category={category} />
         </span>
       </div>
 
-      <span
-        style={{
-          fontSize: theme.fontSize.md,
-          fontWeight: theme.fontWeight.semibold,
-          color: theme.color.text.primary,
-        }}
-      >
+      {/* The dashboard has no per-transaction lines yet (no category transactions endpoint). */}
+      <span style={{ fontSize: theme.fontSize.sm, color: theme.color.text.secondary }}>
         <FormattedMessage
-          id="component.household.privacy.fullDetail"
-          defaultMessage="Transaction details"
+          id="component.household.privacy.totalAndCount"
+          defaultMessage="{count, plural, one {# transaction} other {# transactions}}"
+          values={{ count: category.transactionCount }}
         />
       </span>
-
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              <th
-                style={{
-                  padding: `${String(theme.space.sm)}px ${String(theme.space.md)}px`,
-                  fontSize: theme.fontSize.xs,
-                  fontWeight: theme.fontWeight.medium,
-                  color: theme.color.text.secondary,
-                  textAlign: 'left',
-                  borderBottom: `2px solid ${theme.color.border.subtle}`,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {intl.formatMessage({ id: 'component.household.date', defaultMessage: 'Date' })}
-              </th>
-              <th
-                style={{
-                  padding: `${String(theme.space.sm)}px ${String(theme.space.md)}px`,
-                  fontSize: theme.fontSize.xs,
-                  fontWeight: theme.fontWeight.medium,
-                  color: theme.color.text.secondary,
-                  textAlign: 'left',
-                  borderBottom: `2px solid ${theme.color.border.subtle}`,
-                }}
-              >
-                {intl.formatMessage({
-                  id: 'component.household.description',
-                  defaultMessage: 'Description',
-                })}
-              </th>
-              <th
-                style={{
-                  padding: `${String(theme.space.sm)}px ${String(theme.space.md)}px`,
-                  fontSize: theme.fontSize.xs,
-                  fontWeight: theme.fontWeight.medium,
-                  color: theme.color.text.secondary,
-                  textAlign: 'right',
-                  borderBottom: `2px solid ${theme.color.border.subtle}`,
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {intl.formatMessage({ id: 'component.household.amount', defaultMessage: 'Amount' })}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((tx) => (
-              <TransactionRow key={tx.id} tx={tx} currency={aggregate.currency} />
-            ))}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
@@ -334,13 +220,15 @@ function FullDetailView({ aggregate }: { aggregate: CategoryAggregate }): React.
 
 export const HouseholdCategoryDrillIn = observer(function HouseholdCategoryDrillIn({
   store,
+  householdId,
+  planId,
   categoryId,
 }: HouseholdCategoryDrillInProps): React.JSX.Element {
   const theme = useTheme();
 
   useEffect(() => {
-    void store.fetchAggregate(categoryId);
-  }, [store, categoryId]);
+    void store.fetchCategory(householdId, planId, categoryId);
+  }, [store, householdId, planId, categoryId]);
 
   if (store.loading) {
     return (
@@ -365,17 +253,29 @@ export const HouseholdCategoryDrillIn = observer(function HouseholdCategoryDrill
           fontSize: theme.fontSize.md,
         }}
       >
-        <FormattedMessage
-          id="component.household.error"
-          defaultMessage="Failed to load category details"
-        />
+        {store.error === 'not_found' ? (
+          <FormattedMessage
+            id="component.household.notFound"
+            defaultMessage="This category is not in the plan"
+          />
+        ) : store.error === 'fx_unavailable' ? (
+          <FormattedMessage
+            id="common.fxRateUnavailable"
+            defaultMessage="Exchange rates are not available right now. Please try again later."
+          />
+        ) : (
+          <FormattedMessage
+            id="component.household.error"
+            defaultMessage="Failed to load category details"
+          />
+        )}
       </div>
     );
   }
 
-  const { aggregate } = store;
+  const { category } = store;
 
-  if (aggregate === null) {
+  if (category === null) {
     return <div />;
   }
 
@@ -388,12 +288,21 @@ export const HouseholdCategoryDrillIn = observer(function HouseholdCategoryDrill
           color: theme.color.text.primary,
         }}
       >
-        {aggregate.categoryName}
+        {category.categoryName}
       </span>
 
-      {aggregate.privacyLevel === 'total' && <TotalView aggregate={aggregate} />}
-      {aggregate.privacyLevel === 'total_and_count' && <TotalAndCountView aggregate={aggregate} />}
-      {aggregate.privacyLevel === 'full_detail' && <FullDetailView aggregate={aggregate} />}
+      <CategoryView category={category} />
     </div>
   );
 });
+
+function CategoryView({ category }: { category: CategoryLine }): React.JSX.Element {
+  switch (category.privacyLevel) {
+    case 'total_only':
+      return <TotalView category={category} />;
+    case 'total_with_counts':
+      return <TotalAndCountView category={category} />;
+    case 'full_detail':
+      return <FullDetailView category={category} />;
+  }
+}

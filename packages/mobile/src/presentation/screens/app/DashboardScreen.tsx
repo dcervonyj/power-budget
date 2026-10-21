@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
-import { planService, apiClient } from '../../../infrastructure/index.js';
-import type { Plan } from '../../../infrastructure/index.js';
+import type { PlanDto } from '@power-budget/shared-app/contract';
+import { plansApi, apiClient } from '../../../infrastructure/index.js';
 import { ProgressBar } from '../../components/ProgressBar.js';
 import { MoneyText } from '../../components/MoneyText.js';
 
@@ -46,7 +46,7 @@ const POLL_INTERVAL_MS = 30_000;
 
 export function DashboardScreen(): React.JSX.Element {
   const intl = useIntl();
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [plans, setPlans] = useState<PlanDto[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [actuals, setActuals] = useState<PlanActualsView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -79,8 +79,7 @@ export function DashboardScreen(): React.JSX.Element {
 
   const loadPlans = useCallback(async (): Promise<void> => {
     try {
-      const data = await planService.listPlans();
-      const active = data.filter((p) => p.archivedAt === null);
+      const active = await plansApi.list('active');
       setPlans(active);
       if (active.length > 0 && active[0]) {
         setSelectedPlanId(active[0].id);
@@ -166,10 +165,7 @@ export function DashboardScreen(): React.JSX.Element {
               onPress={() => setSelectedPlanId(p.id)}
             >
               <Text
-                style={[
-                  styles.planChipText,
-                  selectedPlanId === p.id && styles.planChipTextActive,
-                ]}
+                style={[styles.planChipText, selectedPlanId === p.id && styles.planChipTextActive]}
               >
                 {p.name}
               </Text>
@@ -198,7 +194,9 @@ export function DashboardScreen(): React.JSX.Element {
           <FormattedMessage id="screen.dashboard.income" defaultMessage="Income" />
         </Text>
         {incomeItems.length === 0 ? (
-          <Text style={styles.emptySection}>{intl.formatMessage({ id: 'common.emptyIndicator', defaultMessage: '—' })}</Text>
+          <Text style={styles.emptySection}>
+            {intl.formatMessage({ id: 'common.emptyIndicator', defaultMessage: '—' })}
+          </Text>
         ) : (
           incomeItems.map((row) => (
             <View key={row.plannedItemId} style={styles.row}>
@@ -234,7 +232,9 @@ export function DashboardScreen(): React.JSX.Element {
           <FormattedMessage id="screen.dashboard.expenses" defaultMessage="Expenses" />
         </Text>
         {expenseItems.length === 0 ? (
-          <Text style={styles.emptySection}>{intl.formatMessage({ id: 'common.emptyIndicator', defaultMessage: '—' })}</Text>
+          <Text style={styles.emptySection}>
+            {intl.formatMessage({ id: 'common.emptyIndicator', defaultMessage: '—' })}
+          </Text>
         ) : (
           expenseItems.map((row) => {
             const ratio =
@@ -285,7 +285,10 @@ export function DashboardScreen(): React.JSX.Element {
           <View style={styles.unplannedRow}>
             <Text style={styles.unplannedCount}>
               {intl.formatMessage(
-                { id: 'screen.dashboard.unplannedTransactions', defaultMessage: '{count} transactions' },
+                {
+                  id: 'screen.dashboard.unplannedTransactions',
+                  defaultMessage: '{count} transactions',
+                },
                 { count: actuals.unplannedCount },
               )}
             </Text>

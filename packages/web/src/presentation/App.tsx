@@ -5,7 +5,6 @@ import { RequireAuth } from './guards/RequireAuth.js';
 import { SettingsProfileTab } from './screens/settings/SettingsProfileTab.js';
 import { SettingsLocaleTab } from './screens/settings/SettingsLocaleTab.js';
 import { SettingsCurrencyTab } from './screens/settings/SettingsCurrencyTab.js';
-import { SettingsNotificationsTab } from './screens/settings/SettingsNotificationsTab.js';
 import { SettingsDataTab } from './screens/settings/SettingsDataTab.js';
 
 // Auth screens — lazy loaded
@@ -119,7 +118,6 @@ export function App() {
             <Route path="profile" element={<SettingsProfileTab />} />
             <Route path="locale" element={<SettingsLocaleTab />} />
             <Route path="currency" element={<SettingsCurrencyTab />} />
-            <Route path="notifications" element={<SettingsNotificationsTab />} />
             <Route path="data" element={<SettingsDataTab />} />
           </Route>
           <Route path="/audit" element={<AuditLogScreen />} />

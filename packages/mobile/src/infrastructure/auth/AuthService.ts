@@ -1,5 +1,14 @@
 import type { ApiClient } from '@power-budget/shared-app';
 import type { SecureTokenStore } from '@power-budget/shared-app/infrastructure';
+import type {
+  AuthTokensDto,
+  LocaleCode,
+  LoginDto,
+  RegisterDto,
+  RequestMagicLinkDto,
+  TotpEnrollmentDto,
+  VerifyTotpDto,
+} from '@power-budget/shared-app/contract';
 
 export interface LoginParams {
   readonly email: string;
@@ -10,23 +19,13 @@ export interface LoginParams {
 export interface RegisterParams {
   readonly email: string;
   readonly password: string;
-  readonly locale: string;
+  readonly locale: LocaleCode;
 }
 
 export interface LoginResult {
   readonly requiresTotp: boolean;
   readonly accessToken?: string;
   readonly refreshToken?: string;
-}
-
-interface LoginResponseData {
-  accessToken: string;
-  refreshToken: string;
-}
-
-interface TotpEnableResponseData {
-  qrCodeUri: string;
-  recoveryCodes: string[];
 }
 
 export class AuthService {
@@ -37,11 +36,11 @@ export class AuthService {
 
   async login(params: LoginParams): Promise<LoginResult> {
     try {
-      const response = await this.apiClient.post<LoginResponseData>('/auth/login', {
-        email: params.email,
-        password: params.password,
-        ...(params.totpCode !== undefined ? { totpCode: params.totpCode } : {}),
-      });
+      const body: LoginDto =
+        params.totpCode !== undefined
+          ? { email: params.email, password: params.password, totp: params.totpCode }
+          : { email: params.email, password: params.password };
+      const response = await this.apiClient.post<AuthTokensDto>('/auth/login', body);
 
       await this.tokenStore.setTokens(response.data.accessToken, response.data.refreshToken);
       return {
@@ -59,28 +58,34 @@ export class AuthService {
   }
 
   async register(params: RegisterParams): Promise<void> {
-    await this.apiClient.post('/auth/register', {
+    const body: RegisterDto = {
       email: params.email,
       password: params.password,
       locale: params.locale,
-    });
+    };
+    await this.apiClient.post('/auth/register', body);
   }
 
   async requestMagicLink(email: string): Promise<void> {
-    await this.apiClient.post('/auth/magic-link/request', { email });
+    const body: RequestMagicLinkDto = { email };
+    await this.apiClient.post('/auth/magic-link/request', body);
   }
 
-  async enableTotp(): Promise<{ qrCodeUri: string; recoveryCodes: string[] }> {
-    const response = await this.apiClient.post<TotpEnableResponseData>('/auth/totp/enable', {});
+  /** TotpEnrollmentDto `{ qrCodeUri, secret }`: the API issues no recovery codes. */
+  async enableTotp(): Promise<TotpEnrollmentDto> {
+    const response = await this.apiClient.post<TotpEnrollmentDto>('/auth/totp/enable', {});
+
     return response.data;
   }
 
   async verifyTotp(code: string): Promise<void> {
-    await this.apiClient.post('/auth/totp/verify', { code });
+    const body: VerifyTotpDto = { code };
+    await this.apiClient.post('/auth/totp/verify', body);
   }
 
+  /** The API has no OAuth endpoint (web dropped Google sign-in in CLN-014); CLN-015 decides. */
   async handleOAuthCallback(code: string, state: string | undefined): Promise<void> {
-    const response = await this.apiClient.post<LoginResponseData>('/auth/oauth/google/callback', {
+    const response = await this.apiClient.post<AuthTokensDto>('/auth/oauth/google/callback', {
       code,
       ...(state !== undefined ? { state } : {}),
     });

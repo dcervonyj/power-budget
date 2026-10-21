@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { TransactionMapper, type TransactionDto } from './TransactionMapper.js';
+import type { TransactionDto } from '@power-budget/shared-app/contract';
+import { TransactionMapper } from './TransactionMapper.js';
 
 const dto: TransactionDto = {
   id: 'tx-1',

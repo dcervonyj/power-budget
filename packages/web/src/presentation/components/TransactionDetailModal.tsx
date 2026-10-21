@@ -5,26 +5,20 @@ import { Modal } from './Modal.js';
 import { Button } from './Button.js';
 import { MoneyView } from './MoneyView.js';
 import { formatMoney, parseLocalIsoDate, parseMinorUnits } from '@power-budget/core';
-import { apiClient } from '../../AppProviders.js';
+import { apiClient, plansApi } from '../../AppProviders.js';
 import { toSupportedLocale } from '../i18n/supportedLocale.js';
-import {
-  TransactionMapper,
-  type TransactionDetailDto,
-} from '../../infrastructure/api/TransactionMapper.js';
+import type {
+  PatchTransactionDto,
+  PlanDto,
+  PlannedItemDto,
+  SetMappingDto,
+  TransactionDetailDto,
+} from '@power-budget/shared-app/contract';
+import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 import type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
-import {
-  PlanMapper,
-  type PlanDto,
-  type PlannedItemDto,
-  type PlannedItemSummary,
-  type PlanSummary,
-} from '../../infrastructure/api/PlanMapper.js';
 import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
 
 export type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
-
-type Plan = PlanSummary;
-type PlannedItem = PlannedItemSummary;
 
 export interface TransactionDetailModalProps {
   transactionId: string;
@@ -59,8 +53,9 @@ export function TransactionDetailModal({
   const [togglingTransfer, setTogglingTransfer] = useState(false);
   const [togglingIgnored, setTogglingIgnored] = useState(false);
 
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [planItems, setPlanItems] = useState<Map<string, PlannedItem[]>>(new Map());
+  const [plans, setPlans] = useState<PlanDto[]>([]);
+  const [planItems, setPlanItems] = useState<Map<string, PlannedItemDto[]>>(new Map());
+  const [categoryNames, setCategoryNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [showPicker, setShowPicker] = useState(false);
   const [pickerLoading, setPickerLoading] = useState(false);
 
@@ -113,33 +108,29 @@ export function TransactionDetailModal({
     if (plans.length > 0) return;
     setPickerLoading(true);
     try {
-      const [res, categoryNames] = await Promise.all([
-        apiClient.get<PlanDto[]>('/plans'),
+      const [activePlans, names] = await Promise.all([
+        plansApi.list('active'),
         fetchCategoryNames(apiClient),
       ]);
-      const allPlans = res.data.map(PlanMapper.toPlan);
-      setPlans(allPlans);
-      const activePlans = allPlans.filter((p) => p.status === 'active');
+      setPlans(activePlans);
+      setCategoryNames(names);
       const itemResults = await Promise.all(
-        activePlans.map(async (p) => {
-          const r = await apiClient.get<PlannedItemDto[]>(`/plans/${p.id}/items`);
-          return {
-            planId: p.id,
-            items: r.data.map((dto) => PlanMapper.toItem(dto, categoryNames)),
-          };
-        }),
+        activePlans.map(async (p) => ({ planId: p.id, items: await plansApi.listItems(p.id) })),
       );
-      const map = new Map<string, PlannedItem[]>();
-      itemResults.forEach(({ planId, items }: { planId: string; items: PlannedItem[] }) => {
-        map.set(planId, items);
-      });
-      setPlanItems(map);
+      setPlanItems(new Map(itemResults.map(({ planId, items }) => [planId, items])));
     } catch {
       // ignore — picker will be empty
     } finally {
       setPickerLoading(false);
     }
   }, [plans.length]);
+
+  // A mapped transaction needs the plans and items to name its planned item.
+  useEffect(() => {
+    if (mapping !== null) {
+      void loadPickerData();
+    }
+  }, [mapping, loadPickerData]);
 
   const handleShowPicker = (): void => {
     setShowPicker(true);
@@ -156,11 +147,12 @@ export function TransactionDetailModal({
           const item = items.find((i) => i.id === plannedItemId);
           if (item) {
             const plan = plans.find((p) => p.id === planId);
+            const categoryName = categoryNames.get(item.categoryId) ?? '';
             newMapping = {
               plannedItemId: item.id,
-              plannedItemName: `${plan?.name ?? ''}${item.categoryName ? ` — ${item.categoryName}` : ''}`,
+              plannedItemName: `${plan?.name ?? ''}${categoryName ? ` — ${categoryName}` : ''}`,
               categoryId: item.categoryId,
-              categoryName: item.categoryName ?? '',
+              categoryName,
             };
             break;
           }
@@ -174,11 +166,8 @@ export function TransactionDetailModal({
       setMappingError(null);
 
       try {
-        await apiClient.request({
-          url: `/transactions/${transactionId}/mapping`,
-          method: 'PATCH',
-          body: { plannedItemId },
-        });
+        const body: SetMappingDto = { plannedItemId };
+        await apiClient.patch(`/transactions/${transactionId}/mapping`, body);
         const updatedTx: Transaction | null = transaction
           ? {
               ...transaction,
@@ -203,18 +192,15 @@ export function TransactionDetailModal({
         setMappingLoading(false);
       }
     },
-    [mapping, planItems, plans, transactionId, transaction, onUpdated, intl],
+    [mapping, planItems, plans, categoryNames, transactionId, transaction, onUpdated, intl],
   );
 
   const handleSaveNotes = async (): Promise<void> => {
     setSavingNotes(true);
     setNotesError(null);
     try {
-      await apiClient.request({
-        url: `/transactions/${transactionId}`,
-        method: 'PATCH',
-        body: { notes },
-      });
+      const body: PatchTransactionDto = { notes };
+      await apiClient.patch(`/transactions/${transactionId}`, body);
       const updatedTx: Transaction | null = transaction ? { ...transaction, notes } : null;
       if (updatedTx) {
         setTransaction(updatedTx);
@@ -261,11 +247,8 @@ export function TransactionDetailModal({
     setIgnored(!prev);
     setTogglingIgnored(true);
     try {
-      await apiClient.request({
-        url: `/transactions/${transactionId}`,
-        method: 'PATCH',
-        body: { ignored: !prev },
-      });
+      const body: PatchTransactionDto = { ignored: !prev };
+      await apiClient.patch(`/transactions/${transactionId}`, body);
       const updatedTx: Transaction | null = transaction ? { ...transaction, ignored: !prev } : null;
       if (updatedTx) {
         setTransaction(updatedTx);
@@ -323,9 +306,8 @@ export function TransactionDetailModal({
   };
 
   // Build picker items: suggestions (current mapping item) float to top
-  const pickerItems: Array<{ planId: string; planName: string; item: PlannedItem }> = [];
+  const pickerItems: Array<{ planId: string; planName: string; item: PlannedItemDto }> = [];
   for (const plan of plans) {
-    if (plan.status === 'archived') continue;
     const items = planItems.get(plan.id) ?? [];
     for (const item of items) {
       pickerItems.push({ planId: plan.id, planName: plan.name, item });
@@ -333,6 +315,13 @@ export function TransactionDetailModal({
   }
   // Float current mapping's item to top
   const currentMappedId = mapping?.plannedItemId;
+  // GET /transactions/:id returns only the planned item id; the names come from the
+  // plans and categories loaded for the picker.
+  const mappedEntry = pickerItems.find(({ item }) => item.id === currentMappedId);
+  const mappedCategoryName =
+    mapping?.categoryName ||
+    (mappedEntry ? (categoryNames.get(mappedEntry.item.categoryId) ?? '') : '');
+  const mappedPlanName = mapping?.plannedItemName || (mappedEntry?.planName ?? '');
   pickerItems.sort((a, b) => {
     if (a.item.id === currentMappedId) return -1;
     if (b.item.id === currentMappedId) return 1;
@@ -432,9 +421,9 @@ export function TransactionDetailModal({
                       color: theme.color.text.primary,
                     }}
                   >
-                    {mapping.categoryName}
+                    {mappedCategoryName || mapping.plannedItemId}
                   </span>
-                  {mapping.plannedItemName && (
+                  {mappedPlanName && (
                     <span
                       style={{
                         fontSize: theme.fontSize.xs,
@@ -442,7 +431,7 @@ export function TransactionDetailModal({
                         marginLeft: theme.space.sm,
                       }}
                     >
-                      {mapping.plannedItemName}
+                      {mappedPlanName}
                     </span>
                   )}
                 </div>
@@ -535,7 +524,7 @@ export function TransactionDetailModal({
                           fontWeight: theme.fontWeight.medium,
                         }}
                       >
-                        {item.categoryName ?? item.categoryId}
+                        {categoryNames.get(item.categoryId) ?? item.categoryId}
                       </span>
                       <span
                         style={{
@@ -563,8 +552,8 @@ export function TransactionDetailModal({
                     >
                       {formatMoney(
                         {
-                          amountMinor: parseMinorUnits(item.amountMinor),
-                          currency: item.currency,
+                          amountMinor: parseMinorUnits(item.amount.amountMinor),
+                          currency: item.amount.currency,
                         },
                         toSupportedLocale(intl.locale),
                       )}
