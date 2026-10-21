@@ -220,6 +220,7 @@ export const transactions = pgTable(
   },
   (t) => [
     index('transactions_household_date_idx').on(t.householdId, t.occurredOn),
+    index('transactions_household_date_id_idx').on(t.householdId, t.occurredOn.desc(), t.id.desc()),
     index('transactions_account_date_idx').on(t.accountId, t.occurredOn),
     uniqueIndex('transactions_external_unique')
       .on(t.accountId, t.externalId)

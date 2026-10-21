@@ -82,7 +82,8 @@ export interface TransactionQuery {
   readonly dateTo?: IsoDate;
   readonly search?: string;
   readonly unmappedOnly?: boolean;
-  readonly cursor?: TransactionId;
+  /** Opaque keyset cursor returned as `nextCursor` by the previous page. */
+  readonly cursor?: string;
   readonly limit?: number;
 }
 
