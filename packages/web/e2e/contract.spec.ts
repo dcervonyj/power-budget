@@ -143,7 +143,7 @@ test.describe('web <-> backend contract', () => {
     );
     assertMatchesSpec('get', '/transactions', 200, page);
     // No manual account can be created yet (see transactions.spec.ts), so the page is empty.
-    expect(page.items.map((row) => TransactionMapper.fromListItem(row, false))).toEqual([]);
+    expect(page.items.map((row) => TransactionMapper.fromListItem(row))).toEqual([]);
   });
 
   test('household invite, accept and household dashboard responses match the spec', async ({
