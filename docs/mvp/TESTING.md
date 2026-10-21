@@ -875,7 +875,16 @@ pnpm -F @power-budget/core test
 pnpm -F @power-budget/shared-app test
 
 # Web Playwright smoke (requires dev server)
-pnpm -F @power-budget/web e2e -- --grep smoke
+pnpm -F @power-budget/web test:e2e:smoke
+
+# Web Playwright e2e + contract checks against a real backend (what CI's e2e job runs)
+docker compose -f docker/e2e/docker-compose.yml up -d --wait
+pnpm turbo run build --filter=@power-budget/backend --filter=@power-budget/web^...
+pnpm -F @power-budget/web test:e2e:stack   # starts fake Resend, backend and web preview itself
+
+# k6 dashboard gate (needs a running backend; seeds its own user and plan)
+bash scripts/e2e-backend.sh &   # or any backend
+k6 run -e K6_BASE_URL=http://localhost:3100 tests/perf/dashboard.k6.js
 
 # Web Playwright full suite (interactive UI)
 pnpm -F @power-budget/web e2e:ui
