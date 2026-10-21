@@ -107,7 +107,29 @@ const BY_MESSAGE_CODE: Readonly<Record<string, HttpErrorMapping>> = {
   PLAN_DUPLICATE: mapping(
     HttpStatus.CONFLICT,
     'plan_duplicate',
-    'An active plan of this type and period already exists',
+    'An active plan of this type already overlaps this period',
+  ),
+  PLAN_ARCHIVED: mapping(HttpStatus.CONFLICT, 'plan_archived', 'Plan is archived'),
+  PLAN_PERIOD_INVALID: mapping(
+    HttpStatus.BAD_REQUEST,
+    'plan_period_invalid',
+    'Invalid plan period',
+  ),
+  CATEGORY_NOT_FOUND: mapping(HttpStatus.NOT_FOUND, 'category_not_found', 'Category not found'),
+  CATEGORY_DUPLICATE: mapping(
+    HttpStatus.CONFLICT,
+    'category_duplicate',
+    'An active category with this name already exists',
+  ),
+  CATEGORY_READ_ONLY: mapping(
+    HttpStatus.FORBIDDEN,
+    'category_read_only',
+    'System categories cannot be changed',
+  ),
+  USER_PREFERENCE_INVALID: mapping(
+    HttpStatus.BAD_REQUEST,
+    'user_preference_invalid',
+    'Invalid preference value',
   ),
   FX_RATE_UNAVAILABLE: mapping(
     HttpStatus.SERVICE_UNAVAILABLE,

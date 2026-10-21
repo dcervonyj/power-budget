@@ -3,6 +3,7 @@ import { InvalidIdError } from './errors.js';
 export type Brand<T, B extends string> = T & { readonly __brand: B };
 
 const UUIDV7_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ANY_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const ISO_DATE_RE = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
 const ISO_DATETIME_RE =
@@ -18,10 +19,23 @@ export interface IdNamespace<B extends string> {
   of(raw: string): Brand<string, B>;
 }
 
-export const defineId = <B extends string>(brand: B): IdNamespace<B> => ({
+export interface DefineIdOptions {
+  /**
+   * Accept any RFC 4122 UUID version instead of only v7. For ids that already
+   * exist with another version (seeded system categories use v4).
+   */
+  readonly anyUuidVersion?: boolean;
+}
+
+export const defineId = <B extends string>(
+  brand: B,
+  options: DefineIdOptions = {},
+): IdNamespace<B> => ({
   brand,
   isValid(raw) {
-    return typeof raw === 'string' && UUIDV7_RE.test(raw);
+    const pattern = options.anyUuidVersion === true ? ANY_UUID_RE : UUIDV7_RE;
+
+    return typeof raw === 'string' && pattern.test(raw);
   },
   of(raw) {
     if (!this.isValid(raw)) throw new InvalidIdError(brand, raw);

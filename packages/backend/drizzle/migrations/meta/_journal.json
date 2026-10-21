@@ -71,6 +71,13 @@
       "when": 1792592772579,
       "tag": "0009_cln-004_totp_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792593373766,
+      "tag": "0010_user_preferences",
+      "breakpoints": true
     }
   ]
 }

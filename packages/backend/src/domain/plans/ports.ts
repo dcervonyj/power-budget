@@ -20,6 +20,7 @@ import type {
   NewPlannedItem,
   PlannedItemPatch,
   PlannedItemVersion,
+  PlanPeriod,
   NewPlannedItemVersion,
 } from './entities.js';
 
@@ -27,11 +28,29 @@ export interface HouseholdScope {
   readonly householdId: HouseholdId;
 }
 
+/** `active`: not archived; `archived`: archived only; `all`: both. */
+export type PlanStatusFilter = 'active' | 'archived' | 'all';
+
+export interface PlanListQuery {
+  readonly householdId: HouseholdId;
+  /** Household plans plus this user's own personal plans (a partner's personal plans stay hidden). */
+  readonly viewerUserId: UserId;
+  readonly status: PlanStatusFilter;
+  /** When set, only plans whose period overlaps this one. */
+  readonly overlapping?: PlanPeriod;
+}
+
+export interface PlanPatch {
+  readonly name?: string;
+  readonly period?: PlanPeriod;
+  readonly baseCurrency?: string;
+}
+
 export interface PlanRepository {
   create(plan: NewPlan): Promise<Plan>;
   findById(id: PlanId, scope: HouseholdScope): Promise<Plan | null>;
-  listActive(query: { userId: UserId; householdId: HouseholdId; date: Date }): Promise<Plan[]>;
-  update(id: PlanId, patch: { readonly name?: string }, scope: HouseholdScope): Promise<Plan>;
+  list(query: PlanListQuery): Promise<Plan[]>;
+  update(id: PlanId, patch: PlanPatch, scope: HouseholdScope): Promise<Plan>;
   archive(id: PlanId, at: Date, scope: HouseholdScope): Promise<void>;
   /** System-level query — no HouseholdScope needed. Returns all non-archived plans ending on the given date. */
   findByPeriodEnd(date: Date): Promise<Plan[]>;
@@ -39,6 +58,8 @@ export interface PlanRepository {
 
 export interface PlannedItemRepository {
   add(item: NewPlannedItem): Promise<PlannedItem>;
+  findById(id: PlannedItemId, scope: HouseholdScope): Promise<PlannedItem | null>;
+  /** Updates the item and appends a PlannedItemVersion (before/after) in one transaction. */
   update(
     id: PlannedItemId,
     patch: PlannedItemPatch,
@@ -46,6 +67,7 @@ export interface PlannedItemRepository {
     scope: HouseholdScope,
     reason?: string,
   ): Promise<PlannedItem>;
+  /** Deletes the item, its versions and its transaction mappings (the transactions become unplanned). */
   remove(id: PlannedItemId, scope: HouseholdScope): Promise<void>;
   listByPlan(planId: PlanId, scope: HouseholdScope): Promise<PlannedItem[]>;
 }
