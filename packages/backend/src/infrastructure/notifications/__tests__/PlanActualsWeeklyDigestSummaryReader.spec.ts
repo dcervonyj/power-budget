@@ -68,9 +68,10 @@ function setup(plans: Plan[]): {
 
 describe('PlanActualsWeeklyDigestSummaryReader', () => {
   it('summarises the household plan with its expense totals and period', async () => {
+    const shared = plan('Shared', {});
     const { reader, actuals } = setup([
       plan('Ann personal', { type: 'personal', ownerUserId: ANN }),
-      plan('Shared', {}),
+      shared,
     ]);
 
     const summary = await reader.read({ householdId: HH, userId: ANN }, AT);
@@ -82,7 +83,7 @@ describe('PlanActualsWeeklyDigestSummaryReader', () => {
       periodStart: '2026-10-01',
       periodEnd: '2026-10-31',
     });
-    expect(actuals.read).toHaveBeenCalledWith('Shared', AT);
+    expect(actuals.read).toHaveBeenCalledWith(shared, AT);
   });
 
   it("never uses another member's personal plan or an archived plan", async () => {

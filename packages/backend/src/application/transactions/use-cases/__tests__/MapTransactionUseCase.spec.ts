@@ -5,7 +5,6 @@ import type {
   TransactionRepository,
   MappingRepository,
   TransferRepository,
-  PlanActualsRefreshPort,
 } from '../../../../domain/transactions/ports.js';
 import {
   TransactionNotFoundError,
@@ -35,15 +34,13 @@ describe('MapTransactionUseCase', () => {
   let txRepo: ReturnType<typeof mock<TransactionRepository>>;
   let mappingRepo: ReturnType<typeof mock<MappingRepository>>;
   let transferRepo: ReturnType<typeof mock<TransferRepository>>;
-  let refreshPort: ReturnType<typeof mock<PlanActualsRefreshPort>>;
   let useCase: MapTransactionUseCase;
 
   beforeEach(() => {
     txRepo = mock<TransactionRepository>();
     mappingRepo = mock<MappingRepository>();
     transferRepo = mock<TransferRepository>();
-    refreshPort = mock<PlanActualsRefreshPort>();
-    useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo, refreshPort);
+    useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo);
   });
 
   it('throws TransactionNotFoundError when transaction does not exist', async () => {
@@ -59,27 +56,23 @@ describe('MapTransactionUseCase', () => {
     await expect(useCase.execute(baseInput)).rejects.toThrow(AlreadyTransferError);
   });
 
-  it('maps transaction and schedules refresh', async () => {
+  it('maps the transaction', async () => {
     txRepo.findById.mockResolvedValue(fakeTx);
     transferRepo.findByTransaction.mockResolvedValue(null);
     mappingRepo.set.mockResolvedValue(undefined);
-    refreshPort.scheduleRefresh.mockResolvedValue(undefined);
 
     await useCase.execute(baseInput);
 
     expect(mappingRepo.set).toHaveBeenCalledWith(txId, plannedItemId, userId, { householdId });
-    expect(refreshPort.scheduleRefresh).toHaveBeenCalledWith(planId);
   });
 
-  it('unmaps transaction (plannedItemId = null) and schedules refresh', async () => {
+  it('unmaps the transaction (plannedItemId = null)', async () => {
     txRepo.findById.mockResolvedValue(fakeTx);
     transferRepo.findByTransaction.mockResolvedValue(null);
     mappingRepo.set.mockResolvedValue(undefined);
-    refreshPort.scheduleRefresh.mockResolvedValue(undefined);
 
     await useCase.execute({ ...baseInput, plannedItemId: null });
 
     expect(mappingRepo.set).toHaveBeenCalledWith(txId, null, userId, { householdId });
-    expect(refreshPort.scheduleRefresh).toHaveBeenCalledWith(planId);
   });
 });

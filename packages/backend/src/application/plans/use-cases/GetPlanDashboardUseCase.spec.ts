@@ -71,7 +71,8 @@ describe('GetPlanDashboardUseCase', () => {
 
   it('returns the plan actuals view from the reader', async () => {
     const view = makeMockView();
-    vi.mocked(planRepo.findById).mockResolvedValue(makeMockPlan());
+    const plan = makeMockPlan();
+    vi.mocked(planRepo.findById).mockResolvedValue(plan);
     vi.mocked(actualsReader.read).mockResolvedValue(view);
 
     const asOf = new Date('2024-01-15');
@@ -83,7 +84,7 @@ describe('GetPlanDashboardUseCase', () => {
     });
 
     expect(result).toBe(view);
-    expect(actualsReader.read).toHaveBeenCalledWith(PLAN_ID, asOf);
+    expect(actualsReader.read).toHaveBeenCalledWith(plan, asOf);
   });
 
   it('delegates entirely to PlanActualsReader without transforming the result', async () => {

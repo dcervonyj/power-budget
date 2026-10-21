@@ -6,9 +6,16 @@ import type { TransactionId } from '../domain/transactions/ids.js';
 import type { PlannedItemId } from '../domain/plans/ids.js';
 import { LeftoverSnapshotId } from '../domain/plans/ids.js';
 import { convertMoney } from './convert-money.js';
+import {
+  absMinor,
+  countedTransactions,
+  directedSumMinor,
+  planPeriodToDateRange,
+} from './counted-transactions.js';
 
 export interface ComputeLeftoverParams {
-  plan: Plan;
+  /** Only the id, period and base currency are read. */
+  plan: Pick<Plan, 'id' | 'period' | 'baseCurrency'>;
   plannedItems: readonly PlannedItem[];
   transactions: readonly Transaction[];
   mappings: readonly Mapping[];
@@ -17,11 +24,34 @@ export interface ComputeLeftoverParams {
   clock: () => IsoDate;
 }
 
+function groupMappedByItem(
+  transactions: readonly Transaction[],
+  mappings: readonly Mapping[],
+): Map<PlannedItemId, Transaction[]> {
+  const txToItem = new Map<TransactionId, PlannedItemId>();
+  for (const m of mappings) {
+    txToItem.set(m.transactionId, m.plannedItemId);
+  }
+  const txsByItem = new Map<PlannedItemId, Transaction[]>();
+  for (const tx of transactions) {
+    const itemId = txToItem.get(tx.id);
+    if (itemId === undefined) {
+      continue;
+    }
+    const existing = txsByItem.get(itemId) ?? [];
+    existing.push(tx);
+    txsByItem.set(itemId, existing);
+  }
+
+  return txsByItem;
+}
+
 /**
  * Compute leftover per planned item.
  * Over-budget expense items contribute 0 leftover (not negative) per PRD §4.8.
- * Transfers and ignored transactions are excluded.
- * Only expense items generate meaningful leftover; income items included too.
+ * Only transactions booked inside the plan period count; transfers and ignored
+ * transactions are excluded. Sums are signed per direction, so a refund mapped
+ * to an expense item reduces its spend.
  */
 export function computeLeftover({
   plan,
@@ -33,51 +63,22 @@ export function computeLeftover({
   clock,
 }: ComputeLeftoverParams): LeftoverEntry[] {
   const base = plan.baseCurrency;
-
-  // Build transfer exclusion set
-  const transferredTxIds = new Set<TransactionId>();
-  for (const t of transfers) {
-    if (t.status === 'active') {
-      transferredTxIds.add(t.fromTransactionId);
-      transferredTxIds.add(t.toTransactionId);
-    }
-  }
-
-  // Filter active, non-ignored transactions
-  const activeTxs = transactions.filter(
-    (tx) => !(tx as unknown as Record<string, unknown>)['ignored'] && !transferredTxIds.has(tx.id),
-  );
-
-  // Build tx → item mapping
-  const txToItem = new Map<TransactionId, PlannedItemId>();
-  for (const m of mappings) txToItem.set(m.transactionId, m.plannedItemId);
-
-  // Group transactions by planned item
-  const txsByItem = new Map<PlannedItemId, Transaction[]>();
-  for (const tx of activeTxs) {
-    const itemId = txToItem.get(tx.id);
-    if (!itemId) continue;
-    const existing = txsByItem.get(itemId) ?? [];
-    existing.push(tx);
-    txsByItem.set(itemId, existing);
-  }
-
+  const counted = countedTransactions(transactions, transfers, planPeriodToDateRange(plan.period));
+  const txsByItem = groupMappedByItem(counted, mappings);
   const asOf = clock();
 
   return plannedItems.map((item, idx) => {
-    const plannedInBase = convertMoney(item.amount, base, fxTable);
-    const plannedAbs =
-      plannedInBase.amountMinor < 0n ? -plannedInBase.amountMinor : plannedInBase.amountMinor;
+    const plannedAbs = absMinor(convertMoney(item.amount, base, fxTable).amountMinor);
+    const actualMinor = directedSumMinor(
+      item.direction,
+      txsByItem.get(item.id) ?? [],
+      base,
+      fxTable,
+    );
 
-    const itemTxs = txsByItem.get(item.id) ?? [];
-    let actualMinor = 0n;
-    for (const tx of itemTxs) {
-      const converted = convertMoney(tx.amount, base, fxTable);
-      actualMinor += converted.amountMinor < 0n ? -converted.amountMinor : converted.amountMinor;
-    }
-
-    // Over-budget → leftover is 0, never negative
-    const leftoverMinor = actualMinor >= plannedAbs ? 0n : plannedAbs - actualMinor;
+    // Over-budget → leftover is 0, never negative; refunds beyond the spend never add to it.
+    const spentMinor = actualMinor > 0n ? actualMinor : 0n;
+    const leftoverMinor = spentMinor >= plannedAbs ? 0n : plannedAbs - spentMinor;
 
     // Deterministic synthetic snapshot ID from index
     const snapshotId = LeftoverSnapshotId.of(
