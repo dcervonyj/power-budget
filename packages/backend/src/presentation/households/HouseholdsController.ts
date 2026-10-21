@@ -3,6 +3,7 @@ import {
   Get,
   Inject,
   Param,
+  ParseUUIDPipe,
   Query,
   UseGuards,
   ForbiddenException,
@@ -22,7 +23,7 @@ import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentU
 import { GetHouseholdDashboardUseCase } from '../../application/households/use-cases/GetHouseholdDashboardUseCase.js';
 import {
   HouseholdDashboardResponseDto,
-  HouseholdDashboardCategoryDto,
+  toHouseholdDashboardCategoryDto,
 } from './dto/HouseholdDashboardResponseDto.js';
 
 @ApiTags('households')
@@ -44,8 +45,8 @@ export class HouseholdsController {
   @ApiResponse({ status: 403, description: 'No household' })
   @ApiResponse({ status: 404, description: 'Household or plan not found' })
   async dashboard(
-    @Param('id') id: string,
-    @Query('planId') planId: string,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('planId', ParseUUIDPipe) planId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<HouseholdDashboardResponseDto> {
     if (!user.householdId) {
@@ -57,28 +58,13 @@ export class HouseholdsController {
       throw new NotFoundException('Household not found');
     }
 
-    try {
-      const result = await this.getHouseholdDashboard.execute({
-        householdId: user.householdId,
-        planId: planId as PlanId,
-        viewerUserId: user.userId,
-      });
+    // PLAN_NOT_FOUND is mapped to 404 `plan_not_found` by the exception filter.
+    const result = await this.getHouseholdDashboard.execute({
+      householdId: user.householdId,
+      planId: planId as PlanId,
+      viewerUserId: user.userId,
+    });
 
-      const categories: HouseholdDashboardCategoryDto[] = result.categories.map((agg) => ({
-        categoryId: agg.categoryId,
-        categoryName: agg.category.name,
-        privacyLevel: agg.privacyLevel,
-        totalAmountMinor: Number(agg.totalAmount.amountMinor),
-        currency: agg.totalAmount.currency,
-        transactionCount: agg.transactionCount,
-      }));
-
-      return { planId, categories };
-    } catch (err) {
-      if (err instanceof Error && err.message.startsWith('PLAN_NOT_FOUND')) {
-        throw new NotFoundException('Plan not found');
-      }
-      throw err;
-    }
+    return { planId, categories: result.categories.map(toHouseholdDashboardCategoryDto) };
   }
 }
