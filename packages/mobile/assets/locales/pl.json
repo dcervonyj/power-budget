@@ -1,1 +1,23 @@
-{}
+{
+  "screen.dashboard.title": "Pulpit",
+  "screen.dashboard.income": "Przychody",
+  "screen.dashboard.expenses": "Wydatki",
+  "screen.dashboard.unplanned": "Nieplanowane",
+  "screen.dashboard.bottomLine": "Saldo",
+  "screen.dashboard.planned": "Zaplanowano",
+  "screen.dashboard.actual": "Faktycznie",
+  "screen.dashboard.noPlan": "Brak aktywnego planu",
+  "screen.transactionList.title": "Transakcje",
+  "screen.transactionList.empty": "Brak transakcji",
+  "screen.transactionList.filter": "Filtr",
+  "screen.transactionDetail.title": "Transakcja",
+  "screen.transactionDetail.mapping": "Przypisano do",
+  "screen.transactionDetail.unmap": "Usuń przypisanie",
+  "screen.transactionDetail.mapTo": "Przypisz do planowanej pozycji",
+  "screen.transactionDetail.markTransfer": "Oznacz jako przelew",
+  "screen.transactionDetail.notes": "Notatki",
+  "screen.transactionDetail.save": "Zapisz",
+  "component.transactionStatus.unmapped": "Nieprzypisana",
+  "component.transactionStatus.mapped": "Przypisana",
+  "component.transactionStatus.transfer": "Przelew"
+}
