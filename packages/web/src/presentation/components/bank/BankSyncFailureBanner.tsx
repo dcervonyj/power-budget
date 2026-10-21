@@ -12,7 +12,7 @@ export const BankSyncFailureBanner = observer(
     const navigate = useNavigate();
     const [dismissed, setDismissed] = useState(false);
 
-    const failed = bankConnectionStore.connections.filter((c) => c.status === 'error');
+    const failed = bankConnectionStore.connections.filter((c) => c.status === 'reconnect_required');
 
     if (dismissed || failed.length === 0) {
       return null;
@@ -40,7 +40,7 @@ export const BankSyncFailureBanner = observer(
           <FormattedMessage
             id="component.bank.syncFailed"
             defaultMessage="Bank sync failed for {name}"
-            values={{ name: first.name }}
+            values={{ name: first.bankId }}
           />
         </span>
         <div style={{ display: 'flex', gap: theme.space.sm, alignItems: 'center' }}>

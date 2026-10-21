@@ -4,7 +4,7 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../ThemeContext.js';
 import { Button } from '../Button.js';
-import type { BankConnection } from '../../../domain/bank/BankConnection.js';
+import type { BankConnection } from '../../../infrastructure/api/BankConnectionMapper.js';
 
 export interface ReconnectBannerProps {
   connections: BankConnection[];
@@ -52,7 +52,7 @@ export const ReconnectBanner = observer(function ReconnectBanner({
       <span style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm }}>
         <FormattedMessage
           id="bankConnections.reconnectBanner"
-          values={{ name: first.name, days: daysLeft }}
+          values={{ name: first.bankId, days: daysLeft }}
         />
       </span>
       <div style={{ display: 'flex', gap: theme.space.sm }}>

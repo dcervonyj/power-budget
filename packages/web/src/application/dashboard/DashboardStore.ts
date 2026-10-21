@@ -7,10 +7,7 @@ import {
   type PlanDashboardResponseDto,
 } from '../../infrastructure/api/PlanDashboardMapper.js';
 import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
-import type { PlanDto } from '../../infrastructure/api/PlanMapper.js';
-
-/** `GET /plans` (CLN-011). */
-export type Plan = PlanDto;
+import type { PlanDto } from '@power-budget/shared-app/contract';
 
 const FX_CACHE_KEY = 'pb_fx_rates';
 
@@ -46,7 +43,7 @@ function convertMinor(amountMinor: number, fromCurrency: string, toCurrency: str
 }
 
 export class DashboardStore {
-  activePlans: Plan[] = [];
+  activePlans: PlanDto[] = [];
   selectedPlanId: string | null = null;
   actuals: PlanActualsView | null = null;
   loading = false;

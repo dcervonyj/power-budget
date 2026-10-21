@@ -14,18 +14,13 @@ import {
 import { TransactionRow } from '../../components/TransactionRow.js';
 import { BulkActionBar } from '../../components/BulkActionBar.js';
 import { MappingModal } from '../../components/MappingModal.js';
-import { apiClient } from '../../../AppProviders.js';
+import { apiClient, categoriesApi } from '../../../AppProviders.js';
 import type { Transaction } from '../../../domain/transactions/Transaction.js';
-import type { TransactionPageDto } from '../../../infrastructure/api/TransactionMapper.js';
+import type { CategoryDto, TransactionPageDto } from '@power-budget/shared-app/contract';
 import {
   buildQuery,
   toTransactions,
 } from '../../../application/transactions/TransactionListQuery.js';
-
-interface Category {
-  id: string;
-  name: string;
-}
 
 export const TransactionListScreen = observer(function TransactionListScreen(): React.JSX.Element {
   const theme = useTheme();
@@ -84,7 +79,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef(filters);
@@ -92,9 +87,8 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
 
   // Load categories once
   useEffect(() => {
-    void apiClient.get<Category[]>('/categories').then((res) => {
-      setCategories(res.data);
-    });
+    // Without categories the category filter stays empty; the list still loads.
+    void categoriesApi.list().then(setCategories, () => undefined);
   }, []);
 
   // Reset and load first page when filters change
