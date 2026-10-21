@@ -10,6 +10,7 @@ import { PlansPresentationModule } from './presentation/plans/PlansPresentationM
 import { NotificationsPresentationModule } from './presentation/notifications/NotificationsPresentationModule.js';
 import { HouseholdsPresentationModule } from './presentation/households/HouseholdsPresentationModule.js';
 import { RlsMiddleware } from './infrastructure/database/RlsMiddleware.js';
+import { validationPipeProvider } from './presentation/http/validation.js';
 
 @Module({
   imports: [
@@ -23,6 +24,9 @@ import { RlsMiddleware } from './infrastructure/database/RlsMiddleware.js';
     NotificationsPresentationModule,
     HouseholdsPresentationModule,
   ],
+  // Global ValidationPipe (audit C5); registered here, not in main.ts, so the
+  // integration and OpenAPI apps get it too.
+  providers: [validationPipeProvider],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

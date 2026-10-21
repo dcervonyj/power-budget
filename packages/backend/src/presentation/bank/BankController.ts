@@ -5,6 +5,7 @@ import {
   Delete,
   Body,
   Param,
+  ParseUUIDPipe,
   Query,
   HttpCode,
   HttpStatus,
@@ -24,7 +25,13 @@ import {
 import type { BankConnectionId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
-import { InitiateBankConnectionDto, GetCatalogQueryDto } from './dto/bank.dto.js';
+import {
+  InitiateBankConnectionDto,
+  GetCatalogQueryDto,
+  ReconnectBankDto,
+  BankAccountDto,
+  toBankAccountDto,
+} from './dto/bank.dto.js';
 import { InitiateBankConnectionUseCase } from '../../application/bank/use-cases/InitiateBankConnectionUseCase.js';
 import { CompleteBankConsentUseCase } from '../../application/bank/use-cases/CompleteBankConsentUseCase.js';
 import { ListUserConnectionsUseCase } from '../../application/bank/use-cases/ListUserConnectionsUseCase.js';
@@ -115,7 +122,7 @@ export class BankController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Consent not found' })
   async completeBankConsent(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Query('code') code: string,
     @Query('state') state: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -161,7 +168,10 @@ export class BankController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Connection not found' })
-  async refreshConnection(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async refreshConnection(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     if (!user.householdId) {
       throw new ForbiddenException('No household');
     }
@@ -195,7 +205,7 @@ export class BankController {
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Connection not found' })
   async disconnectBank(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     if (!user.householdId) {
@@ -229,9 +239,10 @@ export class BankController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden or invalid state' })
   @ApiResponse({ status: 404, description: 'Connection not found' })
+  @ApiBody({ type: ReconnectBankDto, required: false })
   async reconnectBank(
-    @Param('id') id: string,
-    @Body() body: { redirectUri?: string },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ReconnectBankDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     if (!user.householdId) {
@@ -265,15 +276,20 @@ export class BankController {
   @ApiBearerAuth()
   @ApiOperation({ summary: 'List bank accounts for a connection' })
   @ApiParam({ name: 'id', description: 'Bank connection ID' })
-  @ApiResponse({ status: 200, description: 'List of bank accounts' })
+  @ApiResponse({ status: 200, description: 'List of bank accounts', type: [BankAccountDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async listAccounts(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async listAccounts(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<BankAccountDto[]> {
     if (!user.householdId) {
       return [];
     }
 
-    return this.bankAccountRepo.listByConnection(id as BankConnectionId, {
+    const accounts = await this.bankAccountRepo.listByConnection(id as BankConnectionId, {
       householdId: user.householdId,
     });
+
+    return accounts.map(toBankAccountDto);
   }
 }

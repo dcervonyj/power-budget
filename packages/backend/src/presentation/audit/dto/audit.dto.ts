@@ -1,6 +1,9 @@
-import { IsOptional, IsString, IsDateString, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { ClampMax } from '../../http/validators.js';
+
+export const AUDIT_PAGE_MAX = 200;
 
 export class ListAuditLogQueryDto {
   @ApiPropertyOptional({
@@ -40,9 +43,15 @@ export class ListAuditLogQueryDto {
   @IsString()
   cursor?: string;
 
-  @ApiPropertyOptional({ type: Number, description: 'Page size', example: 50 })
+  @ApiPropertyOptional({
+    type: Number,
+    description: `Page size (default 50, values above ${AUDIT_PAGE_MAX} are clamped)`,
+    example: 50,
+  })
   @IsOptional()
   @Type(() => Number)
-  @IsNumber()
+  @IsInt()
+  @Min(1)
+  @ClampMax(AUDIT_PAGE_MAX)
   limit?: number;
 }

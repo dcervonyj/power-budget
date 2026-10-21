@@ -52,9 +52,7 @@ describe('HTTP e2e: real Nest app on Fastify against Postgres + Redis', () => {
     expect(loginBody.accessToken).toEqual(expect.any(String));
   });
 
-  // Known bug on master: domain errors (InvalidCredentialsError) are not mapped to HTTP
-  // statuses and surface as 500. Fixed by CLN-002 (validation/error mapping); unskip there.
-  it.skip('login with a wrong password is rejected with 401', async () => {
+  it('login with a wrong password is rejected with 401', async () => {
     await app.inject({
       method: 'POST',
       url: '/auth/register',
