@@ -18,3 +18,5 @@ export * from './use-cases/ListHouseholdInvitesUseCase.js';
 export * from './use-cases/HouseholdInviteView.js';
 export * from './services/HouseholdAccess.js';
 export * from './services/HouseholdInviteMailer.js';
+export * from './use-cases/GetUserProfileUseCase.js';
+export * from './use-cases/UpdateUserProfileUseCase.js';

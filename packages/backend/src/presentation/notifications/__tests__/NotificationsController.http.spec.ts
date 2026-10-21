@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { mock } from 'vitest-mock-extended';
 import type { NotificationRepository } from '../../../domain/notifications/ports.js';
-import { DrizzleNotificationRepository } from '../../../infrastructure/notifications/DrizzleNotificationRepository.js';
+import { RecordEmailBounceUseCase } from '../../../application/notifications/use-cases/RecordEmailBounceUseCase.js';
 import { SvixWebhookVerifier } from '../../../infrastructure/notifications/SvixWebhookVerifier.js';
 import { NotificationsController } from '../NotificationsController.js';
 import { createHttpTestApp, type HttpTestApp } from '../../../test/http/createHttpTestApp.js';
@@ -30,7 +30,7 @@ describe('POST /notifications/bounce (HTTP)', () => {
     app = await createHttpTestApp({
       controllers: [NotificationsController],
       providers: [
-        { provide: DrizzleNotificationRepository, useValue: repo },
+        { provide: RecordEmailBounceUseCase, useValue: new RecordEmailBounceUseCase(repo) },
         { provide: SvixWebhookVerifier, useValue: new SvixWebhookVerifier(secret) },
       ],
     });

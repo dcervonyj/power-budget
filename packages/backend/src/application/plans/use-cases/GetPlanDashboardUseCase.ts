@@ -1,13 +1,11 @@
-import type { PlanId, HouseholdId, PlanActualsView } from '@power-budget/core';
-import type {
-  PlanRepository,
-  PlanActualsReader,
-  HouseholdScope,
-} from '../../../domain/plans/ports.js';
+import type { PlanId, HouseholdId, UserId, PlanActualsView } from '@power-budget/core';
+import type { PlanRepository, PlanActualsReader } from '../../../domain/plans/ports.js';
+import { findVisiblePlan } from '../plan-lookup.js';
 
 export interface GetPlanDashboardInput {
   readonly planId: PlanId;
   readonly householdId: HouseholdId;
+  readonly userId: UserId;
   readonly asOf: Date;
 }
 
@@ -18,15 +16,9 @@ export class GetPlanDashboardUseCase {
   ) {}
 
   async execute(input: GetPlanDashboardInput): Promise<PlanActualsView> {
-    const scope: HouseholdScope = { householdId: input.householdId };
+    // A partner's personal plan is not visible either (PLAN_NOT_FOUND).
+    const plan = await findVisiblePlan(this.planRepo, input);
 
-    const plan = await this.planRepo.findById(input.planId, scope);
-    if (plan === null) {
-      throw new Error(
-        `PLAN_NOT_FOUND: Plan ${input.planId} not found in household ${input.householdId}`,
-      );
-    }
-
-    return this.actualsReader.read(input.planId, input.asOf);
+    return this.actualsReader.read(plan.id, input.asOf);
   }
 }

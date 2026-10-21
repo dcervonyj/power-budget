@@ -75,8 +75,15 @@
     {
       "idx": 10,
       "version": "7",
-      "when": 1792593651563,
-      "tag": "0010_cln-006_household_invites",
+      "when": 1792593373766,
+      "tag": "0010_user_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792594549752,
+      "tag": "0012_cln-006_household_invites",
       "breakpoints": true
     }
   ]

@@ -37,3 +37,21 @@ export interface CategoryPrivacy {
   readonly updatedBy: UserId;
   readonly updatedAt: IsoDateTime;
 }
+
+export const DEFAULT_CATEGORY_PRIVACY: CategoryPrivacyLevel = 'full_detail';
+
+/** A category with the household's privacy level for it. */
+export interface CategoryView extends Category {
+  readonly privacy: CategoryPrivacyLevel;
+}
+
+export const CategoryRules = {
+  /** Seeded system categories are shared by every household and cannot be changed. */
+  isSystem(category: Category): boolean {
+    return category.householdId === null;
+  },
+
+  sameName(a: string, b: string): boolean {
+    return a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
+  },
+};
