@@ -1,5 +1,6 @@
 import type { PlanId, UserId, HouseholdId } from '@power-budget/core';
-import type { PlanRepository, AuditLogPort, HouseholdScope } from '../../../domain/plans/ports.js';
+import type { PlanRepository, AuditLogPort } from '../../../domain/plans/ports.js';
+import { findVisiblePlan } from '../plan-lookup.js';
 
 export interface ArchivePlanInput {
   readonly planId: PlanId;
@@ -11,19 +12,17 @@ export class ArchivePlanUseCase {
   constructor(
     private readonly planRepo: PlanRepository,
     private readonly auditLog: AuditLogPort,
+    private readonly now: () => Date = () => new Date(),
   ) {}
 
+  /** Idempotent: archiving an archived plan changes nothing. */
   async execute(input: ArchivePlanInput): Promise<void> {
-    const scope: HouseholdScope = { householdId: input.householdId };
-
-    const existing = await this.planRepo.findById(input.planId, scope);
-    if (existing === null) {
-      throw new Error(
-        `PLAN_NOT_FOUND: Plan ${input.planId} not found in household ${input.householdId}`,
-      );
+    const existing = await findVisiblePlan(this.planRepo, input);
+    if (existing.archivedAt !== null) {
+      return;
     }
 
-    await this.planRepo.archive(input.planId, new Date());
+    await this.planRepo.archive(input.planId, this.now(), { householdId: input.householdId });
 
     await this.auditLog.record({
       householdId: input.householdId,

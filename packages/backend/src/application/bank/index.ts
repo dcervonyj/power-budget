@@ -5,3 +5,4 @@ export * from './use-cases/RefreshConnectionUseCase.js';
 export * from './use-cases/DisconnectBankUseCase.js';
 export * from './use-cases/ReconnectBankUseCase.js';
 export * from './use-cases/GetBankCatalogUseCase.js';
+export * from './use-cases/ListConnectionAccountsUseCase.js';

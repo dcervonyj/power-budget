@@ -83,7 +83,7 @@ describe('ClosePeriodSnapshotUseCase', () => {
     planRepo = {
       create: vi.fn(),
       findById: vi.fn(),
-      listActive: vi.fn(),
+      list: vi.fn(),
       update: vi.fn(),
       archive: vi.fn(),
       findByPeriodEnd: vi.fn(),

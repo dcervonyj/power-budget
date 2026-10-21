@@ -12,3 +12,5 @@ export * from './use-cases/UpdateLocalePreferenceUseCase.js';
 export * from './use-cases/CreateHouseholdUseCase.js';
 export * from './use-cases/InviteToHouseholdUseCase.js';
 export * from './use-cases/AcceptInviteUseCase.js';
+export * from './use-cases/GetUserProfileUseCase.js';
+export * from './use-cases/UpdateUserProfileUseCase.js';

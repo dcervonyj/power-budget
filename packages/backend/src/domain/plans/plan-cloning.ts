@@ -1,4 +1,4 @@
-import type { IsoDate } from '@power-budget/core';
+import { DateRange, IsoDate } from '@power-budget/core';
 import type { Plan, NewPlan, PlanPeriod, PlanPeriodKind } from './entities.js';
 
 function addDays(date: Date, days: number): Date {
@@ -13,8 +13,8 @@ function addMonths(date: Date, months: number): Date {
   return d;
 }
 
-function toIsoDate(d: Date): string {
-  return d.toISOString().slice(0, 10);
+function toIsoDate(d: Date): IsoDate {
+  return IsoDate.of(d.toISOString().slice(0, 10));
 }
 
 function parseIsoDate(s: string): Date {
@@ -25,6 +25,14 @@ function parseIsoDate(s: string): Date {
  * Computes the next contiguous period for a plan.
  * Per ARCHITECTURE.md §5.4 open question 1: next contiguous period by default.
  */
+function periodStartingOn(periodKind: 'weekly' | 'monthly', start: IsoDate): PlanPeriod {
+  const startDate = parseIsoDate(start);
+  const end =
+    periodKind === 'weekly' ? addDays(startDate, 6) : addDays(addMonths(startDate, 1), -1);
+
+  return { start, end: toIsoDate(end) };
+}
+
 function nextPeriod(periodKind: PlanPeriodKind, current: PlanPeriod): PlanPeriod {
   const end = parseIsoDate(current.end);
   const nextStart = addDays(end, 1);
@@ -32,17 +40,17 @@ function nextPeriod(periodKind: PlanPeriodKind, current: PlanPeriod): PlanPeriod
   switch (periodKind) {
     case 'weekly': {
       const nextEnd = addDays(nextStart, 6);
-      return { start: toIsoDate(nextStart) as IsoDate, end: toIsoDate(nextEnd) as IsoDate };
+      return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
     case 'monthly': {
       const nextEnd = addDays(addMonths(nextStart, 1), -1);
-      return { start: toIsoDate(nextStart) as IsoDate, end: toIsoDate(nextEnd) as IsoDate };
+      return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
     case 'custom': {
       const start = parseIsoDate(current.start);
       const durationDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       const nextEnd = addDays(nextStart, durationDays);
-      return { start: toIsoDate(nextStart) as IsoDate, end: toIsoDate(nextEnd) as IsoDate };
+      return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
   }
 }
@@ -83,23 +91,58 @@ export class PlanCloning {
   }
 
   /**
-   * Enforce the MVP invariant: ≤1 active plan of each (type, periodKind)
-   * per user/household at a time — except 'custom' which has no such limit.
+   * Enforce the MVP invariant: ≤1 non-archived plan of each (type, periodKind)
+   * per owner (personal) or household (household) for any overlapping period,
+   * except 'custom' which has no such limit. `existing` are the plans visible to
+   * the owner; the candidate's own id (on update) is ignored.
    */
-  static assertNoDuplicateActivePlan(
-    activePlans: Plan[],
-    candidate: Pick<Plan, 'type' | 'periodKind'>,
-  ): void {
+  static assertNoDuplicateActivePlan(existing: Plan[], candidate: PlanCandidate): void {
     if (candidate.periodKind === 'custom') return; // custom is exempt
 
-    const conflict = activePlans.find(
-      (p) => p.type === candidate.type && p.periodKind === candidate.periodKind,
+    const conflict = existing.find(
+      (p) =>
+        p.id !== candidate.id &&
+        p.archivedAt === null &&
+        p.type === candidate.type &&
+        p.periodKind === candidate.periodKind &&
+        (candidate.type === 'household' || p.ownerUserId === candidate.ownerUserId) &&
+        DateRange.overlaps(p.period, candidate.period),
     );
 
     if (conflict) {
       throw new Error(
-        `PLAN_DUPLICATE: An active ${candidate.type} ${candidate.periodKind} plan already exists (id=${conflict.id}). Archive it before creating another.`,
+        `PLAN_DUPLICATE: An active ${candidate.type} ${candidate.periodKind} plan already overlaps this period (id=${conflict.id}). Archive it before creating another.`,
       );
     }
   }
 }
+
+export interface PlanCandidate {
+  readonly id?: Plan['id'];
+  readonly type: Plan['type'];
+  readonly periodKind: PlanPeriodKind;
+  readonly period: PlanPeriod;
+  readonly ownerUserId: Plan['ownerUserId'];
+}
+
+/** Period rules for creating or moving a plan. */
+export const PlanPeriods = {
+  /**
+   * Weekly and monthly plans derive the end from the start when it is omitted;
+   * custom plans need an explicit end. Throws PLAN_PERIOD_INVALID.
+   */
+  resolve(periodKind: PlanPeriodKind, start: IsoDate, end?: IsoDate): PlanPeriod {
+    if (end === undefined) {
+      if (periodKind === 'custom') {
+        throw new Error('PLAN_PERIOD_INVALID: A custom plan needs an end date');
+      }
+
+      return periodStartingOn(periodKind, start);
+    }
+    if (end < start) {
+      throw new Error('PLAN_PERIOD_INVALID: The end date is before the start date');
+    }
+
+    return { start, end };
+  },
+};
