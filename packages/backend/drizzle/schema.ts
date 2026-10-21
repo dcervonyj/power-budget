@@ -188,10 +188,13 @@ export const bankAccounts = pgTable(
     householdId: uuid('household_id')
       .notNull()
       .references(() => households.id),
-    connectionId: uuid('connection_id')
+    // CLN-023: 'bank' rows come from a connection; 'manual' rows (cash wallets) have none.
+    kind: varchar('kind', { length: 20 }).notNull().default('bank'),
+    ownerUserId: uuid('owner_user_id')
       .notNull()
-      .references(() => bankConnections.id),
-    externalId: varchar('external_id', { length: 255 }).notNull(),
+      .references(() => users.id),
+    connectionId: uuid('connection_id').references(() => bankConnections.id),
+    externalId: varchar('external_id', { length: 255 }),
     name: varchar('name', { length: 255 }).notNull(),
     iban: varchar('iban', { length: 34 }),
     currency: char('currency', { length: 3 }).notNull(),
@@ -203,7 +206,12 @@ export const bankAccounts = pgTable(
   },
   (t) => [
     index('bank_accounts_connection_idx').on(t.connectionId),
+    index('bank_accounts_household_owner_idx').on(t.householdId, t.ownerUserId),
     uniqueIndex('bank_accounts_external_unique').on(t.connectionId, t.externalId),
+    check(
+      'bank_accounts_kind_check',
+      sql`(kind = 'bank' AND connection_id IS NOT NULL AND external_id IS NOT NULL) OR (kind = 'manual' AND connection_id IS NULL)`,
+    ),
   ],
 );
 
@@ -226,6 +234,8 @@ export const transactions = pgTable(
     description: text('description').notNull().default(''),
     merchant: varchar('merchant', { length: 255 }),
     source: varchar('source', { length: 20 }).notNull().default('bank_sync'),
+    // CLN-023: booking state; 'posted' is the bank's booked state.
+    status: varchar('status', { length: 20 }).notNull().default('posted'),
     ignored: boolean('ignored').notNull().default(false),
     notes: text('notes'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -237,6 +247,7 @@ export const transactions = pgTable(
     uniqueIndex('transactions_external_unique')
       .on(t.accountId, t.externalId)
       .where(sql`external_id IS NOT NULL`),
+    check('transactions_status_check', sql`status IN ('pending', 'posted', 'cancelled')`),
   ],
 );
 
@@ -253,8 +264,13 @@ export const transactionMappings = pgTable(
       .notNull()
       .references(() => users.id),
     mappedAt: timestamp('mapped_at', { withTimezone: true }).notNull().defaultNow(),
+    // CLN-023: who decided the mapping: a user ('manual'), a learned rule or the AI classifier.
+    source: varchar('source', { length: 20 }).notNull().default('manual'),
   },
-  (t) => [index('mappings_planned_item_idx').on(t.plannedItemId)],
+  (t) => [
+    index('mappings_planned_item_idx').on(t.plannedItemId),
+    check('transaction_mappings_source_check', sql`source IN ('manual', 'rule', 'ai')`),
+  ],
 );
 
 export const transfers = pgTable(
@@ -545,6 +561,7 @@ export type SelectPlannedItem = InferSelectModel<typeof plannedItems>;
 export type SelectTransaction = InferSelectModel<typeof transactions>;
 export type SelectCategory = InferSelectModel<typeof categories>;
 export type SelectBankConnection = InferSelectModel<typeof bankConnections>;
+export type SelectBankAccount = InferSelectModel<typeof bankAccounts>;
 export type SelectAuditLog = InferSelectModel<typeof auditLog>;
 export type SelectHouseholdExport = InferSelectModel<typeof householdExports>;
 export type InsertHouseholdExport = InferInsertModel<typeof householdExports>;

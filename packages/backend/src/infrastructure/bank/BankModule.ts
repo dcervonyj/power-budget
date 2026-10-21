@@ -6,6 +6,7 @@ import { QueueModule } from '../queue/queue.module.js';
 import { EnvKekEncryption } from '../auth/EnvKekEncryption.js';
 import { DrizzleBankConnectionRepository } from './DrizzleBankConnectionRepository.js';
 import { DrizzleBankAccountRepository } from './DrizzleBankAccountRepository.js';
+import { DrizzleAccountRepository } from './DrizzleAccountRepository.js';
 import { InMemoryBankConnector } from './InMemoryBankConnector.js';
 import { InMemoryBankConnectorRegistry } from './InMemoryBankConnectorRegistry.js';
 import { GoCardlessBankConnector } from './GoCardlessBankConnector.js';
@@ -24,6 +25,7 @@ import { BullMQBankSyncQueue } from './BullMQBankSyncQueue.js';
   providers: [
     DrizzleBankConnectionRepository,
     DrizzleBankAccountRepository,
+    DrizzleAccountRepository,
     StubSyncRunRepository,
     DrizzleSyncRunRepository,
     BullMQBankSyncQueue,
@@ -54,6 +56,7 @@ import { BullMQBankSyncQueue } from './BullMQBankSyncQueue.js';
   exports: [
     DrizzleBankConnectionRepository,
     DrizzleBankAccountRepository,
+    DrizzleAccountRepository,
     StubSyncRunRepository,
     DrizzleSyncRunRepository,
     BullMQBankSyncQueue,

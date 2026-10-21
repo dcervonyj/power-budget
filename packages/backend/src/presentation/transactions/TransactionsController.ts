@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import type {
   BankAccountId,
+  CurrencyCode,
   IsoDate,
   PlannedItemId,
   PlanId,
@@ -76,7 +77,11 @@ export class TransactionsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'List transactions for the current household' })
+  @ApiOperation({
+    summary: 'List transactions for the current household',
+    description:
+      'Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.',
+  })
   @ApiResponse({
     status: 200,
     description: 'Paginated list of transactions',
@@ -100,6 +105,7 @@ export class TransactionsController {
         dateTo: query.to as IsoDate | undefined,
         search: query.q,
         unmappedOnly: query.unmappedOnly,
+        status: query.status,
         cursor: query.cursor,
         limit: query.limit,
       },
@@ -132,8 +138,12 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Add a manual transaction' })
   @ApiBody({ type: AddManualTransactionDto })
   @ApiResponse({ status: 201, description: 'Transaction created', type: TransactionDto })
-  @ApiResponse({ status: 400, description: 'Invalid body' })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid body, zero amount, or amount not in the account currency',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: "Account not found or not the caller's own" })
   async addManual(
     @Body() dto: AddManualTransactionDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -144,10 +154,12 @@ export class TransactionsController {
 
     const created = await this.addManualTransaction.execute({
       householdId: user.householdId,
+      userId: user.userId,
       accountId: dto.accountId as BankAccountId,
       occurredOn: dto.occurredOn,
       amountMinor: BigInt(dto.amountMinor),
-      currency: dto.currency,
+      // Validated against CURRENCIES by the DTO.
+      currency: dto.currency as CurrencyCode,
       description: dto.description,
       merchant: dto.merchant ?? null,
       notes: dto.notes ?? null,

@@ -338,7 +338,10 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List transactions for the current household */
+    /**
+     * List transactions for the current household
+     * @description Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.
+     */
     get: operations['TransactionsController_list'];
     put?: never;
     /** Add a manual transaction */
@@ -550,6 +553,27 @@ export interface paths {
     get: operations['BankController_listAccounts'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/accounts': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List the caller's own accounts (bank and manual)
+     * @description A partner's accounts are never listed: accounts are private to their owner; the partner's spending is shared only through category totals.
+     */
+    get: operations['AccountsController_list'];
+    put?: never;
+    /** Create a manual (cash) account for manual transactions */
+    post: operations['AccountsController_create'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1008,6 +1032,61 @@ export interface components {
        */
       currency: string;
     };
+    TransactionListMappingDto: {
+      plannedItemId: string;
+      planId: string;
+      planName: string;
+      /** @description The plan is archived (mappings into it still show) */
+      planArchived: boolean;
+      categoryId: string;
+      /** @description Null only when the category row is missing */
+      categoryName: string | null;
+      /** @description Seed key of a system category (for a localised name); null for own categories */
+      categorySeedKey: string | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      mappedAt: string;
+    };
+    TransactionTransferLinkDto: {
+      transferId: string;
+      /** @description The other side of the transfer; null for a standalone transfer */
+      counterpartTransactionId: string | null;
+    };
+    TransactionListItemDto: {
+      id: string;
+      accountId: string;
+      externalId: string | null;
+      /** @example 2024-06-15 */
+      occurredOn: string;
+      amount: components['schemas']['MoneyDto'];
+      description: string;
+      merchant: string | null;
+      /** @enum {string} */
+      source: 'bank_sync' | 'manual';
+      /**
+       * @description Booking status: `pending`, `posted` (booked by the bank) or `cancelled`
+       * @enum {string}
+       */
+      status: 'pending' | 'posted' | 'cancelled';
+      ignored: boolean;
+      notes: string | null;
+      suggestedPlannedItemId: string | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      createdAt: string;
+      /** @description The planned item the transaction is mapped to (any plan, archived included) */
+      mapping?: components['schemas']['TransactionListMappingDto'] | null;
+      /**
+       * @description How the planned item was chosen: `manual` (a user), `rule` (a learned rule), `ai` (the classifier), `suggestion` (not mapped; a suggested item waits for confirmation) or `none`. Only `manual` and `none` occur today
+       * @enum {string}
+       */
+      mappingSource?: 'manual' | 'rule' | 'ai' | 'suggestion' | 'none';
+      /** @description Set when the transaction is marked as a transfer between own accounts */
+      transfer?: components['schemas']['TransactionTransferLinkDto'] | null;
+    };
+    TransactionPageDto: {
+      items: components['schemas']['TransactionListItemDto'][];
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
     TransactionDto: {
       id: string;
       accountId: string;
@@ -1019,18 +1098,16 @@ export interface components {
       merchant: string | null;
       /** @enum {string} */
       source: 'bank_sync' | 'manual';
-      /** @enum {string} */
+      /**
+       * @description Booking status: `pending`, `posted` (booked by the bank) or `cancelled`
+       * @enum {string}
+       */
       status: 'pending' | 'posted' | 'cancelled';
       ignored: boolean;
       notes: string | null;
       suggestedPlannedItemId: string | null;
       /** @example 2024-06-15T10:00:00.000Z */
       createdAt: string;
-    };
-    TransactionPageDto: {
-      items: components['schemas']['TransactionDto'][];
-      nextCursor: string | null;
-      hasMore: boolean;
     };
     TransactionDetailDto: {
       transaction: components['schemas']['TransactionDto'];
@@ -1040,7 +1117,7 @@ export interface components {
       transfer: Record<string, never> | null;
     };
     AddManualTransactionDto: {
-      /** @description Bank account ID */
+      /** @description One of the caller's own accounts (`GET /accounts`); another user's reads as 404 */
       accountId: string;
       /**
        * @description Date of transaction (YYYY-MM-DD)
@@ -1048,12 +1125,12 @@ export interface components {
        */
       occurredOn: string;
       /**
-       * @description Amount in minor currency units (e.g. cents) as an integer string; a safe JSON integer is also accepted
+       * @description Non-zero amount in minor units of `currency` (10^exponent per unit, e.g. cents for PLN) as an integer string; negative = outgoing. A safe JSON integer is also accepted; decimals are rejected
        * @example -1500
        */
       amountMinor: string;
       /**
-       * @description ISO 4217 currency code
+       * @description ISO 4217 currency code; must be the account currency (400 otherwise)
        * @enum {string}
        */
       currency:
@@ -1188,6 +1265,40 @@ export interface components {
       lastSyncedAt: string | null;
       /** @example 2024-06-15T10:00:00.000Z */
       createdAt: string;
+    };
+    AccountDto: {
+      id: string;
+      /**
+       * @description `bank`: synced from a bank connection; `manual`: a cash wallet kept by hand
+       * @enum {string}
+       */
+      kind: 'bank' | 'manual';
+      /** @example Cash */
+      name: string;
+      /**
+       * @description ISO 4217 currency code
+       * @enum {string}
+       */
+      currency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+      /** @description Bank connection; null for manual */
+      connectionId: string | null;
+      /** @description Balance reported by the bank; null for a manual account (not tracked) */
+      balance: components['schemas']['MoneyDto'] | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      lastSyncedAt: string | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      createdAt: string;
+    };
+    CreateManualAccountDto: {
+      /** @example Cash */
+      name: string;
+      /**
+       * @description ISO 4217 currency code
+       * @enum {string}
+       */
+      currency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
     };
     DateRangeDto: {
       /** @example 2024-06-01 */
@@ -2298,7 +2409,7 @@ export interface operations {
           'application/json': components['schemas']['TransactionDto'];
         };
       };
-      /** @description Invalid body */
+      /** @description Invalid body, zero amount, or amount not in the account currency */
       400: {
         headers: {
           [name: string]: unknown;
@@ -2307,6 +2418,13 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Account not found or not the caller's own */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -2859,6 +2977,78 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  AccountsController_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Own accounts */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AccountDto'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  AccountsController_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateManualAccountDto'];
+      };
+    };
+    responses: {
+      /** @description Account created */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AccountDto'];
+        };
+      };
+      /** @description Invalid body */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The caller has no household */
+      404: {
         headers: {
           [name: string]: unknown;
         };

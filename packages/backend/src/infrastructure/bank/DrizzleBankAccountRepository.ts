@@ -2,7 +2,7 @@ import { Inject } from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { BankConnectionId, HouseholdId, BankAccountId } from '@power-budget/core';
+import type { BankConnectionId, HouseholdId, BankAccountId, UserId } from '@power-budget/core';
 import type { BankAccount, RawBankAccount } from '../../domain/bank/entities.js';
 import type { BankAccountRepository, HouseholdScope } from '../../domain/bank/ports.js';
 import { uuidv7 } from 'uuidv7';
@@ -15,6 +15,7 @@ export class DrizzleBankAccountRepository implements BankAccountRepository {
   async upsertAll(
     accounts: RawBankAccount[],
     connectionId: BankConnectionId,
+    ownerUserId: UserId,
     scope: HouseholdScope,
   ): Promise<void> {
     if (accounts.length === 0) {
@@ -27,6 +28,8 @@ export class DrizzleBankAccountRepository implements BankAccountRepository {
         accounts.map((a) => ({
           id: uuidv7() as BankAccountId,
           householdId: scope.householdId,
+          kind: 'bank',
+          ownerUserId,
           connectionId,
           externalId: a.externalId,
           name: a.name,
@@ -60,17 +63,28 @@ export class DrizzleBankAccountRepository implements BankAccountRepository {
         ),
       );
 
-    return rows.map((r) => ({
-      id: r.id as BankAccountId,
-      householdId: r.householdId as HouseholdId,
-      connectionId: r.connectionId as BankConnectionId,
-      externalId: r.externalId,
-      name: r.name,
-      iban: r.iban ?? null,
-      currency: r.currency,
-      balanceMinor: r.balanceMinor,
-      lastSyncedAt: r.lastSyncedAt ?? null,
-      createdAt: r.createdAt,
-    }));
+    return rows.flatMap((r) => this.toBankAccount(r));
+  }
+
+  /** Rows of a connection are `bank` rows; the kind check guarantees both keys are set. */
+  private toBankAccount(r: schema.SelectBankAccount): BankAccount[] {
+    if (r.connectionId === null || r.externalId === null) {
+      return [];
+    }
+
+    return [
+      {
+        id: r.id as BankAccountId,
+        householdId: r.householdId as HouseholdId,
+        connectionId: r.connectionId as BankConnectionId,
+        externalId: r.externalId,
+        name: r.name,
+        iban: r.iban ?? null,
+        currency: r.currency,
+        balanceMinor: r.balanceMinor,
+        lastSyncedAt: r.lastSyncedAt ?? null,
+        createdAt: r.createdAt,
+      },
+    ];
   }
 }

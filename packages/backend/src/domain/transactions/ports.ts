@@ -10,6 +10,8 @@ import type {
   Transaction,
   NewTransaction,
   NewManualTransaction,
+  OwnedAccountRef,
+  TransactionListItem,
   TransactionMapping,
   Transfer,
   TransactionQuery,
@@ -24,9 +26,15 @@ export interface TransactionRepository {
   /** Bank sync: the household comes from the synced connection (`input.householdId`). */
   upsertByExternalId(input: NewTransaction): Promise<{ id: TransactionId; created: boolean }>;
   insertManual(input: NewManualTransaction): Promise<Transaction>;
-  accountBelongsTo(accountId: BankAccountId, scope: HouseholdScope): Promise<boolean>;
+  /** The account when it is in `scope` and owned by `ownerUserId` (accounts are private). */
+  findOwnedAccount(
+    accountId: BankAccountId,
+    ownerUserId: UserId,
+    scope: HouseholdScope,
+  ): Promise<OwnedAccountRef | null>;
   findById(id: TransactionId, scope: HouseholdScope): Promise<Transaction | null>;
-  list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<Transaction>>;
+  /** One query: each row carries its mapping (with plan and category names) and transfer. */
+  list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>>;
   patch(
     id: TransactionId,
     patch: Partial<Pick<Transaction, 'notes' | 'ignored' | 'suggestedPlannedItemId'>>,

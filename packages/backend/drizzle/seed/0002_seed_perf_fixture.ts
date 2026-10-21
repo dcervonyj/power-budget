@@ -142,6 +142,7 @@ async function seed(): Promise<void> {
   await db.insert(bankAccounts).values({
     id: AC_ID,
     householdId: H_ID,
+    ownerUserId: U_ID,
     connectionId: CN_ID,
     externalId: 'perf-account-001',
     name: 'Perf Test Account',

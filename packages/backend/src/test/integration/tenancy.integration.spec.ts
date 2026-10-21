@@ -83,9 +83,9 @@ async function seedTenant(label: string, description: string): Promise<Tenant> {
     [t.connectionId, t.householdId, t.userId],
   );
   await q.query(
-    `INSERT INTO bank_accounts (id, household_id, connection_id, external_id, name, currency)
-     VALUES ($1, $2, $3, $4, 'Main', 'PLN')`,
-    [t.accountId, t.householdId, t.connectionId, `ext-${label}`],
+    `INSERT INTO bank_accounts (id, household_id, owner_user_id, connection_id, external_id, name, currency)
+     VALUES ($1, $2, $3, $4, $5, 'Main', 'PLN')`,
+    [t.accountId, t.householdId, t.userId, t.connectionId, `ext-${label}`],
   );
   await q.query(
     `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, description, source)
@@ -286,15 +286,22 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       expect(await count(`transactions WHERE notes = 'pwned'`)).toBe(0);
     });
 
-    it('accountBelongsTo rejects a foreign account (manual transaction check)', async () => {
+    it('findOwnedAccount rejects a foreign account (manual transaction check)', async () => {
       const repo = new DrizzleTransactionRepository(appDb);
+      const scope = { householdId: A.householdId };
 
+      expect(await asTenant(A, () => repo.findOwnedAccount(A.accountId, A.userId, scope))).toEqual({
+        id: A.accountId,
+        currency: 'PLN',
+      });
       expect(
-        await asTenant(A, () => repo.accountBelongsTo(A.accountId, { householdId: A.householdId })),
-      ).toBe(true);
+        await asTenant(A, () => repo.findOwnedAccount(B.accountId, A.userId, scope)),
+      ).toBeNull();
       expect(
-        await asTenant(A, () => repo.accountBelongsTo(B.accountId, { householdId: A.householdId })),
-      ).toBe(false);
+        await asTenant(A, () =>
+          repo.findOwnedAccount(B.accountId, B.userId, { householdId: B.householdId }),
+        ),
+      ).toBeNull();
     });
 
     it('search treats % and _ literally (escaped ilike)', async () => {
@@ -308,7 +315,7 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
         repo.list({ householdId: A.householdId, search: '_' }, scope),
       );
 
-      expect(percent.items.map((t) => t.id)).toEqual([A.txId]);
+      expect(percent.items.map((t) => t.transaction.id)).toEqual([A.txId]);
       expect(underscore.items).toHaveLength(0);
     });
 

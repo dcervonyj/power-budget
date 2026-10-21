@@ -1,0 +1,23 @@
+import { describe, expect, it } from 'vitest';
+import { mock } from 'vitest-mock-extended';
+import { HouseholdId } from '@power-budget/core';
+import type { Page, TransactionListItem } from '../../../../domain/transactions/entities.js';
+import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
+import { ListTransactionsUseCase } from '../ListTransactionsUseCase.js';
+
+const HOUSEHOLD = HouseholdId.of('01890a5d-ac96-774b-bcce-b302099a8057');
+
+describe('ListTransactionsUseCase', () => {
+  it('lists with the query in the caller household scope', async () => {
+    const repo = mock<TransactionRepository>();
+    const page: Page<TransactionListItem> = { items: [], nextCursor: null, hasMore: false };
+    repo.list.mockResolvedValue(page);
+    const query = { householdId: HOUSEHOLD, unmappedOnly: true, status: 'pending' as const };
+
+    await expect(
+      new ListTransactionsUseCase(repo).execute({ query, householdId: HOUSEHOLD }),
+    ).resolves.toBe(page);
+
+    expect(repo.list).toHaveBeenCalledWith(query, { householdId: HOUSEHOLD });
+  });
+});

@@ -1,10 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import type { TransactionDetail } from '../../../application/transactions/use-cases/GetTransactionUseCase.js';
-import type {
-  Page,
-  Transaction,
-  TransactionMapping,
-  Transfer,
+import {
+  MAPPING_SOURCES,
+  TRANSACTION_STATUSES,
+  type MappingSource,
+  type Page,
+  type Transaction,
+  type TransactionListItem,
+  type TransactionListMapping,
+  type TransactionMapping,
+  type TransactionTransferLink,
+  type Transfer,
 } from '../../../domain/transactions/entities.js';
 import { MoneyDto, toMoneyDto } from '../../http/money.js';
 
@@ -33,7 +39,10 @@ export class TransactionDto {
   @ApiProperty({ enum: ['bank_sync', 'manual'] })
   source!: string;
 
-  @ApiProperty({ enum: ['pending', 'posted', 'cancelled'] })
+  @ApiProperty({
+    enum: [...TRANSACTION_STATUSES],
+    description: 'Booking status: `pending`, `posted` (booked by the bank) or `cancelled`',
+  })
   status!: string;
 
   @ApiProperty({ type: Boolean })
@@ -49,9 +58,87 @@ export class TransactionDto {
   createdAt!: string;
 }
 
+export class TransactionListMappingDto {
+  @ApiProperty({ type: String })
+  plannedItemId!: string;
+
+  @ApiProperty({ type: String })
+  planId!: string;
+
+  @ApiProperty({ type: String })
+  planName!: string;
+
+  @ApiProperty({ type: Boolean, description: 'The plan is archived (mappings into it still show)' })
+  planArchived!: boolean;
+
+  @ApiProperty({ type: String })
+  categoryId!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Null only when the category row is missing',
+  })
+  categoryName!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'Seed key of a system category (for a localised name); null for own categories',
+  })
+  categorySeedKey!: string | null;
+
+  @ApiProperty({ type: String, example: '2024-06-15T10:00:00.000Z' })
+  mappedAt!: string;
+}
+
+export class TransactionTransferLinkDto {
+  @ApiProperty({ type: String })
+  transferId!: string;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description: 'The other side of the transfer; null for a standalone transfer',
+  })
+  counterpartTransactionId!: string | null;
+}
+
+/**
+ * A row of `GET /transactions`. `mapping`, `mappingSource` and `transfer` are always sent;
+ * they are optional in the schema only so existing `TransactionDto` client fixtures still
+ * type-check as page items (the web follow-up makes them required).
+ */
+export class TransactionListItemDto extends TransactionDto {
+  @ApiProperty({
+    type: TransactionListMappingDto,
+    nullable: true,
+    required: false,
+    description: 'The planned item the transaction is mapped to (any plan, archived included)',
+  })
+  mapping?: TransactionListMappingDto | null;
+
+  @ApiProperty({
+    type: String,
+    enum: [...MAPPING_SOURCES],
+    required: false,
+    description:
+      'How the planned item was chosen: `manual` (a user), `rule` (a learned rule), `ai` (the classifier), `suggestion` (not mapped; a suggested item waits for confirmation) or `none`. Only `manual` and `none` occur today',
+  })
+  mappingSource?: MappingSource;
+
+  @ApiProperty({
+    type: TransactionTransferLinkDto,
+    nullable: true,
+    required: false,
+    description: 'Set when the transaction is marked as a transfer between own accounts',
+  })
+  transfer?: TransactionTransferLinkDto | null;
+}
+
 export class TransactionPageDto {
-  @ApiProperty({ type: [TransactionDto] })
-  items!: TransactionDto[];
+  @ApiProperty({ type: [TransactionListItemDto] })
+  items!: TransactionListItemDto[];
 
   @ApiProperty({ type: String, nullable: true })
   nextCursor!: string | null;
@@ -89,11 +176,40 @@ export function toTransactionDto(tx: Transaction): TransactionDto {
   };
 }
 
-export function toTransactionPageDto(page: Page<Transaction>): TransactionPageDto {
+export function toTransactionPageDto(page: Page<TransactionListItem>): TransactionPageDto {
   return {
-    items: page.items.map(toTransactionDto),
+    items: page.items.map(toTransactionListItemDto),
     nextCursor: page.nextCursor,
     hasMore: page.hasMore,
+  };
+}
+
+export function toTransactionListItemDto(item: TransactionListItem): TransactionListItemDto {
+  return {
+    ...toTransactionDto(item.transaction),
+    mapping: item.mapping === null ? null : toListMappingDto(item.mapping),
+    mappingSource: item.mappingSource,
+    transfer: item.transfer === null ? null : toTransferLinkDto(item.transfer),
+  };
+}
+
+function toListMappingDto(mapping: TransactionListMapping): TransactionListMappingDto {
+  return {
+    plannedItemId: mapping.plannedItemId,
+    planId: mapping.planId,
+    planName: mapping.planName,
+    planArchived: mapping.planArchived,
+    categoryId: mapping.categoryId,
+    categoryName: mapping.categoryName,
+    categorySeedKey: mapping.categorySeedKey,
+    mappedAt: mapping.mappedAt,
+  };
+}
+
+function toTransferLinkDto(link: TransactionTransferLink): TransactionTransferLinkDto {
+  return {
+    transferId: link.transferId,
+    counterpartTransactionId: link.counterpartTransactionId,
   };
 }
 
