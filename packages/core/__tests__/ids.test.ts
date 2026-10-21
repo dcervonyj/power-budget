@@ -40,13 +40,14 @@ describe('HouseholdId', () => {
 });
 
 describe('brand assignability', () => {
+  // The assertion is the @ts-expect-error: `pnpm typecheck` (which includes __tests__)
+  // fails if a UserId ever becomes assignable to a HouseholdId. At runtime both are the
+  // same string.
   it('UserId is not assignable to HouseholdId at type level', () => {
     const userId = UserId.of(VALID_UUIDV7);
     // @ts-expect-error UserId must not be assignable to HouseholdId
-    const _: ReturnType<typeof HouseholdId.of> = userId;
-    // Suppress unused variable warning
-    void _;
-    expect(true).toBe(true);
+    const householdId: ReturnType<typeof HouseholdId.of> = userId;
+    expect(householdId).toBe(VALID_UUIDV7);
   });
 });
 
