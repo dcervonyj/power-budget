@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, lte, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type {
@@ -9,7 +9,12 @@ import type {
   NotificationOutbox,
   NotificationKind,
 } from '../../domain/notifications/entities.js';
-import type { NotificationRepository } from '../../domain/notifications/ports.js';
+import type {
+  NotificationClaimHandler,
+  NotificationClaimOutcome,
+  NotificationRepository,
+} from '../../domain/notifications/ports.js';
+import { DrizzleNotificationClaim } from './DrizzleNotificationClaim.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
 
@@ -32,36 +37,57 @@ export class DrizzleNotificationRepository implements NotificationRepository {
       .onConflictDoNothing();
   }
 
+  async findById(id: string): Promise<NotificationOutbox | null> {
+    const [row] = await this.db
+      .select()
+      .from(schema.notificationsOutbox)
+      .where(eq(schema.notificationsOutbox.id, id))
+      .limit(1);
+
+    return row === undefined ? null : this.toEntity(row);
+  }
+
   async findPendingBatch(limit: number): Promise<NotificationOutbox[]> {
     const rows = await this.db
       .select()
       .from(schema.notificationsOutbox)
-      .where(and(isNull(schema.notificationsOutbox.sentAt), isNull(schema.notificationsOutbox.failedAt)))
+      .where(this.isPending())
       .orderBy(schema.notificationsOutbox.createdAt)
       .limit(limit);
 
     return rows.map((r) => this.toEntity(r));
   }
 
-  async markSent(id: string): Promise<void> {
-    await this.db
-      .update(schema.notificationsOutbox)
-      .set({ sentAt: new Date() })
-      .where(eq(schema.notificationsOutbox.id, id));
-  }
+  async claimForDispatch<R>(
+    id: string,
+    handler: NotificationClaimHandler<R>,
+  ): Promise<NotificationClaimOutcome<R>> {
+    // The row lock is the claim: a second dispatcher skips the locked row, and a
+    // crashed one releases it with its connection, so the row is retried.
+    return this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(schema.notificationsOutbox)
+        .set({ attempts: sql`${schema.notificationsOutbox.attempts} + 1` })
+        .where(
+          inArray(
+            schema.notificationsOutbox.id,
+            tx
+              .select({ id: schema.notificationsOutbox.id })
+              .from(schema.notificationsOutbox)
+              .where(and(eq(schema.notificationsOutbox.id, id), this.isPending()))
+              .for('update', { skipLocked: true }),
+          ),
+        )
+        .returning();
 
-  async markFailed(id: string): Promise<void> {
-    await this.db
-      .update(schema.notificationsOutbox)
-      .set({ failedAt: new Date() })
-      .where(eq(schema.notificationsOutbox.id, id));
-  }
+      if (row === undefined) {
+        return { status: 'unavailable' };
+      }
 
-  async incrementAttempts(id: string): Promise<void> {
-    await this.db
-      .update(schema.notificationsOutbox)
-      .set({ attempts: sql`${schema.notificationsOutbox.attempts} + 1` })
-      .where(eq(schema.notificationsOutbox.id, id));
+      const claim = new DrizzleNotificationClaim(tx, this.toEntity(row));
+
+      return { status: 'claimed', result: await handler.handle(claim) };
+    });
   }
 
   async listAllHouseholdMembers(): Promise<HouseholdMemberRow[]> {
@@ -135,7 +161,12 @@ export class DrizzleNotificationRepository implements NotificationRepository {
 
   async findUserById(
     userId: UserId,
-  ): Promise<{ email: string; displayName: string; locale: string; emailBouncing: boolean } | null> {
+  ): Promise<{
+    email: string;
+    displayName: string;
+    locale: string;
+    emailBouncing: boolean;
+  } | null> {
     const rows = await this.db
       .select({
         email: schema.users.email,
@@ -156,6 +187,13 @@ export class DrizzleNotificationRepository implements NotificationRepository {
       locale: r.localePreference ?? r.defaultLocale,
       emailBouncing: r.emailBouncing,
     };
+  }
+
+  private isPending(): SQL | undefined {
+    return and(
+      isNull(schema.notificationsOutbox.sentAt),
+      isNull(schema.notificationsOutbox.failedAt),
+    );
   }
 
   private toEntity(r: schema.SelectNotificationOutbox): NotificationOutbox {

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { uuidv7 } from 'uuidv7';
 import { DatabaseModule } from '../database/database.module.js';
 import { QueueModule } from '../queue/queue.module.js';
 import { PlansModule } from './PlansModule.js';
@@ -28,7 +28,7 @@ import { PeriodCloseUseCase } from '../../application/plans/use-cases/PeriodClos
         planRepo: DrizzlePlanRepository,
         actualsReader: DrizzlePlanActualsReader,
         leftoverRepo: DrizzleLeftoverSnapshotRepository,
-      ) => new ClosePeriodSnapshotUseCase(planRepo, actualsReader, leftoverRepo, randomUUID),
+      ) => new ClosePeriodSnapshotUseCase(planRepo, actualsReader, leftoverRepo, uuidv7),
     },
     {
       provide: PeriodCloseUseCase,

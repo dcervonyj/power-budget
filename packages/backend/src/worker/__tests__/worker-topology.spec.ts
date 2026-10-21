@@ -8,7 +8,6 @@ import { WorkerModule } from '../worker.module.js';
 import {
   QUEUE_BANK_SYNC,
   QUEUE_NOTIFICATION_DISPATCH,
-  QUEUE_OUTBOX_RELAY,
   QUEUE_PERIOD_CLOSE,
   QUEUE_REFRESH_PLAN_ACTUALS,
 } from '../../infrastructure/queue/queue.constants.js';
@@ -118,7 +117,6 @@ describe('worker topology', () => {
       [
         QUEUE_BANK_SYNC,
         QUEUE_NOTIFICATION_DISPATCH,
-        QUEUE_OUTBOX_RELAY,
         QUEUE_PERIOD_CLOSE,
         QUEUE_REFRESH_PLAN_ACTUALS,
       ].sort(),

@@ -1,16 +1,16 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { InjectQueue } from '@nestjs/bullmq';
-import type { Queue } from 'bullmq';
 import {
   DEFAULT_DIGEST_TIME_ZONE,
   RunWeeklyDigestUseCase,
 } from '../../../application/notifications/use-cases/RunWeeklyDigestUseCase.js';
 import { RunReconnectRemindersUseCase } from '../../../application/notifications/use-cases/RunReconnectRemindersUseCase.js';
-import type { NotificationRepository } from '../../../domain/notifications/ports.js';
+import type {
+  NotificationDispatchQueue,
+  NotificationRepository,
+} from '../../../domain/notifications/ports.js';
 import { DrizzleNotificationRepository } from '../DrizzleNotificationRepository.js';
-import { QUEUE_NOTIFICATION_DISPATCH } from '../../queue/queue.constants.js';
-import type { DispatchNotificationJobPayload } from '../workers/DispatchNotificationProcessor.js';
+import { BullMQNotificationDispatchQueue } from '../BullMQNotificationDispatchQueue.js';
 
 @Injectable()
 export class NotificationCronService {
@@ -21,8 +21,8 @@ export class NotificationCronService {
     private readonly reconnectRemindersUseCase: RunReconnectRemindersUseCase,
     @Inject(DrizzleNotificationRepository)
     private readonly notificationRepo: NotificationRepository,
-    @InjectQueue(QUEUE_NOTIFICATION_DISPATCH)
-    private readonly dispatchQueue: Queue<DispatchNotificationJobPayload>,
+    @Inject(BullMQNotificationDispatchQueue)
+    private readonly dispatchQueue: NotificationDispatchQueue,
   ) {}
 
   /** Monday 08:00 Europe/Warsaw (not server time) — enqueue weekly digest for all household members */
@@ -39,7 +39,10 @@ export class NotificationCronService {
     await this.relayPendingToQueue();
   }
 
-  /** Every 5 minutes — relay pending outbox entries to the dispatch queue */
+  /**
+   * Every 5 minutes — schedule every pending outbox row (rows written without an
+   * immediate schedule, or whose jobs ran out of BullMQ attempts).
+   */
   @Cron('*/5 * * * *', { name: 'outbox-relay' })
   async relayOutbox(): Promise<void> {
     await this.relayPendingToQueue();
@@ -48,16 +51,7 @@ export class NotificationCronService {
   private async relayPendingToQueue(): Promise<void> {
     const pending = await this.notificationRepo.findPendingBatch(100);
     for (const notification of pending) {
-      await this.dispatchQueue.add(
-        'dispatch',
-        { outboxId: notification.id },
-        {
-          // BullMQ rejects custom ids with a single ':'; one job per outbox row.
-          jobId: `dispatch-${notification.id}`,
-          removeOnComplete: true,
-          removeOnFail: false,
-        },
-      );
+      await this.dispatchQueue.schedule(notification.id);
     }
   }
 }

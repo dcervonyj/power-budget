@@ -1,0 +1,21 @@
+<mjml>
+  <mj-head>
+    <mj-title>Ваше посилання для входу</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#2d6a4f">Увійдіть до Power Budget</mj-text>
+        <mj-divider border-color="#2d6a4f" border-width="2px" />
+        <mj-text>Вітаємо,</mj-text>
+        <mj-text>Натисніть кнопку нижче, щоб увійти. Посилання працює один раз і діє 15 хвилин.</mj-text>
+        <mj-button background-color="#2d6a4f" color="#ffffff" href="{{link}}">Увійти</mj-button>
+        <mj-text color="#888888" font-size="13px">Якщо ви не запитували це посилання, просто проігноруйте цей лист.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
