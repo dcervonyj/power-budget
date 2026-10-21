@@ -1,6 +1,7 @@
 import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import { parseLocalIsoDate } from '@power-budget/core';
 import { useTheme } from '../ThemeContext.js';
 import type { PlanActualsView } from '../../../domain/dashboard/PlanActualsView.js';
 
@@ -9,6 +10,8 @@ export interface PlanHeaderProps {
 }
 
 type HealthStatus = 'good' | 'warning' | 'danger';
+
+const DATE_FORMAT = { year: 'numeric', month: 'long', day: 'numeric' } as const;
 
 function computeHealth(actuals: PlanActualsView): HealthStatus {
   const { totalExpensePlanned, totalExpenseActual } = actuals;
@@ -38,8 +41,9 @@ export const PlanHeader = observer(function PlanHeader({
   const health = computeHealth(actuals);
 
   const periodText = [
-    intl.formatDate(actuals.periodStart, { year: 'numeric', month: 'long', day: 'numeric' }),
-    intl.formatDate(actuals.periodEnd, { year: 'numeric', month: 'long', day: 'numeric' }),
+    // Period bounds are calendar dates: show them as local dates, not UTC midnight (audit L3).
+    intl.formatDate(parseLocalIsoDate(actuals.periodStart), DATE_FORMAT),
+    intl.formatDate(parseLocalIsoDate(actuals.periodEnd), DATE_FORMAT),
   ].join(' \u2013 ');
 
   const healthColor =

@@ -6,10 +6,11 @@ import { apiClient } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
 import { useTheme } from '../../components/ThemeContext.js';
 
+/** `POST /auth/totp/enable` answers `{ qrCodeUri, secret }`; recovery codes are not issued yet. */
 interface TotpEnableResponse {
   secret: string;
-  otpauthUri: string;
-  recoveryCodes: string[];
+  qrCodeUri: string;
+  recoveryCodes?: string[];
 }
 
 type Step = 'setup' | 'recovery';
@@ -32,9 +33,8 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
   useEffect(() => {
     const enableTotp = async (): Promise<void> => {
       try {
-        const res = await apiClient.post('/auth/totp/enable', {});
-        const data = res.data as TotpEnableResponse;
-        setTotpData(data);
+        const res = await apiClient.post<TotpEnableResponse>('/auth/totp/enable', {});
+        setTotpData(res.data);
       } catch {
         setLoadError(
           intl.formatMessage({
@@ -53,7 +53,13 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
     setIsVerifying(true);
     try {
       await apiClient.post('/auth/totp/verify', { code });
-      setRecoveryCodes(totpData?.recoveryCodes ?? []);
+      const codes = totpData?.recoveryCodes ?? [];
+      if (codes.length === 0) {
+        navigate('/dashboard');
+
+        return;
+      }
+      setRecoveryCodes(codes);
       setStep('recovery');
     } catch (err: unknown) {
       const isApiErr =
@@ -144,7 +150,10 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
           }}
         >
           {recoveryCodes.map((c) => (
-            <div key={c} style={{ padding: `${theme.space.xs}px 0`, color: theme.color.text.primary }}>
+            <div
+              key={c}
+              style={{ padding: `${theme.space.xs}px 0`, color: theme.color.text.primary }}
+            >
               {c}
             </div>
           ))}
@@ -202,7 +211,7 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
       </p>
 
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: theme.space.lg }}>
-        <QRCodeSVG value={totpData.otpauthUri} size={200} />
+        <QRCodeSVG value={totpData.qrCodeUri} size={200} />
       </div>
 
       <p style={{ color: theme.color.text.secondary, marginBottom: theme.space.xs }}>
@@ -227,7 +236,11 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
         {totpData.secret}
       </div>
 
-      <form onSubmit={(e) => { void handleVerify(e); }}>
+      <form
+        onSubmit={(e) => {
+          void handleVerify(e);
+        }}
+      >
         <p style={{ color: theme.color.text.secondary, marginBottom: theme.space.sm }}>
           <FormattedMessage
             id="screen.totpEnrollment.verifyCode"

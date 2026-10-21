@@ -15,16 +15,19 @@ import { TransactionRow } from '../../components/TransactionRow.js';
 import { BulkActionBar } from '../../components/BulkActionBar.js';
 import { MappingModal } from '../../components/MappingModal.js';
 import { apiClient } from '../../../AppProviders.js';
-import type { Transaction } from '../../components/TransactionDetailModal.js';
+import type { Transaction } from '../../../domain/transactions/Transaction.js';
+import {
+  TransactionMapper,
+  type TransactionPageDto,
+} from '../../../infrastructure/api/TransactionMapper.js';
 
 interface Category {
   id: string;
   name: string;
 }
 
-interface TransactionPage {
-  items: Transaction[];
-  nextCursor: string | null;
+function toTransactions(page: TransactionPageDto): Transaction[] {
+  return page.items.map(TransactionMapper.fromListItem);
 }
 
 const LIMIT = 50;
@@ -123,13 +126,13 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
 
     void (async () => {
       try {
-        const res = await apiClient.get<TransactionPage>(
+        const res = await apiClient.get<TransactionPageDto>(
           `/transactions?${buildQuery(filtersRef.current)}`,
         );
         if (cancelled) return;
         const page = res.data;
-        setTransactions(page.items ?? []);
-        setNextCursor(page.nextCursor ?? null);
+        setTransactions(toTransactions(page));
+        setNextCursor(page.nextCursor);
       } catch {
         if (!cancelled) {
           setError(
@@ -154,12 +157,12 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     if (loadingMore || !nextCursor) return;
     setLoadingMore(true);
     try {
-      const res = await apiClient.get<TransactionPage>(
+      const res = await apiClient.get<TransactionPageDto>(
         `/transactions?${buildQuery(filtersRef.current, nextCursor)}`,
       );
       const page = res.data;
-      setTransactions((prev) => [...prev, ...(page.items ?? [])]);
-      setNextCursor(page.nextCursor ?? null);
+      setTransactions((prev) => [...prev, ...toTransactions(page)]);
+      setNextCursor(page.nextCursor);
     } catch {
       // silently fail so user can try scrolling again
     } finally {
@@ -256,12 +259,12 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
             setLoading(true);
             void (async () => {
               try {
-                const res = await apiClient.get<TransactionPage>(
+                const res = await apiClient.get<TransactionPageDto>(
                   `/transactions?${buildQuery(filtersRef.current)}`,
                 );
                 const page = res.data;
-                setTransactions(page.items ?? []);
-                setNextCursor(page.nextCursor ?? null);
+                setTransactions(toTransactions(page));
+                setNextCursor(page.nextCursor);
               } catch {
                 setError(
                   intl.formatMessage({

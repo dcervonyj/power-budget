@@ -4,29 +4,16 @@ import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
 import { Button } from './Button.js';
 import { MoneyView } from './MoneyView.js';
+import { formatMoney, parseLocalIsoDate, parseMinorUnits } from '@power-budget/core';
 import { apiClient } from '../../AppProviders.js';
+import { toSupportedLocale } from '../i18n/supportedLocale.js';
+import {
+  TransactionMapper,
+  type TransactionDetailDto,
+} from '../../infrastructure/api/TransactionMapper.js';
+import type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
 
-export interface TransactionMapping {
-  plannedItemId: string;
-  plannedItemName: string;
-  categoryId: string;
-  categoryName: string;
-}
-
-export interface Transaction {
-  id: string;
-  accountId: string;
-  occurredOn: string;
-  amountMinor: number;
-  currency: string;
-  description: string;
-  merchant: string | null;
-  source: 'gocardless' | 'wise' | 'manual';
-  isTransfer: boolean;
-  ignored: boolean;
-  notes: string | null;
-  mapping: TransactionMapping | null;
-}
+export type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
 
 interface Plan {
   id: string;
@@ -40,7 +27,8 @@ interface PlannedItem {
   categoryId: string;
   categoryName?: string;
   direction: 'income' | 'expense';
-  amountMinor: number;
+  /** Minor units; plan item endpoints come with CLN-011 (string per CLN-002, number before). */
+  amountMinor: string | number;
   currency: string;
 }
 
@@ -100,9 +88,9 @@ export function TransactionDetailModal({
 
     void (async () => {
       try {
-        const res = await apiClient.get<Transaction>(`/transactions/${transactionId}`);
+        const res = await apiClient.get<TransactionDetailDto>(`/transactions/${transactionId}`);
         if (cancelled) return;
-        const tx = res.data;
+        const tx = TransactionMapper.fromDetail(res.data);
         setTransaction(tx);
         setNotes(tx.notes ?? '');
         setMapping(tx.mapping);
@@ -274,9 +262,7 @@ export function TransactionDetailModal({
         method: 'PATCH',
         body: { ignored: !prev },
       });
-      const updatedTx: Transaction | null = transaction
-        ? { ...transaction, ignored: !prev }
-        : null;
+      const updatedTx: Transaction | null = transaction ? { ...transaction, ignored: !prev } : null;
       if (updatedTx) {
         setTransaction(updatedTx);
         onUpdated?.(updatedTx);
@@ -290,15 +276,10 @@ export function TransactionDetailModal({
 
   const sourceLabel = (source: Transaction['source']): string => {
     switch (source) {
-      case 'gocardless':
+      case 'bank_sync':
         return intl.formatMessage({
-          id: 'screen.transactionDetail.source.gocardless',
-          defaultMessage: 'Bank (GoCardless)',
-        });
-      case 'wise':
-        return intl.formatMessage({
-          id: 'screen.transactionDetail.source.wise',
-          defaultMessage: 'Wise',
+          id: 'screen.transactionDetail.source.bankSync',
+          defaultMessage: 'Bank',
         });
       case 'manual':
         return intl.formatMessage({
@@ -362,26 +343,18 @@ export function TransactionDetailModal({
         </p>
       )}
 
-      {fetchError !== null && (
-        <p style={{ color: theme.color.status.danger }}>{fetchError}</p>
-      )}
+      {fetchError !== null && <p style={{ color: theme.color.status.danger }}>{fetchError}</p>}
 
       {transaction !== null && !loading && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {/* Transaction info */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span
-                style={{ fontWeight: theme.fontWeight.semibold, fontSize: theme.fontSize.xl }}
-              >
-                <MoneyView
-                  amountMinor={transaction.amountMinor}
-                  currency={transaction.currency}
-                  showTooltip
-                />
+              <span style={{ fontWeight: theme.fontWeight.semibold, fontSize: theme.fontSize.xl }}>
+                <MoneyView amount={transaction.amount} showTooltip />
               </span>
               <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
-                {new Date(transaction.occurredOn).toLocaleDateString(intl.locale, {
+                {parseLocalIsoDate(transaction.occurredOn).toLocaleDateString(intl.locale, {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -390,23 +363,28 @@ export function TransactionDetailModal({
             </div>
 
             <div>
-              <p style={{ margin: 0, fontSize: theme.fontSize.md, color: theme.color.text.primary }}>
+              <p
+                style={{ margin: 0, fontSize: theme.fontSize.md, color: theme.color.text.primary }}
+              >
                 {transaction.description}
               </p>
-              {transaction.merchant !== null && transaction.merchant !== transaction.description && (
-                <p
-                  style={{
-                    margin: `${theme.space.xs}px 0 0 0`,
-                    fontSize: theme.fontSize.sm,
-                    color: theme.color.text.secondary,
-                  }}
-                >
-                  {transaction.merchant}
-                </p>
-              )}
+              {transaction.merchant !== null &&
+                transaction.merchant !== transaction.description && (
+                  <p
+                    style={{
+                      margin: `${theme.space.xs}px 0 0 0`,
+                      fontSize: theme.fontSize.sm,
+                      color: theme.color.text.secondary,
+                    }}
+                  >
+                    {transaction.merchant}
+                  </p>
+                )}
             </div>
 
-            <p style={{ margin: 0, fontSize: theme.fontSize.sm, color: theme.color.text.secondary }}>
+            <p
+              style={{ margin: 0, fontSize: theme.fontSize.sm, color: theme.color.text.secondary }}
+            >
               {sourceLabel(transaction.source)}
             </p>
           </div>
@@ -414,14 +392,17 @@ export function TransactionDetailModal({
           {/* Mapping section */}
           <div style={sectionStyle}>
             <p style={labelStyle}>
-              <FormattedMessage
-                id="screen.transactionDetail.mapping"
-                defaultMessage="Mapped to"
-              />
+              <FormattedMessage id="screen.transactionDetail.mapping" defaultMessage="Mapped to" />
             </p>
 
             {mappingError !== null && (
-              <p style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm, margin: `0 0 ${theme.space.sm}px` }}>
+              <p
+                style={{
+                  color: theme.color.status.danger,
+                  fontSize: theme.fontSize.sm,
+                  margin: `0 0 ${theme.space.sm}px`,
+                }}
+              >
                 {mappingError}
               </p>
             )}
@@ -477,11 +458,7 @@ export function TransactionDetailModal({
             )}
 
             {!showPicker && (
-              <Button
-                variant="secondary"
-                loading={mappingLoading}
-                onClick={handleShowPicker}
-              >
+              <Button variant="secondary" loading={mappingLoading} onClick={handleShowPicker}>
                 <FormattedMessage
                   id="screen.transactionDetail.mapTo"
                   defaultMessage="Map to planned item"
@@ -564,7 +541,10 @@ export function TransactionDetailModal({
                         }}
                       >
                         {intl.formatMessage(
-                          { id: 'modal.transactionDetail.planAndDirection', defaultMessage: '{planName} · {direction}' },
+                          {
+                            id: 'modal.transactionDetail.planAndDirection',
+                            defaultMessage: '{planName} · {direction}',
+                          },
                           { planName, direction: item.direction },
                         )}
                       </span>
@@ -577,7 +557,13 @@ export function TransactionDetailModal({
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {item.currency} {(item.amountMinor / 100).toFixed(2)}
+                      {formatMoney(
+                        {
+                          amountMinor: parseMinorUnits(String(item.amountMinor)),
+                          currency: item.currency,
+                        },
+                        toSupportedLocale(intl.locale),
+                      )}
                     </span>
                   </button>
                 ))}

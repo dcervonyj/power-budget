@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
+import { formatMoney, getMinorUnitExponent, type MinorUnitAmount } from '@power-budget/core';
 import { apiClient } from '../../AppProviders.js';
 import { fetchAndCacheRates, getCachedRates } from '../../infrastructure/fx/FxRateCache.js';
 import type { FxRateTable } from '../../infrastructure/fx/FxRateCache.js';
+import { toSupportedLocale } from '../i18n/supportedLocale.js';
 
 export interface MoneyViewProps {
-  amountMinor: number;
-  currency: string;
+  /** Exact minor units; shown in its own currency without any float maths. */
+  amount: MinorUnitAmount;
   showTooltip?: boolean;
 }
 
@@ -65,12 +67,17 @@ function getDisplayRate(
   return convertAmount(1, fromCurrency, toCurrency, rates);
 }
 
-export function MoneyView({
-  amountMinor,
-  currency,
-  showTooltip = true,
-}: MoneyViewProps): React.JSX.Element {
+/**
+ * Approximate major units, only as input to a display-only FX conversion. The
+ * amount in its own currency is always formatted from the exact bigint.
+ */
+function approximateMajorUnits(amount: MinorUnitAmount): number {
+  return Number(amount.amountMinor) / 10 ** getMinorUnitExponent(amount.currency);
+}
+
+export function MoneyView({ amount, showTooltip = true }: MoneyViewProps): React.JSX.Element {
   const intl = useIntl();
+  const { currency } = amount;
   const [modeIndex, setModeIndex] = useState(0);
   const [fxRates, setFxRates] = useState<FxRateTable | null>(getCachedRates);
 
@@ -96,21 +103,29 @@ export function MoneyView({
   }, [modes.length]);
 
   const targetCurrency = modes[modeIndex] ?? currency;
-  const amountMajor = amountMinor / 100;
 
-  let displayAmount: number | null = null;
+  let formattedAmount = '–';
   let rateAvailable = true;
 
   if (targetCurrency === currency) {
-    displayAmount = amountMajor;
+    formattedAmount = formatMoney(amount, toSupportedLocale(intl.locale));
   } else if (fxRates) {
-    displayAmount = convertAmount(amountMajor, currency, targetCurrency, fxRates);
-    rateAvailable = displayAmount !== null;
+    const converted = convertAmount(
+      approximateMajorUnits(amount),
+      currency,
+      targetCurrency,
+      fxRates,
+    );
+    rateAvailable = converted !== null;
+    if (converted !== null) {
+      formattedAmount = intl.formatNumber(converted, {
+        style: 'currency',
+        currency: targetCurrency,
+      });
+    }
   } else {
     rateAvailable = false;
   }
-
-  const formattedAmount = displayAmount !== null ? displayAmount.toFixed(2) : '–';
 
   let tooltipText = '';
   if (showTooltip && targetCurrency !== currency) {
@@ -130,8 +145,7 @@ export function MoneyView({
     }
   }
 
-  const prefix = !rateAvailable ? '≈ ' : '';
-  const display = `${prefix}${targetCurrency} ${formattedAmount}`;
+  const display = rateAvailable ? formattedAmount : `≈ ${targetCurrency} –`;
 
   return (
     <span
