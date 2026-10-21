@@ -42,6 +42,11 @@ import { UpdateLocalePreferenceUseCase } from '../../application/auth/use-cases/
 import { CreateHouseholdUseCase } from '../../application/auth/use-cases/CreateHouseholdUseCase.js';
 import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/InviteToHouseholdUseCase.js';
 import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInviteUseCase.js';
+import { ResendHouseholdInviteUseCase } from '../../application/auth/use-cases/ResendHouseholdInviteUseCase.js';
+import { RevokeHouseholdInviteUseCase } from '../../application/auth/use-cases/RevokeHouseholdInviteUseCase.js';
+import { ListHouseholdInvitesUseCase } from '../../application/auth/use-cases/ListHouseholdInvitesUseCase.js';
+import { HouseholdAccess } from '../../application/auth/services/HouseholdAccess.js';
+import { HouseholdInviteMailer } from '../../application/auth/services/HouseholdInviteMailer.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 import { GetUserProfileUseCase } from '../../application/auth/use-cases/GetUserProfileUseCase.js';
@@ -203,28 +208,83 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
         new CreateHouseholdUseCase(householdRepo, userRepo),
     },
     {
+      provide: HouseholdAccess,
+      inject: [DrizzleHouseholdRepository],
+      useFactory: (householdRepo: DrizzleHouseholdRepository) => new HouseholdAccess(householdRepo),
+    },
+    {
+      provide: HouseholdInviteMailer,
+      inject: [
+        DrizzleUserRepository,
+        DrizzleHouseholdRepository,
+        DrizzleNotificationOutboxPort,
+        AppConfigAdapter,
+      ],
+      useFactory: (
+        userRepo: DrizzleUserRepository,
+        householdRepo: DrizzleHouseholdRepository,
+        outbox: DrizzleNotificationOutboxPort,
+        config: AppConfigAdapter,
+      ) => new HouseholdInviteMailer(userRepo, householdRepo, outbox, config),
+    },
+    {
       provide: InviteToHouseholdUseCase,
       inject: [
         DrizzleHouseholdRepository,
         DrizzleUserRepository,
         DrizzleHouseholdInviteRepository,
-        AppConfigAdapter,
+        HouseholdAccess,
+        HouseholdInviteMailer,
       ],
       useFactory: (
         householdRepo: DrizzleHouseholdRepository,
         userRepo: DrizzleUserRepository,
         inviteRepo: DrizzleHouseholdInviteRepository,
-        config: AppConfigAdapter,
-      ) => new InviteToHouseholdUseCase(householdRepo, userRepo, inviteRepo, config),
+        access: HouseholdAccess,
+        mailer: HouseholdInviteMailer,
+      ) => new InviteToHouseholdUseCase(householdRepo, userRepo, inviteRepo, access, mailer),
+    },
+    {
+      provide: ResendHouseholdInviteUseCase,
+      inject: [
+        DrizzleUserRepository,
+        DrizzleHouseholdInviteRepository,
+        HouseholdAccess,
+        HouseholdInviteMailer,
+      ],
+      useFactory: (
+        userRepo: DrizzleUserRepository,
+        inviteRepo: DrizzleHouseholdInviteRepository,
+        access: HouseholdAccess,
+        mailer: HouseholdInviteMailer,
+      ) => new ResendHouseholdInviteUseCase(userRepo, inviteRepo, access, mailer),
+    },
+    {
+      provide: RevokeHouseholdInviteUseCase,
+      inject: [DrizzleHouseholdInviteRepository, HouseholdAccess],
+      useFactory: (inviteRepo: DrizzleHouseholdInviteRepository, access: HouseholdAccess) =>
+        new RevokeHouseholdInviteUseCase(inviteRepo, access),
+    },
+    {
+      provide: ListHouseholdInvitesUseCase,
+      inject: [DrizzleHouseholdInviteRepository, HouseholdAccess],
+      useFactory: (inviteRepo: DrizzleHouseholdInviteRepository, access: HouseholdAccess) =>
+        new ListHouseholdInvitesUseCase(inviteRepo, access),
     },
     {
       provide: AcceptInviteUseCase,
-      inject: [DrizzleHouseholdRepository, DrizzleUserRepository, DrizzleHouseholdInviteRepository],
+      inject: [
+        DrizzleHouseholdRepository,
+        DrizzleUserRepository,
+        DrizzleHouseholdInviteRepository,
+        JwtAccessTokenIssuerAdapter,
+      ],
       useFactory: (
         householdRepo: DrizzleHouseholdRepository,
         userRepo: DrizzleUserRepository,
         inviteRepo: DrizzleHouseholdInviteRepository,
-      ) => new AcceptInviteUseCase(householdRepo, userRepo, inviteRepo),
+        jwtIssuer: JwtAccessTokenIssuerAdapter,
+      ) => new AcceptInviteUseCase(householdRepo, userRepo, inviteRepo, jwtIssuer),
     },
     {
       provide: ExportHouseholdDataUseCase,

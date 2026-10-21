@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
+import { ThrottlerModule } from '@nestjs/throttler';
+import type { Provider } from '@nestjs/common';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { EncryptedString } from '@power-budget/core';
 import type {
@@ -16,6 +18,19 @@ import { InviteToHouseholdUseCase } from '../../../application/auth/use-cases/In
 import { AcceptInviteUseCase } from '../../../application/auth/use-cases/AcceptInviteUseCase.js';
 import { ExportHouseholdDataUseCase } from '../../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../../application/auth/use-cases/DeleteHouseholdUseCase.js';
+import { ResendHouseholdInviteUseCase } from '../../../application/auth/use-cases/ResendHouseholdInviteUseCase.js';
+import { RevokeHouseholdInviteUseCase } from '../../../application/auth/use-cases/RevokeHouseholdInviteUseCase.js';
+import { ListHouseholdInvitesUseCase } from '../../../application/auth/use-cases/ListHouseholdInvitesUseCase.js';
+import type { HouseholdInviteView } from '../../../application/auth/use-cases/HouseholdInviteView.js';
+import { AUTH_THROTTLERS } from '../throttling.js';
+import {
+  EmailMismatchError,
+  HouseholdFullError,
+  HouseholdNotEmptyError,
+  HouseholdOwnerRequiredError,
+  InviteExpiredError,
+  InviteNotFoundError,
+} from '../../../domain/auth/errors.js';
 import {
   bearerFor,
   createHttpTestApp,
@@ -25,6 +40,36 @@ import {
 const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;
 const ALICE_HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
 const BOB_HOUSEHOLD = '01900000-0000-7000-8000-0000000000b1' as HouseholdId;
+
+const INVITE_ID = '01900000-0000-7000-8000-0000000000c1';
+
+interface InviteUseCaseMocks {
+  readonly invite: ReturnType<typeof mock<InviteToHouseholdUseCase>>;
+  readonly accept: ReturnType<typeof mock<AcceptInviteUseCase>>;
+  readonly resend: ReturnType<typeof mock<ResendHouseholdInviteUseCase>>;
+  readonly revoke: ReturnType<typeof mock<RevokeHouseholdInviteUseCase>>;
+  readonly list: ReturnType<typeof mock<ListHouseholdInvitesUseCase>>;
+}
+
+function makeInviteMocks(): InviteUseCaseMocks {
+  return {
+    invite: mock<InviteToHouseholdUseCase>(),
+    accept: mock<AcceptInviteUseCase>(),
+    resend: mock<ResendHouseholdInviteUseCase>(),
+    revoke: mock<RevokeHouseholdInviteUseCase>(),
+    list: mock<ListHouseholdInvitesUseCase>(),
+  };
+}
+
+function inviteProviders(mocks: InviteUseCaseMocks): Provider[] {
+  return [
+    { provide: InviteToHouseholdUseCase, useValue: mocks.invite },
+    { provide: AcceptInviteUseCase, useValue: mocks.accept },
+    { provide: ResendHouseholdInviteUseCase, useValue: mocks.resend },
+    { provide: RevokeHouseholdInviteUseCase, useValue: mocks.revoke },
+    { provide: ListHouseholdInvitesUseCase, useValue: mocks.list },
+  ];
+}
 
 function makeHousehold(id: HouseholdId): Household {
   return { id, name: 'household', baseCurrency: 'PLN', createdAt: new Date() };
@@ -62,13 +107,13 @@ describe('DELETE /households/:id (HTTP)', () => {
       controllers: [HouseholdsController],
       providers: [
         { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
-        { provide: InviteToHouseholdUseCase, useValue: mock<InviteToHouseholdUseCase>() },
-        { provide: AcceptInviteUseCase, useValue: mock<AcceptInviteUseCase>() },
+        ...inviteProviders(makeInviteMocks()),
         { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
         { provide: DeleteHouseholdUseCase, useValue: new DeleteHouseholdUseCase(householdRepo) },
         { provide: RedisTotpStepUpStore, useValue: stepUpStore },
         { provide: DrizzleTotpSecretRepository, useValue: totpSecretRepo },
       ],
+      imports: [ThrottlerModule.forRoot({ throttlers: [...AUTH_THROTTLERS] })],
     });
   });
 
@@ -147,5 +192,193 @@ describe('DELETE /households/:id (HTTP)', () => {
     expect(res.statusCode).toBe(403);
     expect(res.json()).toMatchObject({ code: 'requires_totp_enrollment' });
     expect(householdRepo.scheduleDelete).not.toHaveBeenCalled();
+  });
+});
+
+describe('household invite endpoints (HTTP)', () => {
+  const VIEW: HouseholdInviteView = {
+    id: INVITE_ID,
+    email: 'bob@example.com',
+    status: 'pending',
+    expiresAt: new Date('2026-10-28T12:00:00Z'),
+    createdAt: new Date('2026-10-21T12:00:00Z'),
+  };
+  const VIEW_JSON = {
+    id: INVITE_ID,
+    email: 'bob@example.com',
+    status: 'pending',
+    expiresAt: '2026-10-28T12:00:00.000Z',
+    createdAt: '2026-10-21T12:00:00.000Z',
+  };
+  let app: HttpTestApp;
+  let mocks: InviteUseCaseMocks;
+
+  beforeEach(async () => {
+    mocks = makeInviteMocks();
+    app = await createHttpTestApp({
+      controllers: [HouseholdsController],
+      providers: [
+        { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
+        ...inviteProviders(mocks),
+        { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
+        { provide: DeleteHouseholdUseCase, useValue: mock<DeleteHouseholdUseCase>() },
+        { provide: RedisTotpStepUpStore, useValue: mock<TotpStepUpStore>() },
+        { provide: DrizzleTotpSecretRepository, useValue: mock<TotpSecretRepository>() },
+      ],
+      imports: [ThrottlerModule.forRoot({ throttlers: [...AUTH_THROTTLERS] })],
+    });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('POST /households/invites returns 201 with the invite and no token', async () => {
+    mocks.invite.execute.mockResolvedValue(VIEW);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/households/invites',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+      payload: { email: 'bob@example.com' },
+    });
+
+    expect(res.statusCode).toBe(201);
+    expect(res.json()).toEqual(VIEW_JSON);
+    expect(mocks.invite.execute).toHaveBeenCalledWith({
+      inviterUserId: ALICE,
+      inviteeEmail: 'bob@example.com',
+      householdId: ALICE_HOUSEHOLD,
+    });
+  });
+
+  it('POST /households/invites answers 403 household_owner_required without a household', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/households/invites',
+      headers: { authorization: bearerFor(ALICE, null) },
+      payload: { email: 'bob@example.com' },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.json()).toMatchObject({ code: 'household_owner_required' });
+    expect(mocks.invite.execute).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    [new HouseholdOwnerRequiredError(), 403, 'household_owner_required'],
+    [new HouseholdFullError(), 409, 'household_full'],
+  ])('POST /households/invites maps %s', async (error, status, code) => {
+    mocks.invite.execute.mockRejectedValue(error);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/households/invites',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+      payload: { email: 'bob@example.com' },
+    });
+
+    expect(res.statusCode).toBe(status);
+    expect(res.json()).toMatchObject({ code });
+  });
+
+  it('GET /households/invites lists the open invites', async () => {
+    mocks.list.execute.mockResolvedValue([VIEW]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/households/invites',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([VIEW_JSON]);
+    expect(mocks.list.execute).toHaveBeenCalledWith({
+      userId: ALICE,
+      householdId: ALICE_HOUSEHOLD,
+    });
+  });
+
+  it('POST /households/invites/accept returns the joined household and a new access token', async () => {
+    mocks.accept.execute.mockResolvedValue({ householdId: BOB_HOUSEHOLD, accessToken: 'jwt' });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/households/invites/accept',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+      payload: { token: 'raw-token' },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ householdId: BOB_HOUSEHOLD, accessToken: 'jwt' });
+    expect(mocks.accept.execute).toHaveBeenCalledWith({
+      token: 'raw-token',
+      acceptingUserId: ALICE,
+    });
+  });
+
+  it.each([
+    [new InviteNotFoundError(), 404, 'invite_not_found'],
+    [new InviteExpiredError(), 410, 'invite_expired'],
+    [new EmailMismatchError(), 403, 'email_mismatch'],
+    [new HouseholdNotEmptyError(), 409, 'household_not_empty'],
+  ])('POST /households/invites/accept maps %s', async (error, status, code) => {
+    mocks.accept.execute.mockRejectedValue(error);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/households/invites/accept',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+      payload: { token: 'raw-token' },
+    });
+
+    expect(res.statusCode).toBe(status);
+    expect(res.json()).toMatchObject({ code });
+  });
+
+  it('POST /households/invites/:id/resend returns the rotated invite', async () => {
+    mocks.resend.execute.mockResolvedValue(VIEW);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/households/invites/${INVITE_ID}/resend`,
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual(VIEW_JSON);
+    expect(mocks.resend.execute).toHaveBeenCalledWith({
+      userId: ALICE,
+      householdId: ALICE_HOUSEHOLD,
+      inviteId: INVITE_ID,
+    });
+  });
+
+  it('DELETE /households/invites/:id revokes and answers 204', async () => {
+    mocks.revoke.execute.mockResolvedValue(undefined);
+
+    const res = await app.inject({
+      method: 'DELETE',
+      url: `/households/invites/${INVITE_ID}`,
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(204);
+    expect(mocks.revoke.execute).toHaveBeenCalledWith({
+      userId: ALICE,
+      householdId: ALICE_HOUSEHOLD,
+      inviteId: INVITE_ID,
+    });
+  });
+
+  it('DELETE /households/invites/:id answers 400 for an id that is not a uuid', async () => {
+    const res = await app.inject({
+      method: 'DELETE',
+      url: '/households/invites/not-a-uuid',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(mocks.revoke.execute).not.toHaveBeenCalled();
   });
 });

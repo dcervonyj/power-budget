@@ -67,12 +67,37 @@ export interface TotpSecret {
 export interface HouseholdInvite {
   readonly id: string; // UUID
   readonly householdId: HouseholdId;
+  /** Lower-cased address the invite is bound to. */
   readonly email: string;
+  /** sha256 of the single-use token; the raw token only ever travels in the email link. */
   readonly tokenHash: string;
   readonly expiresAt: Date;
   readonly acceptedAt: Date | null;
   readonly createdAt: Date;
+  readonly invitedByUserId: UserId | null;
+  readonly revokedAt: Date | null;
 }
+
+export type NewHouseholdInvite = Omit<HouseholdInvite, 'createdAt' | 'acceptedAt' | 'revokedAt'>;
+
+/**
+ * Accepting an invite, applied atomically by the repository (CLN-006):
+ * - the invite must still be open (not accepted, not revoked, not expired at `at`);
+ * - the household must have fewer than `maxMembers` members;
+ * - `leaveHouseholdId`: the accepting user's own solo household. They leave it (it is
+ *   scheduled for deletion) only if it holds no data; otherwise nothing changes.
+ */
+export interface AcceptInviteCommand {
+  readonly inviteId: string;
+  readonly householdId: HouseholdId;
+  readonly userId: UserId;
+  readonly leaveHouseholdId: HouseholdId | null;
+  readonly maxMembers: number;
+  readonly at: Date;
+}
+
+export type AcceptInviteOutcome =
+  'joined' | 'invite_unavailable' | 'household_full' | 'household_not_empty';
 
 export interface RequestContext {
   readonly userId: UserId;

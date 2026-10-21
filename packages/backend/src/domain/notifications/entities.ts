@@ -1,7 +1,7 @@
 import type { HouseholdId, IsoDate, Money, UserId } from '@power-budget/core';
 
 export type NotificationKind =
-  'over_budget' | 'weekly_digest' | 'reconnect_reminder' | 'magic_link';
+  'over_budget' | 'weekly_digest' | 'reconnect_reminder' | 'magic_link' | 'household_invite';
 
 /**
  * Payload keys that carry a secret (a sign-in link or its raw token). They are
@@ -15,7 +15,11 @@ export const MAX_DISPATCH_ATTEMPTS = 5;
 export interface NotificationOutbox {
   readonly id: string;
   readonly householdId: HouseholdId | null;
-  readonly recipientUserId: UserId;
+  /** Null for an address-only recipient (an invitee without an account). */
+  readonly recipientUserId: UserId | null;
+  /** Set when recipientUserId is null. */
+  readonly recipientEmail: string | null;
+  readonly recipientLocale: string | null;
   readonly kind: NotificationKind;
   readonly dedupeKey: string;
   readonly payload: Record<string, unknown>;
@@ -54,6 +58,13 @@ export interface WeeklyDigestPayload {
 
 export interface MagicLinkPayload {
   readonly link: string;
+}
+
+/** `link` carries the raw invite token and is stripped once the email is sent. */
+export interface HouseholdInvitePayload {
+  readonly link: string;
+  readonly inviterName: string;
+  readonly householdName: string;
 }
 
 export interface ReconnectReminderPayload {

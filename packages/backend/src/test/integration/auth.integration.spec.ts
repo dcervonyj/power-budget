@@ -3,7 +3,12 @@ import { createHash } from 'node:crypto';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type * as schema from '../../../drizzle/schema.js';
 import { startContainers, stopContainers, getPool } from './setup.js';
-import { withRollbackTransaction, makeUserId, makeHouseholdId } from './test-helpers.js';
+import {
+  withRollbackTransaction,
+  makeUserId,
+  makeHouseholdId,
+  insertTestUser,
+} from './test-helpers.js';
 import { DrizzleUserRepository } from '../../infrastructure/auth/DrizzleUserRepository.js';
 import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHouseholdRepository.js';
 import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
@@ -429,14 +434,17 @@ describe('Integration: auth infrastructure adapters', () => {
         await households.create({ id: hhId, name: 'Invite HH', baseCurrency: 'PLN' });
 
         const tokenHash = createHash('sha256').update('invite-token-1').digest('hex');
-        const invite = await invites.create({
-          id: crypto.randomUUID(),
-          householdId: hhId,
-          email: 'Invitee@Example.COM',
-          tokenHash,
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-          acceptedAt: null,
-        });
+        const invite = await invites.replaceOpen(
+          {
+            id: crypto.randomUUID(),
+            householdId: hhId,
+            email: 'Invitee@Example.COM',
+            tokenHash,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            invitedByUserId: null,
+          },
+          new Date(),
+        );
 
         expect(invite.email).toBe('invitee@example.com');
 
@@ -454,29 +462,41 @@ describe('Integration: auth infrastructure adapters', () => {
       });
     });
 
-    it('accepts an invite', async () => {
+    it('accepts an invite: the user joins as member and the invite is closed', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const households = new DrizzleHouseholdRepository(db);
         const invites = new DrizzleHouseholdInviteRepository(db);
 
         const hhId = makeHouseholdId() as HouseholdId;
         await households.create({ id: hhId, name: 'Accept HH', baseCurrency: 'EUR' });
+        const user = await insertTestUser(db, { email: 'accept@example.com' });
 
         const tokenHash = createHash('sha256').update('accept-token').digest('hex');
-        const invite = await invites.create({
-          id: crypto.randomUUID(),
+        const invite = await invites.replaceOpen(
+          {
+            id: crypto.randomUUID(),
+            householdId: hhId,
+            email: 'accept@example.com',
+            tokenHash,
+            expiresAt: new Date(Date.now() + 3600 * 1000),
+            invitedByUserId: null,
+          },
+          new Date(),
+        );
+
+        const outcome = await invites.acceptAndJoin({
+          inviteId: invite.id,
           householdId: hhId,
-          email: 'accept@example.com',
-          tokenHash,
-          expiresAt: new Date(Date.now() + 3600 * 1000),
-          acceptedAt: null,
+          userId: user.id as UserId,
+          leaveHouseholdId: null,
+          maxMembers: 2,
+          at: new Date(),
         });
 
-        const acceptedAt = new Date();
-        await invites.accept(invite.id, acceptedAt);
-
+        expect(outcome).toBe('joined');
         const found = await invites.findByTokenHash(tokenHash);
         expect(found!.acceptedAt).not.toBeNull();
+        expect(await households.countMembers(hhId)).toBe(1);
       });
     });
   });
