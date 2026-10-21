@@ -7,33 +7,43 @@ import { useTheme } from '../../components/ThemeContext.js';
 import { SkeletonList } from '../../components/shared/SkeletonList.js';
 import { EmptyState } from '../../components/shared/EmptyState.js';
 import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
+import { Toast } from '../../components/shared/Toast.js';
 import {
   TransactionFilterBar,
+  toBooking,
+  toMappingFilter,
   type TransactionFilters,
 } from '../../components/TransactionFilterBar.js';
 import { TransactionRow } from '../../components/TransactionRow.js';
 import { BulkActionBar } from '../../components/BulkActionBar.js';
+import { Button } from '../../components/Button.js';
+import { Modal } from '../../components/Modal.js';
 import { MappingModal } from '../../components/MappingModal.js';
+import { ManualTransactionForm } from '../../components/ManualTransactionForm.js';
 import { TransactionMapModal } from '../../components/TransactionMapModal.js';
+import { TransactionDetailModal } from '../../components/TransactionDetailModal.js';
 import { apiClient, categoriesApi, plansApi } from '../../../AppProviders.js';
 import { fetchCategoryNames } from '../../../infrastructure/api/CategoryNames.js';
-import { loadPlannedItems } from '../../../application/transactions/PlannedItemLabels.js';
 import {
-  TransactionMappingStore,
-  type MappingView,
-} from '../../../application/transactions/TransactionMappingStore.js';
+  loadPlannedItems,
+  type PlannedItemLabel,
+} from '../../../application/transactions/PlannedItemLabels.js';
+import { mappingViewOf } from '../../../application/transactions/MappingView.js';
 import type { Transaction } from '../../../domain/transactions/Transaction.js';
-import type {
-  CategoryDto,
-  TransactionDetailDto,
-  TransactionPageDto,
-} from '@power-budget/shared-app/contract';
+import type { CategoryDto, TransactionPageDto } from '@power-budget/shared-app/contract';
 import {
   buildQuery,
   toTransactions,
 } from '../../../application/transactions/TransactionListQuery.js';
 
-export const TransactionListScreen = observer(function TransactionListScreen(): React.JSX.Element {
+export interface TransactionListScreenProps {
+  /** Opens the detail modal over the list (route /transactions/:id). */
+  readonly detailId?: string;
+}
+
+export const TransactionListScreen = observer(function TransactionListScreen({
+  detailId,
+}: TransactionListScreenProps): React.JSX.Element {
   const theme = useTheme();
   const intl = useIntl();
   const navigate = useNavigate();
@@ -51,6 +61,9 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     selectAll(txIds: string[]): void {
       txIds.forEach((id) => this.ids.add(id));
     },
+    remove(id: string): void {
+      this.ids.delete(id);
+    },
     clear(): void {
       this.ids.clear();
     },
@@ -63,22 +76,20 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
   }));
 
   const [isMappingModalOpen, setIsMappingModalOpen] = useState(false);
+  const [isAddOpen, setIsAddOpen] = useState(false);
   const [mapTarget, setMapTarget] = useState<Transaction | null>(null);
-  const [mappingStore] = useState(
-    () =>
-      new TransactionMappingStore(async (id) => {
-        const res = await apiClient.get<TransactionDetailDto>(`/transactions/${id}`);
-
-        return res.data;
-      }),
-  );
+  const [labels, setLabels] = useState<ReadonlyMap<string, PlannedItemLabel>>(new Map());
+  const [toast, setToast] = useState<string | null>(null);
+  /** Bumped to reload the first page (after a bulk change, an added transaction). */
+  const [reloadKey, setReloadKey] = useState(0);
   const selectAllRef = useRef<HTMLInputElement>(null);
 
   const filters: TransactionFilters = {
     from: searchParams.get('from') ?? '',
     to: searchParams.get('to') ?? '',
     category: searchParams.get('category') ?? '',
-    status: (searchParams.get('status') ?? '') as TransactionFilters['status'],
+    status: toMappingFilter(searchParams.get('status')),
+    booking: toBooking(searchParams.get('booking')),
     currency: searchParams.get('currency') ?? '',
     source: (searchParams.get('source') ?? '') as TransactionFilters['source'],
     q: searchParams.get('q') ?? '',
@@ -89,6 +100,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     filters.to,
     filters.category,
     filters.status,
+    filters.booking,
     filters.currency,
     filters.source,
     filters.q,
@@ -111,22 +123,17 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     void categoriesApi.list().then(setCategories, () => undefined);
   }, []);
 
-  // Name the planned items rows are mapped to (active plans only).
+  // Names for a row mapped in the map modal (active plans; the list itself names the rest).
   useEffect(() => {
     void loadPlannedItems(plansApi, () => fetchCategoryNames(apiClient)).then(
       (catalogue) => {
-        mappingStore.setLabels(catalogue.labels);
+        setLabels(catalogue.labels);
       },
       () => undefined,
     );
-  }, [mappingStore]);
+  }, []);
 
-  // The list carries no mapping: read it for every row that arrives.
-  useEffect(() => {
-    mappingStore.load(transactions.map((tx) => tx.id));
-  }, [transactions, mappingStore]);
-
-  // Reset and load first page when filters change
+  // Reset and load the first page when the filters change or a reload is asked for.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -161,7 +168,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
       cancelled = true;
     };
     // filtersKey is a stable primitive that changes only when filters change
-  }, [filtersKey, intl]);
+  }, [filtersKey, reloadKey, intl]);
 
   const loadMore = useCallback(async (): Promise<void> => {
     if (loadingMore || !nextCursor) return;
@@ -199,12 +206,17 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     };
   }, [nextCursor, loadingMore, loadMore]);
 
+  const reload = (): void => {
+    setReloadKey((key) => key + 1);
+  };
+
   const handleFiltersChange = (newFilters: TransactionFilters): void => {
     const params: Record<string, string> = {};
     if (newFilters.from) params['from'] = newFilters.from;
     if (newFilters.to) params['to'] = newFilters.to;
     if (newFilters.category) params['category'] = newFilters.category;
     if (newFilters.status) params['status'] = newFilters.status;
+    if (newFilters.booking) params['booking'] = newFilters.booking;
     if (newFilters.currency) params['currency'] = newFilters.currency;
     if (newFilters.source) params['source'] = newFilters.source;
     if (newFilters.q) params['q'] = newFilters.q;
@@ -221,22 +233,72 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
 
   const handleMapped = (plannedItemId: string | null): void => {
     if (mapTarget !== null) {
-      mappingStore.record(mapTarget.id, { plannedItemId, transfer: false });
+      const updated = withMapping(mapTarget, plannedItemId, labels);
+      setTransactions((prev) => replaceRow(prev, updated));
     }
   };
 
-  // Also runs after a partly failed bulk action: reload what did change, keep the selection.
-  const handleBulkDone = (): void => {
-    mappingStore.reset(transactions.map((tx) => tx.id));
-  };
-
-  const visibleTransactions = transactions.filter((tx) =>
-    matchesStatus(mappingStore.viewOf(tx), filters.status),
+  // A row that answers 404 is gone or a partner's (private): drop it and say so.
+  const dropGoneRow = useCallback(
+    (id: string): void => {
+      setTransactions((prev) => prev.filter((tx) => tx.id !== id));
+      selection.remove(id);
+      setToast(
+        intl.formatMessage({
+          id: 'screen.transactionList.gone',
+          defaultMessage: 'This transaction is no longer available.',
+        }),
+      );
+    },
+    [intl, selection],
   );
 
+  const handleDetailGone = useCallback(
+    (id: string): void => {
+      dropGoneRow(id);
+      void navigate('/transactions');
+    },
+    [dropGoneRow, navigate],
+  );
+
+  const handleDetailUpdated = (tx: Transaction): void => {
+    setTransactions((prev) => replaceRow(prev, mergeDetail(prev, tx, labels)));
+  };
+
+  const handleBulkDone = (): void => {
+    reload();
+  };
+
+  const handleBulkGone = (): void => {
+    selection.clear();
+    reload();
+    setToast(
+      intl.formatMessage({
+        id: 'bulk.gone',
+        defaultMessage:
+          'Some selected transactions are no longer available. The list was refreshed.',
+      }),
+    );
+  };
+
+  const handleAdded = (): void => {
+    setIsAddOpen(false);
+    reload();
+    setToast(
+      intl.formatMessage({
+        id: 'screen.transactionList.added',
+        defaultMessage: 'Transaction added.',
+      }),
+    );
+  };
+
+  const dismissToast = useCallback((): void => {
+    setToast(null);
+  }, []);
+
   const allSelected =
-    visibleTransactions.length > 0 && visibleTransactions.every((tx) => selection.ids.has(tx.id));
-  const someSelected = visibleTransactions.some((tx) => selection.ids.has(tx.id));
+    transactions.length > 0 && transactions.every((tx) => selection.ids.has(tx.id));
+  const someSelected = transactions.some((tx) => selection.ids.has(tx.id));
 
   // Sync indeterminate state on the select-all checkbox
   useEffect(() => {
@@ -249,7 +311,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
     if (allSelected) {
       selection.clear();
     } else {
-      selection.selectAll(visibleTransactions.map((tx) => tx.id));
+      selection.selectAll(transactions.map((tx) => tx.id));
     }
   };
 
@@ -262,15 +324,34 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
         color: theme.color.text.primary,
       }}
     >
-      <h1
+      <div
         style={{
-          margin: `0 0 ${theme.space.xl}px 0`,
-          fontSize: theme.fontSize['2xl'],
-          fontWeight: theme.fontWeight.semibold,
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: theme.space.md,
+          margin: `0 0 ${String(theme.space.xl)}px 0`,
         }}
       >
-        <FormattedMessage id="screen.transactionList.title" defaultMessage="Transactions" />
-      </h1>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: theme.fontSize['2xl'],
+            fontWeight: theme.fontWeight.semibold,
+          }}
+        >
+          <FormattedMessage id="screen.transactionList.title" defaultMessage="Transactions" />
+        </h1>
+        <Button
+          variant="primary"
+          onClick={() => {
+            setIsAddOpen(true);
+          }}
+        >
+          <FormattedMessage id="screen.transactionList.add" defaultMessage="Add transaction" />
+        </Button>
+      </div>
 
       <TransactionFilterBar
         filters={filters}
@@ -280,34 +361,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
 
       {loading && <SkeletonList rows={8} rowHeight={56} />}
 
-      {error !== null && !loading && (
-        <ErrorBanner
-          message={error}
-          onRetry={() => {
-            setError(null);
-            setLoading(true);
-            void (async () => {
-              try {
-                const res = await apiClient.get<TransactionPageDto>(
-                  `/transactions?${buildQuery(filtersRef.current)}`,
-                );
-                const page = res.data;
-                setTransactions(toTransactions(page, filtersRef.current));
-                setNextCursor(page.nextCursor);
-              } catch {
-                setError(
-                  intl.formatMessage({
-                    id: 'screen.transactionList.error',
-                    defaultMessage: 'Failed to load transactions',
-                  }),
-                );
-              } finally {
-                setLoading(false);
-              }
-            })();
-          }}
-        />
-      )}
+      {error !== null && !loading && <ErrorBanner message={error} onRetry={reload} />}
 
       {!loading && error === null && transactions.length === 0 && (
         <EmptyState
@@ -347,7 +401,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
             </span>
           </div>
 
-          {visibleTransactions.map((tx) => (
+          {transactions.map((tx) => (
             <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: theme.space.sm }}>
               <input
                 type="checkbox"
@@ -369,7 +423,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <TransactionRow
                   transaction={tx}
-                  mapping={mappingStore.viewOf(tx)}
+                  mapping={mappingViewOf(tx)}
                   onClick={handleRowClick}
                   onMap={handleRowMap}
                 />
@@ -403,6 +457,7 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
           selection.clear();
         }}
         onActionComplete={handleBulkDone}
+        onGone={handleBulkGone}
       />
 
       <MappingModal
@@ -421,29 +476,94 @@ export const TransactionListScreen = observer(function TransactionListScreen(): 
       {mapTarget !== null && (
         <TransactionMapModal
           transaction={mapTarget}
-          currentPlannedItemId={currentPlannedItemId(mappingStore.viewOf(mapTarget))}
+          currentPlannedItemId={mapTarget.mapping?.plannedItemId ?? null}
           isOpen
           onClose={() => {
             setMapTarget(null);
           }}
           onMapped={handleMapped}
+          onGone={() => {
+            dropGoneRow(mapTarget.id);
+          }}
         />
       )}
+
+      {detailId !== undefined && detailId !== '' && (
+        <TransactionDetailModal
+          transactionId={detailId}
+          isOpen
+          onClose={() => {
+            void navigate('/transactions');
+          }}
+          onUpdated={handleDetailUpdated}
+          onGone={handleDetailGone}
+        />
+      )}
+
+      <Modal
+        title={intl.formatMessage({
+          id: 'component.manualTransactionForm.title',
+          defaultMessage: 'Add Manual Transaction',
+        })}
+        isOpen={isAddOpen}
+        onClose={() => {
+          setIsAddOpen(false);
+        }}
+      >
+        <ManualTransactionForm
+          onSuccess={handleAdded}
+          onCancel={() => {
+            setIsAddOpen(false);
+          }}
+        />
+      </Modal>
+
+      <Toast message={toast} onDismiss={dismissToast} />
     </div>
   );
 });
 
-function matchesStatus(view: MappingView, status: TransactionFilters['status']): boolean {
-  if (status === '' || view.kind === 'checking') {
-    return true;
-  }
-  if (status === 'transfer') {
-    return view.kind === 'transfer';
-  }
-
-  return status === view.kind;
+function replaceRow(rows: ReadonlyArray<Transaction>, updated: Transaction): Transaction[] {
+  return rows.map((row) => (row.id === updated.id ? updated : row));
 }
 
-function currentPlannedItemId(view: MappingView): string | null {
-  return view.kind === 'mapped' ? view.plannedItemId : null;
+/** The row after the user mapped it in the map modal (a user mapping is `manual`). */
+function withMapping(
+  tx: Transaction,
+  plannedItemId: string | null,
+  labels: ReadonlyMap<string, PlannedItemLabel>,
+): Transaction {
+  if (plannedItemId === null) {
+    return { ...tx, mapping: null };
+  }
+  const label = labels.get(plannedItemId);
+
+  return {
+    ...tx,
+    mapping: {
+      plannedItemId,
+      planName: label?.planName ?? '',
+      planArchived: false,
+      categoryName: label?.categoryName ?? '',
+      by: 'manual',
+    },
+  };
+}
+
+/**
+ * The detail modal reads `GET /transactions/:id`, which names no plan or category: keep
+ * the list's names when the planned item is unchanged.
+ */
+function mergeDetail(
+  rows: ReadonlyArray<Transaction>,
+  detail: Transaction,
+  labels: ReadonlyMap<string, PlannedItemLabel>,
+): Transaction {
+  const current = rows.find((row) => row.id === detail.id);
+  const plannedItemId = detail.mapping?.plannedItemId ?? null;
+  if (current?.mapping !== null && current?.mapping.plannedItemId === plannedItemId) {
+    return { ...detail, mapping: current.mapping };
+  }
+
+  return withMapping(detail, plannedItemId, labels);
 }

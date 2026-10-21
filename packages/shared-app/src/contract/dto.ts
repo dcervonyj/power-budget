@@ -42,6 +42,11 @@ export type HouseholdDashboardResponseDto = Schemas['HouseholdDashboardResponseD
 // Transactions
 export type TransactionDto = Schemas['TransactionDto'];
 export type TransactionPageDto = Schemas['TransactionPageDto'];
+export type TransactionListItemDto = Schemas['TransactionListItemDto'];
+export type TransactionListMappingDto = Schemas['TransactionListMappingDto'];
+export type TransactionTransferLinkDto = Schemas['TransactionTransferLinkDto'];
+/** How a list row's planned item was chosen (`suggestion`: not mapped, an item is suggested). */
+export type MappingSourceDto = NonNullable<TransactionListItemDto['mappingSource']>;
 export type TransactionSourceDto = TransactionDto['source'];
 export type TransactionStatusDto = TransactionDto['status'];
 export type AddManualTransactionDto = Schemas['AddManualTransactionDto'];
@@ -49,6 +54,7 @@ export type PatchTransactionDto = Schemas['PatchTransactionDto'];
 export type SetMappingDto = Schemas['SetMappingDto'];
 export type MarkTransferDto = Schemas['MarkTransferDto'];
 export type BulkMapDto = Schemas['BulkMapDto'];
+export type BulkOpDto = BulkMapDto['op'];
 
 /**
  * The spec types `mapping` and `transfer` of `GET /transactions/:id` as a bare object
@@ -86,6 +92,9 @@ export type BankRefreshEnqueuedDto = Schemas['BankRefreshEnqueuedDto'];
 export type ReconnectBankDto = Schemas['ReconnectBankDto'];
 export type BankReconnectLinkDto = Schemas['BankReconnectLinkDto'];
 export type BankAccountDto = Schemas['BankAccountDto'];
+/** `GET /accounts`: the caller's own accounts, bank-synced and manual (cash). */
+export type AccountDto = Schemas['AccountDto'];
+export type CreateManualAccountDto = Schemas['CreateManualAccountDto'];
 
 // Plans
 export type PlanDto = Schemas['PlanDto'];

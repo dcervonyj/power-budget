@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { formatMoney, parseMinorUnits } from '@power-budget/core';
+import { readApiError } from '@power-budget/shared-app';
 import type { SetMappingDto } from '@power-budget/shared-app/contract';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
@@ -23,6 +24,8 @@ export interface TransactionMapModalProps {
   readonly onClose: () => void;
   /** Called after the API accepted the change (null = mapping cleared). */
   readonly onMapped: (plannedItemId: string | null) => void;
+  /** The transaction is gone or not the caller's (404); the modal closes. */
+  readonly onGone?: () => void;
 }
 
 /**
@@ -35,6 +38,7 @@ export function TransactionMapModal({
   isOpen,
   onClose,
   onMapped,
+  onGone,
 }: TransactionMapModalProps): React.JSX.Element | null {
   const theme = useTheme();
   const intl = useIntl();
@@ -87,7 +91,13 @@ export function TransactionMapModal({
       await apiClient.patch(`/transactions/${transaction.id}/mapping`, body);
       onMapped(plannedItemId);
       onClose();
-    } catch {
+    } catch (err) {
+      if (readApiError(err).status === 404 && onGone) {
+        onGone();
+        onClose();
+
+        return;
+      }
       setError(
         intl.formatMessage({
           id: 'screen.transactionDetail.mappingError',

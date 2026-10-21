@@ -1,19 +1,24 @@
 import { describe, expect, it } from 'vitest';
 import { buildQuery, toTransactions } from './TransactionListQuery.js';
 import type { TransactionFilters } from '../../presentation/components/TransactionFilterBar.js';
-import type { TransactionDto } from '@power-budget/shared-app/contract';
+import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 
 const noFilters: TransactionFilters = {
   from: '',
   to: '',
   category: '',
   status: '',
+  booking: '',
   currency: '',
   source: '',
   q: '',
 };
 
-function dto(id: string, currency: string, source: TransactionDto['source']): TransactionDto {
+function dto(
+  id: string,
+  currency: string,
+  source: TransactionListItemDto['source'],
+): TransactionListItemDto {
   return {
     id,
     accountId: 'acc-1',
@@ -28,6 +33,9 @@ function dto(id: string, currency: string, source: TransactionDto['source']): Tr
     notes: null,
     suggestedPlannedItemId: null,
     createdAt: '2026-10-21T10:00:00.000Z',
+    mapping: null,
+    mappingSource: 'none',
+    transfer: null,
   };
 }
 
@@ -39,6 +47,7 @@ describe('buildQuery', () => {
         to: '2026-10-31',
         category: 'cat-1',
         status: 'unmapped',
+        booking: 'pending',
         currency: 'PLN',
         source: 'wise',
         q: 'rent',
@@ -47,7 +56,7 @@ describe('buildQuery', () => {
     );
 
     expect(query).toBe(
-      'from=2026-10-01&to=2026-10-31&q=rent&unmappedOnly=true&limit=50&cursor=cursor-1',
+      'from=2026-10-01&to=2026-10-31&q=rent&unmappedOnly=true&status=pending&limit=50&cursor=cursor-1',
     );
   });
 
@@ -70,9 +79,10 @@ describe('toTransactions', () => {
     ]);
   });
 
-  it('leaves the mapping unknown: the list endpoint does not carry it', () => {
-    expect(toTransactions(page, { ...noFilters, status: 'unmapped' })[0]?.mappingStatus).toBe(
-      'unknown',
-    );
+  it('keeps every row the API returned for the mapping filter (no client-side status filter)', () => {
+    expect(toTransactions(page, { ...noFilters, status: 'unmapped' }).map((t) => t.id)).toEqual([
+      'a',
+      'b',
+    ]);
   });
 });
