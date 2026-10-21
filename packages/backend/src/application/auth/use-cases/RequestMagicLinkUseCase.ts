@@ -3,6 +3,7 @@ import type {
   UserRepository,
   MagicLinkTokenRepository,
   NotificationOutboxPort,
+  AppConfigPort,
 } from '../../../domain/auth/ports.js';
 
 export interface RequestMagicLinkInput {
@@ -17,6 +18,7 @@ export class RequestMagicLinkUseCase {
     private readonly userRepo: UserRepository,
     private readonly magicLinkTokenRepo: MagicLinkTokenRepository,
     private readonly notificationOutbox: NotificationOutboxPort,
+    private readonly config: AppConfigPort,
   ) {}
 
   async execute(input: RequestMagicLinkInput): Promise<void> {
@@ -35,8 +37,16 @@ export class RequestMagicLinkUseCase {
     await this.notificationOutbox.enqueue({
       kind: 'magic_link',
       userId: user.id,
-      payload: { email: user.email, token: rawToken },
+      // The link carries the raw token; the dispatcher strips it once the email is sent.
+      payload: { link: this.buildLink(rawToken) },
       dedupeKey: `magic_link:${user.id}:${tokenHash}`,
     });
+  }
+
+  /** The web app's MagicLinkScreen (/auth/magic-link) consumes `?token=`. */
+  private buildLink(rawToken: string): string {
+    const baseUrl = this.config.get('APP_BASE_URL').replace(/\/+$/, '');
+
+    return `${baseUrl}/auth/magic-link?token=${encodeURIComponent(rawToken)}`;
   }
 }

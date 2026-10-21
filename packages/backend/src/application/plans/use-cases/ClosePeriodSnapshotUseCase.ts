@@ -1,5 +1,6 @@
-import { LeftoverSnapshotId } from '@power-budget/core';
+import { LeftoverSnapshotId, Money, isSupportedCurrency } from '@power-budget/core';
 import type {
+  CurrencyCode,
   PlanId,
   HouseholdId,
   IsoDateTime,
@@ -7,6 +8,7 @@ import type {
   PlannedItemActuals,
   PlanActualsView,
 } from '@power-budget/core';
+import type { Plan } from '../../../domain/plans/entities.js';
 import type {
   PlanRepository,
   PlanActualsReader,
@@ -38,6 +40,7 @@ export class ClosePeriodSnapshotUseCase {
       );
     }
 
+    const currency = this.baseCurrencyOf(plan);
     const view = await this.actualsReader.read(input.planId, new Date(input.closedAt));
     const entries = this.buildLeftoverEntries(view, input.planId);
 
@@ -45,15 +48,36 @@ export class ClosePeriodSnapshotUseCase {
       id: LeftoverSnapshotId.of(this.generateId()),
       planId: input.planId,
       householdId: input.householdId,
+      periodEnd: plan.period.end,
       closedAt: input.closedAt,
+      leftover: this.sumLeftover(entries, currency),
       entries,
     });
   }
 
+  /** Leftover is unspent planned expense only: income lines never count. */
   private buildLeftoverEntries(view: PlanActualsView, planId: PlanId): LeftoverEntry[] {
-    const allLines = [...view.incomeLines, ...view.expenseLines];
+    return view.expenseLines.map((line) => this.toLeftoverEntry(line, view, planId));
+  }
 
-    return allLines.map((line) => this.toLeftoverEntry(line, view, planId));
+  /** Throws CurrencyMismatchError when a line is not in the plan's base currency. */
+  private sumLeftover(entries: readonly LeftoverEntry[], currency: CurrencyCode): Money {
+    let total = Money.zero(currency);
+    for (const entry of entries) {
+      total = Money.add(total, entry.leftover);
+    }
+
+    return total;
+  }
+
+  private baseCurrencyOf(plan: Plan): CurrencyCode {
+    if (!isSupportedCurrency(plan.baseCurrency)) {
+      throw new Error(
+        `UNSUPPORTED_CURRENCY: Plan ${plan.id} has base currency ${plan.baseCurrency}`,
+      );
+    }
+
+    return plan.baseCurrency;
   }
 
   private toLeftoverEntry(
