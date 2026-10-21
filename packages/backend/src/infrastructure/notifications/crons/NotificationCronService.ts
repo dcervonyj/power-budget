@@ -2,7 +2,10 @@ import { Injectable, Inject } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
-import { RunWeeklyDigestUseCase } from '../../../application/notifications/use-cases/RunWeeklyDigestUseCase.js';
+import {
+  DEFAULT_DIGEST_TIME_ZONE,
+  RunWeeklyDigestUseCase,
+} from '../../../application/notifications/use-cases/RunWeeklyDigestUseCase.js';
 import { RunReconnectRemindersUseCase } from '../../../application/notifications/use-cases/RunReconnectRemindersUseCase.js';
 import type { NotificationRepository } from '../../../domain/notifications/ports.js';
 import { DrizzleNotificationRepository } from '../DrizzleNotificationRepository.js';
@@ -22,22 +25,22 @@ export class NotificationCronService {
     private readonly dispatchQueue: Queue<DispatchNotificationJobPayload>,
   ) {}
 
-  /** Monday 08:00 — enqueue weekly digest for all household members */
-  @Cron('0 8 * * 1')
+  /** Monday 08:00 Europe/Warsaw (not server time) — enqueue weekly digest for all household members */
+  @Cron('0 8 * * 1', { name: 'weekly-digest', timeZone: DEFAULT_DIGEST_TIME_ZONE })
   async runWeeklyDigest(): Promise<void> {
-    await this.weeklyDigestUseCase.execute();
+    await this.weeklyDigestUseCase.execute(new Date(), DEFAULT_DIGEST_TIME_ZONE);
     await this.relayPendingToQueue();
   }
 
-  /** Daily 09:00 — check for expiring bank connections and enqueue reminders */
-  @Cron('0 9 * * *')
+  /** Daily 09:00 Europe/Warsaw — check for expiring bank connections and enqueue reminders */
+  @Cron('0 9 * * *', { name: 'reconnect-reminders', timeZone: DEFAULT_DIGEST_TIME_ZONE })
   async runReconnectReminders(): Promise<void> {
     await this.reconnectRemindersUseCase.execute();
     await this.relayPendingToQueue();
   }
 
   /** Every 5 minutes — relay pending outbox entries to the dispatch queue */
-  @Cron('*/5 * * * *')
+  @Cron('*/5 * * * *', { name: 'outbox-relay' })
   async relayOutbox(): Promise<void> {
     await this.relayPendingToQueue();
   }
@@ -49,7 +52,8 @@ export class NotificationCronService {
         'dispatch',
         { outboxId: notification.id },
         {
-          jobId: `dispatch:${notification.id}`,
+          // BullMQ rejects custom ids with a single ':'; one job per outbox row.
+          jobId: `dispatch-${notification.id}`,
           removeOnComplete: true,
           removeOnFail: false,
         },

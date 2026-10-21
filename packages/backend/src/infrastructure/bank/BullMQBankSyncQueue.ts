@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import type { Queue } from 'bullmq';
+import type { JobsOptions, Queue } from 'bullmq';
 import type { BankConnectionId, HouseholdId } from '@power-budget/core';
 import type { BankSyncQueuePort } from '../../domain/bank/ports.js';
 import { QUEUE_BANK_SYNC } from '../queue/queue.constants.js';
@@ -14,8 +14,33 @@ export class BullMQBankSyncQueue implements BankSyncQueuePort {
     connectionId: BankConnectionId;
     householdId: HouseholdId;
     since?: Date;
+    scheduledAt?: Date;
   }): Promise<{ jobId: string }> {
-    const job = await this.queue.add('sync', payload, DEFAULT_JOB_OPTIONS);
+    const { scheduledAt, ...data } = payload;
+    const job = await this.queue.add(
+      'sync',
+      data,
+      this.jobOptions(payload.connectionId, scheduledAt),
+    );
+
     return { jobId: job.id ?? '' };
+  }
+
+  private jobOptions(connectionId: BankConnectionId, scheduledAt: Date | undefined): JobsOptions {
+    // At most one pending/running sync per connection, whoever enqueues it.
+    const options: JobsOptions = {
+      ...DEFAULT_JOB_OPTIONS,
+      deduplication: { id: `bank-sync-${connectionId}` },
+    };
+    if (scheduledAt === undefined) {
+      return options;
+    }
+
+    // BullMQ rejects custom ids with a single ':', so the slot is written without colons.
+    return { ...options, jobId: `bank-sync-${connectionId}-${this.slotKey(scheduledAt)}` };
+  }
+
+  private slotKey(scheduledAt: Date): string {
+    return scheduledAt.toISOString().slice(0, 16).replace(/[-:]/g, '');
   }
 }

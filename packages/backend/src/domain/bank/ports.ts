@@ -82,9 +82,15 @@ export interface BankConnectorRegistry {
 }
 
 export interface BankSyncQueuePort {
+  /**
+   * Enqueue one sync of a connection. Repeats do not stack: while a sync of the
+   * connection is waiting or running, further enqueues are dropped. `scheduledAt`
+   * (the cron slot) makes the job id deterministic, so the same slot is enqueued once.
+   */
   enqueue(payload: {
     connectionId: BankConnectionId;
     householdId: HouseholdId;
     since?: Date;
+    scheduledAt?: Date;
   }): Promise<{ jobId: string }>;
 }
