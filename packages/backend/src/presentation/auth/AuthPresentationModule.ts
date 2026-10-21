@@ -45,6 +45,7 @@ import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInvi
 import { ResendHouseholdInviteUseCase } from '../../application/auth/use-cases/ResendHouseholdInviteUseCase.js';
 import { RevokeHouseholdInviteUseCase } from '../../application/auth/use-cases/RevokeHouseholdInviteUseCase.js';
 import { ListHouseholdInvitesUseCase } from '../../application/auth/use-cases/ListHouseholdInvitesUseCase.js';
+import { ListHouseholdMembersUseCase } from '../../application/auth/use-cases/ListHouseholdMembersUseCase.js';
 import { HouseholdAccess } from '../../application/auth/services/HouseholdAccess.js';
 import { HouseholdInviteMailer } from '../../application/auth/services/HouseholdInviteMailer.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
@@ -270,6 +271,12 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
       inject: [DrizzleHouseholdInviteRepository, HouseholdAccess],
       useFactory: (inviteRepo: DrizzleHouseholdInviteRepository, access: HouseholdAccess) =>
         new ListHouseholdInvitesUseCase(inviteRepo, access),
+    },
+    {
+      provide: ListHouseholdMembersUseCase,
+      inject: [DrizzleHouseholdRepository, HouseholdAccess],
+      useFactory: (householdRepo: DrizzleHouseholdRepository, access: HouseholdAccess) =>
+        new ListHouseholdMembersUseCase(householdRepo, access),
     },
     {
       provide: AcceptInviteUseCase,

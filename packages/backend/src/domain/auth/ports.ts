@@ -5,6 +5,7 @@ import type {
   Household,
   NewHousehold,
   HouseholdMembership,
+  HouseholdMember,
   HouseholdInvite,
   NewHouseholdInvite,
   AcceptInviteCommand,
@@ -35,6 +36,8 @@ export interface HouseholdRepository {
   findMembership(householdId: HouseholdId, userId: UserId): Promise<HouseholdMembership | null>;
   findByUserId(userId: UserId): Promise<Household | null>;
   countMembers(householdId: HouseholdId): Promise<number>;
+  /** The members in join order, with their email and display name. */
+  listMembers(householdId: HouseholdId): Promise<HouseholdMember[]>;
   scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void>;
 }
 

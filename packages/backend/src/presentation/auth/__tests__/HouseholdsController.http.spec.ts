@@ -21,12 +21,14 @@ import { DeleteHouseholdUseCase } from '../../../application/auth/use-cases/Dele
 import { ResendHouseholdInviteUseCase } from '../../../application/auth/use-cases/ResendHouseholdInviteUseCase.js';
 import { RevokeHouseholdInviteUseCase } from '../../../application/auth/use-cases/RevokeHouseholdInviteUseCase.js';
 import { ListHouseholdInvitesUseCase } from '../../../application/auth/use-cases/ListHouseholdInvitesUseCase.js';
+import { ListHouseholdMembersUseCase } from '../../../application/auth/use-cases/ListHouseholdMembersUseCase.js';
 import type { HouseholdInviteView } from '../../../application/auth/use-cases/HouseholdInviteView.js';
 import { AUTH_THROTTLERS } from '../throttling.js';
 import {
   EmailMismatchError,
   HouseholdFullError,
   HouseholdNotEmptyError,
+  HouseholdNotFoundError,
   HouseholdOwnerRequiredError,
   InviteExpiredError,
   InviteNotFoundError,
@@ -49,6 +51,7 @@ interface InviteUseCaseMocks {
   readonly resend: ReturnType<typeof mock<ResendHouseholdInviteUseCase>>;
   readonly revoke: ReturnType<typeof mock<RevokeHouseholdInviteUseCase>>;
   readonly list: ReturnType<typeof mock<ListHouseholdInvitesUseCase>>;
+  readonly members: ReturnType<typeof mock<ListHouseholdMembersUseCase>>;
 }
 
 function makeInviteMocks(): InviteUseCaseMocks {
@@ -58,6 +61,7 @@ function makeInviteMocks(): InviteUseCaseMocks {
     resend: mock<ResendHouseholdInviteUseCase>(),
     revoke: mock<RevokeHouseholdInviteUseCase>(),
     list: mock<ListHouseholdInvitesUseCase>(),
+    members: mock<ListHouseholdMembersUseCase>(),
   };
 }
 
@@ -68,6 +72,7 @@ function inviteProviders(mocks: InviteUseCaseMocks): Provider[] {
     { provide: ResendHouseholdInviteUseCase, useValue: mocks.resend },
     { provide: RevokeHouseholdInviteUseCase, useValue: mocks.revoke },
     { provide: ListHouseholdInvitesUseCase, useValue: mocks.list },
+    { provide: ListHouseholdMembersUseCase, useValue: mocks.members },
   ];
 }
 
@@ -297,6 +302,52 @@ describe('household invite endpoints (HTTP)', () => {
       userId: ALICE,
       householdId: ALICE_HOUSEHOLD,
     });
+  });
+
+  it('GET /households/members lists the members with their role', async () => {
+    mocks.members.execute.mockResolvedValue([
+      {
+        userId: ALICE,
+        email: 'alice@example.com',
+        displayName: 'Alice',
+        role: 'owner',
+        joinedAt: new Date('2026-10-01T10:00:00Z'),
+      },
+    ]);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/households/members',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual([
+      {
+        userId: ALICE,
+        email: 'alice@example.com',
+        displayName: 'Alice',
+        role: 'owner',
+        joinedAt: '2026-10-01T10:00:00.000Z',
+      },
+    ]);
+    expect(mocks.members.execute).toHaveBeenCalledWith({
+      userId: ALICE,
+      householdId: ALICE_HOUSEHOLD,
+    });
+  });
+
+  it('GET /households/members answers 404 household_not_found for a non-member', async () => {
+    mocks.members.execute.mockRejectedValue(new HouseholdNotFoundError());
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/households/members',
+      headers: { authorization: bearerFor(ALICE, BOB_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json()).toMatchObject({ code: 'household_not_found' });
   });
 
   it('POST /households/invites/accept returns the joined household and a new access token', async () => {
