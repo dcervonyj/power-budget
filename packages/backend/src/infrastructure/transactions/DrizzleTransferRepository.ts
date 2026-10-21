@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, inArray } from 'drizzle-orm';
-import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { and, eq, inArray, or } from 'drizzle-orm';
+import type { NodePgDatabase, NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
+import type { PgDatabase } from 'drizzle-orm/pg-core';
 import type {
   HouseholdId,
   IsoDateTime,
@@ -10,10 +11,13 @@ import type {
 } from '@power-budget/core';
 import { uuidv7 } from 'uuidv7';
 import type { HouseholdScope, TransferRepository } from '../../domain/transactions/ports.js';
-import { TransactionNotFoundError } from '../../domain/transactions/errors.js';
+import { AlreadyMappedError, TransactionNotFoundError } from '../../domain/transactions/errors.js';
 import type { Transfer } from '../../domain/transactions/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
+
+/** The pool-bound database or a transaction on it. */
+type Executor = PgDatabase<NodePgQueryResultHKT, typeof schema>;
 
 @Injectable()
 export class DrizzleTransferRepository implements TransferRepository {
@@ -53,6 +57,19 @@ export class DrizzleTransferRepository implements TransferRepository {
     return transferId;
   }
 
+  async bulkMarkStandalone(
+    ids: readonly TransactionId[],
+    by: UserId,
+    scope: HouseholdScope,
+  ): Promise<void> {
+    const unique = [...new Set(ids)];
+    if (unique.length === 0) {
+      return;
+    }
+
+    await this.db.transaction(this.bulkMarkInTransaction.bind(this, unique, by, scope));
+  }
+
   async unmark(transactionId: TransactionId, scope: HouseholdScope): Promise<void> {
     await this.db
       .delete(schema.transfers)
@@ -87,5 +104,63 @@ export class DrizzleTransferRepository implements TransferRepository {
       markedAt: row.markedAt.toISOString() as IsoDateTime,
       status: 'active',
     };
+  }
+
+  private async bulkMarkInTransaction(
+    ids: TransactionId[],
+    by: UserId,
+    scope: HouseholdScope,
+    tx: Executor,
+  ): Promise<void> {
+    const inScope = await tx
+      .select({ id: schema.transactions.id })
+      .from(schema.transactions)
+      .where(
+        and(
+          inArray(schema.transactions.id, ids),
+          eq(schema.transactions.householdId, scope.householdId),
+        ),
+      )
+      // Row locks: a concurrent map or transfer of the same rows waits for this batch.
+      .for('update');
+    if (inScope.length !== ids.length) {
+      throw new TransactionNotFoundError();
+    }
+
+    const mapped = await tx
+      .select({ id: schema.transactionMappings.transactionId })
+      .from(schema.transactionMappings)
+      .where(inArray(schema.transactionMappings.transactionId, ids))
+      .limit(1);
+    if (mapped.length > 0) {
+      throw new AlreadyMappedError();
+    }
+
+    const already = await tx
+      .select({ a: schema.transfers.txAId, b: schema.transfers.txBId })
+      .from(schema.transfers)
+      .where(
+        and(
+          eq(schema.transfers.householdId, scope.householdId),
+          or(inArray(schema.transfers.txAId, ids), inArray(schema.transfers.txBId, ids)),
+        ),
+      );
+    const marked = new Set(already.flatMap((row) => [row.a, row.b]));
+    const markedAt = new Date();
+    const rows = ids
+      .filter((id) => !marked.has(id))
+      .map((id) => ({
+        id: uuidv7(),
+        householdId: scope.householdId,
+        txAId: id,
+        txBId: null,
+        markedBy: by,
+        markedAt,
+      }));
+    if (rows.length === 0) {
+      return;
+    }
+
+    await tx.insert(schema.transfers).values(rows);
   }
 }

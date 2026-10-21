@@ -431,7 +431,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Bulk-map or bulk-act on a set of transactions */
+    /**
+     * Bulk-map or bulk-act on a set of transactions
+     * @description `map` sets `payload.plannedItemId` on every id; `transfer` marks each id as a standalone transfer (ids already a transfer stay as they are); `ignore` sets `ignored`. All or nothing: every id must be on the caller's own accounts, and nothing is written when one is not.
+     */
     post: operations['TransactionsController_bulkMap'];
     delete?: never;
     options?: never;
@@ -2731,6 +2734,13 @@ export interface operations {
       };
       /** @description An id is not one of the caller's own transactions; nothing is written */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description `transfer`: one of the transactions is mapped to a planned item; nothing is written */
+      409: {
         headers: {
           [name: string]: unknown;
         };

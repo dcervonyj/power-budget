@@ -40,6 +40,7 @@ import {
   SetMappingDto,
 } from './dto/transactions.dto.js';
 import { AddManualTransactionUseCase } from '../../application/transactions/use-cases/AddManualTransactionUseCase.js';
+import { BulkActOnTransactionsUseCase } from '../../application/transactions/use-cases/BulkActOnTransactionsUseCase.js';
 import { BulkMapTransactionsUseCase } from '../../application/transactions/use-cases/BulkMapTransactionsUseCase.js';
 import { GetTransactionUseCase } from '../../application/transactions/use-cases/GetTransactionUseCase.js';
 import { ListTransactionsUseCase } from '../../application/transactions/use-cases/ListTransactionsUseCase.js';
@@ -71,6 +72,7 @@ export class TransactionsController {
     private readonly addManualTransaction: AddManualTransactionUseCase,
     private readonly mapTransaction: MapTransactionUseCase,
     private readonly bulkMapTransactions: BulkMapTransactionsUseCase,
+    private readonly bulkActOnTransactions: BulkActOnTransactionsUseCase,
     private readonly markAsTransfer: MarkAsTransferUseCase,
     private readonly unmarkTransfer: UnmarkTransferUseCase,
     private readonly patchTransaction: PatchTransactionUseCase,
@@ -305,16 +307,36 @@ export class TransactionsController {
 
   @Post('bulk')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Bulk-map or bulk-act on a set of transactions' })
+  @ApiOperation({
+    summary: 'Bulk-map or bulk-act on a set of transactions',
+    description:
+      "`map` sets `payload.plannedItemId` on every id; `transfer` marks each id as a standalone transfer (ids already a transfer stay as they are); `ignore` sets `ignored`. All or nothing: every id must be on the caller's own accounts, and nothing is written when one is not.",
+  })
   @ApiBody({ type: BulkMapDto })
   @ApiResponse({ status: 204, description: 'Bulk operation applied' })
   @ApiResponse({
     status: 404,
     description: "An id is not one of the caller's own transactions; nothing is written",
   })
+  @ApiResponse({
+    status: 409,
+    description:
+      '`transfer`: one of the transactions is mapped to a planned item; nothing is written',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async bulkMap(@Body() dto: BulkMapDto, @CurrentUser() user: AuthenticatedUser): Promise<void> {
-    if (!user.householdId || dto.op !== 'map') {
+    if (!user.householdId) {
+      return;
+    }
+
+    if (dto.op !== 'map') {
+      await this.bulkActOnTransactions.execute({
+        action: dto.op,
+        transactionIds: dto.ids.map((txId) => txId as TransactionId),
+        by: user.userId,
+        householdId: user.householdId,
+      });
+
       return;
     }
 
