@@ -20,7 +20,7 @@ const dto: TransactionDto = {
 
 describe('TransactionMapper', () => {
   it('parses the string minor units exactly', () => {
-    const tx = TransactionMapper.fromListItem(dto, false);
+    const tx = TransactionMapper.fromListItem(dto);
 
     expect(tx.amount).toEqual({ amountMinor: -9007199254740993n, currency: 'PLN' });
     expect(tx.isTransfer).toBe(false);
@@ -28,8 +28,15 @@ describe('TransactionMapper', () => {
     expect(tx.mappingStatus).toBe('unknown');
   });
 
-  it('knows list items are unmapped only for an unmappedOnly page', () => {
-    expect(TransactionMapper.fromListItem(dto, true).mappingStatus).toBe('unmapped');
+  it('carries status and the suggested planned item', () => {
+    const tx = TransactionMapper.fromListItem({
+      ...dto,
+      status: 'pending',
+      suggestedPlannedItemId: 'item-9',
+    });
+
+    expect(tx.status).toBe('pending');
+    expect(tx.suggestedPlannedItemId).toBe('item-9');
   });
 
   it('takes mapping and transfer from the detail response', () => {
@@ -51,10 +58,10 @@ describe('TransactionMapper', () => {
 
   it('rejects a non-integer amount instead of showing NaN', () => {
     expect(() =>
-      TransactionMapper.fromListItem(
-        { ...dto, amount: { amountMinor: '12.5', currency: 'PLN' } },
-        false,
-      ),
+      TransactionMapper.fromListItem({
+        ...dto,
+        amount: { amountMinor: '12.5', currency: 'PLN' },
+      }),
     ).toThrow();
   });
 });

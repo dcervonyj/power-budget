@@ -51,8 +51,11 @@ export function BulkActionBar({
         borderTop: `1px solid ${theme.color.border.subtle}`,
         padding: `${theme.space.md}px ${theme.space.lg}px`,
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
-        gap: theme.space.md,
+        gap: theme.space.sm,
+        boxSizing: 'border-box',
+        maxWidth: '100%',
         zIndex: 100,
       }}
     >
@@ -61,6 +64,7 @@ export function BulkActionBar({
           color: theme.color.text.secondary,
           fontSize: theme.fontSize.sm,
           marginRight: 'auto',
+          flex: '1 1 auto',
         }}
       >
         <FormattedMessage

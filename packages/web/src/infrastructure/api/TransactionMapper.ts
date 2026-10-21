@@ -8,11 +8,11 @@ import type {
 
 export const TransactionMapper = {
   /**
-   * The list endpoint carries neither the mapping nor the transfer link, so the
-   * mapping is unknown unless the page was requested with `unmappedOnly=true`.
+   * The list endpoint carries neither the mapping nor the transfer link (and ignores
+   * `unmappedOnly`), so the mapping is unknown until the detail is read.
    */
-  fromListItem(dto: TransactionDto, unmappedOnly: boolean): Transaction {
-    return toTransaction(dto, null, false, unmappedOnly ? 'unmapped' : 'unknown');
+  fromListItem(dto: TransactionDto): Transaction {
+    return toTransaction(dto, null, false, 'unknown');
   },
 
   fromDetail(detail: TransactionDetailDto): Transaction {
@@ -41,6 +41,8 @@ function toTransaction(
     description: dto.description,
     merchant: dto.merchant,
     source: dto.source,
+    status: dto.status,
+    suggestedPlannedItemId: dto.suggestedPlannedItemId,
     isTransfer,
     ignored: dto.ignored,
     notes: dto.notes,
