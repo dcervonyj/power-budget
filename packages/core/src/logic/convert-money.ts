@@ -1,6 +1,18 @@
 import type { Money } from '../domain/shared/money.js';
 import type { CurrencyCode } from '../domain/shared/currency.js';
+import { CURRENCIES } from '../domain/shared/currency.js';
 import type { FxRateTable } from '../domain/currency/entities.js';
+import type { FxRatio } from './fx-ratio.js';
+import {
+  ONE_FX_RATIO,
+  divideRoundHalfEven,
+  invertFxRatio,
+  multiplyFxRatios,
+  parseFxRate,
+} from './fx-ratio.js';
+
+/** Every provider publishes against EUR, so cross rates pivot through it. */
+export const FX_PIVOT_CURRENCY: CurrencyCode = 'EUR';
 
 export class UnknownCurrencyPairError extends Error {
   constructor(from: CurrencyCode, to: CurrencyCode) {
@@ -10,47 +22,71 @@ export class UnknownCurrencyPairError extends Error {
 }
 
 /**
- * Convert money to targetCurrency using a FxRateTable snapshot.
- * Uses bigint arithmetic scaled by 1_000_000 to avoid floating-point errors.
- * Falls back to EUR cross-rate pivot when direct pair is absent.
- * Throws UnknownCurrencyPairError when no path is found.
+ * Exact rate for `1 from = rate to`, looked up in this order: direct row,
+ * inverse row, then a pivot through EUR where each leg may itself be direct
+ * or inverse. Returns null when no path exists. Throws InvalidFxRateError on
+ * a malformed or zero rate instead of dividing by it.
+ */
+export function resolveFxRate(
+  from: CurrencyCode,
+  to: CurrencyCode,
+  rates: FxRateTable,
+): FxRatio | null {
+  if (from === to) {
+    return ONE_FX_RATIO;
+  }
+  const single = lookupPair(from, to, rates);
+  if (single !== null) {
+    return single;
+  }
+  if (from === FX_PIVOT_CURRENCY || to === FX_PIVOT_CURRENCY) {
+    return null;
+  }
+  const toPivot = lookupPair(from, FX_PIVOT_CURRENCY, rates);
+  const fromPivot = lookupPair(FX_PIVOT_CURRENCY, to, rates);
+  if (toPivot === null || fromPivot === null) {
+    return null;
+  }
+
+  return multiplyFxRatios(toPivot, fromPivot);
+}
+
+/**
+ * Converts money to targetCurrency with a FxRateTable snapshot. Exact bigint
+ * arithmetic, minor-unit exponents honoured, one final half-to-even rounding.
+ * Throws UnknownCurrencyPairError when no rate path is found.
  */
 export function convertMoney(
   money: Money,
   targetCurrency: CurrencyCode,
   rates: FxRateTable,
 ): Money {
-  if (money.currency === targetCurrency) return money;
+  if (money.currency === targetCurrency) {
+    return money;
+  }
+  const rate = resolveFxRate(money.currency, targetCurrency, rates);
+  if (rate === null) {
+    throw new UnknownCurrencyPairError(money.currency, targetCurrency);
+  }
+  const sourceScale = 10n ** BigInt(CURRENCIES[money.currency].minorUnitExponent);
+  const targetScale = 10n ** BigInt(CURRENCIES[targetCurrency].minorUnitExponent);
+  const amountMinor = divideRoundHalfEven(
+    money.amountMinor * rate.numerator * targetScale,
+    rate.denominator * sourceScale,
+  );
 
-  const SCALE = 1_000_000n;
+  return { amountMinor, currency: targetCurrency };
+}
 
-  // Direct pair: base → quote
-  const directKey = `${money.currency}/${targetCurrency}`;
-  const direct = rates.get(directKey);
-  if (direct) {
-    const rateScaled = BigInt(Math.round(direct.rate * Number(SCALE)));
-    return { amountMinor: (money.amountMinor * rateScaled) / SCALE, currency: targetCurrency };
+function lookupPair(from: CurrencyCode, to: CurrencyCode, rates: FxRateTable): FxRatio | null {
+  const direct = rates.get(`${from}/${to}`);
+  if (direct !== undefined) {
+    return parseFxRate(direct.rate);
+  }
+  const inverse = rates.get(`${to}/${from}`);
+  if (inverse !== undefined) {
+    return invertFxRatio(parseFxRate(inverse.rate));
   }
 
-  // Inverse pair: quote → base (rate = 1/r)
-  const inverseKey = `${targetCurrency}/${money.currency}`;
-  const inverse = rates.get(inverseKey);
-  if (inverse) {
-    const rateScaled = BigInt(Math.round(inverse.rate * Number(SCALE)));
-    return { amountMinor: (money.amountMinor * SCALE) / rateScaled, currency: targetCurrency };
-  }
-
-  // EUR cross-rate pivot: base → EUR → target
-  const toEurKey = `${money.currency}/EUR`;
-  const fromEurKey = `EUR/${targetCurrency}`;
-  const toEur = rates.get(toEurKey);
-  const fromEur = rates.get(fromEurKey);
-  if (toEur && fromEur) {
-    const toEurScaled = BigInt(Math.round(toEur.rate * Number(SCALE)));
-    const fromEurScaled = BigInt(Math.round(fromEur.rate * Number(SCALE)));
-    const inEurMinor = (money.amountMinor * toEurScaled) / SCALE;
-    return { amountMinor: (inEurMinor * fromEurScaled) / SCALE, currency: targetCurrency };
-  }
-
-  throw new UnknownCurrencyPairError(money.currency, targetCurrency);
+  return null;
 }

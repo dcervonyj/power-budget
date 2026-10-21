@@ -1,25 +1,11 @@
-import type { CurrencyCode, IsoDate, IsoDateTime } from '@power-budget/core';
+import type { CurrencyCode, FxRate as CoreFxRate } from '@power-budget/core';
 
-export type FxRateSource = 'ECB' | 'FRANKFURTER';
+export type { FxRateSource } from '@power-budget/core';
 
-export interface FxRate {
-  readonly id: string; // `${base}_${quote}_${rateOnDate}`
-  readonly base: CurrencyCode;
-  readonly quote: CurrencyCode;
-  readonly rateMinorUnits: bigint; // rate × 10^6, stored as integer
-  readonly rateOnDate: IsoDate;
-  readonly source: FxRateSource;
-  readonly fetchedAt: IsoDateTime;
-}
+/** One stored rate: `1 baseCurrency = rate quoteCurrency`, rate a decimal string. */
+export type FxRate = CoreFxRate;
 
-export interface NewFxRate {
-  readonly base: CurrencyCode;
-  readonly quote: CurrencyCode;
-  readonly rateMinorUnits: bigint;
-  readonly rateOnDate: IsoDate;
-  readonly source: FxRateSource;
-  readonly fetchedAt: IsoDateTime;
-}
+export type NewFxRate = Omit<FxRate, 'id'>;
 
 export interface UserCurrencyPreferences {
   readonly userId: string;
