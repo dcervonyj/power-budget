@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
+import { uuidv7 } from 'uuidv7';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { Job } from 'bullmq';
@@ -143,7 +143,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
   }
 
   async function insertPlan(householdId: string, ownerUserId: string): Promise<string> {
-    const planId = randomUUID();
+    const planId = uuidv7();
     await getPool().query(
       `INSERT INTO plans (id, household_id, owner_user_id, name, type, period_kind, period_start, period_end, base_currency)
        VALUES ($1, $2, $3, 'Plan', 'household', 'monthly', '2026-10-01', '2026-10-31', 'PLN')`,
