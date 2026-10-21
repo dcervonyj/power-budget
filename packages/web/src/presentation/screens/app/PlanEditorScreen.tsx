@@ -7,14 +7,22 @@ import { Input } from '../../components/Input.js';
 import { Select } from '../../components/Select.js';
 import { CustomPeriodPicker } from '../../components/CustomPeriodPicker.js';
 import type { CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
-import { formatMoneyInput, parseMinorUnits, parseMoney } from '@power-budget/core';
+import {
+  formatMoneyInput,
+  isSupportedCurrency,
+  parseMinorUnits,
+  parseMoney,
+} from '@power-budget/core';
 import { apiClient } from '../../../AppProviders.js';
 import {
   PlanMapper,
+  type CreatePlannedItemDto,
   type PlanDto,
   type PlanSummary,
   type PlannedItemDto,
   type PlannedItemSummary,
+  type UpdatePlanDto,
+  type UpdatePlannedItemDto,
 } from '../../../infrastructure/api/PlanMapper.js';
 import { fetchCategoryNames } from '../../../infrastructure/api/CategoryNames.js';
 import { PlannedItemHistoryDrawer } from '../../components/PlannedItemHistoryDrawer.js';
@@ -110,10 +118,10 @@ export function PlanEditorScreen(): React.JSX.Element {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, {
-        name: plan.name,
-        baseCurrency: plan.baseCurrency,
-      });
+      const body: UpdatePlanDto = isSupportedCurrency(plan.baseCurrency)
+        ? { name: plan.name, baseCurrency: plan.baseCurrency }
+        : { name: plan.name };
+      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, body);
       setPlan(PlanMapper.toPlan(res.data));
     } catch {
       setSaveError(
@@ -144,10 +152,8 @@ export function PlanEditorScreen(): React.JSX.Element {
     const prevPlan = plan;
     setPlan({ ...plan, startDate: dates.startDate, endDate: dates.endDate });
     try {
-      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, {
-        periodStart: dates.startDate,
-        periodEnd: dates.endDate,
-      });
+      const body: UpdatePlanDto = { periodStart: dates.startDate, periodEnd: dates.endDate };
+      const res = await apiClient.patch<PlanDto>(`/plans/${plan.id}`, body);
       setPlan(PlanMapper.toPlan(res.data));
     } catch {
       setPlan(prevPlan);
@@ -162,16 +168,18 @@ export function PlanEditorScreen(): React.JSX.Element {
 
   const handleAddItem = async (): Promise<void> => {
     if (!plan) return;
-    const amountMinor = toMinorUnitsString(draftItem.amount, draftItem.currency);
-    if (!draftItem.categoryId || amountMinor === null) return;
+    const currency = draftItem.currency.trim().toUpperCase();
+    const amountMinor = toMinorUnitsString(draftItem.amount, currency);
+    if (!draftItem.categoryId || amountMinor === null || !isSupportedCurrency(currency)) return;
 
     try {
-      const res = await apiClient.post<PlannedItemDto>(`/plans/${plan.id}/items`, {
+      const body: CreatePlannedItemDto = {
         categoryId: draftItem.categoryId,
         direction: draftItem.direction,
         amountMinor,
-        currency: draftItem.currency,
-      });
+        currency,
+      };
+      const res = await apiClient.post<PlannedItemDto>(`/plans/${plan.id}/items`, body);
       setItems((prev) => [...prev, PlanMapper.toItem(res.data)]);
       setDraftItem({
         draftId: crypto.randomUUID(),
@@ -199,10 +207,15 @@ export function PlanEditorScreen(): React.JSX.Element {
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, ...changes } : i)));
     try {
       // The API takes amountMinor and currency together.
-      const res = await apiClient.patch<PlannedItemDto>(`/plans/${plan.id}/items/${item.id}`, {
+      const currency = changes.currency ?? item.currency;
+      if (!isSupportedCurrency(currency)) {
+        throw new Error(`Unsupported currency ${currency}`);
+      }
+      const body: UpdatePlannedItemDto = {
         amountMinor: changes.amountMinor ?? item.amountMinor,
-        currency: changes.currency ?? item.currency,
-      });
+        currency,
+      };
+      const res = await apiClient.patch<PlannedItemDto>(`/plans/${plan.id}/items/${item.id}`, body);
       const updated = PlanMapper.toItem(res.data);
       setItems((prev) => prev.map((i) => (i.id === item.id ? updated : i)));
     } catch {

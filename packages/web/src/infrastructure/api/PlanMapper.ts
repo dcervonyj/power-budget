@@ -1,31 +1,15 @@
-/**
- * Plan and planned-item wire shapes of the CLN-011 endpoints (PR #182). They are
- * declared here until the regenerated api-types land on master; then these
- * become `components['schemas']['PlanDto']` / `['PlannedItemDto']`.
- */
-export interface PlanDto {
-  id: string;
-  name: string;
-  type: 'personal' | 'household';
-  ownerUserId: string | null;
-  periodKind: 'weekly' | 'monthly' | 'custom';
-  period: { start: string; end: string };
-  baseCurrency: string;
-  archivedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+import type { components } from '@power-budget/shared-app/contract';
 
-export interface PlannedItemDto {
-  id: string;
-  planId: string;
-  categoryId: string;
-  direction: 'income' | 'expense';
-  amount: { amountMinor: string; currency: string };
-  note: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+type Schemas = components['schemas'];
+
+/** CLN-011 plan and planned-item contracts (generated api-types). */
+export type PlanDto = Schemas['PlanDto'];
+export type PlannedItemDto = Schemas['PlannedItemDto'];
+export type CreatePlanDto = Schemas['CreatePlanDto'];
+export type UpdatePlanDto = Schemas['UpdatePlanDto'];
+export type ClonePlanDto = Schemas['ClonePlanDto'];
+export type CreatePlannedItemDto = Schemas['CreatePlannedItemDto'];
+export type UpdatePlannedItemDto = Schemas['UpdatePlannedItemDto'];
 
 export type PlanStatus = 'active' | 'archived';
 

@@ -128,9 +128,13 @@ describe('DashboardStore', () => {
             id: 'plan-1',
             name: 'May Budget',
             type: 'personal',
+            ownerUserId: 'u1',
             periodKind: 'monthly',
             period: { start: '2025-05-01', end: '2025-05-31' },
             baseCurrency: 'EUR',
+            archivedAt: null,
+            createdAt: '2025-05-01T00:00:00.000Z',
+            updatedAt: '2025-05-01T00:00:00.000Z',
           },
         ];
       });
