@@ -79,7 +79,7 @@ function makeMapping(txId: string, itemId: string): Mapping {
   };
 }
 
-function makeFxRate(base: CurrencyCode, quote: CurrencyCode, rate: number): FxRate {
+function makeFxRate(base: CurrencyCode, quote: CurrencyCode, rate: string): FxRate {
   return {
     id: id('fx-1'),
     baseCurrency: base,
@@ -179,7 +179,7 @@ describe('computeLeftover', () => {
   });
 
   it('converts foreign-currency transactions to base currency', () => {
-    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', 4.0)]]);
+    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', '4.0')]]);
     // Planned: 10000 PLN. Spent: 1000 EUR = 4000 PLN. Leftover: 6000 PLN.
     const entries = computeLeftover({
       plan: makePlan(),
@@ -202,14 +202,14 @@ describe('convertMoney', () => {
   });
 
   it('converts using direct rate', () => {
-    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', 4.25)]]);
+    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', '4.25')]]);
     const result = convertMoney({ amountMinor: 1000n, currency: 'EUR' }, 'PLN', rates);
     expect(result.amountMinor).toBe(4250n);
     expect(result.currency).toBe('PLN');
   });
 
   it('converts using inverse rate', () => {
-    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', 4.0)]]);
+    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', '4.0')]]);
     // PLN → EUR: inverse of EUR/PLN
     const result = convertMoney({ amountMinor: 4000n, currency: 'PLN' }, 'EUR', rates);
     expect(result.amountMinor).toBe(1000n);
@@ -218,8 +218,8 @@ describe('convertMoney', () => {
 
   it('converts via EUR cross-rate pivot', () => {
     const rates: FxRateTable = new Map([
-      ['PLN/EUR', makeFxRate('PLN', 'EUR', 0.25)], // 1 PLN = 0.25 EUR
-      ['EUR/USD', makeFxRate('EUR', 'USD', 1.1)], // 1 EUR = 1.10 USD
+      ['PLN/EUR', makeFxRate('PLN', 'EUR', '0.25')], // 1 PLN = 0.25 EUR
+      ['EUR/USD', makeFxRate('EUR', 'USD', '1.1')], // 1 EUR = 1.10 USD
     ]);
     // 1000 PLN → 250 EUR → 275 USD
     const result = convertMoney({ amountMinor: 1000n, currency: 'PLN' }, 'USD', rates);
@@ -234,7 +234,7 @@ describe('convertMoney', () => {
   });
 
   it('uses only bigint math — result type is bigint', () => {
-    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', 4.25)]]);
+    const rates: FxRateTable = new Map([['EUR/PLN', makeFxRate('EUR', 'PLN', '4.25')]]);
     const result = convertMoney({ amountMinor: 100n, currency: 'EUR' }, 'PLN', rates);
     expect(typeof result.amountMinor).toBe('bigint');
   });
