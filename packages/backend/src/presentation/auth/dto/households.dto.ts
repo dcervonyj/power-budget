@@ -18,3 +18,41 @@ export class InviteToHouseholdDto {
   @IsEmail()
   email!: string;
 }
+
+export class AcceptInviteDto {
+  @ApiProperty({
+    type: String,
+    description: 'Single-use token from the invite email link (`?token=`)',
+  })
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+}
+
+export class HouseholdInviteResponseDto {
+  @ApiProperty({ type: String, format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: String, example: 'partner@example.com' })
+  email!: string;
+
+  @ApiProperty({ enum: ['pending', 'expired'] })
+  status!: 'pending' | 'expired';
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  expiresAt!: string;
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  createdAt!: string;
+}
+
+export class AcceptInviteResponseDto {
+  @ApiProperty({ type: String, format: 'uuid', description: 'The household joined' })
+  householdId!: string;
+
+  @ApiProperty({
+    type: String,
+    description: 'New access token scoped to the joined household (the refresh token stays valid)',
+  })
+  accessToken!: string;
+}

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { computePlanActuals } from '../src/logic/compute-plan-actuals.js';
+import { UnknownCurrencyPairError } from '../src/logic/convert-money.js';
 import type { Plan, PlannedItem } from '../src/domain/plans/entities.js';
 import type { Transaction, Mapping, Transfer } from '../src/domain/transactions/entities.js';
 import type { FxRateTable, FxRate } from '../src/domain/currency/entities.js';
@@ -58,6 +59,7 @@ function makeTx(
     merchantName: null,
     bookedAt: id('2024-01-15'),
     createdAt: id('2024-01-15T00:00:00Z'),
+    ignored: false,
     ...overrides,
   };
 }
@@ -117,7 +119,7 @@ describe('computePlanActuals', () => {
     const result = computePlanActuals({
       plan: makePlan(),
       plannedItems: [makePlannedItem()], // 100.00 PLN planned
-      transactions: [makeTx('tx-1', 8000n)], // 80.00 PLN actual
+      transactions: [makeTx('tx-1', -8000n)], // 80.00 PLN spent
       mappings: [makeMapping('tx-1', 'item-1')],
       transfers: [],
       fxTable: emptyFxTable,
@@ -137,7 +139,7 @@ describe('computePlanActuals', () => {
     const result = computePlanActuals({
       plan: makePlan(),
       plannedItems: [makePlannedItem()], // 100.00 PLN
-      transactions: [makeTx('tx-1', 12000n)], // 120.00 PLN — over budget
+      transactions: [makeTx('tx-1', -12000n)], // 120.00 PLN — over budget
       mappings: [makeMapping('tx-1', 'item-1')],
       transfers: [],
       fxTable: emptyFxTable,
@@ -153,7 +155,7 @@ describe('computePlanActuals', () => {
     const result = computePlanActuals({
       plan: makePlan(),
       plannedItems: [makePlannedItem()], // 100.00 PLN
-      transactions: [makeTx('tx-1', 5000n)], // 50.00 PLN — under 80%
+      transactions: [makeTx('tx-1', -5000n)], // 50.00 PLN — under 80%
       mappings: [makeMapping('tx-1', 'item-1')],
       transfers: [],
       fxTable: emptyFxTable,
@@ -163,7 +165,7 @@ describe('computePlanActuals', () => {
   });
 
   it('excludes ignored transactions from actuals', () => {
-    const tx = makeTx('tx-1', 8000n, 'PLN', { ignored: true });
+    const tx = makeTx('tx-1', -8000n, 'PLN', { ignored: true });
     const result = computePlanActuals({
       plan: makePlan(),
       plannedItems: [makePlannedItem()],
@@ -177,7 +179,7 @@ describe('computePlanActuals', () => {
   });
 
   it('excludes transactions in active transfers from actuals', () => {
-    const tx = makeTx('tx-1', 8000n);
+    const tx = makeTx('tx-1', -8000n);
     const transfer: Transfer = {
       id: id('tr-1'),
       householdId: id('hh-1'),
@@ -199,7 +201,7 @@ describe('computePlanActuals', () => {
   });
 
   it('does NOT exclude transactions in reversed (non-active) transfers', () => {
-    const tx = makeTx('tx-1', 8000n);
+    const tx = makeTx('tx-1', -8000n);
     const transfer: Transfer = {
       id: id('tr-1'),
       householdId: id('hh-1'),
@@ -242,7 +244,7 @@ describe('computePlanActuals', () => {
     const result = computePlanActuals({
       plan: makePlan(), // baseCurrency PLN
       plannedItems: [makePlannedItem({ amount: { amountMinor: 10000n, currency: 'PLN' } })],
-      transactions: [makeTx('tx-1', 1000n, 'EUR')], // 10.00 EUR → 42.50 PLN (4250 minor)
+      transactions: [makeTx('tx-1', -1000n, 'EUR')], // 10.00 EUR → 42.50 PLN (4250 minor)
       mappings: [makeMapping('tx-1', 'item-1')],
       transfers: [],
       fxTable,
@@ -281,7 +283,7 @@ describe('computePlanActuals', () => {
           amount: { amountMinor: 10000n, currency: 'PLN' },
         }),
       ],
-      transactions: [makeTx('tx-income', 20000n), makeTx('tx-expense', 8000n)],
+      transactions: [makeTx('tx-income', 20000n), makeTx('tx-expense', -8000n)],
       mappings: [
         makeMapping('tx-income', 'item-income', 'map-1'),
         makeMapping('tx-expense', 'item-expense', 'map-2'),
@@ -329,7 +331,7 @@ describe('computePlanActuals', () => {
     const result = computePlanActuals({
       plan: makePlan(),
       plannedItems: [makePlannedItem({ amount: { amountMinor: 0n, currency: 'PLN' } })],
-      transactions: [makeTx('tx-1', 1000n)],
+      transactions: [makeTx('tx-1', -1000n)],
       mappings: [makeMapping('tx-1', 'item-1')],
       transfers: [],
       fxTable: emptyFxTable,
@@ -349,5 +351,183 @@ describe('computePlanActuals', () => {
       clock: CLOCK,
     });
     expect(result.expenseLines[0]!.progressBand).toBe('ok');
+  });
+
+  describe('CLN-012 correctness', () => {
+    function actuals(
+      overrides: Partial<Parameters<typeof computePlanActuals>[0]>,
+    ): ReturnType<typeof computePlanActuals> {
+      return computePlanActuals({
+        plan: makePlan(),
+        plannedItems: [makePlannedItem()],
+        transactions: [],
+        mappings: [],
+        transfers: [],
+        fxTable: emptyFxTable,
+        clock: CLOCK,
+        ...overrides,
+      });
+    }
+
+    it('reduces expense spend by a refund mapped to the same item', () => {
+      const result = actuals({
+        transactions: [makeTx('tx-buy', -9000n), makeTx('tx-refund', 4000n)],
+        mappings: [
+          makeMapping('tx-buy', 'item-1', 'm-1'),
+          makeMapping('tx-refund', 'item-1', 'm-2'),
+        ],
+      });
+      const line = result.expenseLines[0]!;
+      expect(line.actual).toEqual({ amountMinor: 5000n, currency: 'PLN' });
+      expect(line.remaining.amountMinor).toBe(5000n);
+      expect(line.progressBand).toBe('ok');
+      expect(result.totalActualExpenses.amountMinor).toBe(5000n);
+    });
+
+    it('reduces received income by a reversal mapped to the income item', () => {
+      const result = actuals({
+        plannedItems: [makePlannedItem({ direction: 'income' })],
+        transactions: [makeTx('tx-pay', 10000n), makeTx('tx-chargeback', -2500n)],
+        mappings: [
+          makeMapping('tx-pay', 'item-1', 'm-1'),
+          makeMapping('tx-chargeback', 'item-1', 'm-2'),
+        ],
+      });
+      expect(result.incomeLines[0]!.actual.amountMinor).toBe(7500n);
+    });
+
+    it('excludes both legs of a transfer, and a one-sided transfer leg', () => {
+      const transfers: Transfer[] = [
+        {
+          id: id('tr-1'),
+          householdId: id('hh-1'),
+          fromTransactionId: id('tx-out'),
+          toTransactionId: id('tx-in'),
+          status: 'active',
+          createdAt: id('2024-01-15T00:00:00Z'),
+        },
+        {
+          id: id('tr-2'),
+          householdId: id('hh-1'),
+          fromTransactionId: id('tx-savings'),
+          toTransactionId: null,
+          status: 'active',
+          createdAt: id('2024-01-15T00:00:00Z'),
+        },
+      ];
+      const result = actuals({
+        transactions: [
+          makeTx('tx-out', -5000n),
+          makeTx('tx-in', 5000n),
+          makeTx('tx-savings', -7000n),
+        ],
+        transfers,
+      });
+      expect(result.unplannedIncome.amountMinor).toBe(0n);
+      expect(result.unplannedExpenses.amountMinor).toBe(0n);
+    });
+
+    it('excludes ignored and cancelled transactions from the unplanned totals', () => {
+      const result = actuals({
+        transactions: [
+          makeTx('tx-ignored', -5000n, 'PLN', { ignored: true }),
+          makeTx('tx-cancelled', -6000n, 'PLN', { status: 'cancelled' }),
+          makeTx('tx-real', -700n),
+        ],
+      });
+      expect(result.unplannedExpenses.amountMinor).toBe(700n);
+    });
+
+    it('counts only transactions booked inside the period, bounds inclusive', () => {
+      const result = actuals({
+        transactions: [
+          makeTx('tx-before', -1n, 'PLN', { bookedAt: id('2023-12-31') }),
+          makeTx('tx-first', -10n, 'PLN', { bookedAt: id('2024-01-01') }),
+          makeTx('tx-last', -100n, 'PLN', { bookedAt: id('2024-01-31') }),
+          makeTx('tx-after', -1000n, 'PLN', { bookedAt: id('2024-02-01') }),
+          makeTx('tx-unplanned-after', -5000n, 'PLN', { bookedAt: id('2024-02-01') }),
+        ],
+        mappings: ['tx-before', 'tx-first', 'tx-last', 'tx-after'].map((tx, i) =>
+          makeMapping(tx, 'item-1', `m-${i}`),
+        ),
+      });
+      expect(result.expenseLines[0]!.actual.amountMinor).toBe(110n);
+      expect(result.unplannedExpenses.amountMinor).toBe(0n);
+    });
+
+    it('leaves out a transaction mapped to another plan instead of calling it unplanned', () => {
+      const result = actuals({
+        transactions: [makeTx('tx-other-plan', -4000n)],
+        mappings: [makeMapping('tx-other-plan', 'item-of-another-plan')],
+      });
+      expect(result.expenseLines[0]!.actual.amountMinor).toBe(0n);
+      expect(result.unplannedExpenses.amountMinor).toBe(0n);
+    });
+
+    it('converts PLN and EUR planned items and transactions into the base currency', () => {
+      const result = actuals({
+        plannedItems: [
+          makePlannedItem({ id: id('item-pln') }),
+          makePlannedItem({ id: id('item-eur'), amount: { amountMinor: 5000n, currency: 'EUR' } }),
+        ],
+        transactions: [
+          makeTx('tx-pln', -3000n),
+          makeTx('tx-eur', -2000n, 'EUR'),
+          makeTx('tx-eur-unplanned', -100n, 'EUR'),
+        ],
+        mappings: [
+          makeMapping('tx-pln', 'item-pln', 'm-1'),
+          makeMapping('tx-eur', 'item-eur', 'm-2'),
+        ],
+        fxTable: makeEurPlnTable(), // 1 EUR = 4.25 PLN
+      });
+      expect(result.expenseLines.map((l) => [l.planned.amountMinor, l.actual.amountMinor])).toEqual(
+        [
+          [10000n, 3000n],
+          [21250n, 8500n],
+        ],
+      );
+      expect(result.totalPlannedExpenses).toEqual({ amountMinor: 31250n, currency: 'PLN' });
+      expect(result.totalActualExpenses).toEqual({ amountMinor: 11500n, currency: 'PLN' });
+      expect(result.unplannedExpenses).toEqual({ amountMinor: 425n, currency: 'PLN' });
+    });
+
+    it('converts into a EUR base currency through the inverse rate', () => {
+      const result = actuals({
+        plan: makePlan({ baseCurrency: 'EUR' }),
+        plannedItems: [makePlannedItem({ amount: { amountMinor: 4250n, currency: 'PLN' } })],
+        transactions: [makeTx('tx-pln', -850n)],
+        mappings: [makeMapping('tx-pln', 'item-1')],
+        fxTable: makeEurPlnTable(),
+      });
+      expect(result.expenseLines[0]!.planned).toEqual({ amountMinor: 1000n, currency: 'EUR' });
+      expect(result.expenseLines[0]!.actual).toEqual({ amountMinor: 200n, currency: 'EUR' });
+    });
+
+    it('throws UnknownCurrencyPairError when a needed rate is missing', () => {
+      expect(() =>
+        actuals({ transactions: [makeTx('tx-usd', -100n, 'USD')], fxTable: makeEurPlnTable() }),
+      ).toThrow(UnknownCurrencyPairError);
+    });
+
+    it('includes unplanned money in the net (PRODUCT §4.11)', () => {
+      const result = actuals({
+        plannedItems: [
+          makePlannedItem({ id: id('item-income'), direction: 'income' }),
+          makePlannedItem({ id: id('item-expense') }),
+        ],
+        transactions: [
+          makeTx('tx-salary', 20000n),
+          makeTx('tx-rent', -8000n),
+          makeTx('tx-gift', 1000n),
+          makeTx('tx-taxi', -300n),
+        ],
+        mappings: [
+          makeMapping('tx-salary', 'item-income', 'm-1'),
+          makeMapping('tx-rent', 'item-expense', 'm-2'),
+        ],
+      });
+      expect(result.net.amountMinor).toBe(20000n + 1000n - 8000n - 300n);
+    });
   });
 });

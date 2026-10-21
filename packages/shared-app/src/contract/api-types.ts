@@ -219,16 +219,20 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/households/invite': {
+  '/households/invites': {
     parameters: {
       query?: never;
       header?: never;
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /** List the open invite of the household (owner only) */
+    get: operations['HouseholdsController_invites'];
     put?: never;
-    /** Invite a user to the current household */
+    /**
+     * Invite the partner by email (owner only)
+     * @description Emails a single-use link valid for 7 days. A household has one open invite: a new invite revokes the previous one. At most two members per household.
+     */
     post: operations['HouseholdsController_invite'];
     delete?: never;
     options?: never;
@@ -236,7 +240,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/households/invite/{token}/accept': {
+  '/households/invites/accept': {
     parameters: {
       query?: never;
       header?: never;
@@ -245,9 +249,49 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Accept a household invitation */
+    /**
+     * Accept a household invite
+     * @description The caller must be signed in with the invited email. Their own solo household is left (and scheduled for deletion) when it holds no data; otherwise 409 household_not_empty. Use the returned access token from now on.
+     */
     post: operations['HouseholdsController_acceptInviteEndpoint'];
     delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/households/invites/{inviteId}/resend': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Resend an open invite (owner only)
+     * @description Issues a new token and a new 7-day expiry; the previous link stops working.
+     */
+    post: operations['HouseholdsController_resend'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/households/invites/{inviteId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /** Revoke an open invite (owner only) */
+    delete: operations['HouseholdsController_revoke'];
     options?: never;
     head?: never;
     patch?: never;
@@ -915,6 +959,31 @@ export interface components {
       /** @example member@example.com */
       email: string;
     };
+    HouseholdInviteResponseDto: {
+      /** Format: uuid */
+      id: string;
+      /** @example partner@example.com */
+      email: string;
+      /** @enum {string} */
+      status: 'pending' | 'expired';
+      /** Format: date-time */
+      expiresAt: string;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    AcceptInviteDto: {
+      /** @description Single-use token from the invite email link (`?token=`) */
+      token: string;
+    };
+    AcceptInviteResponseDto: {
+      /**
+       * Format: uuid
+       * @description The household joined
+       */
+      householdId: string;
+      /** @description New access token scoped to the joined household (the refresh token stays valid) */
+      accessToken: string;
+    };
     HouseholdExportRequestedDto: {
       exportId: string;
       /** @enum {string} */
@@ -1287,6 +1356,7 @@ export interface components {
       totalActualExpenses: components['schemas']['MoneyDto'];
       unplannedExpenses: components['schemas']['MoneyDto'];
       unplannedIncome: components['schemas']['MoneyDto'];
+      /** @description (actual + unplanned income) - (actual + unplanned expenses), in the base currency */
       net: components['schemas']['MoneyDto'];
       /** @example 2024-06-15 */
       asOf: string;
@@ -1307,6 +1377,7 @@ export interface components {
       source: string;
     };
     UnplannedTransactionPageDto: {
+      /** @description Only the caller's own transactions; a partner's count in the dashboard totals only */
       items: components['schemas']['UnplannedTransactionDto'][];
       nextCursor: string | null;
     };
@@ -1323,21 +1394,21 @@ export interface components {
       /** @description Category name */
       categoryName: string;
       /**
-       * @description Privacy level applied for the viewing user
+       * @description Level applied to the partner's transactions in this category (total_only when not configured); the viewer's own are always counted
        * @enum {string}
        */
       privacyLevel: 'full_detail' | 'total_with_counts' | 'total_only';
       /**
-       * @description Total amount in minor currency units (e.g. cents) as an integer string
+       * @description Both members' total in the plan's base currency, minor units as an integer string. Expense categories: spend net of refunds; income categories: received
        * @example 150000
        */
       totalAmountMinor: string;
       /**
-       * @description ISO 4217 currency code
+       * @description The plan's base currency (ISO 4217)
        * @example PLN
        */
       currency: string;
-      /** @description Number of transactions (0 for total_only privacy) */
+      /** @description The viewer's own transactions, plus the partner's unless privacyLevel is total_only */
       transactionCount: number;
     };
     HouseholdDashboardResponseDto: {
@@ -1856,6 +1927,39 @@ export interface operations {
       };
     };
   };
+  HouseholdsController_invites: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HouseholdInviteResponseDto'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Caller is not the owner (household_owner_required) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   HouseholdsController_invite: {
     parameters: {
       query?: never;
@@ -1869,15 +1973,38 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Invitation sent */
-      204: {
+      /** @description Invite emailed */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HouseholdInviteResponseDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
         headers: {
           [name: string]: unknown;
         };
         content?: never;
       };
-      /** @description Unauthorized */
-      401: {
+      /** @description Caller is not the owner (household_owner_required) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Household already has two members (household_full) or own email (invite_self) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many invites */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1889,15 +2016,125 @@ export interface operations {
     parameters: {
       query?: never;
       header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['AcceptInviteDto'];
+      };
+    };
+    responses: {
+      /** @description Joined */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['AcceptInviteResponseDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Signed in with another email (email_mismatch) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unknown or revoked invite (invite_not_found) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description invite_already_used, already_in_household, household_full or household_not_empty */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Invite expired (invite_expired) */
+      410: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  HouseholdsController_resend: {
+    parameters: {
+      query?: never;
+      header?: never;
       path: {
-        /** @description Invitation token from email */
-        token: unknown;
+        /** @description Invite ID */
+        inviteId: unknown;
       };
       cookie?: never;
     };
     requestBody?: never;
     responses: {
-      /** @description Invitation accepted */
+      /** @description Invite emailed */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HouseholdInviteResponseDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Caller is not the owner (household_owner_required) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No open invite with this id (invite_not_found) */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many invites */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  HouseholdsController_revoke: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Invite ID */
+        inviteId: unknown;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Invite revoked */
       204: {
         headers: {
           [name: string]: unknown;
@@ -1906,6 +2143,20 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Caller is not the owner (household_owner_required) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No open invite with this id (invite_not_found) */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -3192,6 +3443,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description Exchange rate unavailable (fx_rate_unavailable) */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   PlansController_unplanned: {
@@ -3318,6 +3576,13 @@ export interface operations {
       };
       /** @description Household or plan not found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Exchange rate unavailable (fx_rate_unavailable) */
+      503: {
         headers: {
           [name: string]: unknown;
         };

@@ -19,6 +19,7 @@ function makeTx(merchant: string | null, desc: string): Transaction {
     merchantName: merchant,
     bookedAt: '2024-02-01' as IsoDate,
     createdAt: '2024-02-01T00:00:00Z' as IsoDateTime,
+    ignored: false,
   };
 }
 

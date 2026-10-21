@@ -6,6 +6,9 @@ import type {
   NewHousehold,
   HouseholdMembership,
   HouseholdInvite,
+  NewHouseholdInvite,
+  AcceptInviteCommand,
+  AcceptInviteOutcome,
   LocaleCode,
   TotpSecret,
 } from './entities.js';
@@ -31,6 +34,7 @@ export interface HouseholdRepository {
   ): Promise<HouseholdMembership>;
   findMembership(householdId: HouseholdId, userId: UserId): Promise<HouseholdMembership | null>;
   findByUserId(userId: UserId): Promise<Household | null>;
+  countMembers(householdId: HouseholdId): Promise<number>;
   scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void>;
 }
 
@@ -79,9 +83,23 @@ export interface TotpSecretRepository {
 }
 
 export interface HouseholdInviteRepository {
-  create(invite: Omit<HouseholdInvite, 'createdAt'>): Promise<HouseholdInvite>;
+  /** Revokes the household's open invite (if any) and inserts this one, atomically. */
+  replaceOpen(invite: NewHouseholdInvite, at: Date): Promise<HouseholdInvite>;
   findByTokenHash(tokenHash: string): Promise<HouseholdInvite | null>;
-  accept(id: string, at: Date): Promise<void>;
+  /** An invite of this household, or null (an id of another household reads as missing). */
+  findInHousehold(id: string, householdId: HouseholdId): Promise<HouseholdInvite | null>;
+  /** Not accepted and not revoked (expired ones included, so they can be resent). */
+  listOpen(householdId: HouseholdId): Promise<HouseholdInvite[]>;
+  /** False when the invite is not open in this household. */
+  revoke(id: string, householdId: HouseholdId, at: Date): Promise<boolean>;
+  /** New token and expiry for an open invite (resend). Null when it is not open. */
+  rotateToken(
+    id: string,
+    householdId: HouseholdId,
+    tokenHash: string,
+    expiresAt: Date,
+  ): Promise<HouseholdInvite | null>;
+  acceptAndJoin(command: AcceptInviteCommand): Promise<AcceptInviteOutcome>;
 }
 
 export interface JwtAccessTokenIssuer {
@@ -103,6 +121,15 @@ export interface NotificationOutboxPort {
   enqueue(event: {
     kind: string;
     userId: UserId;
+    payload: Record<string, unknown>;
+    dedupeKey: string;
+  }): Promise<void>;
+  /** For an address without an account (an invitee who has not registered yet). */
+  enqueueToAddress(event: {
+    kind: string;
+    email: string;
+    locale: LocaleCode;
+    householdId: HouseholdId;
     payload: Record<string, unknown>;
     dedupeKey: string;
   }): Promise<void>;

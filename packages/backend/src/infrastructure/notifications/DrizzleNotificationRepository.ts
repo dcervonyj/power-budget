@@ -198,7 +198,9 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     return {
       id: r.id,
       householdId: (r.householdId as HouseholdId | null) ?? null,
-      recipientUserId: r.recipientUserId as UserId,
+      recipientUserId: (r.recipientUserId as UserId | null) ?? null,
+      recipientEmail: r.recipientEmail ?? null,
+      recipientLocale: r.recipientLocale ?? null,
       kind: r.kind as NotificationKind,
       dedupeKey: r.dedupeKey,
       payload: r.payload as Record<string, unknown>,

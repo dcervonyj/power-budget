@@ -39,6 +39,24 @@ describe('MjmlTemplateRenderer', () => {
     },
   );
 
+  it.each(LOCALES)(
+    'renders the household_invite template in %s with the link, inviter and household',
+    async (locale) => {
+      const link = 'https://power-budget.pages.dev/invite/accept?token=abc123';
+
+      const html = await renderer.render('household_invite', locale, {
+        link,
+        inviterName: 'Ann <owner>',
+        householdName: 'Ann & Bob',
+      });
+
+      expect(html).toContain(`href="${link}"`);
+      expect(html).toContain('Ann &lt;owner&gt;');
+      expect(html).toContain('Ann &amp; Bob');
+      expect(html).not.toContain('{{');
+    },
+  );
+
   it('ships a template in every locale for every notification kind', () => {
     const files = readdirSync(TEMPLATE_DIR);
     const expected = Object.keys(SUBJECT_BY_KIND).flatMap((kind) =>

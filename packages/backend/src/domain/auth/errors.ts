@@ -89,3 +89,31 @@ export class HouseholdOwnerRequiredError extends Error {
     this.name = 'HouseholdOwnerRequiredError';
   }
 }
+
+export class InviteNotFoundError extends Error {
+  constructor() {
+    super('INVITE_NOT_FOUND');
+    this.name = 'InviteNotFoundError';
+  }
+}
+
+export class HouseholdFullError extends Error {
+  constructor() {
+    super('HOUSEHOLD_FULL');
+    this.name = 'HouseholdFullError';
+  }
+}
+
+export class HouseholdNotEmptyError extends Error {
+  constructor() {
+    super('HOUSEHOLD_NOT_EMPTY');
+    this.name = 'HouseholdNotEmptyError';
+  }
+}
+
+export class CannotInviteSelfError extends Error {
+  constructor() {
+    super('INVITE_SELF');
+    this.name = 'CannotInviteSelfError';
+  }
+}

@@ -10,8 +10,6 @@ import type {
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
 
-const DEFAULT_LIMIT = 50;
-
 /** Cursor encodes `occurredOn|id` as base64 to support compound DESC ordering. */
 function encodeCursor(occurredOn: string, id: string): string {
   return Buffer.from(`${occurredOn}|${id}`).toString('base64');
@@ -32,12 +30,20 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
   async list(query: UnplannedTransactionQuery): Promise<UnplannedTransactionPage> {
-    const limit = query.limit ?? DEFAULT_LIMIT;
+    const limit = query.limit;
 
     const conditions = [
       eq(schema.transactions.householdId, query.householdId),
       gte(schema.transactions.occurredOn, query.periodStart),
       lte(schema.transactions.occurredOn, query.periodEnd),
+      eq(schema.transactions.ignored, false),
+      // Only the viewer's own accounts: a partner's transactions stay private
+      sql`EXISTS (
+        SELECT 1 FROM bank_accounts ba
+        JOIN bank_connections bc ON bc.id = ba.connection_id
+        WHERE ba.id = ${schema.transactions.accountId}
+          AND bc.user_id = ${query.ownerUserId}
+      )`,
       // Not mapped
       sql`NOT EXISTS (
         SELECT 1 FROM transaction_mappings tm
@@ -87,8 +93,7 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
     const items = hasMore ? rows.slice(0, limit) : rows;
     const lastItem = items[items.length - 1];
 
-    const nextCursor =
-      hasMore && lastItem ? encodeCursor(lastItem.occurredOn, lastItem.id) : null;
+    const nextCursor = hasMore && lastItem ? encodeCursor(lastItem.occurredOn, lastItem.id) : null;
 
     return {
       items: items.map((row) => ({

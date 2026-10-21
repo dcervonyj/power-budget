@@ -41,7 +41,7 @@ export class ClosePeriodSnapshotUseCase {
     }
 
     const currency = this.baseCurrencyOf(plan);
-    const view = await this.actualsReader.read(input.planId, new Date(input.closedAt));
+    const view = await this.actualsReader.read(plan, new Date(input.closedAt));
     const entries = this.buildLeftoverEntries(view, input.planId);
 
     await this.leftoverSnapshotRepo.save({
@@ -85,7 +85,10 @@ export class ClosePeriodSnapshotUseCase {
     view: PlanActualsView,
     planId: PlanId,
   ): LeftoverEntry {
-    const leftoverMinor = line.remaining.amountMinor > 0n ? line.remaining.amountMinor : 0n;
+    // Never negative (over budget), never above the plan (refunds beyond the spend).
+    const spentMinor = line.actual.amountMinor > 0n ? line.actual.amountMinor : 0n;
+    const remainingMinor = line.planned.amountMinor - spentMinor;
+    const leftoverMinor = remainingMinor > 0n ? remainingMinor : 0n;
 
     return {
       snapshotId: LeftoverSnapshotId.of(this.generateId()),

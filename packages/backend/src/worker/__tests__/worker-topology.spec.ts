@@ -9,7 +9,6 @@ import {
   QUEUE_BANK_SYNC,
   QUEUE_NOTIFICATION_DISPATCH,
   QUEUE_PERIOD_CLOSE,
-  QUEUE_REFRESH_PLAN_ACTUALS,
 } from '../../infrastructure/queue/queue.constants.js';
 
 // Metadata keys written by @Processor (@nestjs/bullmq) and @Cron (@nestjs/schedule).
@@ -114,12 +113,7 @@ describe('worker topology', () => {
     const worker = await collectRegistrations(WorkerModule);
 
     expect([...worker.processorQueues].sort()).toEqual(
-      [
-        QUEUE_BANK_SYNC,
-        QUEUE_NOTIFICATION_DISPATCH,
-        QUEUE_PERIOD_CLOSE,
-        QUEUE_REFRESH_PLAN_ACTUALS,
-      ].sort(),
+      [QUEUE_BANK_SYNC, QUEUE_NOTIFICATION_DISPATCH, QUEUE_PERIOD_CLOSE].sort(),
     );
     expect([...worker.cronNames].sort()).toEqual(
       [
