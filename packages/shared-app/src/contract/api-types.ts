@@ -219,6 +219,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/households/members': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** List the members of the caller's household */
+    get: operations['HouseholdsController_members'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/households/invites': {
     parameters: {
       query?: never;
@@ -954,6 +971,21 @@ export interface components {
     };
     HouseholdCreatedDto: {
       householdId: string;
+    };
+    HouseholdMemberResponseDto: {
+      /** Format: uuid */
+      userId: string;
+      /** @example anna@example.com */
+      email: string;
+      /**
+       * @description Empty when the user set none
+       * @example Anna
+       */
+      displayName: string;
+      /** @enum {string} */
+      role: 'owner' | 'member';
+      /** Format: date-time */
+      joinedAt: string;
     };
     InviteToHouseholdDto: {
       /** @example member@example.com */
@@ -1920,6 +1952,46 @@ export interface operations {
       };
       /** @description Unauthorized */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  HouseholdsController_members: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HouseholdMemberResponseDto'][];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household (household_owner_required) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Not a member of the household (household_not_found) */
+      404: {
         headers: {
           [name: string]: unknown;
         };

@@ -7,7 +7,7 @@ export {
   formatMoneyInput,
 } from './money-amount.js';
 export { toLocalIsoDate, parseLocalIsoDate } from './local-date.js';
-export { computePlanActuals } from './compute-plan-actuals.js';
+export { computePlanActuals, progressBand } from './compute-plan-actuals.js';
 export type { ComputePlanActualsParams } from './compute-plan-actuals.js';
 export {
   convertMoney,

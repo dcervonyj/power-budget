@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { FULL_STACK } from './support/stack.js';
-import { BackendApi, PASSWORD, seedTwoUserHousehold, uniqueEmail } from './support/api.js';
+import {
+  BackendApi,
+  PASSWORD,
+  seedTwoUserHousehold,
+  signInWithTokens,
+  uniqueEmail,
+} from './support/api.js';
 
 test.skip(!FULL_STACK, 'needs the e2e stack (TEST_ENV=e2e)');
 
@@ -53,13 +59,53 @@ test.describe('household journey (2-user fixture)', () => {
     ).toBe(200);
   });
 
-  // FIXME(CLN-017): the web app has no invite UI. No route, button or string for
-  // "invite partner" exists in packages/web/src (HouseholdScreen only drills into
-  // categories); POST /households/invites is reachable through the API only.
-  test.fixme('the owner invites the partner from the household screen', async () => {});
+  test('the owner invites the partner from the household screen', async ({ page, request }) => {
+    const api = new BackendApi(request);
+    const owner = await api.register(uniqueEmail('owner'));
+    const partnerEmail = uniqueEmail('partner');
+    await signInWithTokens(page, owner);
 
-  // FIXME(CLN-017): the invite email links to /invite/accept?token=..., but the web
-  // app has no such route (App.tsx falls through to /dashboard), so the partner
-  // cannot accept in the browser; POST /households/invites/accept works via the API.
-  test.fixme('the partner accepts the invite from the email link', async () => {});
+    await page.goto('/household');
+    await expect(page.getByText('Owner', { exact: true })).toBeVisible();
+    await page.getByLabel("Partner's email").fill(partnerEmail);
+    await page.getByRole('button', { name: 'Invite partner' }).click();
+
+    await expect(page.getByText('Invite sent.')).toBeVisible();
+    await expect(page.getByText(partnerEmail)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Resend invite' })).toBeVisible();
+    // The worker emailed the invite link through the real outbox.
+    expect(await api.inviteToken(partnerEmail)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test('the partner accepts the invite from the email link', async ({ page, request }) => {
+    const api = new BackendApi(request);
+    const ownerEmail = uniqueEmail('owner');
+    const partnerEmail = uniqueEmail('partner');
+    const owner = await api.register(ownerEmail);
+    await api.invite(owner.accessToken, partnerEmail);
+    const token = await api.inviteToken(partnerEmail);
+    await api.register(partnerEmail);
+
+    // Signed out, the link goes through login and comes back to the invite.
+    await page.goto(`/invite/accept?token=${token}`);
+    await expect(page).toHaveURL(/\/login/);
+    await page.getByLabel('Email').fill(partnerEmail);
+    await page.getByLabel('Password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page.getByRole('heading', { name: 'Join a household' })).toBeVisible();
+    await page.getByRole('button', { name: 'Accept invite' }).click();
+
+    await expect(page).toHaveURL(/\/household$/);
+    await expect(page.getByText(ownerEmail)).toBeVisible();
+    await expect(page.getByText('(you)')).toBeVisible();
+    const accessToken = await page.evaluate(() => localStorage.getItem('pb_access_token'));
+    const members = await api.json<Array<{ email: string; role: string }>>(
+      await api.get('/households/members', accessToken ?? ''),
+      200,
+    );
+    expect(members.map(({ email, role }) => [email, role])).toEqual([
+      [ownerEmail, 'owner'],
+      [partnerEmail, 'member'],
+    ]);
+  });
 });

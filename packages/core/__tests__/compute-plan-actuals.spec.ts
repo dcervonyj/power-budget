@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computePlanActuals } from '../src/logic/compute-plan-actuals.js';
+import { computePlanActuals, progressBand } from '../src/logic/compute-plan-actuals.js';
 import { UnknownCurrencyPairError } from '../src/logic/convert-money.js';
 import type { Plan, PlannedItem } from '../src/domain/plans/entities.js';
 import type { Transaction, Mapping, Transfer } from '../src/domain/transactions/entities.js';
@@ -529,5 +529,18 @@ describe('computePlanActuals', () => {
       });
       expect(result.net.amountMinor).toBe(20000n + 1000n - 8000n - 300n);
     });
+  });
+});
+
+describe('progressBand', () => {
+  it.each([
+    [10000n, 7999n, 'ok'],
+    [10000n, 8000n, 'warning'],
+    [10000n, 9999n, 'warning'],
+    [10000n, 10000n, 'over'],
+    [0n, 0n, 'ok'],
+    [0n, 1n, 'over'],
+  ] as const)('planned %s, actual %s is %s', (planned, actual, band) => {
+    expect(progressBand(planned, actual)).toBe(band);
   });
 });

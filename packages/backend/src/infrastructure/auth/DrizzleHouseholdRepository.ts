@@ -1,8 +1,13 @@
 import { Inject } from '@nestjs/common';
-import { count, eq } from 'drizzle-orm';
+import { asc, count, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { UserId, HouseholdId } from '@power-budget/core';
-import type { Household, NewHousehold, HouseholdMembership } from '../../domain/auth/entities.js';
+import type {
+  Household,
+  NewHousehold,
+  HouseholdMember,
+  HouseholdMembership,
+} from '../../domain/auth/entities.js';
 import type { HouseholdRepository } from '../../domain/auth/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
@@ -75,6 +80,29 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
       .where(eq(schema.householdUsers.householdId, householdId));
 
     return rows[0]?.members ?? 0;
+  }
+
+  async listMembers(householdId: HouseholdId): Promise<HouseholdMember[]> {
+    const rows = await this.db
+      .select({
+        userId: schema.householdUsers.userId,
+        role: schema.householdUsers.role,
+        joinedAt: schema.householdUsers.joinedAt,
+        email: schema.users.email,
+        displayName: schema.users.displayName,
+      })
+      .from(schema.householdUsers)
+      .innerJoin(schema.users, eq(schema.householdUsers.userId, schema.users.id))
+      .where(eq(schema.householdUsers.householdId, householdId))
+      .orderBy(asc(schema.householdUsers.joinedAt));
+
+    return rows.map((row) => ({
+      userId: row.userId as UserId,
+      email: row.email,
+      displayName: row.displayName,
+      role: row.role === 'owner' ? 'owner' : 'member',
+      joinedAt: row.joinedAt,
+    }));
   }
 
   async scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void> {

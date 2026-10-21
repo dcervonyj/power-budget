@@ -123,6 +123,24 @@ describe('PlansApi', () => {
       { method: 'GET', url: '/plans/plan-1/items/item-1/history' },
     ]);
   });
+
+  it('reads the dashboard and pages through unplanned transactions', async () => {
+    const page = { items: [], nextCursor: null };
+    http.respondWith({ planId: 'plan-1' }, page, page);
+
+    await api.dashboard('plan-1');
+    expect(await api.unplanned('plan-1', 'expense')).toEqual(page);
+    await api.unplanned('plan-1', 'income', 'cursor-2');
+
+    expect(http.calls).toEqual([
+      { method: 'GET', url: '/plans/plan-1/dashboard' },
+      { method: 'GET', url: '/plans/plan-1/dashboard/unplanned?direction=expense' },
+      {
+        method: 'GET',
+        url: '/plans/plan-1/dashboard/unplanned?direction=income&cursor=cursor-2',
+      },
+    ]);
+  });
 });
 
 describe('isPlanArchived', () => {

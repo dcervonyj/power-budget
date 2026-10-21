@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import type { LocaleCode, RegisterDto } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
@@ -22,6 +22,7 @@ function isApiError(err: unknown): err is { response?: { status?: number } } {
 export function RegisterScreen(): React.JSX.Element {
   const intl = useIntl();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,7 +37,8 @@ export function RegisterScreen(): React.JSX.Element {
       // RegisterDto has no display name; it is set later in Settings (PATCH /users/me).
       const body: RegisterDto = { email, password, locale: resolveLocale() };
       await apiClient.post('/auth/register', body);
-      navigate('/login');
+      // Keep RequireAuth's target (an invite link) for the login that follows.
+      navigate('/login', { state: location.state });
     } catch (err) {
       if (isApiError(err) && err.response?.status === 409) {
         setRegisterError('emailInUse');
@@ -94,7 +96,7 @@ export function RegisterScreen(): React.JSX.Element {
           <FormattedMessage id="screen.register.submit" defaultMessage="Create account" />
         </Button>
       </form>
-      <Link to="/login">
+      <Link to="/login" state={location.state}>
         <FormattedMessage
           id="screen.register.loginLink"
           defaultMessage="Already have an account? Log in"
