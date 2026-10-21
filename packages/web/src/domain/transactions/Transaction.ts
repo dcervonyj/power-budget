@@ -10,6 +10,9 @@ export interface TransactionMapping {
 
 export type TransactionSource = 'bank_sync' | 'manual';
 
+/** Lifecycle of the bank record: pending until the bank books it. */
+export type TransactionStatus = 'pending' | 'posted' | 'cancelled';
+
 /**
  * The list endpoint does not say whether a transaction is mapped; it is only
  * known from the detail endpoint or from an `unmappedOnly` query.
@@ -27,6 +30,9 @@ export interface Transaction {
   description: string;
   merchant: string | null;
   source: TransactionSource;
+  status: TransactionStatus;
+  /** Planned item the API proposes for an unmapped transaction (no AI/rule provenance yet). */
+  suggestedPlannedItemId: string | null;
   isTransfer: boolean;
   ignored: boolean;
   notes: string | null;

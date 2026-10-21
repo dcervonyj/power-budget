@@ -3,14 +3,25 @@ import { useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 import { parseLocalIsoDate } from '@power-budget/core';
 import { MoneyView } from './MoneyView.js';
-import type { Transaction } from './TransactionDetailModal.js';
+import type { Transaction } from '../../domain/transactions/Transaction.js';
+import type { MappingView } from '../../application/transactions/TransactionMappingStore.js';
 
 export interface TransactionRowProps {
   transaction: Transaction;
+  /** What the row is: mapped to an item, transfer, ignored, unmapped, or still being checked. */
+  mapping: MappingView;
+  /** Opens the detail modal. */
   onClick: (id: string) => void;
+  /** Opens the map modal. */
+  onMap: (id: string) => void;
 }
 
-export function TransactionRow({ transaction, onClick }: TransactionRowProps): React.JSX.Element {
+export function TransactionRow({
+  transaction,
+  mapping,
+  onClick,
+  onMap,
+}: TransactionRowProps): React.JSX.Element {
   const theme = useTheme();
   const intl = useIntl();
 
@@ -20,24 +31,56 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
     day: 'numeric',
   });
 
-  const isTransfer = transaction.isTransfer;
-  const isMapped = transaction.mapping !== null && !isTransfer;
-  // Only claim "Unmapped" when the API said so; list rows usually do not know.
-  const isUnmapped = transaction.mappingStatus === 'unmapped' && !isTransfer;
+  const statusLabel = statusChipLabel(transaction.status);
+  const mappingChip = mappingChipOf(mapping);
+  const canMap = mapping.kind !== 'transfer' && mapping.kind !== 'ignored';
 
-  const chipLabel = isTransfer
-    ? intl.formatMessage({
-        id: 'component.transactionRow.transfer',
-        defaultMessage: 'Transfer',
-      })
-    : isUnmapped
-      ? intl.formatMessage({
-          id: 'component.transactionRow.unmapped',
-          defaultMessage: 'Unmapped',
-        })
-      : null;
+  function statusChipLabel(status: Transaction['status']): string | null {
+    switch (status) {
+      case 'pending':
+        return intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' });
+      case 'cancelled':
+        return intl.formatMessage({
+          id: 'transaction.status.cancelled',
+          defaultMessage: 'Cancelled',
+        });
+      case 'posted':
+        return null;
+    }
+  }
 
-  const chipColor = isTransfer ? theme.color.accent.default : theme.color.status.danger;
+  function mappingChipOf(view: MappingView): { label: string; color: string } | null {
+    switch (view.kind) {
+      case 'checking':
+        return null;
+      case 'transfer':
+        return {
+          label: intl.formatMessage({
+            id: 'component.transactionRow.transfer',
+            defaultMessage: 'Transfer',
+          }),
+          color: theme.color.accent.default,
+        };
+      case 'ignored':
+        return {
+          label: intl.formatMessage({
+            id: 'component.transactionRow.ignored',
+            defaultMessage: 'Ignored',
+          }),
+          color: theme.color.text.secondary,
+        };
+      case 'unmapped':
+        return {
+          label: intl.formatMessage({
+            id: 'component.transactionRow.unmapped',
+            defaultMessage: 'Unmapped',
+          }),
+          color: theme.color.status.danger,
+        };
+      case 'mapped':
+        return null;
+    }
+  }
 
   return (
     <div
@@ -51,8 +94,10 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
       }}
       style={{
         display: 'flex',
+        flexWrap: 'wrap',
         alignItems: 'center',
-        gap: theme.space.md,
+        columnGap: theme.space.md,
+        rowGap: theme.space.xs,
         padding: `${theme.space.md}px ${theme.space.lg}px`,
         backgroundColor: theme.color.surface.raised,
         borderRadius: theme.radius.md,
@@ -68,7 +113,8 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
 
       <span
         style={{
-          flex: 1,
+          flex: '1 1 140px',
+          minWidth: 0,
           color: theme.color.text.primary,
           fontSize: theme.fontSize.md,
           overflow: 'hidden',
@@ -79,35 +125,25 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
         {transaction.merchant ?? transaction.description}
       </span>
 
-      {isMapped && transaction.mapping && (
+      {statusLabel !== null && <Chip label={statusLabel} color={theme.color.status.warning} />}
+
+      {mapping.kind === 'mapped' && (
         <span
+          data-testid="mapping-target"
           style={{
             fontSize: theme.fontSize.sm,
             color: theme.color.text.secondary,
-            maxWidth: 140,
+            maxWidth: 200,
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
           }}
         >
-          {transaction.mapping.categoryName}
+          {mapping.categoryName || mapping.planName || mapping.plannedItemId}
         </span>
       )}
 
-      {chipLabel !== null && (
-        <span
-          style={{
-            fontSize: theme.fontSize.xs,
-            color: chipColor,
-            border: `1px solid ${chipColor}`,
-            borderRadius: theme.radius.sm,
-            padding: `2px ${theme.space.sm}px`,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {chipLabel}
-        </span>
-      )}
+      {mappingChip !== null && <Chip label={mappingChip.label} color={mappingChip.color} />}
 
       <span
         style={{ fontWeight: theme.fontWeight.medium, minWidth: 110, textAlign: 'right' }}
@@ -118,27 +154,51 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
         <MoneyView amount={transaction.amount} showTooltip={false} />
       </span>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClick(transaction.id);
-        }}
-        style={{
-          background: 'none',
-          border: `1px solid ${theme.color.border.strong}`,
-          borderRadius: theme.radius.sm,
-          color: theme.color.text.primary,
-          cursor: 'pointer',
-          padding: `${theme.space.xs}px ${theme.space.sm}px`,
-          fontSize: theme.fontSize.sm,
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {transaction.mapping
-          ? intl.formatMessage({ id: 'screen.transactionDetail.mapping', defaultMessage: 'Mapped' })
-          : intl.formatMessage({ id: 'screen.transactionDetail.mapTo', defaultMessage: 'Map' })}
-      </button>
+      {canMap && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onMap(transaction.id);
+          }}
+          style={{
+            background: 'none',
+            border: `1px solid ${theme.color.border.strong}`,
+            borderRadius: theme.radius.sm,
+            color: theme.color.text.primary,
+            cursor: 'pointer',
+            padding: `${theme.space.xs}px ${theme.space.sm}px`,
+            fontSize: theme.fontSize.sm,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {mapping.kind === 'mapped'
+            ? intl.formatMessage({
+                id: 'component.transactionRow.remap',
+                defaultMessage: 'Change',
+              })
+            : intl.formatMessage({ id: 'screen.transactionMap.action', defaultMessage: 'Map' })}
+        </button>
+      )}
     </div>
+  );
+}
+
+function Chip({ label, color }: { label: string; color: string }): React.JSX.Element {
+  const theme = useTheme();
+
+  return (
+    <span
+      style={{
+        fontSize: theme.fontSize.xs,
+        color,
+        border: `1px solid ${color}`,
+        borderRadius: theme.radius.sm,
+        padding: `2px ${theme.space.sm}px`,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {label}
+    </span>
   );
 }

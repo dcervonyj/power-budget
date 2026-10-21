@@ -70,10 +70,9 @@ describe('toTransactions', () => {
     ]);
   });
 
-  it('marks rows unmapped only for an unmappedOnly page', () => {
-    expect(toTransactions(page, noFilters)[0]?.mappingStatus).toBe('unknown');
+  it('leaves the mapping unknown: the list endpoint does not carry it', () => {
     expect(toTransactions(page, { ...noFilters, status: 'unmapped' })[0]?.mappingStatus).toBe(
-      'unmapped',
+      'unknown',
     );
   });
 });
