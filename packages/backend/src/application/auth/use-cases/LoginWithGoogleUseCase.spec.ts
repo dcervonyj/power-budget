@@ -9,6 +9,7 @@ import type {
   RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
 import { LoginWithGoogleUseCase } from './LoginWithGoogleUseCase.js';
+import { InvalidCredentialsError } from '../../../domain/auth/errors.js';
 import type { User, Household } from '../../../domain/auth/entities.js';
 
 const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
@@ -110,5 +111,30 @@ describe('LoginWithGoogleUseCase', () => {
     expect(result.accessToken).toBe('access-token');
     expect(userRepo.create).toHaveBeenCalledOnce();
     expect(householdRepo.create).toHaveBeenCalledOnce();
+  });
+
+  it('rejects the stub identity (empty email) without creating a user', async () => {
+    oauthProvider.exchange.mockResolvedValue({ email: '', subject: '', emailVerified: false });
+
+    await expect(
+      useCase.execute({ code: 'any', redirectUri: 'https://app.example.com/cb', state: 's' }),
+    ).rejects.toThrow(InvalidCredentialsError);
+    expect(userRepo.findByEmail).not.toHaveBeenCalled();
+    expect(userRepo.create).not.toHaveBeenCalled();
+    expect(jwtIssuer.issue).not.toHaveBeenCalled();
+  });
+
+  it('rejects an identity whose email is not verified by Google', async () => {
+    oauthProvider.exchange.mockResolvedValue({
+      email: 'mallory@example.com',
+      subject: 'google-sub-789',
+      emailVerified: false,
+    });
+
+    await expect(
+      useCase.execute({ code: 'any', redirectUri: 'https://app.example.com/cb', state: 's' }),
+    ).rejects.toThrow(InvalidCredentialsError);
+    expect(userRepo.findByEmail).not.toHaveBeenCalled();
+    expect(jwtIssuer.issue).not.toHaveBeenCalled();
   });
 });

@@ -2,11 +2,11 @@
 
 ## Prerequisites
 
-| Tool | Version | Notes |
-|---|---|---|
-| Docker Desktop | ≥ 4.30 | On macOS, [Colima](https://github.com/abiosoft/colima) or [OrbStack](https://orbstack.dev/) work too |
-| Node.js | 22.x | Use `nvm use` or install via [nvm](https://github.com/nvm-sh/nvm) |
-| pnpm | 9.x | Enable via `corepack enable` |
+| Tool           | Version | Notes                                                                                                |
+| -------------- | ------- | ---------------------------------------------------------------------------------------------------- |
+| Docker Desktop | ≥ 4.30  | On macOS, [Colima](https://github.com/abiosoft/colima) or [OrbStack](https://orbstack.dev/) work too |
+| Node.js        | 22.x    | Use `nvm use` or install via [nvm](https://github.com/nvm-sh/nvm)                                    |
+| pnpm           | 9.x     | Enable via `corepack enable`                                                                         |
 
 ## First-time setup
 
@@ -19,33 +19,37 @@ pnpm dev:db:up
 
 ## Common commands
 
-| Command | Description |
-|---|---|
-| `pnpm dev:db:up` | Start Postgres + Redis + Mailpit (detached, waits for healthy) |
-| `pnpm dev:db:down` | Stop all local infrastructure containers |
-| `pnpm dev:db:reset` | **Destructive** — remove volumes and start fresh |
-| `pnpm dev:db:logs` | Tail logs from all infrastructure containers |
+| Command             | Description                                                    |
+| ------------------- | -------------------------------------------------------------- |
+| `pnpm dev:db:up`    | Start Postgres + Redis + Mailpit (detached, waits for healthy) |
+| `pnpm dev:db:down`  | Stop all local infrastructure containers                       |
+| `pnpm dev:db:reset` | **Destructive** — remove volumes and start fresh               |
+| `pnpm dev:db:logs`  | Tail logs from all infrastructure containers                   |
 
 ## Environment variables
 
 Copy `.env.example` to `.env`. Never commit `.env`.
 
-| Variable | Default | Description |
-|---|---|---|
-| `POSTGRES_PORT` | `5432` | Host port for Postgres; change to avoid conflicts |
-| `REDIS_PORT` | `6379` | Host port for Redis |
-| `MAILPIT_SMTP_PORT` | `1025` | Host port for Mailpit SMTP |
-| `MAILPIT_UI_PORT` | `8025` | Host port for Mailpit web UI |
-| `POSTGRES_USER` | `power_budget` | Postgres superuser (dev-only) |
-| `POSTGRES_PASSWORD` | `power_budget` | Postgres password (dev-only) |
-| `POSTGRES_DB` | `power_budget` | Default database name |
-| `DATABASE_URL` | `postgres://power_budget:power_budget@localhost:5432/power_budget` | Full connection string for the backend |
-| `REDIS_URL` | `redis://localhost:6379` | Full Redis connection string |
-| `SMTP_HOST` | `localhost` | SMTP server host (points to Mailpit) |
-| `SMTP_PORT` | `1025` | SMTP port |
-| `SMTP_USER` | _(empty)_ | SMTP username (not required for Mailpit) |
-| `SMTP_PASSWORD` | _(empty)_ | SMTP password (not required for Mailpit) |
-| `SMTP_FROM` | `Power Budget <noreply@power-budget.local>` | Default sender address |
+| Variable                | Default                                                            | Description                                                                                                                                               |
+| ----------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POSTGRES_PORT`         | `5432`                                                             | Host port for Postgres; change to avoid conflicts                                                                                                         |
+| `REDIS_PORT`            | `6379`                                                             | Host port for Redis                                                                                                                                       |
+| `MAILPIT_SMTP_PORT`     | `1025`                                                             | Host port for Mailpit SMTP                                                                                                                                |
+| `MAILPIT_UI_PORT`       | `8025`                                                             | Host port for Mailpit web UI                                                                                                                              |
+| `POSTGRES_USER`         | `power_budget`                                                     | Postgres superuser (dev-only)                                                                                                                             |
+| `POSTGRES_PASSWORD`     | `power_budget`                                                     | Postgres password (dev-only)                                                                                                                              |
+| `POSTGRES_DB`           | `power_budget`                                                     | Default database name                                                                                                                                     |
+| `DATABASE_URL`          | `postgres://power_budget:power_budget@localhost:5432/power_budget` | Full connection string for the backend                                                                                                                    |
+| `REDIS_URL`             | `redis://localhost:6379`                                           | Full Redis connection string                                                                                                                              |
+| `SMTP_HOST`             | `localhost`                                                        | SMTP server host (points to Mailpit)                                                                                                                      |
+| `SMTP_PORT`             | `1025`                                                             | SMTP port                                                                                                                                                 |
+| `SMTP_USER`             | _(empty)_                                                          | SMTP username (not required for Mailpit)                                                                                                                  |
+| `SMTP_PASSWORD`         | _(empty)_                                                          | SMTP password (not required for Mailpit)                                                                                                                  |
+| `SMTP_FROM`             | `Power Budget <noreply@power-budget.local>`                        | Default sender address                                                                                                                                    |
+| `JWT_SECRET`            | _(none, required)_                                                 | HS256 signing secret, at least 32 bytes (`openssl rand -base64 48`). The API refuses to boot without it (only `NODE_ENV=test` has a built-in test secret) |
+| `CORS_ORIGINS`          | `http://localhost:5173`                                            | Comma-separated exact origins; `*.domain` allows direct HTTPS subdomains; a bare `*` is rejected at boot; unset means no cross-origin access              |
+| `SWAGGER_ENABLED`       | `true` (local)                                                     | Serves Swagger UI at `/docs` only when `true`; leave unset on deployments                                                                                 |
+| `RESEND_WEBHOOK_SECRET` | _(empty)_                                                          | Resend webhook signing secret (`whsec_...`). Unset means `POST /notifications/bounce` rejects every request                                               |
 
 ## Troubleshooting
 

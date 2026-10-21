@@ -115,13 +115,21 @@ export class BankController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Consent not found' })
   async completeBankConsent(
-    @Param('id') _id: string,
+    @Param('id') id: string,
     @Query('code') code: string,
     @Query('state') state: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
+    if (!user.householdId) {
+      throw new ForbiddenException('No household');
+    }
+
     try {
+      // Scoped to (connection id, caller, caller's household) — audit C4.
       return await this.completeConsent.execute({
-        externalConsentRef: state,
+        connectionId: id as BankConnectionId,
+        userId: user.userId,
+        householdId: user.householdId,
         callbackPayload: { code, state },
       });
     } catch (err) {

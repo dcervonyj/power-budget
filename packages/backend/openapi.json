@@ -114,47 +114,6 @@
         "tags": ["auth"]
       }
     },
-    "/auth/oauth/google/start": {
-      "get": {
-        "operationId": "AuthController_googleStart",
-        "parameters": [],
-        "responses": {
-          "302": {
-            "description": "Redirect to Google OAuth"
-          }
-        },
-        "summary": "Start Google OAuth flow (redirects to Google)",
-        "tags": ["auth"]
-      }
-    },
-    "/auth/oauth/google/callback": {
-      "get": {
-        "operationId": "AuthController_googleCallback",
-        "parameters": [
-          {
-            "name": "state",
-            "required": true,
-            "in": "query",
-            "description": "OAuth state parameter",
-            "schema": {}
-          },
-          {
-            "name": "code",
-            "required": true,
-            "in": "query",
-            "description": "Authorization code from Google",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Tokens issued"
-          }
-        },
-        "summary": "Google OAuth callback",
-        "tags": ["auth"]
-      }
-    },
     "/auth/totp/enable": {
       "post": {
         "operationId": "AuthController_totpEnable",
@@ -451,7 +410,10 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "No household"
+            "description": "No household or caller is not the owner"
+          },
+          "404": {
+            "description": "Household not found"
           }
         },
         "security": [
@@ -1104,7 +1066,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Webhook accepted"
+          },
+          "401": {
+            "description": "Missing or invalid webhook signature"
           }
         },
         "summary": "Handle email bounce webhook from Resend",
@@ -1150,7 +1115,7 @@
             "description": "No household"
           },
           "404": {
-            "description": "Plan not found"
+            "description": "Household or plan not found"
           }
         },
         "security": [

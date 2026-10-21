@@ -1,23 +1,5 @@
-import {
-  Controller,
-  Post,
-  Get,
-  Body,
-  Query,
-  HttpCode,
-  HttpStatus,
-  Redirect,
-  UseGuards,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBearerAuth,
-  ApiBody,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
 import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
@@ -35,12 +17,15 @@ import { RegisterUserUseCase } from '../../application/auth/use-cases/RegisterUs
 import { LoginWithPasswordUseCase } from '../../application/auth/use-cases/LoginWithPasswordUseCase.js';
 import { RequestMagicLinkUseCase } from '../../application/auth/use-cases/RequestMagicLinkUseCase.js';
 import { ConsumeMagicLinkUseCase } from '../../application/auth/use-cases/ConsumeMagicLinkUseCase.js';
-import { LoginWithGoogleUseCase } from '../../application/auth/use-cases/LoginWithGoogleUseCase.js';
 import { EnableTotpUseCase } from '../../application/auth/use-cases/EnableTotpUseCase.js';
 import { VerifyTotpUseCase } from '../../application/auth/use-cases/VerifyTotpUseCase.js';
 import { RefreshTokenUseCase } from '../../application/auth/use-cases/RefreshTokenUseCase.js';
 import { LogoutUseCase } from '../../application/auth/use-cases/LogoutUseCase.js';
 
+// Google OAuth routes were removed (CLN-001 / audit C2): no real Google client
+// exists and the stub provider let anyone mint tokens for a shared user.
+// Re-add them only together with a real OAuthProvider, state validation and
+// an emailVerified check.
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -49,12 +34,10 @@ export class AuthController {
     private readonly loginWithPassword: LoginWithPasswordUseCase,
     private readonly requestMagicLink: RequestMagicLinkUseCase,
     private readonly consumeMagicLink: ConsumeMagicLinkUseCase,
-    private readonly loginWithGoogle: LoginWithGoogleUseCase,
     private readonly enableTotp: EnableTotpUseCase,
     private readonly verifyTotp: VerifyTotpUseCase,
     private readonly refreshToken: RefreshTokenUseCase,
     private readonly logout: LogoutUseCase,
-    private readonly config: ConfigService,
   ) {}
 
   @Post('register')
@@ -111,35 +94,6 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Token invalid or expired' })
   async consumeMagicLinkEndpoint(@Body() dto: ConsumeMagicLinkDto) {
     const result = await this.consumeMagicLink.execute({ token: dto.token });
-
-    return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      userId: result.userId,
-    };
-  }
-
-  @Get('oauth/google/start')
-  @Redirect()
-  @ApiOperation({ summary: 'Start Google OAuth flow (redirects to Google)' })
-  @ApiResponse({ status: 302, description: 'Redirect to Google OAuth' })
-  googleStart() {
-    // Stub: OAuthProvider.buildAuthorizeUrl not yet wired to real Google OAuth
-    const callbackUri = `${this.config.get<string>('APP_BASE_URL') ?? 'http://localhost:3000'}/auth/oauth/google/callback`;
-
-    return {
-      url: `https://accounts.google.com/o/oauth2/v2/auth?redirect_uri=${encodeURIComponent(callbackUri)}&response_type=code`,
-    };
-  }
-
-  @Get('oauth/google/callback')
-  @ApiOperation({ summary: 'Google OAuth callback' })
-  @ApiQuery({ name: 'code', description: 'Authorization code from Google' })
-  @ApiQuery({ name: 'state', description: 'OAuth state parameter' })
-  @ApiResponse({ status: 200, description: 'Tokens issued' })
-  async googleCallback(@Query('code') code: string, @Query('state') state: string) {
-    const redirectUri = `${this.config.get<string>('APP_BASE_URL') ?? 'http://localhost:3000'}/auth/oauth/google/callback`;
-    const result = await this.loginWithGoogle.execute({ code, redirectUri, state });
 
     return {
       accessToken: result.accessToken,

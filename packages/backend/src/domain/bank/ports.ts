@@ -44,7 +44,6 @@ export interface BankConnector {
 export interface BankConnectionRepository {
   create(conn: NewBankConnection): Promise<BankConnection>;
   findById(id: BankConnectionId, scope: HouseholdScope): Promise<BankConnection | null>;
-  findByExternalConsentRef(ref: string): Promise<BankConnection | null>;
   findActiveByUserAndBank(
     userId: UserId,
     bankId: BankId,

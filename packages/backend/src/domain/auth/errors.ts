@@ -82,3 +82,10 @@ export class HouseholdNotFoundError extends Error {
     this.name = 'HouseholdNotFoundError';
   }
 }
+
+export class HouseholdOwnerRequiredError extends Error {
+  constructor() {
+    super('HOUSEHOLD_OWNER_REQUIRED');
+    this.name = 'HouseholdOwnerRequiredError';
+  }
+}

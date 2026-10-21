@@ -88,40 +88,6 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/auth/oauth/google/start': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Start Google OAuth flow (redirects to Google) */
-    get: operations['AuthController_googleStart'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/auth/oauth/google/callback': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Google OAuth callback */
-    get: operations['AuthController_googleCallback'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
   '/auth/totp/enable': {
     parameters: {
       query?: never;
@@ -893,47 +859,6 @@ export interface operations {
       };
     };
   };
-  AuthController_googleStart: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Redirect to Google OAuth */
-      302: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  AuthController_googleCallback: {
-    parameters: {
-      query: {
-        /** @description OAuth state parameter */
-        state: unknown;
-        /** @description Authorization code from Google */
-        code: unknown;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Tokens issued */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
   AuthController_totpEnable: {
     parameters: {
       query?: never;
@@ -1244,8 +1169,15 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description No household */
+      /** @description No household or caller is not the owner */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Household not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -1928,7 +1860,15 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
+      /** @description Webhook accepted */
       200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Missing or invalid webhook signature */
+      401: {
         headers: {
           [name: string]: unknown;
         };
@@ -1973,7 +1913,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Plan not found */
+      /** @description Household or plan not found */
       404: {
         headers: {
           [name: string]: unknown;

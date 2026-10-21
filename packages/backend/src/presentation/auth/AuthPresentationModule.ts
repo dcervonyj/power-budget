@@ -26,7 +26,6 @@ import { RegisterUserUseCase } from '../../application/auth/use-cases/RegisterUs
 import { LoginWithPasswordUseCase } from '../../application/auth/use-cases/LoginWithPasswordUseCase.js';
 import { RequestMagicLinkUseCase } from '../../application/auth/use-cases/RequestMagicLinkUseCase.js';
 import { ConsumeMagicLinkUseCase } from '../../application/auth/use-cases/ConsumeMagicLinkUseCase.js';
-import { LoginWithGoogleUseCase } from '../../application/auth/use-cases/LoginWithGoogleUseCase.js';
 import { EnableTotpUseCase } from '../../application/auth/use-cases/EnableTotpUseCase.js';
 import { VerifyTotpUseCase } from '../../application/auth/use-cases/VerifyTotpUseCase.js';
 import { RefreshTokenUseCase } from '../../application/auth/use-cases/RefreshTokenUseCase.js';
@@ -38,16 +37,6 @@ import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/Invit
 import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInviteUseCase.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
-import type { OAuthProvider } from '../../domain/auth/ports.js';
-
-const STUB_OAUTH_PROVIDER: OAuthProvider = {
-  buildAuthorizeUrl: () => '',
-  exchange: async () => ({
-    email: '',
-    subject: '',
-    emailVerified: false,
-  }),
-};
 
 @Module({
   imports: [AuthModule, ConfigModule],
@@ -153,28 +142,6 @@ const STUB_OAUTH_PROVIDER: OAuthProvider = {
           userRepo,
           householdRepo,
           magicLinkTokenRepo,
-          jwtIssuer,
-          refreshTokenStore,
-        ),
-    },
-    {
-      provide: LoginWithGoogleUseCase,
-      inject: [
-        DrizzleUserRepository,
-        DrizzleHouseholdRepository,
-        JwtAccessTokenIssuerAdapter,
-        RedisRefreshTokenStore,
-      ],
-      useFactory: (
-        userRepo: DrizzleUserRepository,
-        householdRepo: DrizzleHouseholdRepository,
-        jwtIssuer: JwtAccessTokenIssuerAdapter,
-        refreshTokenStore: RedisRefreshTokenStore,
-      ) =>
-        new LoginWithGoogleUseCase(
-          userRepo,
-          householdRepo,
-          STUB_OAUTH_PROVIDER,
           jwtIssuer,
           refreshTokenStore,
         ),
