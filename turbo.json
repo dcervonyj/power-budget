@@ -17,6 +17,10 @@
       "outputs": ["coverage/**"],
       "cache": false
     },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
     "dev": {
       "cache": false,
       "persistent": true
