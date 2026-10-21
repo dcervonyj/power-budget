@@ -1,8 +1,20 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+// mjml 5 renders asynchronously: the result is a Promise (v4 returned it directly).
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const mjml2html = require('mjml') as (input: string, opts?: { validationLevel?: string }) => { html: string; errors: Array<{ formattedMessage: string }> };
+const mjml2html = require('mjml') as (
+  input: string,
+  opts?: { validationLevel?: string },
+) => Promise<{ html: string; errors: Array<{ formattedMessage: string }> }>;
 import type { TemplateRenderer } from '../../domain/notifications/ports.js';
+
+const HTML_ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
+};
 
 export class MjmlTemplateRenderer implements TemplateRenderer {
   private readonly templateDir: string;
@@ -28,7 +40,7 @@ export class MjmlTemplateRenderer implements TemplateRenderer {
     }
 
     const interpolated = this.interpolate(mjmlTemplate, variables);
-    const { html, errors } = mjml2html(interpolated, { validationLevel: 'soft' });
+    const { html, errors } = await mjml2html(interpolated, { validationLevel: 'soft' });
 
     if (errors.length > 0) {
       const msgs = errors.map((e) => e.formattedMessage).join('; ');
@@ -38,7 +50,16 @@ export class MjmlTemplateRenderer implements TemplateRenderer {
     return html;
   }
 
+  /** Values are HTML-escaped: names and plan names are user input. */
   private interpolate(template: string, variables: Record<string, string>): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => variables[key] ?? `{{${key}}}`);
+    return template.replace(/\{\{(\w+)\}\}/g, (placeholder: string, key: string) => {
+      const value = variables[key];
+
+      return value === undefined ? placeholder : this.escapeHtml(value);
+    });
+  }
+
+  private escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (char: string) => HTML_ESCAPES[char] ?? char);
   }
 }
