@@ -126,11 +126,17 @@ test.describe('web <-> backend contract', () => {
       totalExpenseActual: 0,
       unplannedTotal: 0,
     });
-    // Every line maps to finite numbers. (The new item is not among the lines yet:
-    // see the v_plan_actuals fixme in plans.spec.ts.)
-    for (const line of view.items) {
-      expect(Number.isFinite(line.planned) && Number.isFinite(line.actual)).toBe(true);
-    }
+    // Minor units become numbers in the view (exact below 2^53, see the mapper).
+    expect(view.items).toEqual([
+      {
+        id: item.id,
+        category: category.name,
+        direction: 'expense',
+        planned: Number(9007199254740993n),
+        actual: 0,
+        currency: 'PLN',
+      },
+    ]);
   });
 
   test('transaction list responses match the spec and map', async ({ request }) => {

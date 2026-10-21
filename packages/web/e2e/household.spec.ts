@@ -34,7 +34,7 @@ test.describe('household journey (2-user fixture)', () => {
 
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByText('Shared groceries')).toBeVisible();
-    // The item line itself: see the v_plan_actuals fixme in plans.spec.ts.
+    await expect(page.getByText(category.name, { exact: true })).toBeVisible();
   });
 
   test('a user outside the household does not see its plans', async ({ request }) => {
