@@ -2,18 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
-import { apiClient, bulkTransactionActions } from '../../AppProviders.js';
-import {
-  PlanMapper,
-  type PlanDto,
-  type PlannedItemDto,
-  type PlannedItemSummary,
-  type PlanSummary,
-} from '../../infrastructure/api/PlanMapper.js';
+import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
+import { apiClient, bulkTransactionActions, plansApi } from '../../AppProviders.js';
 import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
-
-type Plan = PlanSummary;
-type PlannedItem = PlannedItemSummary;
 
 export interface MappingModalProps {
   readonly isOpen: boolean;
@@ -31,11 +22,12 @@ export function MappingModal({
   const theme = useTheme();
   const intl = useIntl();
 
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [plans, setPlans] = useState<PlanDto[]>([]);
   const [plansLoading, setPlansLoading] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
 
-  const [items, setItems] = useState<PlannedItem[]>([]);
+  const [items, setItems] = useState<PlannedItemDto[]>([]);
+  const [categoryNames, setCategoryNames] = useState<ReadonlyMap<string, string>>(new Map());
   const [itemsLoading, setItemsLoading] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
@@ -53,8 +45,7 @@ export function MappingModal({
     setPlansLoading(true);
     void (async () => {
       try {
-        const res = await apiClient.get<PlanDto[]>('/plans?status=active');
-        const fetched = res.data.map(PlanMapper.toPlan);
+        const fetched = await plansApi.list('active');
         setPlans(fetched);
         setSelectedPlanId(fetched[0]?.id ?? null);
       } finally {
@@ -73,12 +64,12 @@ export function MappingModal({
     setSelectedItemId(null);
     void (async () => {
       try {
-        const [res, categoryNames] = await Promise.all([
-          apiClient.get<PlannedItemDto[]>(`/plans/${selectedPlanId}/items`),
+        const [fetched, names] = await Promise.all([
+          plansApi.listItems(selectedPlanId),
           fetchCategoryNames(apiClient),
         ]);
-        const fetched = res.data.map((dto) => PlanMapper.toItem(dto, categoryNames));
         setItems(fetched);
+        setCategoryNames(names);
         setSelectedItemId(fetched[0]?.id ?? null);
       } finally {
         setItemsLoading(false);
@@ -243,7 +234,7 @@ export function MappingModal({
                     disabled={submitting}
                   />
                   <span style={{ flex: 1, color: theme.color.text.primary }}>
-                    {item.categoryName ?? item.categoryId}
+                    {categoryNames.get(item.categoryId) ?? item.categoryId}
                   </span>
                   {index === 0 && (
                     <span

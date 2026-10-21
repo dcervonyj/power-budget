@@ -1,20 +1,10 @@
 import { parseMinorUnits } from '@power-budget/core';
-import type { components } from '@power-budget/shared-app/contract';
+import type { TransactionDetailDto, TransactionDto } from '@power-budget/shared-app/contract';
 import type {
   MappingStatus,
   Transaction,
   TransactionMapping,
 } from '../../domain/transactions/Transaction.js';
-
-export type TransactionDto = components['schemas']['TransactionDto'];
-export type TransactionPageDto = components['schemas']['TransactionPageDto'];
-
-/** `GET /transactions/:id`; mapping and transfer are typed loosely in the OpenAPI spec. */
-export interface TransactionDetailDto {
-  transaction: TransactionDto;
-  mapping: { plannedItemId: string } | null;
-  transfer: { id: string } | null;
-}
 
 export const TransactionMapper = {
   /**

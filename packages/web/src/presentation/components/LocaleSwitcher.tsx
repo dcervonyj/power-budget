@@ -2,6 +2,7 @@ import React, { useContext } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { LocaleContext, apiClient } from '../../AppProviders.js';
 import type { SupportedLocale } from '../../AppProviders.js';
+import type { UpdateLocaleDto } from '@power-budget/shared-app/contract';
 
 const LOCALE_NAMES: Record<SupportedLocale, string> = {
   en: 'English',
@@ -19,9 +20,9 @@ export function LocaleSwitcher(): React.JSX.Element {
     const newLocale = event.target.value as SupportedLocale;
     setLocale(newLocale);
     localStorage.setItem('pb_locale', newLocale);
-    void apiClient
-      .request<unknown>({ url: '/users/me/locale', method: 'PATCH', body: { locale: newLocale } })
-      .catch(() => undefined);
+    const body: UpdateLocaleDto = { locale: newLocale };
+    // The locale is applied and stored locally first; the server copy is best effort.
+    void apiClient.patch('/users/me/locale', body).catch(() => undefined);
   }
 
   return (

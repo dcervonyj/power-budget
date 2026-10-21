@@ -5,18 +5,10 @@ import { useTheme } from '../../components/ThemeContext.js';
 import { Button } from '../../components/Button.js';
 import { ClonePlanModal } from '../../components/ClonePlanModal.js';
 import { isSupportedCurrency, toLocalIsoDate } from '@power-budget/core';
-import { apiClient } from '../../../AppProviders.js';
+import { isPlanArchived } from '@power-budget/shared-app';
+import type { CreatePlanDto, PlanDto, PlanPeriodKindDto } from '@power-budget/shared-app/contract';
+import { plansApi } from '../../../AppProviders.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
-import {
-  PlanMapper,
-  type CreatePlanDto,
-  type PlanDto,
-  type PlanSummary,
-} from '../../../infrastructure/api/PlanMapper.js';
-
-type PlanPeriod = PlanSummary['period'];
-type PlanStatus = PlanSummary['status'];
-type Plan = PlanSummary;
 
 const DEFAULT_PLAN_CURRENCY = 'EUR';
 
@@ -32,7 +24,7 @@ export function PlansListScreen(): React.JSX.Element {
   const intl = useIntl();
   const navigate = useNavigate();
 
-  const [plans, setPlans] = useState<Plan[]>([]);
+  const [plans, setPlans] = useState<PlanDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -42,8 +34,7 @@ export function PlansListScreen(): React.JSX.Element {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get<PlanDto[]>('/plans?status=all');
-      setPlans(res.data.map(PlanMapper.toPlan));
+      setPlans(await plansApi.list('all'));
     } catch {
       setError(
         intl.formatMessage({
@@ -75,8 +66,8 @@ export function PlansListScreen(): React.JSX.Element {
           ? settingsStore.baseCurrency
           : DEFAULT_PLAN_CURRENCY,
       };
-      const res = await apiClient.post<PlanDto>('/plans', body);
-      void navigate(`/plans/${res.data.id}`);
+      const created = await plansApi.create(body);
+      void navigate(`/plans/${created.id}`);
     } catch {
       setError(
         intl.formatMessage({
@@ -94,7 +85,7 @@ export function PlansListScreen(): React.JSX.Element {
     setPlans((prev) => prev.filter((p) => p.id !== id));
     try {
       // Plans are archived, not deleted (CLN-011).
-      await apiClient.post(`/plans/${id}/archive`, {});
+      await plansApi.archive(id);
     } catch {
       setPlans(prevPlans);
       setError(
@@ -106,7 +97,7 @@ export function PlansListScreen(): React.JSX.Element {
     }
   };
 
-  const periodLabel = (period: PlanPeriod): string => {
+  const periodLabel = (period: PlanPeriodKindDto): string => {
     switch (period) {
       case 'weekly':
         return intl.formatMessage({
@@ -126,20 +117,16 @@ export function PlansListScreen(): React.JSX.Element {
     }
   };
 
-  const statusLabel = (status: PlanStatus): string => {
-    switch (status) {
-      case 'active':
-        return intl.formatMessage({
+  const statusLabel = (plan: PlanDto): string =>
+    isPlanArchived(plan)
+      ? intl.formatMessage({
+          id: 'screen.plansList.planStatus.archived',
+          defaultMessage: 'Archived',
+        })
+      : intl.formatMessage({
           id: 'screen.plansList.planStatus.active',
           defaultMessage: 'Active',
         });
-      case 'archived':
-        return intl.formatMessage({
-          id: 'screen.plansList.planStatus.archived',
-          defaultMessage: 'Archived',
-        });
-    }
-  };
 
   return (
     <div
@@ -223,8 +210,8 @@ export function PlansListScreen(): React.JSX.Element {
                     gap: theme.space.xs,
                   }}
                 >
-                  <span>{periodLabel(plan.period)}</span>
-                  <span>{statusLabel(plan.status)}</span>
+                  <span>{periodLabel(plan.periodKind)}</span>
+                  <span>{statusLabel(plan)}</span>
                 </span>
               </div>
               <div

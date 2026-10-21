@@ -1,9 +1,7 @@
 import type { Transaction } from '../../domain/transactions/Transaction.js';
 import type { TransactionFilters } from '../../presentation/components/TransactionFilterBar.js';
-import {
-  TransactionMapper,
-  type TransactionPageDto,
-} from '../../infrastructure/api/TransactionMapper.js';
+import type { TransactionPageDto } from '@power-budget/shared-app/contract';
+import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 
 const LIMIT = 50;
 
