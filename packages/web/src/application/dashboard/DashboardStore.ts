@@ -1,4 +1,6 @@
 import { makeAutoObservable, runInAction } from 'mobx';
+import { readApiError } from '@power-budget/shared-app';
+import { FX_RATE_UNAVAILABLE } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 import { settingsStore } from '../settings/SettingsStore.js';
 import type { PlanActualsView } from '../../domain/dashboard/PlanActualsView.js';
@@ -48,6 +50,8 @@ export class DashboardStore {
   actuals: PlanActualsView | null = null;
   loading = false;
   error: string | null = null;
+  /** The last dashboard load got 503 fx_rate_unavailable (CLN-012). */
+  fxUnavailable = false;
   displayCurrency: string = '';
 
   constructor() {
@@ -74,6 +78,7 @@ export class DashboardStore {
   async fetchActuals(planId: string): Promise<void> {
     this.loading = true;
     this.error = null;
+    this.fxUnavailable = false;
     try {
       const [res, categoryNames] = await Promise.all([
         apiClient.get<PlanDashboardResponseDto>(`/plans/${planId}/dashboard`),
@@ -86,8 +91,10 @@ export class DashboardStore {
         this.displayCurrency = actuals.currency;
         this.loading = false;
       });
-    } catch {
+    } catch (err) {
+      const fxUnavailable = readApiError(err).code === FX_RATE_UNAVAILABLE;
       runInAction(() => {
+        this.fxUnavailable = fxUnavailable;
         this.error = 'Failed to load dashboard';
         this.loading = false;
       });

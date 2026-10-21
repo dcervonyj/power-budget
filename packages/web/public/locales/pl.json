@@ -114,5 +114,6 @@
   "component.shared.empty.addAccount": "Add account",
   "component.shared.empty.createPlan": "Create plan",
   "component.bank.syncFailed": "Bank sync failed for {name}",
-  "component.bank.syncFailed.reconnect": "Reconnect"
+  "component.bank.syncFailed.reconnect": "Reconnect",
+  "common.fxRateUnavailable": "Kursy walut są teraz niedostępne. Spróbuj ponownie później."
 }

@@ -84,6 +84,19 @@ describe('HouseholdCategoryStore', () => {
     expect(store.loading).toBe(false);
   });
 
+  it('reports fx_unavailable on a 503 fx_rate_unavailable', async () => {
+    mockGet.mockRejectedValueOnce(
+      Object.assign(new Error('HTTP 503'), {
+        response: { status: 503, data: { statusCode: 503, code: 'fx_rate_unavailable' } },
+      }),
+    );
+
+    await store.fetchCategory('hh-1', 'plan-1', 'cat-1');
+
+    expect(store.error).toBe('fx_unavailable');
+    expect(store.category).toBeNull();
+  });
+
   it('is loading while the request is in flight', async () => {
     const resolvers: Array<(value: ReturnType<typeof dashboard>) => void> = [];
     mockGet.mockReturnValueOnce(

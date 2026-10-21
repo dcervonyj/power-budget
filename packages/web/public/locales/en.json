@@ -294,5 +294,6 @@
   "screen.categories.system": "Built-in",
   "settings.profile.timezone": "Time zone",
   "settings.profile.timezonePlaceholder": "e.g. Europe/Warsaw",
-  "settings.saveError": "Could not save. Please try again."
+  "settings.saveError": "Could not save. Please try again.",
+  "common.fxRateUnavailable": "Exchange rates are not available right now. Please try again later."
 }

@@ -65,10 +65,17 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
       {dashboardStore.error !== null && (
         <ErrorBanner
           message={
-            <FormattedMessage
-              id="screen.dashboard.error"
-              defaultMessage="Failed to load dashboard"
-            />
+            dashboardStore.fxUnavailable ? (
+              <FormattedMessage
+                id="common.fxRateUnavailable"
+                defaultMessage="Exchange rates are not available right now. Please try again later."
+              />
+            ) : (
+              <FormattedMessage
+                id="screen.dashboard.error"
+                defaultMessage="Failed to load dashboard"
+              />
+            )
           }
           onRetry={() => {
             if (dashboardStore.selectedPlanId) {
