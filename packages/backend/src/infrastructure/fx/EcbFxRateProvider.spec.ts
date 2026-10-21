@@ -1,122 +1,96 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { IsoDate, IsoDateTime } from '@power-budget/core';
 import { EcbFxRateProvider } from './EcbFxRateProvider.js';
+import type { FxHttpFetch } from './fx-http.js';
 
-const ECB_XML = readFileSync(
-  join(__dirname, '__fixtures__/ecb-daily.xml'),
-  'utf-8',
-);
+const HIST_XML = readFileSync(join(__dirname, '__fixtures__/ecb-hist-90d.xml'), 'utf-8');
+const NOW = new Date('2026-10-21T15:00:00.000Z');
+const FETCHED_AT = IsoDateTime.of('2026-10-21T15:00:00.000Z');
 
-function makeFetchMock(body: string, ok = true) {
-  return vi.fn().mockResolvedValue({
-    ok,
-    status: ok ? 200 : 500,
-    text: () => Promise.resolve(body),
-  });
+function fetchReturning(body: string, status = 200): ReturnType<typeof vi.fn<FxHttpFetch>> {
+  return vi
+    .fn<FxHttpFetch>()
+    .mockImplementation(() => Promise.resolve(new Response(body, { status })));
 }
 
-const FETCH_DATE = new Date('2026-01-15T10:00:00.000Z');
+function clock(): Date {
+  return NOW;
+}
 
 describe('EcbFxRateProvider', () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
+  it('returns the EUR rates of the requested date as decimal strings', async () => {
+    const provider = new EcbFxRateProvider(fetchReturning(HIST_XML), clock);
+
+    const rates = await provider.fetchForDate(IsoDate.of('2026-10-19'));
+
+    expect(rates).toEqual(
+      ['USD', 'CZK', 'DKK', 'GBP', 'PLN', 'SEK', 'CHF', 'NOK'].map((quote) =>
+        expect.objectContaining({ baseCurrency: 'EUR', quoteCurrency: quote }),
+      ),
+    );
+    expect(rates.find((r) => r.quoteCurrency === 'PLN')).toEqual({
+      baseCurrency: 'EUR',
+      quoteCurrency: 'PLN',
+      rate: '4.3713',
+      rateDate: '2026-10-19',
+      source: 'ecb',
+      fetchedAt: FETCHED_AT,
+    });
+    expect(rates.find((r) => r.quoteCurrency === 'GBP')?.rate).toBe('0.84205');
   });
 
-  it('parses EUR/USD pair with correct rateMinorUnits', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
+  it('keeps the exact published digits (no float round trip)', async () => {
+    const provider = new EcbFxRateProvider(fetchReturning(HIST_XML), clock);
 
-    const rates = await provider.fetchForDate(FETCH_DATE);
-    const eurUsd = rates.find((r) => r.base === 'EUR' && r.quote === 'USD');
+    const rates = await provider.fetchForDate(IsoDate.of('2026-10-16'));
 
-    expect(eurUsd).toBeDefined();
-    // 1.0842 × 1_000_000 = 1_084_200
-    expect(eurUsd!.rateMinorUnits).toBe(1_084_200n);
+    expect(rates.find((r) => r.quoteCurrency === 'PLN')?.rate).toBe('4.37');
+    expect(rates.find((r) => r.quoteCurrency === 'NOK')?.rate).toBe('10.624');
   });
 
-  it('parses EUR/PLN pair', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
+  it('skips currencies the app does not support (JPY)', async () => {
+    const provider = new EcbFxRateProvider(fetchReturning(HIST_XML), clock);
 
-    const rates = await provider.fetchForDate(FETCH_DATE);
-    const eurPln = rates.find((r) => r.base === 'EUR' && r.quote === 'PLN');
+    const rates = await provider.fetchForDate(IsoDate.of('2026-10-20'));
 
-    expect(eurPln).toBeDefined();
-    // 4.2734 × 1_000_000 = 4_273_400
-    expect(eurPln!.rateMinorUnits).toBe(4_273_400n);
+    expect(rates.some((r) => String(r.quoteCurrency) === 'JPY')).toBe(false);
+    expect(rates).toHaveLength(8);
   });
 
-  it('parses EUR/GBP pair', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
+  it('returns nothing for a day without a publication (weekend)', async () => {
+    const provider = new EcbFxRateProvider(fetchReturning(HIST_XML), clock);
 
-    const rates = await provider.fetchForDate(FETCH_DATE);
-    const eurGbp = rates.find((r) => r.base === 'EUR' && r.quote === 'GBP');
-
-    expect(eurGbp).toBeDefined();
-    expect(eurGbp!.rateMinorUnits).toBe(838_200n);
+    expect(await provider.fetchForDate(IsoDate.of('2026-10-18'))).toEqual([]);
   });
 
-  it('parses EUR/UAH pair', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
+  it('reads the 90-day history for recent dates and the full history for older ones', async () => {
+    const httpFetch = fetchReturning(HIST_XML);
+    const provider = new EcbFxRateProvider(httpFetch, clock);
 
-    const rates = await provider.fetchForDate(FETCH_DATE);
-    const eurUah = rates.find((r) => r.base === 'EUR' && r.quote === 'UAH');
+    await provider.fetchForDate(IsoDate.of('2026-10-20'));
+    await provider.fetchForDate(IsoDate.of('2026-05-04'));
 
-    expect(eurUah).toBeDefined();
-    expect(eurUah!.rateMinorUnits).toBe(44_871_200n);
+    expect(httpFetch.mock.calls.map(([url]) => url)).toEqual([
+      'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist-90d.xml',
+      'https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.xml',
+    ]);
   });
 
-  it('sets source to ECB on all rates', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
+  it('throws on a non-OK response', async () => {
+    const provider = new EcbFxRateProvider(fetchReturning('', 503), clock);
 
-    const rates = await provider.fetchForDate(FETCH_DATE);
-
-    expect(rates.every((r) => r.source === 'ECB')).toBe(true);
+    await expect(provider.fetchForDate(IsoDate.of('2026-10-20'))).rejects.toThrow(
+      'ECB fetch failed with status 503',
+    );
   });
 
-  it('sets rateOnDate from XML time attribute', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
+  it('rejects a zero rate instead of storing it', () => {
+    const xml = '<Cube time="2026-10-20"><Cube currency="PLN" rate="0"/></Cube>';
 
-    const rates = await provider.fetchForDate(FETCH_DATE);
-
-    expect(rates.every((r) => r.rateOnDate === '2026-01-15')).toBe(true);
-  });
-
-  it('derives inverse pairs (USD/EUR)', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
-
-    const rates = await provider.fetchForDate(FETCH_DATE);
-    const usdEur = rates.find((r) => r.base === 'USD' && r.quote === 'EUR');
-
-    expect(usdEur).toBeDefined();
-    // 1/1.0842 × 1_000_000 ≈ 922_335
-    const expected = BigInt(Math.round((1 / 1.0842) * 1_000_000));
-    expect(usdEur!.rateMinorUnits).toBe(expected);
-  });
-
-  it('derives cross pairs (USD/PLN)', async () => {
-    vi.stubGlobal('fetch', makeFetchMock(ECB_XML));
-    const provider = new EcbFxRateProvider();
-
-    const rates = await provider.fetchForDate(FETCH_DATE);
-    const usdPln = rates.find((r) => r.base === 'USD' && r.quote === 'PLN');
-
-    expect(usdPln).toBeDefined();
-    // 4.2734 / 1.0842 × 1_000_000
-    const expected = BigInt(Math.round((4.2734 / 1.0842) * 1_000_000));
-    expect(usdPln!.rateMinorUnits).toBe(expected);
-  });
-
-  it('throws when fetch returns non-OK status', async () => {
-    vi.stubGlobal('fetch', makeFetchMock('', false));
-    const provider = new EcbFxRateProvider();
-
-    await expect(provider.fetchForDate(FETCH_DATE)).rejects.toThrow('ECB fetch failed');
+    expect(() => EcbFxRateProvider.parse(xml, IsoDate.of('2026-10-20'), FETCHED_AT)).toThrow(
+      'Invalid FX rate "0"',
+    );
   });
 });

@@ -126,6 +126,7 @@ describe('worker topology', () => {
     expect([...worker.cronNames].sort()).toEqual(
       [
         'bank-sync-schedule',
+        'fx-daily-ingest',
         'outbox-relay',
         'period-close',
         'reconnect-reminders',
