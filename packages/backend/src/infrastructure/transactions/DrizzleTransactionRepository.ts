@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gt, gte, ilike, lte } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, lt, lte, or } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type {
   BankAccountId,
@@ -18,6 +18,7 @@ import type {
   TransactionQuery,
 } from '../../domain/transactions/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
+import { decodeTransactionCursor, encodeTransactionCursor } from './transactionCursor.js';
 import { containsPattern } from '../database/likePattern.js';
 import * as schema from '../../../drizzle/schema.js';
 import type { TransactionSource } from '../../domain/transactions/entities.js';
@@ -134,20 +135,33 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       conditions.push(ilike(schema.transactions.description, containsPattern(query.search)));
     }
     if (query.cursor) {
-      conditions.push(gt(schema.transactions.id, query.cursor));
+      const after = decodeTransactionCursor(query.cursor);
+      const keyset = or(
+        lt(schema.transactions.occurredOn, after.occurredOn),
+        and(
+          eq(schema.transactions.occurredOn, after.occurredOn),
+          lt(schema.transactions.id, after.id),
+        ),
+      );
+      if (keyset) {
+        conditions.push(keyset);
+      }
     }
 
     const rows = await this.db
       .select()
       .from(schema.transactions)
       .where(and(...conditions))
-      .orderBy(desc(schema.transactions.occurredOn), schema.transactions.id)
+      .orderBy(desc(schema.transactions.occurredOn), desc(schema.transactions.id))
       .limit(limit + 1);
 
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
     const lastItem = items[items.length - 1];
-    const nextCursor = hasMore && lastItem ? lastItem.id : null;
+    const nextCursor =
+      hasMore && lastItem
+        ? encodeTransactionCursor({ occurredOn: lastItem.occurredOn, id: lastItem.id })
+        : null;
 
     return {
       items: items.map((r) => this.toEntity(r)),

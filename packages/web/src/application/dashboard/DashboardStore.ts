@@ -2,16 +2,15 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { apiClient } from '../../AppProviders.js';
 import { settingsStore } from '../settings/SettingsStore.js';
 import type { PlanActualsView } from '../../domain/dashboard/PlanActualsView.js';
+import {
+  toPlanActualsView,
+  type PlanDashboardResponseDto,
+} from '../../infrastructure/api/PlanDashboardMapper.js';
+import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
+import type { PlanDto } from '../../infrastructure/api/PlanMapper.js';
 
-export interface Plan {
-  id: string;
-  name: string;
-  type: 'personal' | 'household';
-  periodType: 'weekly' | 'monthly' | 'custom';
-  periodStart: string;
-  periodEnd: string;
-  currency: string;
-}
+/** `GET /plans` (CLN-011). */
+export type Plan = PlanDto;
 
 const FX_CACHE_KEY = 'pb_fx_rates';
 
@@ -62,7 +61,7 @@ export class DashboardStore {
     this.loading = true;
     this.error = null;
     try {
-      const res = await apiClient.get<Plan[]>('/plans');
+      const res = await apiClient.get<PlanDto[]>('/plans');
       runInAction(() => {
         this.activePlans = res.data;
         this.loading = false;
@@ -79,10 +78,15 @@ export class DashboardStore {
     this.loading = true;
     this.error = null;
     try {
-      const res = await apiClient.get<PlanActualsView>(`/plans/${planId}/dashboard`);
+      const [res, categoryNames] = await Promise.all([
+        apiClient.get<PlanDashboardResponseDto>(`/plans/${planId}/dashboard`),
+        fetchCategoryNames(apiClient),
+      ]);
+      const planName = this.activePlans.find((p) => p.id === planId)?.name ?? '';
+      const actuals = toPlanActualsView(res.data, { planName, categoryNames });
       runInAction(() => {
-        this.actuals = res.data;
-        this.displayCurrency = res.data.currency;
+        this.actuals = actuals;
+        this.displayCurrency = actuals.currency;
         this.loading = false;
       });
     } catch {

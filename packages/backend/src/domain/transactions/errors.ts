@@ -32,3 +32,10 @@ export class BankAccountNotFoundError extends Error {
     this.name = 'BankAccountNotFoundError';
   }
 }
+
+export class InvalidCursorError extends Error {
+  constructor() {
+    super('INVALID_CURSOR');
+    this.name = 'InvalidCursorError';
+  }
+}

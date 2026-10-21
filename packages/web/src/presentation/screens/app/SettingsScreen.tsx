@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import { useTheme } from '../../components/ThemeContext.js';
+import { Button } from '../../components/Button.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
+import { signOut } from '../../../AppProviders.js';
 
 const TABS = [
   { to: 'profile', labelId: 'settings.tab.profile', defaultMessage: 'Profile' },
@@ -14,10 +16,18 @@ const TABS = [
 
 export function SettingsScreen(): React.JSX.Element {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     void settingsStore.loadProfile();
   }, []);
+
+  async function handleSignOut(): Promise<void> {
+    setSigningOut(true);
+    await signOut.execute();
+    navigate('/login', { replace: true });
+  }
 
   return (
     <div
@@ -28,15 +38,34 @@ export function SettingsScreen(): React.JSX.Element {
         color: theme.color.text.primary,
       }}
     >
-      <h1
+      <div
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: theme.space.md,
           margin: `0 0 ${theme.space.xl}px`,
-          fontSize: theme.fontSize['2xl'],
-          fontWeight: theme.fontWeight.semibold,
         }}
       >
-        <FormattedMessage id="settings.title" defaultMessage="Settings" />
-      </h1>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: theme.fontSize['2xl'],
+            fontWeight: theme.fontWeight.semibold,
+          }}
+        >
+          <FormattedMessage id="settings.title" defaultMessage="Settings" />
+        </h1>
+        <Button
+          variant="secondary"
+          loading={signingOut}
+          onClick={() => {
+            void handleSignOut();
+          }}
+        >
+          <FormattedMessage id="settings.signOut" defaultMessage="Log out" />
+        </Button>
+      </div>
 
       {/* Tab bar */}
       <nav
