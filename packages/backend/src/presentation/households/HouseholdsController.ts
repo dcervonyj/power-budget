@@ -44,6 +44,7 @@ export class HouseholdsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'No household' })
   @ApiResponse({ status: 404, description: 'Household or plan not found' })
+  @ApiResponse({ status: 503, description: 'Exchange rate unavailable (fx_rate_unavailable)' })
   async dashboard(
     @Param('id', ParseUUIDPipe) id: string,
     @Query('planId', ParseUUIDPipe) planId: string,
@@ -63,6 +64,7 @@ export class HouseholdsController {
       householdId: user.householdId,
       planId: planId as PlanId,
       viewerUserId: user.userId,
+      asOf: new Date(),
     });
 
     return { planId, categories: result.categories.map(toHouseholdDashboardCategoryDto) };

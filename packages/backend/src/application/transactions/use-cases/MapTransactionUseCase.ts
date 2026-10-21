@@ -3,7 +3,6 @@ import type {
   TransactionRepository,
   MappingRepository,
   TransferRepository,
-  PlanActualsRefreshPort,
 } from '../../../domain/transactions/ports.js';
 import {
   TransactionNotFoundError,
@@ -23,7 +22,6 @@ export class MapTransactionUseCase {
     private readonly transactionRepo: TransactionRepository,
     private readonly mappingRepo: MappingRepository,
     private readonly transferRepo: TransferRepository,
-    private readonly refreshPort: PlanActualsRefreshPort,
   ) {}
 
   async execute(input: MapTransactionInput): Promise<void> {
@@ -41,6 +39,5 @@ export class MapTransactionUseCase {
     }
 
     await this.mappingRepo.set(input.transactionId, input.plannedItemId, input.by, scope);
-    await this.refreshPort.scheduleRefresh(input.planId);
   }
 }
