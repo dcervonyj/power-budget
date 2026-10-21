@@ -33,6 +33,12 @@ export interface TransactionRepository {
     scope: HouseholdScope,
   ): Promise<OwnedAccountRef | null>;
   findById(id: TransactionId, scope: HouseholdScope): Promise<Transaction | null>;
+  /** The transaction when it is in `scope` and on an account owned by `ownerUserId`. */
+  findOwnedById(
+    id: TransactionId,
+    ownerUserId: UserId,
+    scope: HouseholdScope,
+  ): Promise<Transaction | null>;
   /** One query: each row carries its mapping (with plan and category names) and transfer. */
   list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>>;
   patch(

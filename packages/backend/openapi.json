@@ -717,7 +717,7 @@
     },
     "/transactions": {
       "get": {
-        "description": "Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.",
+        "description": "Only transactions on the caller's accounts; a partner's appear only as dashboard aggregates. Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.",
         "operationId": "TransactionsController_list",
         "parameters": [],
         "responses": {
@@ -743,7 +743,7 @@
             "bearer": []
           }
         ],
-        "summary": "List transactions for the current household",
+        "summary": "List the caller's own transactions",
         "tags": ["transactions"]
       },
       "post": {
@@ -1357,6 +1357,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Connection not found or the partner's"
           }
         },
         "security": [
@@ -1364,7 +1367,7 @@
             "bearer": []
           }
         ],
-        "summary": "List bank accounts for a connection",
+        "summary": "List bank accounts of one of the caller's own connections",
         "tags": ["bank-connections"]
       }
     },

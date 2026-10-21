@@ -78,9 +78,9 @@ export class TransactionsController {
 
   @Get()
   @ApiOperation({
-    summary: 'List transactions for the current household',
+    summary: "List the caller's own transactions",
     description:
-      'Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.',
+      "Only transactions on the caller's accounts; a partner's appear only as dashboard aggregates. Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.",
   })
   @ApiResponse({
     status: 200,
@@ -100,6 +100,7 @@ export class TransactionsController {
     const page = await this.listTransactions.execute({
       query: {
         householdId: user.householdId,
+        ownerUserId: user.userId,
         accountId: query.accountId as BankAccountId | undefined,
         dateFrom: query.from as IsoDate | undefined,
         dateTo: query.to as IsoDate | undefined,
@@ -129,7 +130,11 @@ export class TransactionsController {
       throw new NotFoundException('No household');
     }
 
-    const detail = await this.getTransaction.execute(id as TransactionId, user.householdId);
+    const detail = await this.getTransaction.execute(
+      id as TransactionId,
+      user.householdId,
+      user.userId,
+    );
 
     return toTransactionDetailDto(detail);
   }
@@ -194,12 +199,13 @@ export class TransactionsController {
     await this.patchTransaction.execute({
       transactionId,
       householdId: user.householdId,
+      userId: user.userId,
       patch: {
         notes: dto.notes ?? undefined,
         ignored: dto.ignored,
       },
     });
-    const detail = await this.getTransaction.execute(transactionId, user.householdId);
+    const detail = await this.getTransaction.execute(transactionId, user.householdId, user.userId);
 
     return toTransactionDetailDto(detail);
   }

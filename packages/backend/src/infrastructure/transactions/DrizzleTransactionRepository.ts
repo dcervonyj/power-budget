@@ -161,6 +161,24 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
+  async findOwnedById(
+    id: TransactionId,
+    ownerUserId: UserId,
+    scope: HouseholdScope,
+  ): Promise<Transaction | null> {
+    const rows = await this.db
+      .select({ tx: schema.transactions })
+      .from(schema.transactions)
+      .innerJoin(schema.bankAccounts, this.ownedAccountJoin(ownerUserId))
+      .where(
+        and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
+      )
+      .limit(1);
+    const row = rows[0];
+
+    return row ? this.toEntity(row.tx) : null;
+  }
+
   async list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>> {
     const limit = query.limit ?? 50;
     const t = schema.transactions;
@@ -183,6 +201,8 @@ export class DrizzleTransactionRepository implements TransactionRepository {
         transferAsBCounterpart: transferAsB.txAId,
       })
       .from(t)
+      // Only the caller's own accounts: a partner's transactions stay private.
+      .innerJoin(schema.bankAccounts, this.ownedAccountJoin(query.ownerUserId))
       // Each join matches at most one row (PK / unique keys), so paging stays one row per tx.
       .leftJoin(schema.transactionMappings, eq(schema.transactionMappings.transactionId, t.id))
       .leftJoin(
@@ -245,6 +265,14 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .where(
         and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
       );
+  }
+
+  private ownedAccountJoin(ownerUserId: UserId): SQL | undefined {
+    return and(
+      eq(schema.bankAccounts.id, schema.transactions.accountId),
+      eq(schema.bankAccounts.householdId, schema.transactions.householdId),
+      eq(schema.bankAccounts.ownerUserId, ownerUserId),
+    );
   }
 
   private listConditions(query: TransactionQuery, scope: HouseholdScope): SQL[] {

@@ -309,10 +309,10 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       const scope = { householdId: A.householdId };
 
       const percent = await asTenant(A, () =>
-        repo.list({ householdId: A.householdId, search: '50%' }, scope),
+        repo.list({ householdId: A.householdId, ownerUserId: A.userId, search: '50%' }, scope),
       );
       const underscore = await asTenant(A, () =>
-        repo.list({ householdId: A.householdId, search: '_' }, scope),
+        repo.list({ householdId: A.householdId, ownerUserId: A.userId, search: '_' }, scope),
       );
 
       expect(percent.items.map((t) => t.transaction.id)).toEqual([A.txId]);

@@ -1,4 +1,4 @@
-import type { TransactionId, HouseholdId } from '@power-budget/core';
+import type { TransactionId, HouseholdId, UserId } from '@power-budget/core';
 import type {
   TransactionRepository,
   MappingRepository,
@@ -24,8 +24,13 @@ export class GetTransactionUseCase {
     private readonly transferRepo: TransferRepository,
   ) {}
 
-  async execute(id: TransactionId, householdId: HouseholdId): Promise<TransactionDetail> {
-    const transaction = await this.transactionRepo.findById(id, { householdId });
+  /** A partner's transaction reads as not found: transactions are private to the account owner. */
+  async execute(
+    id: TransactionId,
+    householdId: HouseholdId,
+    viewerUserId: UserId,
+  ): Promise<TransactionDetail> {
+    const transaction = await this.transactionRepo.findOwnedById(id, viewerUserId, { householdId });
     if (transaction === null) {
       throw new TransactionNotFoundError();
     }
