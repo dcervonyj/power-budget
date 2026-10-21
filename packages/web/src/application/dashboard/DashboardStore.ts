@@ -7,16 +7,10 @@ import {
   type PlanDashboardResponseDto,
 } from '../../infrastructure/api/PlanDashboardMapper.js';
 import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
+import type { PlanDto } from '../../infrastructure/api/PlanMapper.js';
 
-/** `PlanDto` of `GET /plans` (CLN-011). */
-export interface Plan {
-  id: string;
-  name: string;
-  type: 'personal' | 'household';
-  periodKind: 'weekly' | 'monthly' | 'custom';
-  period: { start: string; end: string };
-  baseCurrency: string;
-}
+/** `GET /plans` (CLN-011). */
+export type Plan = PlanDto;
 
 const FX_CACHE_KEY = 'pb_fx_rates';
 
@@ -67,7 +61,7 @@ export class DashboardStore {
     this.loading = true;
     this.error = null;
     try {
-      const res = await apiClient.get<Plan[]>('/plans');
+      const res = await apiClient.get<PlanDto[]>('/plans');
       runInAction(() => {
         this.activePlans = res.data;
         this.loading = false;

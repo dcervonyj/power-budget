@@ -1,9 +1,7 @@
 import type { HttpClient } from '@power-budget/shared-app';
+import type { components } from '@power-budget/shared-app/contract';
 
-interface CategorySummary {
-  id: string;
-  name: string;
-}
+type CategoryDto = components['schemas']['CategoryDto'];
 
 /**
  * categoryId -> name from GET /categories. Plan items and dashboard lines carry
@@ -11,7 +9,7 @@ interface CategorySummary {
  */
 export async function fetchCategoryNames(http: HttpClient): Promise<Map<string, string>> {
   try {
-    const res = await http.get<CategorySummary[]>('/categories');
+    const res = await http.get<CategoryDto[]>('/categories');
 
     return new Map(res.data.map((c) => [c.id, c.name]));
   } catch {

@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeContext.js';
 import { Button } from '../../components/Button.js';
 import { ClonePlanModal } from '../../components/ClonePlanModal.js';
-import { toLocalIsoDate } from '@power-budget/core';
+import { isSupportedCurrency, toLocalIsoDate } from '@power-budget/core';
 import { apiClient } from '../../../AppProviders.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
 import {
   PlanMapper,
+  type CreatePlanDto,
   type PlanDto,
   type PlanSummary,
 } from '../../../infrastructure/api/PlanMapper.js';
@@ -16,6 +17,8 @@ import {
 type PlanPeriod = PlanSummary['period'];
 type PlanStatus = PlanSummary['status'];
 type Plan = PlanSummary;
+
+const DEFAULT_PLAN_CURRENCY = 'EUR';
 
 /** First day of the current month, local time: the start of a new monthly plan. */
 function currentMonthStart(): string {
@@ -60,7 +63,7 @@ export function PlansListScreen(): React.JSX.Element {
   const handleCreate = async (): Promise<void> => {
     setCreating(true);
     try {
-      const res = await apiClient.post<PlanDto>('/plans', {
+      const body: CreatePlanDto = {
         name: intl.formatMessage({
           id: 'screen.plansList.defaultPlanName',
           defaultMessage: 'New Plan',
@@ -68,8 +71,11 @@ export function PlansListScreen(): React.JSX.Element {
         type: 'personal',
         periodKind: 'monthly',
         periodStart: currentMonthStart(),
-        baseCurrency: settingsStore.baseCurrency,
-      });
+        baseCurrency: isSupportedCurrency(settingsStore.baseCurrency)
+          ? settingsStore.baseCurrency
+          : DEFAULT_PLAN_CURRENCY,
+      };
+      const res = await apiClient.post<PlanDto>('/plans', body);
       void navigate(`/plans/${res.data.id}`);
     } catch {
       setError(
