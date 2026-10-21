@@ -58,7 +58,13 @@
             "description": "Tokens issued"
           },
           "401": {
-            "description": "Invalid credentials"
+            "description": "Invalid credentials or TOTP code"
+          },
+          "403": {
+            "description": "TOTP is enabled: send `totp` (code requires_totp)"
+          },
+          "429": {
+            "description": "Too many attempts"
           }
         },
         "summary": "Login with email and password",
@@ -82,6 +88,9 @@
         "responses": {
           "204": {
             "description": "Magic link sent (if account exists)"
+          },
+          "429": {
+            "description": "Too many attempts"
           }
         },
         "summary": "Request a magic-link login email",
@@ -107,7 +116,13 @@
             "description": "Tokens issued"
           },
           "401": {
-            "description": "Token invalid or expired"
+            "description": "Token invalid or expired, or invalid TOTP code"
+          },
+          "403": {
+            "description": "TOTP is enabled: resend the token with `totp` (code requires_totp)"
+          },
+          "429": {
+            "description": "Too many attempts"
           }
         },
         "summary": "Consume a magic-link token and get tokens",
@@ -116,6 +131,7 @@
     },
     "/auth/totp/enable": {
       "post": {
+        "description": "First enrolment needs no step-up. Replacing an enabled TOTP needs a recent POST /auth/totp/verify. TOTP is enabled once the first code is verified.",
         "operationId": "AuthController_totpEnable",
         "parameters": [],
         "responses": {
@@ -124,6 +140,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "TOTP already enabled and no recent step-up"
           }
         },
         "security": [
@@ -131,12 +150,13 @@
             "bearer": []
           }
         ],
-        "summary": "Enable TOTP 2FA for the current user",
+        "summary": "Start TOTP enrolment for the current user",
         "tags": ["auth"]
       }
     },
     "/auth/totp/verify": {
       "post": {
+        "description": "Activates a pending enrolment and opens the 5-minute step-up window. A code is accepted only once.",
         "operationId": "AuthController_totpVerify",
         "parameters": [],
         "requestBody": {
@@ -154,7 +174,13 @@
             "description": "TOTP verified"
           },
           "401": {
-            "description": "Unauthorized or invalid code"
+            "description": "Unauthorized, or invalid or reused code"
+          },
+          "403": {
+            "description": "No TOTP enrolment (code requires_totp_enrollment)"
+          },
+          "429": {
+            "description": "Too many attempts"
           }
         },
         "security": [
@@ -162,7 +188,7 @@
             "bearer": []
           }
         ],
-        "summary": "Verify and activate TOTP for the current user",
+        "summary": "Verify a TOTP code",
         "tags": ["auth"]
       }
     },
@@ -410,7 +436,7 @@
             "description": "Unauthorized"
           },
           "403": {
-            "description": "No household or caller is not the owner"
+            "description": "No household, caller is not the owner, or no recent TOTP verification (codes requires_totp, requires_totp_enrollment)"
           },
           "404": {
             "description": "Household not found"
@@ -1316,6 +1342,11 @@
           "token": {
             "type": "string",
             "description": "Magic-link token from email"
+          },
+          "totp": {
+            "type": "string",
+            "description": "TOTP code, required once 2FA is enabled (the link stays valid until then)",
+            "example": "123456"
           }
         },
         "required": ["token"]

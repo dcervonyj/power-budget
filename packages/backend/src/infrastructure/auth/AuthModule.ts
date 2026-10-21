@@ -17,7 +17,6 @@ import { DrizzleMagicLinkTokenRepository } from './DrizzleMagicLinkTokenReposito
 import { DrizzleTotpSecretRepository } from './DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from './DrizzleHouseholdInviteRepository.js';
 import { DrizzleNotificationOutboxPort } from './DrizzleNotificationOutboxPort.js';
-import { DrizzleBankConnectionChecker } from './DrizzleBankConnectionChecker.js';
 import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 @Module({
@@ -31,7 +30,6 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
     DrizzleNotificationOutboxPort,
-    DrizzleBankConnectionChecker,
     Argon2PasswordHashing,
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,
@@ -59,6 +57,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     },
   ],
   exports: [
+    REDIS_CLIENT,
     DrizzleUserRepository,
     DrizzleHouseholdRepository,
     DrizzleHouseholdExportRepository,
@@ -67,7 +66,6 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
     DrizzleNotificationOutboxPort,
-    DrizzleBankConnectionChecker,
     Argon2PasswordHashing,
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,

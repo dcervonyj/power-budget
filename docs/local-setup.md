@@ -52,6 +52,7 @@ Copy `.env.example` to `.env`. Never commit `.env`.
 | `CORS_ORIGINS`                    | `http://localhost:5173`                                                    | Comma-separated exact origins; `*.domain` allows direct HTTPS subdomains; a bare `*` is rejected at boot; unset means no cross-origin access              |
 | `SWAGGER_ENABLED`                 | `true` (local)                                                             | Serves Swagger UI at `/docs` only when `true`; leave unset on deployments                                                                                 |
 | `RESEND_WEBHOOK_SECRET`           | _(empty)_                                                                  | Resend webhook signing secret (`whsec_...`). Unset means `POST /notifications/bounce` rejects every request                                               |
+| `TRUST_PROXY`                     | `1`                                                                        | Trusted proxy hops (Fastify `trustProxy`): picks the client IP for the per-IP auth rate limits. `true` trusts any `X-Forwarded-For`, so avoid it          |
 
 ## Troubleshooting
 
