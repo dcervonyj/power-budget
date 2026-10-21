@@ -30,7 +30,7 @@ export class PlanActualsWeeklyDigestSummaryReader implements WeeklyDigestSummary
     if (plan === undefined) {
       return null;
     }
-    const view = await this.actualsReader.read(plan.id, at);
+    const view = await this.actualsReader.read(plan, at);
 
     return {
       planName: plan.name,

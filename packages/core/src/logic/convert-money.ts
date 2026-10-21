@@ -15,7 +15,10 @@ import {
 export const FX_PIVOT_CURRENCY: CurrencyCode = 'EUR';
 
 export class UnknownCurrencyPairError extends Error {
-  constructor(from: CurrencyCode, to: CurrencyCode) {
+  constructor(
+    readonly from: CurrencyCode,
+    readonly to: CurrencyCode,
+  ) {
     super(`No FX rate for ${from}/${to} (no direct, inverse, or EUR cross-rate)`);
     this.name = 'UnknownCurrencyPairError';
   }

@@ -5,7 +5,6 @@ import type {
   PlannedItemId,
   UserId,
   HouseholdId,
-  PlanId,
 } from '@power-budget/core';
 import type {
   Transaction,
@@ -69,8 +68,4 @@ export interface TransferRepository {
 
 export interface MappingSuggestionPort {
   suggest(tx: Transaction, recentMappings: TransactionMapping[]): PlannedItemId | null;
-}
-
-export interface PlanActualsRefreshPort {
-  scheduleRefresh(planId: PlanId): Promise<void>;
 }

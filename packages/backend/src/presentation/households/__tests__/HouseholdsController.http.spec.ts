@@ -50,6 +50,7 @@ describe('GET /households/:id/dashboard (HTTP)', () => {
   });
 
   it("returns the caller's own household dashboard", async () => {
+    const before = Date.now();
     const res = await app.inject({
       method: 'GET',
       url: `/households/${ALICE_HOUSEHOLD}/dashboard?planId=${PLAN}`,
@@ -58,11 +59,15 @@ describe('GET /households/:id/dashboard (HTTP)', () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ planId: PLAN, categories: [] });
-    expect(dashboard.execute).toHaveBeenCalledWith({
+    const [input] = dashboard.execute.mock.calls[0]!;
+    expect(input).toEqual({
       householdId: ALICE_HOUSEHOLD,
       planId: PLAN,
       viewerUserId: ALICE,
+      asOf: input.asOf,
     });
+    expect(input.asOf.getTime()).toBeGreaterThanOrEqual(before);
+    expect(input.asOf.getTime()).toBeLessThanOrEqual(Date.now());
   });
 
   it('returns money as string minor units, even beyond Number.MAX_SAFE_INTEGER', async () => {

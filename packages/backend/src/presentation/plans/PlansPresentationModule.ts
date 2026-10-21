@@ -7,7 +7,7 @@ import { CategoriesModule } from '../../infrastructure/categories/CategoriesModu
 import { DrizzlePlanRepository } from '../../infrastructure/plans/DrizzlePlanRepository.js';
 import { DrizzlePlannedItemRepository } from '../../infrastructure/plans/DrizzlePlannedItemRepository.js';
 import { DrizzlePlannedItemVersionRepository } from '../../infrastructure/plans/DrizzlePlannedItemVersionRepository.js';
-import { DrizzlePlanActualsReader } from '../../infrastructure/plans/DrizzlePlanActualsReader.js';
+import { PlanActualsService } from '../../application/plans/PlanActualsService.js';
 import { DrizzleUnplannedTransactionReader } from '../../infrastructure/plans/DrizzleUnplannedTransactionReader.js';
 import { DrizzleCategoryRepository } from '../../infrastructure/categories/DrizzleCategoryRepository.js';
 import { AuditLogPortAdapter } from '../../infrastructure/plans/AuditLogPortAdapter.js';
@@ -130,8 +130,8 @@ const PLANS_AUDIT_LOG = 'PLANS_AUDIT_LOG';
     },
     {
       provide: GetPlanDashboardUseCase,
-      inject: [DrizzlePlanRepository, DrizzlePlanActualsReader],
-      useFactory: (repo: DrizzlePlanRepository, reader: DrizzlePlanActualsReader) =>
+      inject: [DrizzlePlanRepository, PlanActualsService],
+      useFactory: (repo: DrizzlePlanRepository, reader: PlanActualsService) =>
         new GetPlanDashboardUseCase(repo, reader),
     },
     {

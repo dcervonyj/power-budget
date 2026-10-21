@@ -1,8 +1,5 @@
 import type { TransactionId, PlannedItemId, UserId, PlanId, HouseholdId } from '@power-budget/core';
-import type {
-  MappingRepository,
-  PlanActualsRefreshPort,
-} from '../../../domain/transactions/ports.js';
+import type { MappingRepository } from '../../../domain/transactions/ports.js';
 
 export interface BulkMapTransactionsInput {
   readonly mappings: ReadonlyArray<{ transactionId: TransactionId; plannedItemId: PlannedItemId }>;
@@ -12,10 +9,7 @@ export interface BulkMapTransactionsInput {
 }
 
 export class BulkMapTransactionsUseCase {
-  constructor(
-    private readonly mappingRepo: MappingRepository,
-    private readonly refreshPort: PlanActualsRefreshPort,
-  ) {}
+  constructor(private readonly mappingRepo: MappingRepository) {}
 
   async execute(input: BulkMapTransactionsInput): Promise<void> {
     if (input.mappings.length === 0) {
@@ -26,6 +20,5 @@ export class BulkMapTransactionsUseCase {
     await this.mappingRepo.bulkSet([...input.mappings], input.by, {
       householdId: input.householdId,
     });
-    await this.refreshPort.scheduleRefresh(input.planId);
   }
 }

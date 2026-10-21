@@ -38,7 +38,8 @@ export interface CategoryPrivacy {
   readonly updatedAt: IsoDateTime;
 }
 
-export const DEFAULT_CATEGORY_PRIVACY: CategoryPrivacyLevel = 'full_detail';
+/** What the partner sees of a category nobody configured: total only (PRODUCT §4.9). */
+export const DEFAULT_CATEGORY_PRIVACY: CategoryPrivacyLevel = 'total_only';
 
 /** A category with the household's privacy level for it. */
 export interface CategoryView extends Category {

@@ -1,7 +1,8 @@
 import { Inject, Logger } from '@nestjs/common';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { uuidv7 } from 'uuidv7';
-import type { UserId } from '@power-budget/core';
+import type { HouseholdId, UserId } from '@power-budget/core';
+import type { LocaleCode } from '../../domain/auth/entities.js';
 import type { NotificationOutboxPort } from '../../domain/auth/ports.js';
 import type { NotificationDispatchQueue } from '../../domain/notifications/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
@@ -41,8 +42,37 @@ export class DrizzleNotificationOutboxPort implements NotificationOutboxPort {
     }
   }
 
+  async enqueueToAddress(event: {
+    kind: string;
+    email: string;
+    locale: LocaleCode;
+    householdId: HouseholdId;
+    payload: Record<string, unknown>;
+    dedupeKey: string;
+  }): Promise<void> {
+    const inserted = await this.db
+      .insert(schema.notificationsOutbox)
+      .values({
+        id: uuidv7(),
+        householdId: event.householdId,
+        recipientUserId: null,
+        recipientEmail: event.email.toLowerCase(),
+        recipientLocale: event.locale,
+        kind: event.kind,
+        dedupeKey: event.dedupeKey,
+        payload: event.payload,
+        createdAt: new Date(),
+      })
+      .onConflictDoNothing()
+      .returning({ id: schema.notificationsOutbox.id });
+
+    for (const row of inserted) {
+      await this.scheduleNow(row.id);
+    }
+  }
+
   /**
-   * Sign-in emails should not wait for the 5-minute relay cron. The row is
+   * Sign-in and invite emails should not wait for the 5-minute relay cron. The row is
    * already committed, so a Redis failure here only delays the email until the
    * relay picks the row up.
    */
