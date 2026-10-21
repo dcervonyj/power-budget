@@ -16,7 +16,7 @@ env:
 jobs:
   ci:
     name: Lint, typecheck & test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Checkout
@@ -85,7 +85,7 @@ jobs:
 
   integration:
     name: Backend integration (Postgres + Redis, testcontainers)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
@@ -109,12 +109,14 @@ jobs:
       - name: Run backend integration tests
         run: pnpm turbo run test:integration --filter=@power-budget/backend
 
-  playwright:
-    name: Playwright E2E (smoke)
+  e2e:
+    # CLN-017: the web app against a real backend. Postgres + Redis from
+    # docker/e2e/docker-compose.yml; playwright.config.ts starts the fake Resend API,
+    # the backend built from this commit (migrations, app role, seeds, API + worker)
+    # and a production build of the web app. Then the k6 gate hits the same backend.
+    name: E2E (Playwright + k6, real backend)
     runs-on: ubuntu-24.04
-    needs: ci
-    # Only run on PRs, not on push to master (to keep CI fast)
-    if: github.event_name == 'pull_request'
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -132,21 +134,54 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
+      - name: Start Postgres and Redis
+        run: docker compose -f docker/e2e/docker-compose.yml up -d --wait
+
+      - name: Build the backend and the web app's dependencies
+        run: pnpm turbo run build --filter=@power-budget/backend --filter=@power-budget/web^...
+
+      - name: Install Playwright Chromium
         run: pnpm exec playwright install chromium --with-deps
         working-directory: packages/web
 
-      - name: Run Playwright smoke tests
-        run: pnpm exec playwright test --project=chromium --reporter=github
+      - name: Playwright e2e against the real backend
+        run: pnpm exec playwright test --project=chromium
         working-directory: packages/web
         env:
-          # No backend in CI — smoke tests handle missing server gracefully
-          BASE_URL: http://localhost:5173
+          TEST_ENV: e2e
 
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
-          path: packages/web/playwright-report/
+          path: |
+            packages/web/playwright-report/
+            packages/web/test-results/
+          if-no-files-found: ignore
+
+      - name: Install k6
+        uses: grafana/setup-k6-action@v1
+        with:
+          k6-version: '1.3.0'
+
+      - name: k6 dashboard gate
+        run: |
+          bash scripts/e2e-backend.sh > e2e-backend.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:3100/health > /dev/null && break
+            sleep 1
+          done
+          k6 run --summary-export=k6-summary.json tests/perf/dashboard.k6.js
+        env:
+          K6_BASE_URL: http://localhost:3100
+
+      - name: Upload k6 summary and backend log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: k6-results
+          path: |
+            k6-summary.json
+            e2e-backend.log
           if-no-files-found: ignore
