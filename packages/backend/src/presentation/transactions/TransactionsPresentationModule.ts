@@ -13,12 +13,7 @@ import { MapTransactionUseCase } from '../../application/transactions/use-cases/
 import { MarkAsTransferUseCase } from '../../application/transactions/use-cases/MarkAsTransferUseCase.js';
 import { PatchTransactionUseCase } from '../../application/transactions/use-cases/PatchTransactionUseCase.js';
 import { UnmarkTransferUseCase } from '../../application/transactions/use-cases/UnmarkTransferUseCase.js';
-import type { PlanActualsRefreshPort } from '../../domain/transactions/ports.js';
 import { TransactionsController } from './TransactionsController.js';
-
-const STUB_REFRESH_PORT: PlanActualsRefreshPort = {
-  scheduleRefresh: async () => undefined,
-};
 
 @Module({
   imports: [TransactionsModule, ConfigModule],
@@ -51,13 +46,13 @@ const STUB_REFRESH_PORT: PlanActualsRefreshPort = {
         txRepo: DrizzleTransactionRepository,
         mappingRepo: DrizzleMappingRepository,
         transferRepo: DrizzleTransferRepository,
-      ) => new MapTransactionUseCase(txRepo, mappingRepo, transferRepo, STUB_REFRESH_PORT),
+      ) => new MapTransactionUseCase(txRepo, mappingRepo, transferRepo),
     },
     {
       provide: BulkMapTransactionsUseCase,
       inject: [DrizzleMappingRepository],
       useFactory: (mappingRepo: DrizzleMappingRepository) =>
-        new BulkMapTransactionsUseCase(mappingRepo, STUB_REFRESH_PORT),
+        new BulkMapTransactionsUseCase(mappingRepo),
     },
     {
       provide: MarkAsTransferUseCase,

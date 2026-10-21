@@ -1,14 +1,25 @@
+import 'reflect-metadata';
+import { join } from 'node:path';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { mock } from 'vitest-mock-extended';
+import type { Job } from 'bullmq';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { uuidv7 } from 'uuidv7';
-import { startContainers, stopContainers, resetState, getPool } from './setup.js';
+import { startContainers, stopContainers, resetState, getDb, getPool } from './setup.js';
 import { createTestApp } from './app.js';
+import { InMemoryEmailChannel } from '../doubles/InMemoryEmailChannel.js';
+import { DrizzleNotificationRepository } from '../../infrastructure/notifications/DrizzleNotificationRepository.js';
+import { MjmlTemplateRenderer } from '../../infrastructure/notifications/MjmlTemplateRenderer.js';
+import { DispatchNotificationProcessor } from '../../infrastructure/notifications/workers/DispatchNotificationProcessor.js';
+import type { DispatchNotificationJobPayload } from '../../infrastructure/notifications/BullMQNotificationDispatchQueue.js';
 
 const PASSWORD = 'Str0ngPass!';
 const GROCERIES = '550e8400-e29b-41d4-a716-446655440000';
 // A past month, so the dashboard takes its FX rates for the period end (2026-09-30).
 const PERIOD_START = '2026-09-01';
 const RATE_DATE = '2026-09-30';
+const TEMPLATE_DIR = join(__dirname, '../../infrastructure/notifications/templates');
+const INVITE_LINK = /href="http:\/\/localhost:3000\/invite\/accept\?token=([0-9a-f]{64})"/;
 
 interface Member {
   readonly userId: string;
@@ -50,7 +61,7 @@ interface CategoryBody {
  * computePlanActuals / aggregateByCategoryWithPrivacy with an FX table, with
  * per-owner privacy, on the real AppModule (Fastify inject).
  */
-describe('Plan and household dashboards (real app)', () => {
+describe('Plan and household dashboards (real app, 2-member household)', () => {
   let app: NestFastifyApplication;
   let anna: Member;
   let bob: Member;
@@ -239,25 +250,61 @@ describe('Plan and household dashboards (real app)', () => {
     };
   }
 
-  /** Moves `email` into the household of `owner` (the invite flow is CLN-006) and logs in again. */
-  async function partnerOf(owner: Member, email: string): Promise<Member> {
-    const partner = await register(email);
-    await getPool().query('UPDATE household_users SET household_id = $1 WHERE user_id = $2', [
-      owner.householdId,
-      partner.userId,
-    ]);
-    const login = await app.inject({
+  /**
+   * The CLN-006 journey: the owner invites `address`, the worker delivers the email,
+   * the partner registers and accepts the token from the link (a 2-member household).
+   */
+  async function partnerOf(owner: Member, address: string): Promise<Member> {
+    const invited = await app.inject({
       method: 'POST',
-      url: '/auth/login',
-      payload: { email, password: PASSWORD },
+      url: '/households/invites',
+      headers: owner.auth,
+      payload: { email: address },
     });
-    expect(login.statusCode).toBe(201);
+    expect(invited.statusCode).toBe(201);
+    const token = INVITE_LINK.exec(await deliverInviteEmail(address))?.[1];
+    expect(token).toMatch(/^[0-9a-f]{64}$/);
+    const partner = await register(address);
+    const accepted = await app.inject({
+      method: 'POST',
+      url: '/households/invites/accept',
+      headers: partner.auth,
+      payload: { token },
+    });
+    expect(accepted.statusCode).toBe(200);
+    const joined = accepted.json<{ householdId: string; accessToken: string }>();
+    expect(joined.householdId).toBe(owner.householdId);
+    const members = await getPool().query(
+      'SELECT user_id FROM household_users WHERE household_id = $1',
+      [owner.householdId],
+    );
+    expect(members.rowCount).toBe(2);
 
     return {
       userId: partner.userId,
-      householdId: owner.householdId,
-      auth: { authorization: `Bearer ${login.json<{ accessToken: string }>().accessToken}` },
+      householdId: joined.householdId,
+      auth: { authorization: `Bearer ${joined.accessToken}` },
     };
+  }
+
+  /** What the worker does: dispatch the pending outbox rows; returns the html sent to `address`. */
+  async function deliverInviteEmail(address: string): Promise<string> {
+    const channel = new InMemoryEmailChannel();
+    const dispatcher = new DispatchNotificationProcessor(
+      new DrizzleNotificationRepository(getDb()),
+      channel,
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
+    const pending = await getPool().query<{ id: string }>(
+      'SELECT id FROM notifications_outbox WHERE sent_at IS NULL AND failed_at IS NULL ORDER BY created_at',
+    );
+    for (const row of pending.rows) {
+      await dispatcher.process(
+        mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: row.id } }),
+      );
+    }
+
+    return channel.sent.find((mail) => mail.to === address)?.html ?? '';
   }
 
   async function householdOf(userId: string): Promise<string> {
