@@ -66,9 +66,13 @@ export class ListTransactionsQueryDto {
   @IsBoolean()
   unmappedOnly?: boolean;
 
-  @ApiPropertyOptional({ type: String, description: 'Pagination cursor (last transaction ID)' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Opaque pagination cursor (`nextCursor` of the previous page)',
+  })
   @IsOptional()
-  @IsUUID()
+  @IsString()
+  @MaxLength(200)
   cursor?: string;
 
   @ApiPropertyOptional({

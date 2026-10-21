@@ -100,7 +100,7 @@ export class TransactionsController {
         dateTo: query.to as IsoDate | undefined,
         search: query.q,
         unmappedOnly: query.unmappedOnly,
-        cursor: query.cursor as TransactionId | undefined,
+        cursor: query.cursor,
         limit: query.limit,
       },
       householdId: user.householdId,
