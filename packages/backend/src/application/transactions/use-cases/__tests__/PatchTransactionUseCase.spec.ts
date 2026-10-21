@@ -38,6 +38,10 @@ describe('PatchTransactionUseCase', () => {
       patch: { notes: 'updated', ignored: true },
     });
 
-    expect(txRepo.patch).toHaveBeenCalledWith(txId, { notes: 'updated', ignored: true });
+    expect(txRepo.patch).toHaveBeenCalledWith(
+      txId,
+      { notes: 'updated', ignored: true },
+      { householdId },
+    );
   });
 });

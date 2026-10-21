@@ -55,9 +55,10 @@ export interface BankConnectionRepository {
     id: BankConnectionId,
     consent: EncryptedString,
     expiresAt: Date | null,
+    scope: HouseholdScope,
   ): Promise<void>;
-  markActive(id: BankConnectionId): Promise<void>;
-  markDisconnected(id: BankConnectionId, at: Date): Promise<void>;
+  markActive(id: BankConnectionId, scope: HouseholdScope): Promise<void>;
+  markDisconnected(id: BankConnectionId, at: Date, scope: HouseholdScope): Promise<void>;
 }
 
 export interface BankAccountRepository {
