@@ -52,20 +52,28 @@ describe('WiseBankConnector', () => {
   });
 
   describe('initiateConsent', () => {
-    it('returns wise-connect URL and wise-pending ref without calling the API', async () => {
+    it('returns the wise-connect URL and a unique ref without calling the API', async () => {
       const result = await connector.initiateConsent();
 
-      expect(result).toEqual({
-        consentUrl: 'wise-connect://token-entry',
-        externalConsentRef: 'wise-pending',
-      });
+      expect(result.consentUrl).toBe('wise-connect://token-entry');
+      expect(result.externalConsentRef).toMatch(
+        /^wise-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
+    });
+
+    it('never hands out the same ref twice (no shared pending ref)', async () => {
+      const first = await connector.initiateConsent();
+      const second = await connector.initiateConsent();
+
+      expect(first.externalConsentRef).not.toBe('wise-pending');
+      expect(second.externalConsentRef).not.toBe(first.externalConsentRef);
     });
   });
 
   describe('completeConsent', () => {
     it('encrypts the apiToken from callbackPayload and returns null expiry', async () => {
       const result = await connector.completeConsent({
-        externalConsentRef: 'wise-pending',
+        externalConsentRef: 'wise-0190a000-0000-4000-8000-000000000001',
         callbackPayload: { apiToken: FAKE_TOKEN },
       });
 
@@ -76,7 +84,7 @@ describe('WiseBankConnector', () => {
     it('throws when apiToken is absent from callbackPayload', async () => {
       await expect(
         connector.completeConsent({
-          externalConsentRef: 'wise-pending',
+          externalConsentRef: 'wise-0190a000-0000-4000-8000-000000000001',
           callbackPayload: {},
         }),
       ).rejects.toThrow('missing apiToken');

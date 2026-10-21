@@ -58,3 +58,16 @@ image does not need `tsx` (a devDependency).
   secrets are set only in the Render dashboard (`sync: false`).
 - CI (`build.yml`) triggers deploys through the `RENDER_DEPLOY_HOOK_URL` secret and
   is a no-op until the secret is configured.
+
+## Addendum (CLN-001, security hot-fix)
+
+The Render service must have these set in the dashboard (`sync: false` in `render.yaml`):
+
+| Variable                | Required               | Effect                                                                                                                                                |
+| ----------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`            | **yes**                | At least 32 bytes (`openssl rand -base64 48`). Without it the API exits at boot; there is no default secret any more. Rotating it logs every user out |
+| `RESEND_WEBHOOK_SECRET` | for email bounces      | Resend webhook signing secret (`whsec_...`). Unset means the bounce webhook returns 401 for every call                                                |
+| `SWAGGER_ENABLED`       | no                     | Leave unset; `/docs` is served only when it is `true`                                                                                                 |
+| `CORS_ORIGINS`          | yes (in `render.yaml`) | Exact origins plus `*.power-budget.pages.dev` previews; no `localhost`, no bare `*`                                                                   |
+
+Google OAuth routes (`/auth/oauth/google/*`) are removed until a real Google client exists.
