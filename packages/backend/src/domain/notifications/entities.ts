@@ -1,6 +1,16 @@
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId, IsoDate, Money, UserId } from '@power-budget/core';
 
-export type NotificationKind = 'over_budget' | 'weekly_digest' | 'reconnect_reminder';
+export type NotificationKind =
+  'over_budget' | 'weekly_digest' | 'reconnect_reminder' | 'magic_link';
+
+/**
+ * Payload keys that carry a secret (a sign-in link or its raw token). They are
+ * removed from the outbox row once the notification is sent or given up on.
+ */
+export const SECRET_PAYLOAD_KEYS: readonly string[] = ['link', 'token'];
+
+/** Sends per outbox row before it is marked failed for good. */
+export const MAX_DISPATCH_ATTEMPTS = 5;
 
 export interface NotificationOutbox {
   readonly id: string;
@@ -42,6 +52,10 @@ export interface WeeklyDigestPayload {
   readonly periodEnd: string;
 }
 
+export interface MagicLinkPayload {
+  readonly link: string;
+}
+
 export interface ReconnectReminderPayload {
   readonly name: string;
   readonly connectionName: string;
@@ -67,4 +81,13 @@ export interface ExpiringConnectionRow {
   readonly bankId: string;
   readonly expiresAt: Date;
   readonly emailBouncing: boolean;
+}
+
+/** The numbers a weekly digest shows: the recipient's active plan so far. */
+export interface WeeklyDigestSummary {
+  readonly planName: string;
+  readonly totalSpent: Money;
+  readonly totalPlanned: Money;
+  readonly periodStart: IsoDate;
+  readonly periodEnd: IsoDate;
 }
