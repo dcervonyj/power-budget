@@ -1,76 +1,76 @@
 version: 2
 updates:
   # npm / pnpm — weekly, covers all packages in the monorepo
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: 'npm'
+    directory: '/'
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Europe/Warsaw"
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Warsaw'
     open-pull-requests-limit: 10
     groups:
       typescript-tooling:
         patterns:
-          - "typescript"
-          - "@typescript-eslint/*"
-          - "eslint*"
-          - "prettier"
-          - "turbo"
+          - 'typescript'
+          - '@typescript-eslint/*'
+          - 'eslint*'
+          - 'prettier'
+          - 'turbo'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
       testing:
         patterns:
-          - "vitest"
-          - "@vitest/*"
-          - "playwright*"
-          - "@playwright/*"
+          - 'vitest'
+          - '@vitest/*'
+          - 'playwright*'
+          - '@playwright/*'
         update-types:
-          - "minor"
-          - "patch"
+          - 'minor'
+          - 'patch'
       nestjs:
         patterns:
-          - "@nestjs/*"
+          - '@nestjs/*'
       expo-react-native:
         patterns:
-          - "expo"
-          - "expo-*"
-          - "react-native"
-          - "react-native-*"
-          - "@react-native/*"
-          - "@react-native-*/*"
-          - "@react-navigation/*"
-          - "@sentry/react-native"
+          - 'expo'
+          - 'expo-*'
+          - 'react-native'
+          - 'react-native-*'
+          - '@react-native/*'
+          - '@react-native-*/*'
+          - '@react-navigation/*'
+          - '@sentry/react-native'
     ignore:
       # Major version bumps require explicit review — never auto-merge
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
       # Expo / React Native must move together with the Expo SDK (one deliberate
       # upgrade via `npx expo install --fix`); never let the bot bump them.
-      - dependency-name: "expo"
-      - dependency-name: "expo-*"
-      - dependency-name: "react-native"
-      - dependency-name: "react-native-*"
-      - dependency-name: "@react-native/*"
-      - dependency-name: "@react-native-*/*"
-      - dependency-name: "@react-navigation/*"
-      - dependency-name: "@sentry/react-native"
-      - dependency-name: "@types/react-native"
+      - dependency-name: 'expo'
+      - dependency-name: 'expo-*'
+      - dependency-name: 'react-native'
+      - dependency-name: 'react-native-*'
+      - dependency-name: '@react-native/*'
+      - dependency-name: '@react-native-*/*'
+      - dependency-name: '@react-navigation/*'
+      - dependency-name: '@sentry/react-native'
+      - dependency-name: '@types/react-native'
     labels:
-      - "dependencies"
-      - "automated"
+      - 'dependencies'
+      - 'automated'
 
   # GitHub Actions — monthly
-  - package-ecosystem: "github-actions"
-    directory: "/"
+  - package-ecosystem: 'github-actions'
+    directory: '/'
     schedule:
-      interval: "monthly"
-      day: "monday"
-      time: "09:00"
-      timezone: "Europe/Warsaw"
+      interval: 'monthly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Warsaw'
     open-pull-requests-limit: 5
     labels:
-      - "dependencies"
-      - "ci"
-      - "automated"
+      - 'dependencies'
+      - 'ci'
+      - 'automated'
