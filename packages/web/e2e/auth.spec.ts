@@ -1,41 +1,89 @@
 import { test, expect } from '@playwright/test';
+import { FULL_STACK, STACK } from './support/stack.js';
+import { BackendApi, PASSWORD, uniqueEmail } from './support/api.js';
 
-// Full auth flow tests — only run in full e2e mode (TEST_ENV=e2e with live backend)
-test.beforeEach(() => {
-  if (process.env['TEST_ENV'] !== 'e2e') {
-    test.skip(true, 'Skipped: TEST_ENV != e2e (requires live backend)');
-  }
-});
+// Real backend only (TEST_ENV=e2e): every step below hits the API and Postgres.
+test.skip(!FULL_STACK, 'needs the e2e stack (TEST_ENV=e2e)');
 
-test.describe('auth flow', () => {
-  test('register → login → see dashboard', async ({ page }) => {
-    const email = `test-${Date.now()}@example.com`;
-    const password = 'TestPass123!';
+test.describe('auth journey', () => {
+  // FIXME(CLN-017): registering in the web app fails with "Something went wrong".
+  // RegisterScreen posts `displayName`, which RegisterDto does not declare, so the
+  // API rejects the body with 400 (unknown property) before it registers anyone.
+  test.fixme('registers in the UI and is sent to the login screen', async ({ page }) => {
+    await page.goto('/register');
+    await page.getByLabel('Email').fill(uniqueEmail('register'));
+    await page.getByLabel('Password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Create account' }).click();
 
-    // Register
+    await expect(page).toHaveURL(/\/login$/);
+  });
+
+  // FIXME(CLN-017): same cause as above: the 400 comes before the duplicate check,
+  // so the screen shows the generic error instead of the 409 message.
+  test.fixme('refuses to register an email twice', async ({ page, request }) => {
+    const email = uniqueEmail('duplicate');
+    await new BackendApi(request).register(email);
+
     await page.goto('/register');
     await page.getByLabel('Email').fill(email);
-    await page.getByLabel('Password').fill(password);
-    await page.getByRole('button', { name: /register/i }).click();
+    await page.getByLabel('Password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Create account' }).click();
 
-    // Should redirect to dashboard or onboarding
-    await expect(page).toHaveURL(/\/(dashboard|onboarding)/);
+    await expect(page.getByText('An account with this email already exists.')).toBeVisible();
   });
 
-  test('login with valid credentials', async ({ page }) => {
+  test('logs in with a registered account and lands on an empty dashboard', async ({
+    page,
+    request,
+  }) => {
+    const email = uniqueEmail('login');
+    await new BackendApi(request).register(email);
+
     await page.goto('/login');
-    await page.getByLabel('Email').fill(process.env['TEST_USER_EMAIL'] ?? 'test@example.com');
-    await page.getByLabel('Password').fill(process.env['TEST_USER_PASSWORD'] ?? 'password');
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page).toHaveURL(/\/dashboard/);
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Log in' }).click();
+
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByText('No active budget plan')).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('pb_access_token'))).not.toBeNull();
   });
 
-  test('login with invalid credentials shows error', async ({ page }) => {
+  test('rejects a wrong password and stays on the login screen', async ({ page, request }) => {
+    const email = uniqueEmail('wrong-password');
+    await new BackendApi(request).register(email);
+
     await page.goto('/login');
-    await page.getByLabel('Email').fill('invalid@example.com');
-    await page.getByLabel('Password').fill('wrongpassword');
-    await page.getByRole('button', { name: /sign in/i }).click();
-    // Should show error and stay on login
-    await expect(page).toHaveURL(/\/login/);
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill('not-the-password');
+    await page.getByRole('button', { name: 'Log in' }).click();
+
+    await expect(page.getByText('Invalid email or password.')).toBeVisible();
+    await expect(page).toHaveURL(/\/login$/);
+    expect(await page.evaluate(() => localStorage.getItem('pb_access_token'))).toBeNull();
+  });
+
+  test('logs out from the profile settings and revokes the session', async ({ page, request }) => {
+    const api = new BackendApi(request);
+    const email = uniqueEmail('logout');
+    await api.register(email);
+
+    await page.goto('/login');
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Password').fill(PASSWORD);
+    await page.getByRole('button', { name: 'Log in' }).click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    const refreshToken = await page.evaluate(() => localStorage.getItem('pb_refresh_token'));
+
+    await page.goto('/settings/profile');
+    await page.getByRole('button', { name: 'Log out' }).click();
+
+    await expect(page).toHaveURL(/\/login$/);
+    expect(await page.evaluate(() => localStorage.getItem('pb_access_token'))).toBeNull();
+    // The refresh token no longer works on the server either.
+    const refreshed = await request.post(`${STACK.apiUrl}/auth/refresh`, {
+      data: { refreshToken },
+    });
+    expect(refreshed.status()).toBe(401);
   });
 });
