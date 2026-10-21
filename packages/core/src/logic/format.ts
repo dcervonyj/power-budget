@@ -23,15 +23,39 @@ function getExponent(currency: CurrencyCode): number {
  */
 export function formatMoney(money: Money, locale: SupportedLocale): string {
   const exponent = getExponent(money.currency);
-  const divisor = Math.pow(10, exponent);
-  const amount = Number(money.amountMinor) / divisor;
-
-  return new Intl.NumberFormat(LOCALE_BCP47[locale], {
+  const formatter = new Intl.NumberFormat(LOCALE_BCP47[locale], {
     style: 'currency',
     currency: money.currency,
     minimumFractionDigits: exponent,
     maximumFractionDigits: exponent,
-  }).format(amount);
+  });
+
+  // Stay in bigint: Number(amountMinor) loses precision above 2^53 minor units.
+  // Format the whole part as a bigint and splice in the exact fraction digits.
+  const negative = money.amountMinor < 0n;
+  const absolute = negative ? -money.amountMinor : money.amountMinor;
+  const divisor = 10n ** BigInt(exponent);
+  const whole = absolute / divisor;
+  const fraction = (absolute % divisor).toString().padStart(exponent, '0');
+  // -0n is 0n, so a negative amount below one unit is formatted from -1n with the
+  // integer digit replaced, which keeps the locale's minus sign placement.
+  const sample = negative ? -(whole === 0n ? 1n : whole) : whole;
+
+  return formatter
+    .formatToParts(sample)
+    .map((part) => formatPart(part, fraction, whole === 0n))
+    .join('');
+}
+
+function formatPart(part: Intl.NumberFormatPart, fraction: string, zeroWhole: boolean): string {
+  if (part.type === 'fraction') {
+    return fraction;
+  }
+  if (part.type === 'integer' && zeroWhole) {
+    return '0';
+  }
+
+  return part.value;
 }
 
 /**

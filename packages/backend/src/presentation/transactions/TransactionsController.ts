@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  ParseUUIDPipe,
   Query,
   HttpCode,
   HttpStatus,
@@ -45,10 +46,19 @@ import { MapTransactionUseCase } from '../../application/transactions/use-cases/
 import { MarkAsTransferUseCase } from '../../application/transactions/use-cases/MarkAsTransferUseCase.js';
 import { PatchTransactionUseCase } from '../../application/transactions/use-cases/PatchTransactionUseCase.js';
 import { UnmarkTransferUseCase } from '../../application/transactions/use-cases/UnmarkTransferUseCase.js';
-import { TransactionNotFoundError } from '../../domain/transactions/errors.js';
+import {
+  TransactionDetailDto,
+  TransactionDto,
+  TransactionPageDto,
+  toTransactionDetailDto,
+  toTransactionDto,
+  toTransactionPageDto,
+} from './dto/transaction-response.dto.js';
 
 const STUB_PLAN_ID = '00000000-0000-0000-0000-000000000000' as PlanId;
 
+// Domain errors (TRANSACTION_NOT_FOUND, ALREADY_MAPPED, ...) are mapped to HTTP
+// statuses with their `code` by SentryExceptionFilter; no per-route try/catch.
 @ApiTags('transactions')
 @ApiBearerAuth()
 @Controller('transactions')
@@ -67,14 +77,22 @@ export class TransactionsController {
 
   @Get()
   @ApiOperation({ summary: 'List transactions for the current household' })
-  @ApiResponse({ status: 200, description: 'Paginated list of transactions' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated list of transactions',
+    type: TransactionPageDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid query parameters' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async list(@Query() query: ListTransactionsQueryDto, @CurrentUser() user: AuthenticatedUser) {
+  async list(
+    @Query() query: ListTransactionsQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TransactionPageDto> {
     if (!user.householdId) {
       return { items: [], nextCursor: null, hasMore: false };
     }
 
-    return this.listTransactions.execute({
+    const page = await this.listTransactions.execute({
       query: {
         householdId: user.householdId,
         accountId: query.accountId as BankAccountId | undefined,
@@ -87,40 +105,44 @@ export class TransactionsController {
       },
       householdId: user.householdId,
     });
+
+    return toTransactionPageDto(page);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a single transaction by ID' })
   @ApiParam({ name: 'id', description: 'Transaction ID' })
-  @ApiResponse({ status: 200, description: 'Transaction detail' })
+  @ApiResponse({ status: 200, description: 'Transaction detail', type: TransactionDetailDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
-  async getOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async getOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TransactionDetailDto> {
     if (!user.householdId) {
       throw new NotFoundException('No household');
     }
 
-    try {
-      return await this.getTransaction.execute(id as TransactionId, user.householdId);
-    } catch (err) {
-      if (err instanceof TransactionNotFoundError) {
-        throw new NotFoundException('Transaction not found');
-      }
-      throw err;
-    }
+    const detail = await this.getTransaction.execute(id as TransactionId, user.householdId);
+
+    return toTransactionDetailDto(detail);
   }
 
   @Post()
   @ApiOperation({ summary: 'Add a manual transaction' })
   @ApiBody({ type: AddManualTransactionDto })
-  @ApiResponse({ status: 201, description: 'Transaction created' })
+  @ApiResponse({ status: 201, description: 'Transaction created', type: TransactionDto })
+  @ApiResponse({ status: 400, description: 'Invalid body' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async addManual(@Body() dto: AddManualTransactionDto, @CurrentUser() user: AuthenticatedUser) {
+  async addManual(
+    @Body() dto: AddManualTransactionDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TransactionDto> {
     if (!user.householdId) {
       throw new NotFoundException('No household');
     }
 
-    return this.addManualTransaction.execute({
+    const created = await this.addManualTransaction.execute({
       householdId: user.householdId,
       accountId: dto.accountId as BankAccountId,
       occurredOn: dto.occurredOn,
@@ -130,6 +152,8 @@ export class TransactionsController {
       merchant: dto.merchant ?? null,
       notes: dto.notes ?? null,
     });
+
+    return toTransactionDto(created);
   }
 
   @Patch(':id')
@@ -140,7 +164,7 @@ export class TransactionsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async patch(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: PatchTransactionDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -148,21 +172,14 @@ export class TransactionsController {
       throw new NotFoundException('No household');
     }
 
-    try {
-      await this.patchTransaction.execute({
-        transactionId: id as TransactionId,
-        householdId: user.householdId,
-        patch: {
-          notes: dto.notes ?? undefined,
-          ignored: dto.ignored,
-        },
-      });
-    } catch (err) {
-      if (err instanceof TransactionNotFoundError) {
-        throw new NotFoundException('Transaction not found');
-      }
-      throw err;
-    }
+    await this.patchTransaction.execute({
+      transactionId: id as TransactionId,
+      householdId: user.householdId,
+      patch: {
+        notes: dto.notes ?? undefined,
+        ignored: dto.ignored,
+      },
+    });
   }
 
   @Patch(':id/mapping')
@@ -174,7 +191,7 @@ export class TransactionsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async setMapping(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SetMappingDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
@@ -182,20 +199,13 @@ export class TransactionsController {
       return;
     }
 
-    try {
-      await this.mapTransaction.execute({
-        transactionId: id as TransactionId,
-        plannedItemId: (dto.plannedItemId as PlannedItemId) ?? null,
-        by: user.userId,
-        householdId: user.householdId,
-        planId: STUB_PLAN_ID,
-      });
-    } catch (err) {
-      if (err instanceof TransactionNotFoundError) {
-        throw new NotFoundException('Transaction not found');
-      }
-      throw err;
-    }
+    await this.mapTransaction.execute({
+      transactionId: id as TransactionId,
+      plannedItemId: (dto.plannedItemId as PlannedItemId) ?? null,
+      by: user.userId,
+      householdId: user.householdId,
+      planId: STUB_PLAN_ID,
+    });
   }
 
   @Post(':id/transfer')
@@ -207,7 +217,7 @@ export class TransactionsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async markTransfer(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: MarkTransferDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
@@ -215,19 +225,12 @@ export class TransactionsController {
       return;
     }
 
-    try {
-      await this.markAsTransfer.execute({
-        transactionId: id as TransactionId,
-        counterpartId: (dto.counterpartTransactionId as TransactionId | undefined) ?? null,
-        by: user.userId,
-        householdId: user.householdId,
-      });
-    } catch (err) {
-      if (err instanceof TransactionNotFoundError) {
-        throw new NotFoundException('Transaction not found');
-      }
-      throw err;
-    }
+    await this.markAsTransfer.execute({
+      transactionId: id as TransactionId,
+      counterpartId: (dto.counterpartTransactionId as TransactionId | undefined) ?? null,
+      by: user.userId,
+      householdId: user.householdId,
+    });
   }
 
   @Delete(':id/transfer')
@@ -238,24 +241,17 @@ export class TransactionsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async unmarkTransferHandler(
-    @Param('id') id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
     if (!user.householdId) {
       return;
     }
 
-    try {
-      await this.unmarkTransfer.execute({
-        transactionId: id as TransactionId,
-        householdId: user.householdId,
-      });
-    } catch (err) {
-      if (err instanceof TransactionNotFoundError) {
-        throw new NotFoundException('Transaction not found');
-      }
-      throw err;
-    }
+    await this.unmarkTransfer.execute({
+      transactionId: id as TransactionId,
+      householdId: user.householdId,
+    });
   }
 
   @Post('bulk')
