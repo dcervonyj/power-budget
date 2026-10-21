@@ -2,9 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdRepository } from '../../../domain/auth/ports.js';
-import type { Household } from '../../../domain/auth/entities.js';
+import type { Household, HouseholdMembership } from '../../../domain/auth/entities.js';
 import { DeleteHouseholdUseCase } from './DeleteHouseholdUseCase.js';
-import { HouseholdNotFoundError } from '../../../domain/auth/errors.js';
+import {
+  HouseholdNotFoundError,
+  HouseholdOwnerRequiredError,
+} from '../../../domain/auth/errors.js';
 
 const HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000001' as HouseholdId;
 const USER_ID = '01900000-0000-7000-8000-000000000002' as UserId;
@@ -16,6 +19,10 @@ const MOCK_HOUSEHOLD: Household = {
   createdAt: new Date(),
 };
 
+function makeMembership(role: 'owner' | 'member'): HouseholdMembership {
+  return { householdId: HOUSEHOLD_ID, userId: USER_ID, role, joinedAt: new Date() };
+}
+
 describe('DeleteHouseholdUseCase', () => {
   let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
   let useCase: DeleteHouseholdUseCase;
@@ -26,6 +33,7 @@ describe('DeleteHouseholdUseCase', () => {
   });
 
   it('schedules deletion 30 days from now', async () => {
+    householdRepo.findMembership.mockResolvedValue(makeMembership('owner'));
     householdRepo.findById.mockResolvedValue(MOCK_HOUSEHOLD);
     householdRepo.scheduleDelete.mockResolvedValue(undefined);
 
@@ -36,7 +44,8 @@ describe('DeleteHouseholdUseCase', () => {
     });
     const after = Date.now();
 
-    expect(householdRepo.scheduleDelete).toHaveBeenCalledOnce();
+    expect(householdRepo.findMembership).toHaveBeenCalledWith(HOUSEHOLD_ID, USER_ID);
+    expect(householdRepo.scheduleDelete).toHaveBeenCalledWith(HOUSEHOLD_ID, result.scheduledFor);
     const scheduledFor = result.scheduledFor;
     const expectedMin = new Date(before + 29 * 24 * 3600 * 1000);
     const expectedMax = new Date(after + 31 * 24 * 3600 * 1000);
@@ -45,10 +54,31 @@ describe('DeleteHouseholdUseCase', () => {
   });
 
   it('throws HouseholdNotFoundError when household does not exist', async () => {
+    householdRepo.findMembership.mockResolvedValue(makeMembership('owner'));
     householdRepo.findById.mockResolvedValue(null);
 
     await expect(
       useCase.execute({ householdId: HOUSEHOLD_ID, requestedByUserId: USER_ID }),
     ).rejects.toThrow(HouseholdNotFoundError);
+  });
+
+  it('does not schedule deletion of a household the caller is not a member of', async () => {
+    householdRepo.findMembership.mockResolvedValue(null);
+    householdRepo.findById.mockResolvedValue(MOCK_HOUSEHOLD);
+
+    await expect(
+      useCase.execute({ householdId: HOUSEHOLD_ID, requestedByUserId: USER_ID }),
+    ).rejects.toThrow(HouseholdNotFoundError);
+    expect(householdRepo.scheduleDelete).not.toHaveBeenCalled();
+  });
+
+  it('does not let a non-owner member schedule deletion', async () => {
+    householdRepo.findMembership.mockResolvedValue(makeMembership('member'));
+    householdRepo.findById.mockResolvedValue(MOCK_HOUSEHOLD);
+
+    await expect(
+      useCase.execute({ householdId: HOUSEHOLD_ID, requestedByUserId: USER_ID }),
+    ).rejects.toThrow(HouseholdOwnerRequiredError);
+    expect(householdRepo.scheduleDelete).not.toHaveBeenCalled();
   });
 });

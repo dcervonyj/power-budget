@@ -1,4 +1,4 @@
-import type { BankConnectionId } from '@power-budget/core';
+import type { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
 import type {
   BankConnectionRepository,
   BankConnectorRegistry,
@@ -6,7 +6,9 @@ import type {
 import { BankConsentNotFoundError } from '../../../domain/bank/errors.js';
 
 export interface CompleteBankConsentInput {
-  readonly externalConsentRef: string;
+  readonly connectionId: BankConnectionId;
+  readonly userId: UserId;
+  readonly householdId: HouseholdId;
   readonly callbackPayload: Record<string, string>;
 }
 
@@ -21,14 +23,23 @@ export class CompleteBankConsentUseCase {
   ) {}
 
   async execute(input: CompleteBankConsentInput): Promise<CompleteBankConsentOutput> {
-    const connection = await this.connectionRepo.findByExternalConsentRef(input.externalConsentRef);
-    if (connection === null) {
+    // Look the connection up by its own id inside the caller's household, and
+    // require that the caller started it (audit C4). The consent token from the
+    // callback can then only ever land on the caller's own pending connection.
+    const connection = await this.connectionRepo.findById(input.connectionId, {
+      householdId: input.householdId,
+    });
+    if (
+      connection === null ||
+      connection.userId !== input.userId ||
+      connection.externalConsentRef === null
+    ) {
       throw new BankConsentNotFoundError();
     }
 
     const connector = this.registry.resolve(connection.provider);
     const { consentToken, expiresAt } = await connector.completeConsent({
-      externalConsentRef: input.externalConsentRef,
+      externalConsentRef: connection.externalConsentRef,
       callbackPayload: input.callbackPayload,
     });
 

@@ -17,8 +17,16 @@ services:
         value: staging
       - key: START_WORKER
         value: "true"
+      # Exact origins only; localhost is for local .env files, never a deployment.
       - key: CORS_ORIGINS
-        value: "https://power-budget.pages.dev,*.power-budget.pages.dev,http://localhost:5173"
+        value: "https://power-budget.pages.dev,*.power-budget.pages.dev"
+      # Required: the API refuses to boot without a JWT_SECRET of >= 32 bytes
+      # (generate with `openssl rand -base64 48`, set it in the dashboard).
+      - key: JWT_SECRET
+        sync: false
+      # Resend webhook signing secret (whsec_...). Unset = bounce webhook rejects everything.
+      - key: RESEND_WEBHOOK_SECRET
+        sync: false
       # App runtime: least-privilege role (see docs/runbooks/db-roles-and-migrations.md)
       - key: DATABASE_URL
         sync: false

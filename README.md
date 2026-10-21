@@ -18,6 +18,13 @@ corepack enable
 pnpm install
 ```
 
+## Required configuration
+
+The API refuses to start without `JWT_SECRET` (at least 32 bytes, e.g. `openssl rand -base64 48`).
+Swagger UI (`/docs`) is served only with `SWAGGER_ENABLED=true`, CORS only for the origins in
+`CORS_ORIGINS`, and the Resend bounce webhook needs `RESEND_WEBHOOK_SECRET`. See
+[`.env.example`](.env.example) and [ADR-002](docs/mvp/adr/ADR-002-free-tier-deploy.md).
+
 ## Common commands
 
 ```bash

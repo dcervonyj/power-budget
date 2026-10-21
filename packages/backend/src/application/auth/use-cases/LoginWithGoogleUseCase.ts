@@ -7,6 +7,7 @@ import type {
   JwtAccessTokenIssuer,
   RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
+import { InvalidCredentialsError } from '../../../domain/auth/errors.js';
 
 export interface LoginWithGoogleInput {
   readonly code: string;
@@ -32,7 +33,14 @@ export class LoginWithGoogleUseCase {
   ) {}
 
   async execute(input: LoginWithGoogleInput): Promise<LoginWithGoogleOutput> {
-    const { email } = await this.oauthProvider.exchange(input.code, input.redirectUri);
+    const { email, emailVerified } = await this.oauthProvider.exchange(
+      input.code,
+      input.redirectUri,
+    );
+    // Never find-or-create a user from an unverified or empty identity (audit C2).
+    if (email.trim().length === 0 || !emailVerified) {
+      throw new InvalidCredentialsError();
+    }
 
     const existingUser = await this.userRepo.findByEmail(email);
     const user = existingUser !== null ? existingUser : await this.createUserWithHousehold(email);

@@ -51,16 +51,6 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
-  async findByExternalConsentRef(ref: string): Promise<BankConnection | null> {
-    const rows = await this.db
-      .select()
-      .from(schema.bankConnections)
-      .where(eq(schema.bankConnections.externalConsentRef, ref))
-      .limit(1);
-
-    return rows[0] ? this.toEntity(rows[0]) : null;
-  }
-
   async findActiveByUserAndBank(
     userId: UserId,
     bankId: BankId,

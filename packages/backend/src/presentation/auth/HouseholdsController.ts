@@ -8,6 +8,8 @@ import {
   HttpStatus,
   UseGuards,
   ForbiddenException,
+  Inject,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -17,7 +19,6 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
-import type { HouseholdId } from '@power-budget/core';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
 import { CreateHouseholdDto, InviteToHouseholdDto } from './dto/households.dto.js';
@@ -26,6 +27,7 @@ import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/Invit
 import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInviteUseCase.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
+import { HouseholdNotFoundError, HouseholdOwnerRequiredError } from '../../domain/auth/errors.js';
 
 @ApiTags('households')
 @ApiBearerAuth()
@@ -33,11 +35,11 @@ import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteH
 @UseGuards(JwtAuthGuard)
 export class HouseholdsController {
   constructor(
-    private readonly createHousehold: CreateHouseholdUseCase,
-    private readonly inviteToHousehold: InviteToHouseholdUseCase,
-    private readonly acceptInvite: AcceptInviteUseCase,
-    private readonly exportData: ExportHouseholdDataUseCase,
-    private readonly scheduleDelete: DeleteHouseholdUseCase,
+    @Inject(CreateHouseholdUseCase) private readonly createHousehold: CreateHouseholdUseCase,
+    @Inject(InviteToHouseholdUseCase) private readonly inviteToHousehold: InviteToHouseholdUseCase,
+    @Inject(AcceptInviteUseCase) private readonly acceptInvite: AcceptInviteUseCase,
+    @Inject(ExportHouseholdDataUseCase) private readonly exportData: ExportHouseholdDataUseCase,
+    @Inject(DeleteHouseholdUseCase) private readonly scheduleDelete: DeleteHouseholdUseCase,
   ) {}
 
   @Post()
@@ -110,14 +112,35 @@ export class HouseholdsController {
   @ApiParam({ name: 'id', description: 'Household ID' })
   @ApiResponse({ status: 202, description: 'Deletion scheduled' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 403, description: 'No household' })
+  @ApiResponse({ status: 403, description: 'No household or caller is not the owner' })
+  @ApiResponse({ status: 404, description: 'Household not found' })
   async deleteHousehold(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     if (!user.householdId) {
       throw new ForbiddenException('No household');
     }
-    return this.scheduleDelete.execute({
-      householdId: id as HouseholdId,
-      requestedByUserId: user.userId,
-    });
+    // The path id must be the caller's own household (audit C3).
+    if (id !== user.householdId) {
+      throw new NotFoundException('Household not found');
+    }
+
+    try {
+      return await this.scheduleDelete.execute({
+        householdId: user.householdId,
+        requestedByUserId: user.userId,
+      });
+    } catch (err) {
+      throw this.toHttpError(err);
+    }
+  }
+
+  private toHttpError(err: unknown): unknown {
+    if (err instanceof HouseholdNotFoundError) {
+      return new NotFoundException('Household not found');
+    }
+    if (err instanceof HouseholdOwnerRequiredError) {
+      return new ForbiddenException('Only the household owner can delete the household');
+    }
+
+    return err;
   }
 }

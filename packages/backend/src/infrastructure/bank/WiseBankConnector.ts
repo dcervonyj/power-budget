@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { BankConnectionId, EncryptedString } from '@power-budget/core';
 import type { BankConnector } from '../../domain/bank/ports.js';
 import type {
@@ -73,9 +74,11 @@ export class WiseBankConnector implements BankConnector {
   }
 
   async initiateConsent(): Promise<{ consentUrl: string; externalConsentRef: string }> {
+    // A unique ref per connection (audit C4): a shared constant let one user's
+    // token be written onto another user's connection.
     return {
       consentUrl: 'wise-connect://token-entry',
-      externalConsentRef: 'wise-pending',
+      externalConsentRef: `wise-${randomUUID()}`,
     };
   }
 
