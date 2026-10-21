@@ -29,10 +29,34 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+      expo-react-native:
+        patterns:
+          - "expo"
+          - "expo-*"
+          - "react-native"
+          - "react-native-*"
+          - "@react-native/*"
+          - "@react-native-*/*"
+          - "@react-navigation/*"
+          - "@sentry/react-native"
     ignore:
       # Major version bumps require explicit review — never auto-merge
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Expo / React Native must move together with the Expo SDK (one deliberate
+      # upgrade via `npx expo install --fix`); never let the bot bump them.
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native/*"
+      - dependency-name: "@react-native-*/*"
+      - dependency-name: "@react-navigation/*"
+      - dependency-name: "@sentry/react-native"
+      - dependency-name: "@types/react-native"
     labels:
       - "dependencies"
       - "automated"
