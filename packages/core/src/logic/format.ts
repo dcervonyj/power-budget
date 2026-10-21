@@ -1,7 +1,5 @@
-import type { Money } from '../domain/shared/money.js';
-import type { CurrencyCode } from '../domain/shared/currency.js';
 import type { IsoDate } from '../domain/shared/ids.js';
-import { CURRENCIES } from '../domain/shared/currency.js';
+import { getMinorUnitExponent } from './money-amount.js';
 
 export type SupportedLocale = 'en' | 'uk' | 'ru' | 'pl';
 
@@ -12,8 +10,13 @@ const LOCALE_BCP47: Record<SupportedLocale, string> = {
   pl: 'pl-PL',
 };
 
-function getExponent(currency: CurrencyCode): number {
-  return CURRENCIES[currency]?.minorUnitExponent ?? 2;
+/**
+ * Anything with exact minor units: core `Money`, or an API amount after
+ * `parseMinorUnits` for a currency core does not list (JPY ...).
+ */
+export interface MinorUnitAmount {
+  readonly amountMinor: bigint;
+  readonly currency: string;
 }
 
 /**
@@ -21,8 +24,8 @@ function getExponent(currency: CurrencyCode): number {
  * Converts from minor units using the currency's exponent.
  * Example: { amountMinor: 1000n, currency: 'PLN' } → "10,00 zł" (pl)
  */
-export function formatMoney(money: Money, locale: SupportedLocale): string {
-  const exponent = getExponent(money.currency);
+export function formatMoney(money: MinorUnitAmount, locale: SupportedLocale): string {
+  const exponent = getMinorUnitExponent(money.currency);
   const formatter = new Intl.NumberFormat(LOCALE_BCP47[locale], {
     style: 'currency',
     currency: money.currency,

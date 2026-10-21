@@ -20,6 +20,6 @@ setup('save auth state', async ({ page }) => {
   await page.goto('/login');
   await page.getByLabel('Email').fill(process.env['TEST_USER_EMAIL'] ?? 'test@example.com');
   await page.getByLabel('Password').fill(process.env['TEST_USER_PASSWORD'] ?? 'password');
-  await page.getByRole('button', { name: /sign in/i }).click();
+  await page.getByRole('button', { name: /log in/i }).click();
   await page.context().storageState({ path: authFile });
 });

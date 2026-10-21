@@ -18,3 +18,10 @@ export class InvalidLocaleError extends Error {
     this.name = 'InvalidLocaleError';
   }
 }
+
+export class InvalidMoneyAmountError extends Error {
+  constructor(raw: string, reason: string) {
+    super(`Invalid money amount ${JSON.stringify(raw)}: ${reason}`);
+    this.name = 'InvalidMoneyAmountError';
+  }
+}
