@@ -1,39 +1,44 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { AuditEventId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
-import { DrizzleAuditEventRepository } from '../../infrastructure/audit/DrizzleAuditEventRepository.js';
+import { ListAuditLogUseCase } from '../../application/audit/use-cases/ListAuditLogUseCase.js';
 import { ListAuditLogQueryDto } from './dto/audit.dto.js';
-import type { AuditEventId } from '../../domain/audit/entities.js';
+import { AuditPageDto, emptyAuditPageDto, toAuditPageDto } from './dto/audit-response.dto.js';
 
 @ApiTags('audit-log')
 @ApiBearerAuth()
 @Controller('audit-log')
 @UseGuards(JwtAuthGuard)
 export class AuditController {
-  constructor(private readonly auditRepo: DrizzleAuditEventRepository) {}
+  constructor(@Inject(ListAuditLogUseCase) private readonly listAuditLog: ListAuditLogUseCase) {}
 
   @Get()
   @ApiOperation({ summary: 'List audit log events for the current household' })
-  @ApiResponse({ status: 200, description: 'Paginated list of audit events' })
+  @ApiResponse({ status: 200, description: 'Paginated list of audit events', type: AuditPageDto })
+  @ApiResponse({ status: 400, description: 'Invalid query parameters' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async list(@Query() query: ListAuditLogQueryDto, @CurrentUser() user: AuthenticatedUser) {
+  async list(
+    @Query() query: ListAuditLogQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<AuditPageDto> {
     if (!user.householdId) {
-      return { items: [], nextCursor: null, hasMore: false };
+      return emptyAuditPageDto();
     }
 
-    const result = await this.auditRepo.listByHousehold(
-      {
+    const page = await this.listAuditLog.execute({
+      householdId: user.householdId,
+      filter: {
         subjectType: query.subjectType,
         subjectId: query.subjectId,
         from: query.from,
         to: query.to,
-        cursor: query.cursor as AuditEventId | undefined,
+        cursor: query.cursor === undefined ? undefined : AuditEventId.of(query.cursor),
         limit: query.limit,
       },
-      { householdId: user.householdId },
-    );
+    });
 
-    return result;
+    return toAuditPageDto(page);
   }
 }

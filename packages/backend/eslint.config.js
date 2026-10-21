@@ -30,7 +30,7 @@ module.exports = [
           // Identity and tenant-root repositories (keyed by user or household id) and user-level
           // currency preferences: no HouseholdScope. FX rates are global (no tenant methods).
           unscopedRepositories: [
-            '^(user|household|session|totpSecret|magicLinkToken|invite|currencyPreferences)Repo(sitory)?$',
+            '^(user|userProfile|household|session|totpSecret|magicLinkToken|invite|currencyPreferences)Repo(sitory)?$',
           ],
         },
       ],

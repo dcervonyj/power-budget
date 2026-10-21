@@ -4,6 +4,7 @@ import { BankModule } from '../../infrastructure/bank/BankModule.js';
 import { AuditModule, REDACTING_AUDIT_LOGGER } from '../../infrastructure/audit/AuditModule.js';
 import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
 import { DrizzleBankConnectionRepository } from '../../infrastructure/bank/DrizzleBankConnectionRepository.js';
+import { DrizzleBankAccountRepository } from '../../infrastructure/bank/DrizzleBankAccountRepository.js';
 import { InMemoryBankConnectorRegistry } from '../../infrastructure/bank/InMemoryBankConnectorRegistry.js';
 import type { AuditLogger } from '../../domain/audit/ports.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
@@ -15,6 +16,7 @@ import { RefreshConnectionUseCase } from '../../application/bank/use-cases/Refre
 import { DisconnectBankUseCase } from '../../application/bank/use-cases/DisconnectBankUseCase.js';
 import { ReconnectBankUseCase } from '../../application/bank/use-cases/ReconnectBankUseCase.js';
 import { GetBankCatalogUseCase } from '../../application/bank/use-cases/GetBankCatalogUseCase.js';
+import { ListConnectionAccountsUseCase } from '../../application/bank/use-cases/ListConnectionAccountsUseCase.js';
 import { BankController } from './BankController.js';
 
 @Module({
@@ -74,6 +76,11 @@ import { BankController } from './BankController.js';
       provide: GetBankCatalogUseCase,
       inject: [InMemoryBankConnectorRegistry],
       useFactory: (reg: InMemoryBankConnectorRegistry) => new GetBankCatalogUseCase(reg),
+    },
+    {
+      provide: ListConnectionAccountsUseCase,
+      inject: [DrizzleBankAccountRepository],
+      useFactory: (repo: DrizzleBankAccountRepository) => new ListConnectionAccountsUseCase(repo),
     },
   ],
 })

@@ -2,14 +2,15 @@ import { PlanId } from '@power-budget/core';
 import type { IsoDate, UserId, HouseholdId } from '@power-budget/core';
 import type { Plan, NewPlan, PlanType, PlanPeriodKind } from '../../../domain/plans/entities.js';
 import type { PlanRepository, AuditLogPort } from '../../../domain/plans/ports.js';
-import { PlanCloning } from '../../../domain/plans/plan-cloning.js';
+import { PlanCloning, PlanPeriods } from '../../../domain/plans/plan-cloning.js';
 
 export interface CreatePlanInput {
   readonly name: string;
   readonly type: PlanType;
   readonly periodKind: PlanPeriodKind;
   readonly periodStart: IsoDate;
-  readonly periodEnd: IsoDate;
+  /** Optional for weekly and monthly plans (derived from the start). */
+  readonly periodEnd?: IsoDate;
   readonly baseCurrency: string;
   readonly userId: UserId;
   readonly householdId: HouseholdId;
@@ -23,25 +24,31 @@ export class CreatePlanUseCase {
   ) {}
 
   async execute(input: CreatePlanInput): Promise<Plan> {
-    const activePlans = await this.planRepo.listActive({
-      userId: input.userId,
-      householdId: input.householdId,
-      date: new Date(),
-    });
+    const period = PlanPeriods.resolve(input.periodKind, input.periodStart, input.periodEnd);
+    const ownerUserId = input.type === 'personal' ? input.userId : null;
 
-    PlanCloning.assertNoDuplicateActivePlan(activePlans, {
+    // Audit M13: compare with the plans overlapping the new period, not with "today".
+    const overlapping = await this.planRepo.list({
+      householdId: input.householdId,
+      viewerUserId: input.userId,
+      status: 'active',
+      overlapping: period,
+    });
+    PlanCloning.assertNoDuplicateActivePlan(overlapping, {
       type: input.type,
       periodKind: input.periodKind,
+      period,
+      ownerUserId,
     });
 
     const newPlan: NewPlan = {
       id: PlanId.of(this.generateId()),
       householdId: input.householdId,
-      ownerUserId: input.type === 'personal' ? input.userId : null,
+      ownerUserId,
       name: input.name,
       type: input.type,
       periodKind: input.periodKind,
-      period: { start: input.periodStart, end: input.periodEnd },
+      period,
       baseCurrency: input.baseCurrency,
     };
 
