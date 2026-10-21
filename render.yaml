@@ -19,7 +19,11 @@ services:
         value: "true"
       - key: CORS_ORIGINS
         value: "https://power-budget.pages.dev,*.power-budget.pages.dev,http://localhost:5173"
+      # App runtime: least-privilege role (see docs/runbooks/db-roles-and-migrations.md)
       - key: DATABASE_URL
+        sync: false
+      # Owner/migrator role, used only by `node drizzle/migrate.mjs` at boot
+      - key: MIGRATION_DATABASE_URL
         sync: false
       - key: REDIS_URL
         sync: false

@@ -27,6 +27,6 @@ export class RecomputePlanActualsProcessor extends WorkerHost {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async process(_job: Job<RefreshPlanActualsJobPayload>): Promise<void> {
-    await this.db.execute(sql`REFRESH MATERIALIZED VIEW CONCURRENTLY v_plan_actuals`);
+    await this.db.execute(sql`SELECT refresh_plan_actuals()`);
   }
 }
