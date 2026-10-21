@@ -82,7 +82,14 @@
     {
       "idx": 11,
       "version": "7",
-      "when": 1792594549752,
+      "when": 1792594313311,
+      "tag": "0011_cln-008r_transactions_keyset_idx",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792594924974,
       "tag": "0012_cln-006_household_invites",
       "breakpoints": true
     }

@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 import { Button } from './Button.js';
-import { apiClient } from '../../AppProviders.js';
+import { bulkTransactionActions } from '../../AppProviders.js';
+import type { BulkAction } from '../../application/transactions/BulkTransactionActions.js';
 
 export interface BulkActionBarProps {
   readonly selectedIds: ReadonlyArray<string>;
@@ -18,18 +19,24 @@ export function BulkActionBar({
   onActionComplete,
 }: BulkActionBarProps): React.JSX.Element | null {
   const theme = useTheme();
-  const [loadingAction, setLoadingAction] = useState<'mark_transfer' | 'ignore' | null>(null);
+  const [loadingAction, setLoadingAction] = useState<BulkAction | null>(null);
+  const [failed, setFailed] = useState(false);
 
   const count = selectedIds.length;
 
   if (count === 0) return null;
 
-  const handleBulkAction = async (action: 'mark_transfer' | 'ignore'): Promise<void> => {
+  const handleBulkAction = async (action: BulkAction): Promise<void> => {
     setLoadingAction(action);
+    setFailed(false);
     try {
-      await apiClient.post('/transactions/bulk', { action, ids: Array.from(selectedIds) });
+      await bulkTransactionActions.apply(action, selectedIds);
       onActionComplete?.();
       onClear();
+    } catch {
+      // Keep the selection so the user can retry; reload what did change.
+      setFailed(true);
+      onActionComplete?.();
     } finally {
       setLoadingAction(null);
     }
@@ -63,14 +70,26 @@ export function BulkActionBar({
         />
       </span>
 
+      {failed && (
+        <span
+          role="alert"
+          style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
+        >
+          <FormattedMessage
+            id="bulk.error"
+            defaultMessage="Some transactions could not be updated. Please try again."
+          />
+        </span>
+      )}
+
       <Button variant="primary" onClick={onMapAll}>
         <FormattedMessage id="bulk.mapAll" defaultMessage="Map all ({count})" values={{ count }} />
       </Button>
 
       <Button
         variant="secondary"
-        onClick={() => void handleBulkAction('mark_transfer')}
-        loading={loadingAction === 'mark_transfer'}
+        onClick={() => void handleBulkAction('transfer')}
+        loading={loadingAction === 'transfer'}
       >
         <FormattedMessage
           id="bulk.markAsTransfer"

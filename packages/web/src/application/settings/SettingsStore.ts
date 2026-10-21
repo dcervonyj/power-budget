@@ -1,4 +1,5 @@
 import { makeAutoObservable } from 'mobx';
+import { readApiError } from '@power-budget/shared-app';
 import { apiClient } from '../../AppProviders.js';
 
 const BASE_CURRENCY_KEY = 'pb_base_currency';
@@ -42,7 +43,7 @@ export class SettingsStore {
   exportError: string | null = null;
 
   isDeleting: boolean = false;
-  deleteError: string | null = null;
+  deleteError: DeleteError | null = null;
 
   profileLoaded: boolean = false;
 
@@ -125,10 +126,8 @@ export class SettingsStore {
         .request({
           url: '/users/me',
           method: 'PATCH',
-          body: {
-            baseCurrency: this.baseCurrency,
-            interestingCurrencies: this.interestingCurrencies,
-          },
+          // Interesting currencies are a local display preference; the API rejects them.
+          body: { baseCurrency: this.baseCurrency },
         })
         .catch(() => undefined);
     } catch {
@@ -198,16 +197,50 @@ export class SettingsStore {
     }
   }
 
-  async deleteAccount(): Promise<void> {
+  /**
+   * Household deletion needs a recent TOTP verification (CLN-004). Without one the
+   * API answers 403 `requires_totp` (or `requires_totp_enrollment`); the screen then
+   * asks for a code and calls this again with it.
+   */
+  async deleteAccount(totpCode = ''): Promise<void> {
     this.isDeleting = true;
     this.deleteError = null;
-    try {
-      const id = this.householdId || 'me';
-      await apiClient.delete(`/households/${id}`);
-    } catch {
+    if (!this.householdId) {
+      // GET /users/me returns householdId once CLN-011 is deployed.
       this.deleteError = 'delete_failed';
       this.isDeleting = false;
+
+      return;
     }
+    try {
+      if (totpCode) {
+        await apiClient.post('/auth/totp/verify', { code: totpCode });
+      }
+      await apiClient.delete(`/households/${this.householdId}`);
+    } catch (err) {
+      this.deleteError = deleteErrorCode(err);
+      this.isDeleting = false;
+    }
+  }
+}
+
+export type DeleteError =
+  | 'requires_totp'
+  | 'requires_totp_enrollment'
+  | 'totp_invalid'
+  | 'too_many_requests'
+  | 'delete_failed';
+
+function deleteErrorCode(err: unknown): DeleteError {
+  const { code } = readApiError(err);
+  switch (code) {
+    case 'requires_totp':
+    case 'requires_totp_enrollment':
+    case 'totp_invalid':
+    case 'too_many_requests':
+      return code;
+    default:
+      return 'delete_failed';
   }
 }
 

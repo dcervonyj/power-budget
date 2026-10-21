@@ -1,5 +1,5 @@
 {
-  "id": "ba9080ad-04bd-4b16-83d8-e3f637ca852f",
+  "id": "6f45b0ea-cdf2-487d-b63e-fb3dd0b550e9",
   "prevId": "d332038e-204b-485b-86a7-332ff816d16b",
   "version": "7",
   "dialect": "postgresql",
@@ -1016,24 +1016,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
-        },
-        "invited_by_user_id": {
-          "name": "invited_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "accepted_by_user_id": {
-          "name": "accepted_by_user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -1066,22 +1048,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "household_invites_one_open_unique": {
-          "name": "household_invites_one_open_unique",
-          "columns": [
-            {
-              "expression": "household_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "accepted_at IS NULL AND revoked_at IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -1090,24 +1056,6 @@
           "tableFrom": "household_invites",
           "tableTo": "households",
           "columnsFrom": ["household_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "household_invites_invited_by_user_id_users_id_fk": {
-          "name": "household_invites_invited_by_user_id_users_id_fk",
-          "tableFrom": "household_invites",
-          "tableTo": "users",
-          "columnsFrom": ["invited_by_user_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "household_invites_accepted_by_user_id_users_id_fk": {
-          "name": "household_invites_accepted_by_user_id_users_id_fk",
-          "tableFrom": "household_invites",
-          "tableTo": "users",
-          "columnsFrom": ["accepted_by_user_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -1440,19 +1388,7 @@
           "name": "recipient_user_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": false
-        },
-        "recipient_email": {
-          "name": "recipient_email",
-          "type": "varchar(320)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "recipient_locale": {
-          "name": "recipient_locale",
-          "type": "varchar(10)",
-          "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "kind": {
           "name": "kind",
@@ -1563,34 +1499,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "notifications_outbox_address_dedupe_unique": {
-          "name": "notifications_outbox_address_dedupe_unique",
-          "columns": [
-            {
-              "expression": "recipient_email",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "dedupe_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "recipient_user_id IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -1616,12 +1524,7 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {
-        "notifications_outbox_recipient_check": {
-          "name": "notifications_outbox_recipient_check",
-          "value": "recipient_user_id IS NOT NULL OR recipient_email IS NOT NULL"
-        }
-      },
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.planned_item_versions": {
@@ -2455,6 +2358,33 @@
               "expression": "occurred_on",
               "isExpression": false,
               "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "transactions_household_date_id_idx": {
+          "name": "transactions_household_date_id_idx",
+          "columns": [
+            {
+              "expression": "household_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_on",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": false,
               "nulls": "last"
             }
           ],

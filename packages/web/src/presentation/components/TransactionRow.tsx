@@ -1,6 +1,7 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
+import { parseLocalIsoDate } from '@power-budget/core';
 import { MoneyView } from './MoneyView.js';
 import type { Transaction } from './TransactionDetailModal.js';
 
@@ -13,7 +14,7 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
   const theme = useTheme();
   const intl = useIntl();
 
-  const dateStr = new Date(transaction.occurredOn).toLocaleDateString(intl.locale, {
+  const dateStr = parseLocalIsoDate(transaction.occurredOn).toLocaleDateString(intl.locale, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -21,7 +22,8 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
 
   const isTransfer = transaction.isTransfer;
   const isMapped = transaction.mapping !== null && !isTransfer;
-  const isUnmapped = !transaction.mapping && !isTransfer;
+  // Only claim "Unmapped" when the API said so; list rows usually do not know.
+  const isUnmapped = transaction.mappingStatus === 'unmapped' && !isTransfer;
 
   const chipLabel = isTransfer
     ? intl.formatMessage({
@@ -113,11 +115,7 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
           e.stopPropagation();
         }}
       >
-        <MoneyView
-          amountMinor={transaction.amountMinor}
-          currency={transaction.currency}
-          showTooltip={false}
-        />
+        <MoneyView amount={transaction.amount} showTooltip={false} />
       </span>
 
       <button

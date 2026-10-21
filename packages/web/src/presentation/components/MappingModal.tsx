@@ -2,23 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
-import { apiClient } from '../../AppProviders.js';
+import { apiClient, bulkTransactionActions } from '../../AppProviders.js';
+import {
+  PlanMapper,
+  type PlanDto,
+  type PlannedItemDto,
+  type PlannedItemSummary,
+  type PlanSummary,
+} from '../../infrastructure/api/PlanMapper.js';
+import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
 
-interface Plan {
-  id: string;
-  name: string;
-  status: 'active' | 'draft' | 'archived';
-}
-
-interface PlannedItem {
-  id: string;
-  planId: string;
-  categoryId: string;
-  categoryName?: string;
-  direction: 'income' | 'expense';
-  amountMinor: number;
-  currency: string;
-}
+type Plan = PlanSummary;
+type PlannedItem = PlannedItemSummary;
 
 export interface MappingModalProps {
   readonly isOpen: boolean;
@@ -58,8 +53,8 @@ export function MappingModal({
     setPlansLoading(true);
     void (async () => {
       try {
-        const res = await apiClient.get<Plan[]>('/plans?status=active');
-        const fetched = res.data;
+        const res = await apiClient.get<PlanDto[]>('/plans?status=active');
+        const fetched = res.data.map(PlanMapper.toPlan);
         setPlans(fetched);
         setSelectedPlanId(fetched[0]?.id ?? null);
       } finally {
@@ -78,8 +73,11 @@ export function MappingModal({
     setSelectedItemId(null);
     void (async () => {
       try {
-        const res = await apiClient.get<PlannedItem[]>(`/plans/${selectedPlanId}/items`);
-        const fetched = res.data;
+        const [res, categoryNames] = await Promise.all([
+          apiClient.get<PlannedItemDto[]>(`/plans/${selectedPlanId}/items`),
+          fetchCategoryNames(apiClient),
+        ]);
+        const fetched = res.data.map((dto) => PlanMapper.toItem(dto, categoryNames));
         setItems(fetched);
         setSelectedItemId(fetched[0]?.id ?? null);
       } finally {
@@ -93,11 +91,7 @@ export function MappingModal({
     setSubmitting(true);
     setError(null);
     try {
-      await apiClient.post('/transactions/bulk', {
-        action: 'map',
-        ids: Array.from(selectedIds),
-        plannedItemId: selectedItemId,
-      });
+      await bulkTransactionActions.map(selectedIds, selectedItemId);
       onSuccess();
       onClose();
     } catch {

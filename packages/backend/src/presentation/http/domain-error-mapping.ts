@@ -98,6 +98,7 @@ const BY_MESSAGE_CODE: Readonly<Record<string, HttpErrorMapping>> = {
     'transaction_not_found',
     'Transaction not found',
   ),
+  INVALID_CURSOR: mapping(HttpStatus.BAD_REQUEST, 'invalid_cursor', 'Invalid pagination cursor'),
   // Tenancy checks (CLN-005): an id from another household reads as not found.
   BANK_ACCOUNT_NOT_FOUND: mapping(
     HttpStatus.NOT_FOUND,
