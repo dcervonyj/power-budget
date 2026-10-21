@@ -14,6 +14,8 @@
     "clean": "rm -rf dist .turbo",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node drizzle/migrate.mjs",
+    "db:roles": "node drizzle/roles.mjs",
+    "db:check": "bash drizzle/check-drift.sh",
     "db:reset": "drizzle-kit drop && node drizzle/migrate.mjs",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx drizzle/seed/0001_seed_categories.ts",
