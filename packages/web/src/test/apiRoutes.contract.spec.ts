@@ -23,8 +23,6 @@ const CALL = /\.(get|post|patch|put|delete)\s*(?:<[^()]*?>)?\(\s*(['"`])(\/[^'"`
  * closes, so the entry gets removed instead of rotting.
  */
 const KNOWN_GAPS: readonly string[] = [
-  // HouseholdCategoryStore drill-in: no aggregate endpoint.
-  'GET /categories/{param}/aggregate',
   // Settings export polling: the API only has POST /households/export.
   'GET /households/export/status',
   // Bank consent callback: the API has GET /bank-connections/{id}/complete instead.

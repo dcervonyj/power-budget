@@ -2,23 +2,18 @@ import { test, expect } from '@playwright/test';
 import { FULL_STACK, STACK } from './support/stack.js';
 import { BackendApi, PASSWORD, uniqueEmail } from './support/api.js';
 import { assertMatchesSpec } from './support/openapi-contract.js';
-import {
-  PlanMapper,
-  type PlanDto,
-  type PlannedItemDto,
-} from '../src/infrastructure/api/PlanMapper.js';
+import { ApiClient, PlansApi, type SecureTokenStore } from '@power-budget/shared-app';
+import type { PlanDto, TransactionPageDto } from '@power-budget/shared-app/contract';
 import {
   toPlanActualsView,
   type PlanDashboardResponseDto,
 } from '../src/infrastructure/api/PlanDashboardMapper.js';
-import {
-  TransactionMapper,
-  type TransactionPageDto,
-} from '../src/infrastructure/api/TransactionMapper.js';
+import { TransactionMapper } from '../src/infrastructure/api/TransactionMapper.js';
 
 // Web <-> backend contract at runtime (CLN-017): real responses from the running
-// backend must match openapi.json (which api-types, and so every web mapper input,
-// is generated from), and the web mappers must turn them into complete view data.
+// backend must match openapi.json (which api-types, and so every web DTO and mapper
+// input, is generated from); the plan calls go through the shared-app client the
+// web screens use, and the web mappers must turn responses into complete view data.
 test.skip(!FULL_STACK, 'needs the e2e stack (TEST_ENV=e2e)');
 
 test.describe('web <-> backend contract', () => {
@@ -53,59 +48,45 @@ test.describe('web <-> backend contract', () => {
     const tokens = await api.register(uniqueEmail('contract-plans'));
     const category = await api.expenseCategory(tokens.accessToken);
 
-    const createdRes = await api.post('/plans', tokens.accessToken, {
+    // The client the plan screens use (shared-app ApiClient + PlansApi), on the wire.
+    const plansApi = new PlansApi(
+      new ApiClient(STACK.apiUrl, new FixedTokenStore(tokens.accessToken, tokens.refreshToken)),
+    );
+    const created = await plansApi.create({
       name: 'Contract plan',
       type: 'personal',
       periodKind: 'monthly',
       periodStart: '2026-10-01',
       baseCurrency: 'PLN',
     });
-    const created = await api.json<PlanDto>(createdRes, 201);
     assertMatchesSpec('post', '/plans', 201, created);
 
-    const itemRes = await api.post(`/plans/${created.id}/items`, tokens.accessToken, {
+    const item = await plansApi.createItem(created.id, {
       categoryId: category.id,
       direction: 'expense',
       amountMinor: '9007199254740993',
       currency: 'PLN',
     });
-    const item = await api.json<PlannedItemDto>(itemRes, 201);
     assertMatchesSpec('post', '/plans/{id}/items', 201, item);
 
-    const plans = await api.json<PlanDto[]>(await api.get('/plans', tokens.accessToken), 200);
+    const plans = await plansApi.list('all');
     assertMatchesSpec('get', '/plans', 200, plans);
-    const plan = await api.json<PlanDto>(
-      await api.get(`/plans/${created.id}`, tokens.accessToken),
-      200,
-    );
+    const plan: PlanDto = await plansApi.get(created.id);
     assertMatchesSpec('get', '/plans/{id}', 200, plan);
-    const items = await api.json<PlannedItemDto[]>(
-      await api.get(`/plans/${created.id}/items`, tokens.accessToken),
-      200,
-    );
+    const items = await plansApi.listItems(created.id);
     assertMatchesSpec('get', '/plans/{id}/items', 200, items);
 
-    // PlanMapper: the plan screens' view of the same rows.
-    expect(PlanMapper.toPlan(plan)).toEqual({
+    expect(plan).toMatchObject({
       id: created.id,
       name: 'Contract plan',
-      period: 'monthly',
-      status: 'active',
+      periodKind: 'monthly',
+      archivedAt: null,
       baseCurrency: 'PLN',
-      startDate: '2026-10-01',
-      endDate: '2026-10-31',
-      updatedAt: plan.updatedAt,
+      period: { start: '2026-10-01', end: '2026-10-31' },
     });
-    // Money beyond 2^53 stays an exact string through the wire and the mapper.
-    expect(items.map((row) => PlanMapper.toItem(row))).toEqual([
-      {
-        id: item.id,
-        planId: created.id,
-        categoryId: category.id,
-        direction: 'expense',
-        amountMinor: '9007199254740993',
-        currency: 'PLN',
-      },
+    // Money beyond 2^53 stays an exact string on the wire.
+    expect(items.map((row) => [row.id, row.categoryId, row.direction, row.amount])).toEqual([
+      [item.id, category.id, 'expense', { amountMinor: '9007199254740993', currency: 'PLN' }],
     ]);
 
     const dashboard = await api.json<PlanDashboardResponseDto>(
@@ -193,3 +174,23 @@ test.describe('web <-> backend contract', () => {
     assertMatchesSpec('get', '/households/{id}/dashboard', 200, dashboard);
   });
 });
+
+/** Hands fixed tokens to the shared-app ApiClient (no refresh needed in one test). */
+class FixedTokenStore implements SecureTokenStore {
+  constructor(
+    private readonly accessToken: string,
+    private readonly refreshToken: string,
+  ) {}
+
+  getAccessToken(): string | null {
+    return this.accessToken;
+  }
+
+  getRefreshToken(): string | null {
+    return this.refreshToken;
+  }
+
+  async setTokens(): Promise<void> {}
+
+  async clearTokens(): Promise<void> {}
+}

@@ -32,8 +32,8 @@ test.describe('plan journey', () => {
       200,
     );
 
-    // The category cell is a free-text id field today (no picker yet).
-    await page.getByLabel('Category').fill(category.id);
+    // The new-item row: category picker (unlabelled, placeholder "Category"), then amount and currency.
+    await page.locator('#plan-new-item-category').selectOption({ label: category.name });
     await page.getByLabel('Amount').last().fill('250.50');
     await page.getByLabel('Currency').last().fill(plan.baseCurrency);
     await page.getByRole('button', { name: 'Add item' }).click();
