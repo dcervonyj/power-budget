@@ -11,7 +11,11 @@ import type {
   CategoryId,
   PlanActualsView,
 } from '@power-budget/core';
-import type { BankConnectionRepository, BankConnectorRegistry, BankSyncQueuePort } from '../src/domain/bank/ports.js';
+import type {
+  BankConnectionRepository,
+  BankConnectorRegistry,
+  BankSyncQueuePort,
+} from '../src/domain/bank/ports.js';
 import type { BankConnection } from '../src/domain/bank/entities.js';
 import {
   BankConnectionNotFoundError,
@@ -27,7 +31,8 @@ import type {
   PlanActualsReader,
 } from '../src/domain/plans/ports.js';
 import type { Plan, PlannedItem } from '../src/domain/plans/entities.js';
-import { ListActivePlansUseCase } from '../src/application/plans/use-cases/ListActivePlansUseCase.js';
+import { ListPlansUseCase } from '../src/application/plans/use-cases/ListPlansUseCase.js';
+import type { CategoryRepository } from '../src/domain/categories/ports.js';
 import { CreatePlanUseCase } from '../src/application/plans/use-cases/CreatePlanUseCase.js';
 import { UpdatePlanUseCase } from '../src/application/plans/use-cases/UpdatePlanUseCase.js';
 import { GetPlanDashboardUseCase } from '../src/application/plans/use-cases/GetPlanDashboardUseCase.js';
@@ -217,17 +222,16 @@ describe('Tenancy isolation — application layer', () => {
   });
 
   describe('plans', () => {
-    it('scopes listActive to the provided householdId', async () => {
+    it('scopes list to the provided householdId', async () => {
       const repo = mock<PlanRepository>();
       const planA = makePlan(HOUSEHOLD_A);
-      repo.listActive.mockResolvedValue([planA]);
+      repo.list.mockResolvedValue([planA]);
 
-      const useCase = new ListActivePlansUseCase(repo);
-      const today = new Date('2024-01-15T12:00:00Z');
+      const useCase = new ListPlansUseCase(repo);
       const result = await useCase.execute({
         userId: USER_A,
         householdId: HOUSEHOLD_A,
-        date: today,
+        status: 'active',
       });
 
       expect(result).toHaveLength(1);
@@ -237,33 +241,33 @@ describe('Tenancy isolation — application layer', () => {
 
     it('passes householdId through to the repository query', async () => {
       const repo = mock<PlanRepository>();
-      repo.listActive.mockResolvedValue([]);
+      repo.list.mockResolvedValue([]);
 
-      const useCase = new ListActivePlansUseCase(repo);
-      const today = new Date('2024-01-15T12:00:00Z');
-      await useCase.execute({ userId: USER_A, householdId: HOUSEHOLD_A, date: today });
+      const useCase = new ListPlansUseCase(repo);
+      await useCase.execute({ userId: USER_A, householdId: HOUSEHOLD_A, status: 'active' });
 
-      expect(repo.listActive).toHaveBeenCalledOnce();
-      expect(repo.listActive).toHaveBeenCalledWith(
-        expect.objectContaining({ householdId: HOUSEHOLD_A }),
-      );
+      expect(repo.list).toHaveBeenCalledOnce();
+      expect(repo.list).toHaveBeenCalledWith({
+        householdId: HOUSEHOLD_A,
+        viewerUserId: USER_A,
+        status: 'active',
+      });
     });
 
     it('does not leak Household B plans when called with Household A scope', async () => {
       const repo = mock<PlanRepository>();
       // Simulate the repo correctly scoping the query (application contract).
-      repo.listActive.mockImplementation(async ({ householdId }) => {
+      repo.list.mockImplementation(async ({ householdId }) => {
         const all = [makePlan(HOUSEHOLD_A), makePlan(HOUSEHOLD_B)];
 
         return all.filter((p) => p.householdId === householdId);
       });
 
-      const useCase = new ListActivePlansUseCase(repo);
-      const today = new Date('2024-01-15T12:00:00Z');
+      const useCase = new ListPlansUseCase(repo);
       const result = await useCase.execute({
         userId: USER_A,
         householdId: HOUSEHOLD_A,
-        date: today,
+        status: 'active',
       });
 
       expect(result.every((p) => p.householdId === HOUSEHOLD_A)).toBe(true);
@@ -797,7 +801,7 @@ describe('Tenancy isolation — application layer', () => {
         const auditLog = mock<AuditLogPort>();
         const planA = makePlan(HOUSEHOLD_A);
 
-        planRepo.listActive.mockResolvedValue([]);
+        planRepo.list.mockResolvedValue([]);
         planRepo.create.mockResolvedValue(planA);
         auditLog.record.mockResolvedValue(undefined);
 
@@ -819,12 +823,12 @@ describe('Tenancy isolation — application layer', () => {
         );
       });
 
-      it('passes correct householdId to listActive when checking duplicates', async () => {
+      it('passes correct householdId to list when checking overlapping plans', async () => {
         const planRepo = mock<PlanRepository>();
         const auditLog = mock<AuditLogPort>();
         const planA = makePlan(HOUSEHOLD_A);
 
-        planRepo.listActive.mockResolvedValue([]);
+        planRepo.list.mockResolvedValue([]);
         planRepo.create.mockResolvedValue(planA);
         auditLog.record.mockResolvedValue(undefined);
 
@@ -840,9 +844,12 @@ describe('Tenancy isolation — application layer', () => {
           householdId: HOUSEHOLD_A,
         });
 
-        expect(planRepo.listActive).toHaveBeenCalledWith(
-          expect.objectContaining({ householdId: HOUSEHOLD_A }),
-        );
+        expect(planRepo.list).toHaveBeenCalledWith({
+          householdId: HOUSEHOLD_A,
+          viewerUserId: USER_A,
+          status: 'active',
+          overlapping: { start: '2024-01-01', end: '2024-01-31' },
+        });
       });
     });
 
@@ -912,6 +919,7 @@ describe('Tenancy isolation — application layer', () => {
         const result = await useCase.execute({
           planId: PLAN_ID_A,
           householdId: HOUSEHOLD_A,
+          userId: USER_A,
           asOf: new Date('2024-01-15'),
         });
 
@@ -934,6 +942,7 @@ describe('Tenancy isolation — application layer', () => {
           useCase.execute({
             planId: PLAN_ID_B,
             householdId: HOUSEHOLD_A,
+            userId: USER_A,
             asOf: new Date('2024-01-15'),
           }),
         ).rejects.toThrow(/PLAN_NOT_FOUND/);
@@ -949,10 +958,29 @@ describe('Tenancy isolation — application layer', () => {
         const planA = makePlan(HOUSEHOLD_A);
         const itemA = makePlannedItem(HOUSEHOLD_A);
 
+        const categoryRepo = mock<CategoryRepository>();
+        const auditLog = mock<AuditLogPort>();
         planRepo.findById.mockResolvedValue(planA);
+        categoryRepo.findById.mockResolvedValue({
+          id: CATEGORY_ID,
+          householdId: null,
+          seedKey: 'expense.groceries',
+          name: 'Groceries',
+          icon: 'cart',
+          color: '#000000',
+          kind: 'expense',
+          archivedAt: null,
+          createdAt: '2024-01-01T00:00:00.000Z',
+        });
         plannedItemRepo.add.mockResolvedValue(itemA);
 
-        const useCase = new AddPlannedItemUseCase(planRepo, plannedItemRepo, () => VALID_UUID);
+        const useCase = new AddPlannedItemUseCase(
+          planRepo,
+          plannedItemRepo,
+          categoryRepo,
+          auditLog,
+          () => VALID_UUID,
+        );
         const result = await useCase.execute({
           planId: PLAN_ID_A,
           categoryId: CATEGORY_ID,
@@ -975,7 +1003,13 @@ describe('Tenancy isolation — application layer', () => {
 
         planRepo.findById.mockResolvedValue(null);
 
-        const useCase = new AddPlannedItemUseCase(planRepo, plannedItemRepo, () => VALID_UUID);
+        const useCase = new AddPlannedItemUseCase(
+          planRepo,
+          plannedItemRepo,
+          mock<CategoryRepository>(),
+          mock<AuditLogPort>(),
+          () => VALID_UUID,
+        );
 
         await expect(
           useCase.execute({
@@ -1002,6 +1036,7 @@ describe('Tenancy isolation — application layer', () => {
         const updatedItem = { ...itemA, amount: { amountMinor: 800n, currency: 'EUR' } };
 
         planRepo.findById.mockResolvedValue(planA);
+        plannedItemRepo.findById.mockResolvedValue(itemA);
         plannedItemRepo.update.mockResolvedValue(updatedItem);
         auditLog.record.mockResolvedValue(undefined);
 

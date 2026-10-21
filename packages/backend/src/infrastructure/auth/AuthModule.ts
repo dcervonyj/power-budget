@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { DatabaseModule } from '../database/database.module.js';
 import { QueueModule } from '../queue/queue.module.js';
 import { DrizzleUserRepository } from './DrizzleUserRepository.js';
+import { DrizzleUserProfileRepository } from './DrizzleUserProfileRepository.js';
 import { DrizzleHouseholdRepository } from './DrizzleHouseholdRepository.js';
 import { DrizzleHouseholdExportRepository } from './DrizzleHouseholdExportRepository.js';
 import { BullMQHouseholdExportQueue } from './BullMQHouseholdExportQueue.js';
@@ -23,6 +24,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
   imports: [DatabaseModule, ConfigModule, QueueModule],
   providers: [
     DrizzleUserRepository,
+    DrizzleUserProfileRepository,
     DrizzleHouseholdRepository,
     DrizzleHouseholdExportRepository,
     BullMQHouseholdExportQueue,
@@ -58,6 +60,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     },
   ],
   exports: [
+    DrizzleUserProfileRepository,
     DrizzleUserRepository,
     DrizzleHouseholdRepository,
     DrizzleHouseholdExportRepository,

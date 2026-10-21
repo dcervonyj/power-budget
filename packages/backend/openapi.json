@@ -7,10 +7,18 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Service is up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatusDto"
+                }
+              }
+            }
           }
         },
-        "tags": ["Health"]
+        "summary": "Liveness check",
+        "tags": ["health"]
       }
     },
     "/auth/register": {
@@ -29,7 +37,14 @@
         },
         "responses": {
           "201": {
-            "description": "User registered successfully"
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensDto"
+                }
+              }
+            }
           },
           "409": {
             "description": "Email already in use"
@@ -55,7 +70,14 @@
         },
         "responses": {
           "201": {
-            "description": "Tokens issued"
+            "description": "Tokens issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Invalid credentials"
@@ -104,7 +126,14 @@
         },
         "responses": {
           "201": {
-            "description": "Tokens issued"
+            "description": "Tokens issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Token invalid or expired"
@@ -120,7 +149,14 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": "TOTP secret and QR code URI"
+            "description": "TOTP secret and QR code URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TotpEnrollmentDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -182,7 +218,14 @@
         },
         "responses": {
           "201": {
-            "description": "New tokens issued"
+            "description": "New tokens issued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthTokensDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Refresh token invalid or expired"
@@ -229,7 +272,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Current user profile"
+            "description": "Current user profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -240,12 +290,53 @@
             "bearer": []
           }
         ],
-        "summary": "Get the current authenticated user",
+        "summary": "Get the current user profile and preferences",
+        "tags": ["users"]
+      },
+      "patch": {
+        "operationId": "UsersController_patchMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid field (e.g. unknown time zone)"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update the display name and preferences (locale, base currency, time zone)",
         "tags": ["users"]
       }
     },
     "/users/me/locale": {
       "patch": {
+        "deprecated": true,
+        "description": "Deprecated: use PATCH /users/me with `locale`.",
         "operationId": "UsersController_updateLocalePreference",
         "parameters": [],
         "requestBody": {
@@ -291,7 +382,14 @@
         },
         "responses": {
           "201": {
-            "description": "Household created"
+            "description": "Household created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdCreatedDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -372,7 +470,14 @@
         "parameters": [],
         "responses": {
           "201": {
-            "description": "Export requested"
+            "description": "Export requested",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdExportRequestedDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -404,7 +509,14 @@
         ],
         "responses": {
           "202": {
-            "description": "Deletion scheduled"
+            "description": "Deletion scheduled",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdDeletionScheduledDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -556,7 +668,17 @@
         },
         "responses": {
           "200": {
-            "description": "Transaction updated"
+            "description": "Updated transaction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid id or body"
           },
           "401": {
             "description": "Unauthorized"
@@ -725,7 +847,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Paginated list of audit events"
+            "description": "Paginated list of audit events",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPageDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters"
           },
           "401": {
             "description": "Unauthorized"
@@ -746,7 +878,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "List of bank institutions"
+            "description": "List of bank institutions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BankCatalogEntryDto"
+                  }
+                }
+              }
+            }
           }
         },
         "summary": "List available banks for a given country",
@@ -769,7 +911,14 @@
         },
         "responses": {
           "201": {
-            "description": "Consent link returned"
+            "description": "Consent link returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankConsentLinkDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -791,7 +940,17 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "List of bank connections"
+            "description": "List of bank connections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BankConnectionDto"
+                  }
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -834,7 +993,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Connection activated"
+            "description": "Connection activated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankConsentCompletedDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -866,7 +1032,14 @@
         ],
         "responses": {
           "202": {
-            "description": "Refresh enqueued"
+            "description": "Refresh enqueued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankRefreshEnqueuedDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -946,7 +1119,14 @@
         },
         "responses": {
           "201": {
-            "description": "New consent link returned"
+            "description": "New consent link returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BankReconnectLinkDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Unauthorized"
@@ -1006,6 +1186,525 @@
         "tags": ["bank-connections"]
       }
     },
+    "/plans": {
+      "get": {
+        "operationId": "PlansController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Plans ordered by period start",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlanDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List plans: household plans plus your own personal plans",
+        "tags": ["plans"]
+      },
+      "post": {
+        "operationId": "PlansController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Plan created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid body or period"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "409": {
+            "description": "An active plan of this type and period overlaps"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a plan",
+        "tags": ["plans"]
+      }
+    },
+    "/plans/{id}": {
+      "get": {
+        "operationId": "PlansController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get a plan",
+        "tags": ["plans"]
+      },
+      "patch": {
+        "operationId": "PlansController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          },
+          "409": {
+            "description": "Plan archived, or the new period overlaps"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a plan, move its period or change its base currency",
+        "tags": ["plans"]
+      }
+    },
+    "/plans/{id}/archive": {
+      "post": {
+        "operationId": "PlansController_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Plan archived"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Archive a plan (idempotent). Archived plans are read-only",
+        "tags": ["plans"]
+      }
+    },
+    "/plans/{id}/clone": {
+      "post": {
+        "operationId": "PlansController_clone",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Source plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClonePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The new plan",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          },
+          "409": {
+            "description": "An active plan of this type and period overlaps"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Clone a plan and its planned items into a new period (default: the next one)",
+        "tags": ["plans"]
+      }
+    },
+    "/plans/{id}/items": {
+      "get": {
+        "operationId": "PlansController_items",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Planned items",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlannedItemDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the planned items of a plan",
+        "tags": ["plans"]
+      },
+      "post": {
+        "operationId": "PlansController_createItem",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlannedItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Planned item created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlannedItemDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan or category not found"
+          },
+          "409": {
+            "description": "Plan archived"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add a planned item",
+        "tags": ["plans"]
+      }
+    },
+    "/plans/{id}/items/{itemId}": {
+      "patch": {
+        "operationId": "PlansController_patchItem",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Planned item ID (UUIDv7)",
+            "schema": {}
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlannedItemDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated planned item",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlannedItemDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan or planned item not found"
+          },
+          "409": {
+            "description": "Plan archived"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change a planned item (the change is kept in its history)",
+        "tags": ["plans"]
+      },
+      "delete": {
+        "operationId": "PlansController_deleteItem",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Planned item ID (UUIDv7)",
+            "schema": {}
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Planned item removed"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan or planned item not found"
+          },
+          "409": {
+            "description": "Plan archived"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove a planned item; transactions mapped to it become unplanned",
+        "tags": ["plans"]
+      }
+    },
+    "/plans/{id}/items/{itemId}/history": {
+      "get": {
+        "operationId": "PlansController_history",
+        "parameters": [
+          {
+            "name": "itemId",
+            "required": true,
+            "in": "path",
+            "description": "Planned item ID (UUIDv7)",
+            "schema": {}
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Plan ID (UUIDv7)",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "History entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlannedItemVersionDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "Plan or planned item not found"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change history of a planned item, newest first",
+        "tags": ["plans"]
+      }
+    },
     "/plans/{id}/dashboard": {
       "get": {
         "operationId": "PlansController_dashboard",
@@ -1014,7 +1713,7 @@
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "Plan ID",
+            "description": "Plan ID (UUIDv7)",
             "schema": {}
           }
         ],
@@ -1084,7 +1783,7 @@
             "name": "id",
             "required": true,
             "in": "path",
-            "description": "Plan ID",
+            "description": "Plan ID (UUIDv7)",
             "schema": {}
           }
         ],
@@ -1127,7 +1826,14 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": "Webhook accepted"
+            "description": "Webhook accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookAcceptedDto"
+                }
+              }
+            }
           },
           "401": {
             "description": "Missing or invalid webhook signature"
@@ -1187,6 +1893,137 @@
         "summary": "Get household-level category dashboard for a plan",
         "tags": ["households"]
       }
+    },
+    "/categories": {
+      "get": {
+        "operationId": "CategoriesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Categories",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CategoryDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List system categories and the household's own categories",
+        "tags": ["categories"]
+      },
+      "post": {
+        "operationId": "CategoriesController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "409": {
+            "description": "An active category with this name exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a household category",
+        "tags": ["categories"]
+      }
+    },
+    "/categories/{id}": {
+      "patch": {
+        "operationId": "CategoriesController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Category ID",
+            "schema": {}
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoryDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "System categories are read-only"
+          },
+          "404": {
+            "description": "Category not found"
+          },
+          "409": {
+            "description": "An active category with this name exists"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename, restyle, archive/restore or set the privacy of a category",
+        "tags": ["categories"]
+      }
     }
   },
   "info": {
@@ -1206,6 +2043,21 @@
       }
     },
     "schemas": {
+      "HealthStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok"],
+            "example": "ok"
+          },
+          "ts": {
+            "type": "string",
+            "example": "2024-06-15T10:00:00.000Z"
+          }
+        },
+        "required": ["status", "ts"]
+      },
       "RegisterDto": {
         "type": "object",
         "properties": {
@@ -1225,6 +2077,23 @@
           }
         },
         "required": ["email", "password"]
+      },
+      "AuthTokensDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "accessToken": {
+            "type": "string",
+            "description": "Short-lived JWT access token"
+          },
+          "refreshToken": {
+            "type": "string",
+            "description": "Opaque refresh token"
+          }
+        },
+        "required": ["userId", "accessToken", "refreshToken"]
       },
       "LoginDto": {
         "type": "object",
@@ -1265,6 +2134,20 @@
         },
         "required": ["token"]
       },
+      "TotpEnrollmentDto": {
+        "type": "object",
+        "properties": {
+          "qrCodeUri": {
+            "type": "string",
+            "description": "otpauth:// URI to render as a QR code"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Base32 TOTP secret for manual entry"
+          }
+        },
+        "required": ["qrCodeUri", "secret"]
+      },
       "VerifyTotpDto": {
         "type": "object",
         "properties": {
@@ -1296,6 +2179,90 @@
         },
         "required": ["refreshToken"]
       },
+      "UserProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "anna@example.com"
+          },
+          "displayName": {
+            "type": "string",
+            "example": "Anna"
+          },
+          "locale": {
+            "type": "string",
+            "enum": ["en", "uk", "ru", "pl"],
+            "description": "Effective locale: the preference, else the default"
+          },
+          "localePreference": {
+            "type": "string",
+            "enum": ["en", "uk", "ru", "pl"],
+            "nullable": true
+          },
+          "defaultLocale": {
+            "type": "string",
+            "enum": ["en", "uk", "ru", "pl"]
+          },
+          "baseCurrency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
+            "nullable": true,
+            "description": "Effective base currency: the user's preference, else the household's"
+          },
+          "timezone": {
+            "type": "string",
+            "example": "Europe/Warsaw",
+            "description": "IANA time zone name"
+          },
+          "householdId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "displayName",
+          "locale",
+          "localePreference",
+          "defaultLocale",
+          "baseCurrency",
+          "timezone",
+          "householdId"
+        ]
+      },
+      "UpdateUserProfileDto": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "Anna"
+          },
+          "locale": {
+            "type": "string",
+            "enum": ["en", "uk", "ru", "pl"],
+            "example": "pl"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
+            "example": "PLN"
+          },
+          "timezone": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "IANA time zone name",
+            "example": "Europe/Warsaw"
+          }
+        }
+      },
       "UpdateLocaleDto": {
         "type": "object",
         "properties": {
@@ -1322,6 +2289,15 @@
         },
         "required": ["name"]
       },
+      "HouseholdCreatedDto": {
+        "type": "object",
+        "properties": {
+          "householdId": {
+            "type": "string"
+          }
+        },
+        "required": ["householdId"]
+      },
       "InviteToHouseholdDto": {
         "type": "object",
         "properties": {
@@ -1331,6 +2307,30 @@
           }
         },
         "required": ["email"]
+      },
+      "HouseholdExportRequestedDto": {
+        "type": "object",
+        "properties": {
+          "exportId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["pending"]
+          }
+        },
+        "required": ["exportId", "status"]
+      },
+      "HouseholdDeletionScheduledDto": {
+        "type": "object",
+        "properties": {
+          "scheduledFor": {
+            "type": "string",
+            "description": "When the household and its data will be purged",
+            "example": "2024-07-15T10:00:00.000Z"
+          }
+        },
+        "required": ["scheduledFor"]
       },
       "MoneyDto": {
         "type": "object",
@@ -1548,6 +2548,92 @@
         },
         "required": ["ids", "op"]
       },
+      "AuditEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "actorId": {
+            "type": "string",
+            "description": "User who performed the action"
+          },
+          "subjectType": {
+            "type": "string",
+            "example": "Plan"
+          },
+          "subjectId": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string",
+            "example": "PLAN_CREATED"
+          },
+          "meta": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Redacted event context"
+          },
+          "occurredAt": {
+            "type": "string",
+            "example": "2024-06-15T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "householdId",
+          "actorId",
+          "subjectType",
+          "subjectId",
+          "action",
+          "meta",
+          "occurredAt"
+        ]
+      },
+      "AuditPageDto": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEventDto"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "hasMore": {
+            "type": "boolean"
+          }
+        },
+        "required": ["items", "nextCursor", "hasMore"]
+      },
+      "BankCatalogEntryDto": {
+        "type": "object",
+        "properties": {
+          "bankId": {
+            "type": "string",
+            "example": "PKO_BPKOPLPW"
+          },
+          "name": {
+            "type": "string",
+            "example": "PKO Bank Polski"
+          },
+          "countryCode": {
+            "type": "string",
+            "example": "PL"
+          },
+          "logoUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["bankId", "name", "countryCode", "logoUrl"]
+      },
       "InitiateBankConnectionDto": {
         "type": "object",
         "properties": {
@@ -1568,6 +2654,90 @@
         },
         "required": ["provider", "bankId", "redirectUri"]
       },
+      "BankConsentLinkDto": {
+        "type": "object",
+        "properties": {
+          "consentUrl": {
+            "type": "string",
+            "description": "Provider consent page to redirect the user to"
+          },
+          "connectionId": {
+            "type": "string"
+          }
+        },
+        "required": ["consentUrl", "connectionId"]
+      },
+      "BankConsentCompletedDto": {
+        "type": "object",
+        "properties": {
+          "connectionId": {
+            "type": "string"
+          }
+        },
+        "required": ["connectionId"]
+      },
+      "BankConnectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "enum": ["gocardless", "wise_personal"]
+          },
+          "bankId": {
+            "type": "string",
+            "example": "PKO_BPKOPLPW"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "expired", "disconnected", "reconnect_required"]
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "example": "2024-09-15T10:00:00.000Z"
+          },
+          "disconnectedAt": {
+            "type": "string",
+            "nullable": true,
+            "example": "2024-06-15T10:00:00.000Z"
+          },
+          "createdAt": {
+            "type": "string",
+            "example": "2024-06-15T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "householdId",
+          "userId",
+          "provider",
+          "bankId",
+          "status",
+          "expiresAt",
+          "disconnectedAt",
+          "createdAt"
+        ]
+      },
+      "BankRefreshEnqueuedDto": {
+        "type": "object",
+        "properties": {
+          "jobId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Sync job id, null if deduplicated"
+          }
+        },
+        "required": ["jobId"]
+      },
       "ReconnectBankDto": {
         "type": "object",
         "properties": {
@@ -1577,6 +2747,16 @@
             "example": "https://app.power-budget.test/connect/callback"
           }
         }
+      },
+      "BankReconnectLinkDto": {
+        "type": "object",
+        "properties": {
+          "consentUrl": {
+            "type": "string",
+            "description": "Provider consent page to redirect the user to"
+          }
+        },
+        "required": ["consentUrl"]
       },
       "BankAccountDto": {
         "type": "object",
@@ -1637,6 +2817,295 @@
           }
         },
         "required": ["start", "end"]
+      },
+      "PlanDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "type": {
+            "type": "string",
+            "enum": ["personal", "household"]
+          },
+          "ownerUserId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Set for personal plans"
+          },
+          "periodKind": {
+            "type": "string",
+            "enum": ["weekly", "monthly", "custom"]
+          },
+          "period": {
+            "$ref": "#/components/schemas/DateRangeDto"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "example": "PLN"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "ownerUserId",
+          "periodKind",
+          "period",
+          "baseCurrency",
+          "archivedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreatePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "October budget"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["personal", "household"],
+            "description": "personal plans are visible to their owner only"
+          },
+          "periodKind": {
+            "type": "string",
+            "enum": ["weekly", "monthly", "custom"]
+          },
+          "periodStart": {
+            "type": "string",
+            "example": "2026-10-01"
+          },
+          "periodEnd": {
+            "type": "string",
+            "example": "2026-10-31",
+            "description": "Required for custom plans; derived from the start for weekly and monthly"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
+            "example": "PLN"
+          }
+        },
+        "required": ["name", "type", "periodKind", "periodStart", "baseCurrency"]
+      },
+      "UpdatePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "periodStart": {
+            "type": "string",
+            "example": "2026-11-01",
+            "description": "Moves the period; weekly and monthly plans derive the end again"
+          },
+          "periodEnd": {
+            "type": "string",
+            "example": "2026-11-30"
+          },
+          "baseCurrency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"]
+          }
+        }
+      },
+      "ClonePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Defaults to the source name"
+          },
+          "periodStart": {
+            "type": "string",
+            "example": "2026-11-01",
+            "description": "Defaults to the day after the source period ends"
+          },
+          "periodEnd": {
+            "type": "string",
+            "example": "2026-11-30"
+          }
+        }
+      },
+      "PlannedItemDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["income", "expense"]
+          },
+          "amount": {
+            "$ref": "#/components/schemas/MoneyDto"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "planId",
+          "categoryId",
+          "direction",
+          "amount",
+          "note",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreatePlannedItemDto": {
+        "type": "object",
+        "properties": {
+          "categoryId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "direction": {
+            "type": "string",
+            "enum": ["income", "expense"]
+          },
+          "amountMinor": {
+            "type": "string",
+            "example": "150000",
+            "description": "Planned amount in minor units as an integer string (a safe JSON integer is accepted)"
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
+            "example": "PLN"
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          }
+        },
+        "required": ["categoryId", "direction", "amountMinor", "currency"]
+      },
+      "UpdatePlannedItemDto": {
+        "type": "object",
+        "properties": {
+          "amountMinor": {
+            "type": "string",
+            "example": "160000",
+            "description": "Send together with currency"
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 500,
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Stored in the item history"
+          }
+        }
+      },
+      "PlannedItemChangeDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "$ref": "#/components/schemas/MoneyDto"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "PlannedItemVersionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plannedItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "before": {
+            "nullable": true,
+            "description": "Values before the change",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlannedItemChangeDto"
+              }
+            ]
+          },
+          "after": {
+            "description": "Values after the change",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/PlannedItemChangeDto"
+              }
+            ]
+          },
+          "changedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["id", "plannedItemId", "before", "after", "changedBy", "changedAt", "reason"]
       },
       "PlannedItemActualsDto": {
         "type": "object",
@@ -1797,6 +3266,17 @@
         },
         "required": ["items", "nextCursor"]
       },
+      "WebhookAcceptedDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [true],
+            "example": true
+          }
+        },
+        "required": ["ok"]
+      },
       "HouseholdDashboardCategoryDto": {
         "type": "object",
         "properties": {
@@ -1853,6 +3333,118 @@
           }
         },
         "required": ["planId", "categories"]
+      },
+      "CategoryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["income", "expense"]
+          },
+          "icon": {
+            "type": "string",
+            "example": "tag"
+          },
+          "color": {
+            "type": "string",
+            "example": "#6B7280"
+          },
+          "isSystem": {
+            "type": "boolean",
+            "description": "Seeded category shared by all households (read-only)"
+          },
+          "seedKey": {
+            "type": "string",
+            "nullable": true,
+            "example": "expense.groceries"
+          },
+          "privacy": {
+            "type": "string",
+            "enum": ["full_detail", "total_with_counts", "total_only"]
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "icon",
+          "color",
+          "isSystem",
+          "seedKey",
+          "privacy",
+          "archived",
+          "archivedAt",
+          "createdAt"
+        ]
+      },
+      "CreateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "example": "Coffee"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["income", "expense"],
+            "description": "Defaults to expense"
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 100,
+            "example": "coffee"
+          },
+          "color": {
+            "type": "string",
+            "example": "#6B7280"
+          }
+        },
+        "required": ["name"]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "icon": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "color": {
+            "type": "string",
+            "example": "#10B981"
+          },
+          "privacy": {
+            "type": "string",
+            "enum": ["full_detail", "total_with_counts", "total_only"]
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "true archives, false restores"
+          }
+        }
       }
     }
   }

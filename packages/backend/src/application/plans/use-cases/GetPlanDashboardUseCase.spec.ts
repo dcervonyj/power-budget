@@ -60,7 +60,7 @@ describe('GetPlanDashboardUseCase', () => {
     planRepo = {
       create: vi.fn(),
       findById: vi.fn(),
-      listActive: vi.fn(),
+      list: vi.fn(),
       update: vi.fn(),
       archive: vi.fn(),
       findByPeriodEnd: vi.fn(),
@@ -75,7 +75,12 @@ describe('GetPlanDashboardUseCase', () => {
     vi.mocked(actualsReader.read).mockResolvedValue(view);
 
     const asOf = new Date('2024-01-15');
-    const result = await useCase.execute({ planId: PLAN_ID, householdId: HH_ID, asOf });
+    const result = await useCase.execute({
+      planId: PLAN_ID,
+      householdId: HH_ID,
+      userId: USER_ID,
+      asOf,
+    });
 
     expect(result).toBe(view);
     expect(actualsReader.read).toHaveBeenCalledWith(PLAN_ID, asOf);
@@ -89,6 +94,7 @@ describe('GetPlanDashboardUseCase', () => {
     const result = await useCase.execute({
       planId: PLAN_ID,
       householdId: HH_ID,
+      userId: USER_ID,
       asOf: new Date(),
     });
 
@@ -99,7 +105,21 @@ describe('GetPlanDashboardUseCase', () => {
     vi.mocked(planRepo.findById).mockResolvedValue(null);
 
     await expect(
-      useCase.execute({ planId: PLAN_ID, householdId: HH_ID, asOf: new Date() }),
+      useCase.execute({ planId: PLAN_ID, householdId: HH_ID, userId: USER_ID, asOf: new Date() }),
     ).rejects.toThrow('PLAN_NOT_FOUND');
+  });
+
+  it("throws PLAN_NOT_FOUND for a partner's personal plan", async () => {
+    vi.mocked(planRepo.findById).mockResolvedValue(makeMockPlan());
+
+    await expect(
+      useCase.execute({
+        planId: PLAN_ID,
+        householdId: HH_ID,
+        userId: 'u-partner' as UserId,
+        asOf: new Date(),
+      }),
+    ).rejects.toThrow('PLAN_NOT_FOUND');
+    expect(actualsReader.read).not.toHaveBeenCalled();
   });
 });

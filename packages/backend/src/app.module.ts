@@ -9,6 +9,7 @@ import { BankPresentationModule } from './presentation/bank/BankPresentationModu
 import { PlansPresentationModule } from './presentation/plans/PlansPresentationModule.js';
 import { NotificationsPresentationModule } from './presentation/notifications/NotificationsPresentationModule.js';
 import { HouseholdsPresentationModule } from './presentation/households/HouseholdsPresentationModule.js';
+import { CategoriesPresentationModule } from './presentation/categories/CategoriesPresentationModule.js';
 import { RlsMiddleware } from './infrastructure/database/RlsMiddleware.js';
 import { validationPipeProvider } from './presentation/http/validation.js';
 
@@ -23,6 +24,7 @@ import { validationPipeProvider } from './presentation/http/validation.js';
     PlansPresentationModule,
     NotificationsPresentationModule,
     HouseholdsPresentationModule,
+    CategoriesPresentationModule,
   ],
   // Global ValidationPipe (audit C5); registered here, not in main.ts, so the
   // integration and OpenAPI apps get it too.

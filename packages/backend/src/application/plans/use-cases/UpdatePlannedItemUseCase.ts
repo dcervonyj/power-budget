@@ -4,8 +4,9 @@ import type {
   PlanRepository,
   PlannedItemRepository,
   AuditLogPort,
-  HouseholdScope,
 } from '../../../domain/plans/ports.js';
+import { PlanAccess } from '../../../domain/plans/plan-access.js';
+import { findPlannedItemOfPlan, findVisiblePlan } from '../plan-lookup.js';
 
 export interface UpdatePlannedItemInput {
   readonly planId: PlanId;
@@ -24,19 +25,15 @@ export class UpdatePlannedItemUseCase {
   ) {}
 
   async execute(input: UpdatePlannedItemInput): Promise<PlannedItem> {
-    const scope: HouseholdScope = { householdId: input.householdId };
-
-    const plan = await this.planRepo.findById(input.planId, scope);
-    if (plan === null) {
-      throw new Error(
-        `PLAN_NOT_FOUND: Plan ${input.planId} not found in household ${input.householdId}`,
-      );
-    }
+    const plan = await findVisiblePlan(this.planRepo, input);
+    PlanAccess.assertNotArchived(plan);
+    await findPlannedItemOfPlan(this.plannedItemRepo, plan, input.itemId);
 
     const updated = await this.plannedItemRepo.update(
       input.itemId,
       input.patch,
       input.userId,
+      { householdId: input.householdId },
       input.reason,
     );
 

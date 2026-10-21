@@ -21,12 +21,12 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
-import type {
-  BankAccountId,
-  IsoDate,
-  PlannedItemId,
-  PlanId,
+import {
   TransactionId,
+  type BankAccountId,
+  type IsoDate,
+  type PlannedItemId,
+  type PlanId,
 } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
@@ -160,26 +160,35 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Patch notes or ignored flag on a transaction' })
   @ApiParam({ name: 'id', description: 'Transaction ID' })
   @ApiBody({ type: PatchTransactionDto })
-  @ApiResponse({ status: 200, description: 'Transaction updated' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated transaction',
+    type: TransactionDetailDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid id or body' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async patch(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
     @Body() dto: PatchTransactionDto,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<TransactionDetailDto> {
     if (!user.householdId) {
       throw new NotFoundException('No household');
     }
 
+    const transactionId = TransactionId.of(id);
     await this.patchTransaction.execute({
-      transactionId: id as TransactionId,
+      transactionId,
       householdId: user.householdId,
       patch: {
         notes: dto.notes ?? undefined,
         ignored: dto.ignored,
       },
     });
+    const detail = await this.getTransaction.execute(transactionId, user.householdId);
+
+    return toTransactionDetailDto(detail);
   }
 
   @Patch(':id/mapping')
@@ -266,8 +275,7 @@ export class TransactionsController {
     }
 
     const plannedItemId = dto.payload?.['plannedItemId'] as string | undefined as
-      | PlannedItemId
-      | undefined;
+      PlannedItemId | undefined;
     if (!plannedItemId) {
       return;
     }
