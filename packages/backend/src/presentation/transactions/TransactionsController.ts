@@ -21,12 +21,12 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
-import {
+import type {
+  BankAccountId,
+  IsoDate,
+  PlannedItemId,
+  PlanId,
   TransactionId,
-  type BankAccountId,
-  type IsoDate,
-  type PlannedItemId,
-  type PlanId,
 } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
@@ -169,7 +169,7 @@ export class TransactionsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async patch(
-    @Param('id', new ParseUUIDPipe({ version: '7' })) id: string,
+    @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: PatchTransactionDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<TransactionDetailDto> {
@@ -177,7 +177,8 @@ export class TransactionsController {
       throw new NotFoundException('No household');
     }
 
-    const transactionId = TransactionId.of(id);
+    // Transaction ids are not validated as v7 here, like the other routes of this controller.
+    const transactionId = id as TransactionId;
     await this.patchTransaction.execute({
       transactionId,
       householdId: user.householdId,
