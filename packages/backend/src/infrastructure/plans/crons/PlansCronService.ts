@@ -12,13 +12,14 @@ export class PlansCronService {
   ) {}
 
   /** Daily 00:30 UTC — trigger period-close job for all plans ending yesterday */
-  @Cron('30 0 * * *', { timeZone: 'UTC' })
-  async runPeriodClose(): Promise<void> {
+  @Cron('30 0 * * *', { name: 'period-close', timeZone: 'UTC' })
+  async runPeriodClose(now: Date = new Date()): Promise<void> {
     await this.periodCloseQueue.add(
       'period-close',
       {},
       {
-        jobId: `period-close:${new Date().toISOString().slice(0, 10)}`,
+        // One job per UTC day; BullMQ rejects custom ids with a single ':'.
+        jobId: `period-close-${now.toISOString().slice(0, 10)}`,
         removeOnComplete: true,
         removeOnFail: false,
       },
