@@ -76,7 +76,11 @@ export class IngestBankTransactionsUseCase {
     const recentMappings = await this.fetchRecentMappings();
     const suggestedItemId = this.suggestionPort.suggest(tx, recentMappings);
     if (suggestedItemId !== null) {
-      await this.transactionRepo.patch(txId, { suggestedPlannedItemId: suggestedItemId });
+      await this.transactionRepo.patch(
+        txId,
+        { suggestedPlannedItemId: suggestedItemId },
+        { householdId },
+      );
     }
   }
 

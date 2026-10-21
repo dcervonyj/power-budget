@@ -5,8 +5,8 @@ The system uses a two-layer encryption scheme:
 
 - **KEK (Key Encryption Key)**: Master key stored in environment variable `KEK_BASE64`.
   Used by `EnvKekEncryption` to directly encrypt/decrypt sensitive data fields.
-- **DEK (Data Encryption Key)**: Per-user data encryption keys (planned, post BE-023).
-  Currently all data is encrypted directly with the KEK.
+- **DEK (Data Encryption Key)**: not used. Per-user DEKs were descoped in CLN-004
+  (see section 2); all data is encrypted directly with the KEK.
 
 ---
 
@@ -73,46 +73,28 @@ If decryption failures occur after rotation:
 
 ---
 
-## 2. Per-User DEK Rotation
+## 2. Per-User DEK (descoped, CLN-004)
 
-**Status**: The `RotateUserDekUseCase` is implemented and ready. Full DEK isolation
-(one encrypted DEK record per user) is pending BE-023.
+**Decision (SEC-001 / SEC-002, CLN-004):** Power Budget is a two-person app with one
+deployment. All sensitive fields are encrypted directly with the env KEK
+(`EnvKekEncryption`, AES-256-GCM, a fresh IV per value, a `kid` in every ciphertext).
+There is no per-user DEK and no DEK rotation; the unused `RotateUserDekUseCase` was
+removed. KEK rotation (section 1) re-encrypts every field and is the only rotation.
+Revisit when there is a managed KMS (envelope encryption) or many tenants.
 
-Currently, "DEK rotation" re-encrypts all per-user sensitive fields under the current KEK
-with a fresh IV, which is equivalent to re-keying each field.
-
-### Triggering rotation for a single user
-
-The use case can be triggered via a BullMQ job (post BE-023):
-
-```typescript
-// When the job processor is wired:
-const result = await rotateUserDekUseCase.execute({ userId });
-console.log(`Rotated ${result.fieldsRotated} fields for user ${userId}`);
-```
-
-### Bulk rotation (all users)
-
-To rotate all users' DEKs after a KEK rotation:
-
-1. Fetch all user IDs from the database
-2. Enqueue a `rotate-user-dek` job for each user
-3. The BullMQ processor calls `RotateUserDekUseCase.execute({ userId })` for each
-4. Monitor the queue until all jobs complete
-
-### Idempotency
-
-`RotateUserDekUseCase` is safe to run multiple times — re-encrypting with the same key
-material generates a new ciphertext with a fresh IV, which is valid and secure.
+TOTP secrets are encrypted with the context `totp:<userId>`, bound as GCM additional
+authenticated data: a ciphertext copied to another user's row fails to decrypt. A KEK
+rotation script must pass the same context when it decrypts and re-encrypts
+`totp_secrets.encrypted_secret`. Bank consents are encrypted without a context.
 
 ---
 
 ## 3. Sensitive fields inventory
 
-| Table          | Column             | Encrypted                 | Rotation target |
-| -------------- | ------------------ | ------------------------- | --------------- |
-| `totp_secrets` | `encrypted_secret` | Yes (AES-256-GCM via KEK) | Yes             |
-| `auth_methods` | `provider_subject` | No                        | N/A             |
+| Table          | Column             | Encrypted                                          | Rotation target |
+| -------------- | ------------------ | -------------------------------------------------- | --------------- |
+| `totp_secrets` | `encrypted_secret` | Yes (AES-256-GCM via KEK, context `totp:<userId>`) | Yes             |
+| `auth_methods` | `provider_subject` | No                                                 | N/A             |
 
 Future fields (post bank-sync implementation):
 | `bank_connections` | `consent_token` | Planned | Yes |

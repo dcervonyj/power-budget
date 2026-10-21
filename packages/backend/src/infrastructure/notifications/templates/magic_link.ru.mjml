@@ -1,0 +1,21 @@
+<mjml>
+  <mj-head>
+    <mj-title>Ваша ссылка для входа</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#2d6a4f">Войдите в Power Budget</mj-text>
+        <mj-divider border-color="#2d6a4f" border-width="2px" />
+        <mj-text>Здравствуйте,</mj-text>
+        <mj-text>Нажмите кнопку ниже, чтобы войти. Ссылка работает один раз и действует 15 минут.</mj-text>
+        <mj-button background-color="#2d6a4f" color="#ffffff" href="{{link}}">Войти</mj-button>
+        <mj-text color="#888888" font-size="13px">Если вы не запрашивали эту ссылку, просто проигнорируйте это письмо.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

@@ -63,11 +63,12 @@ image does not need `tsx` (a devDependency).
 
 The Render service must have these set in the dashboard (`sync: false` in `render.yaml`):
 
-| Variable                | Required               | Effect                                                                                                                                                |
-| ----------------------- | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `JWT_SECRET`            | **yes**                | At least 32 bytes (`openssl rand -base64 48`). Without it the API exits at boot; there is no default secret any more. Rotating it logs every user out |
-| `RESEND_WEBHOOK_SECRET` | for email bounces      | Resend webhook signing secret (`whsec_...`). Unset means the bounce webhook returns 401 for every call                                                |
-| `SWAGGER_ENABLED`       | no                     | Leave unset; `/docs` is served only when it is `true`                                                                                                 |
-| `CORS_ORIGINS`          | yes (in `render.yaml`) | Exact origins plus `*.power-budget.pages.dev` previews; no `localhost`, no bare `*`                                                                   |
+| Variable                | Required                  | Effect                                                                                                                                                |
+| ----------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `JWT_SECRET`            | **yes**                   | At least 32 bytes (`openssl rand -base64 48`). Without it the API exits at boot; there is no default secret any more. Rotating it logs every user out |
+| `RESEND_WEBHOOK_SECRET` | for email bounces         | Resend webhook signing secret (`whsec_...`). Unset means the bounce webhook returns 401 for every call                                                |
+| `TRUST_PROXY`           | no (`1` in `render.yaml`) | Proxy hops trusted for `X-Forwarded-For`, i.e. the client IP behind the per-IP auth rate limits (CLN-004). Default 1 = Render's load balancer         |
+| `SWAGGER_ENABLED`       | no                        | Leave unset; `/docs` is served only when it is `true`                                                                                                 |
+| `CORS_ORIGINS`          | yes (in `render.yaml`)    | Exact origins plus `*.power-budget.pages.dev` previews; no `localhost`, no bare `*`                                                                   |
 
 Google OAuth routes (`/auth/oauth/google/*`) are removed until a real Google client exists.

@@ -32,6 +32,21 @@ describe('no-repo-without-scope', () => {
         { code: `transactionRepository.list({ householdId: hid })` },
         // Variable name that does NOT end in Repository/Repo — exempt
         { code: `planService.findById(id)` },
+        // User-scoped by design
+        { code: `this.connectionRepo.listByUser(userId)` },
+        // Member receivers (the real call shape in use cases), scoped
+        { code: `this.planRepo.findById(id, scope)` },
+        { code: `this.transactionRepo.patch(id, patch, { householdId: input.householdId })` },
+        { code: `this.mappingRepo.bulkSet(items, by, { householdId })` },
+        { code: `this.transferRepo.mark(id, counterpart, by, input.scope)` },
+        { code: `deps.planRepository.archive(id, at, this.scope)` },
+        // Computed members are not repository calls the rule can reason about
+        { code: `this.repos[name].findById(id)` },
+        // Repositories exempted through the option
+        {
+          code: `this.userRepo.findById(userId)`,
+          options: [{ unscopedRepositories: ['^userRepo$'] }],
+        },
       ],
       invalid: [
         {
@@ -54,8 +69,35 @@ describe('no-repo-without-scope', () => {
           code: `categoryRepo.read(id)`,
           errors: [{ messageId: 'missingScope' }],
         },
+        // Audit H9: member receivers were ignored, so every real call passed unchecked
         {
-          code: `userRepository.listByUser(userId)`,
+          code: `this.planRepo.findById(id)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.transactionRepo.patch(id, patch)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.mappingRepo.bulkSet(items, by)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.transferRepo.mark(id, counterpart, by)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.connectionRepo.markDisconnected(id, at)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.planRepository.archive(id, at, { userId })`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        // The option exempts only matching receivers
+        {
+          code: `this.planRepo.findById(id)`,
+          options: [{ unscopedRepositories: ['^userRepo$'] }],
           errors: [{ messageId: 'missingScope' }],
         },
       ],

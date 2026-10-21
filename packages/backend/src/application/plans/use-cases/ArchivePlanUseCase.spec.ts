@@ -50,7 +50,9 @@ describe('ArchivePlanUseCase', () => {
 
     await useCase.execute({ planId: PLAN_ID, userId: USER_ID, householdId: HH_ID });
 
-    expect(planRepo.archive).toHaveBeenCalledWith(PLAN_ID, expect.any(Date));
+    expect(planRepo.archive).toHaveBeenCalledWith(PLAN_ID, expect.any(Date), {
+      householdId: HH_ID,
+    });
     expect(auditLog.record).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'PLAN_ARCHIVED', subjectId: PLAN_ID }),
     );

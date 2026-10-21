@@ -37,6 +37,7 @@ export class UpdatePlannedItemUseCase {
       input.itemId,
       input.patch,
       input.userId,
+      scope,
       input.reason,
     );
 

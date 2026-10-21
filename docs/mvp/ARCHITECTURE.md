@@ -113,7 +113,7 @@ flowchart LR
 - **Bank sync.** A scheduled job in the worker enqueues one `sync-connection` job per active bank connection (cron: every 4 h plus on-demand). The job calls the matching `BankConnector` adapter (GoCardless for PKO, Wise direct for Wise), fetches transactions since `last_synced_at`, and upserts them in Postgres under the connection's household. Idempotency: `(account_id, external_id)` UNIQUE. Heuristic-mapping suggestions are computed in the same transaction.
 - **Dashboard load.** Client calls `GET /plans/:id/dashboard`. The handler executes a single read-only use case backed by a materialised view (`v_plan_actuals`) refreshed on every transaction upsert or plan edit. Result is FX-converted at presentation time using cached daily rates from `fx_rates`. Target: <500 ms p95 for 12 months / 5 000 rows.
 - **Transaction mapping.** Client calls `PATCH /transactions/:id/mapping { plannedItemId }`. The use case validates household membership, writes to `transaction_mappings`, emits an audit event, and triggers the materialised-view refresh for the affected plan.
-- **Notification dispatch.** Domain events (`reconnect.due`, `over_budget.crossed`, `digest.weekly`) are written to `notifications_outbox` inside the same transaction as the triggering write. A BullMQ outbox-relay job picks them up, resolves recipient locale, renders the template via the i18n loader, and sends via SMTP. Outbox guarantees at-least-once delivery; the consumer is idempotent via outbox `id`.
+- **Notification dispatch.** Domain events (`reconnect.due`, `over_budget.crossed`, `digest.weekly`) are written to `notifications_outbox` inside the same transaction as the triggering write. Each row gets one `notification-dispatch` job (job id `dispatch-<id>`), scheduled at once for sign-in links and by the 5-minute `outbox-relay` cron for every other pending row. The dispatcher claims the row with `SELECT … FOR UPDATE SKIP LOCKED`, renders the MJML template in the recipient locale and sends via Resend with the idempotency key `notification-<id>`, so a retry after a lost acknowledgement is not delivered twice. Sends are retried with exponential backoff (5 attempts), then the row is marked failed; secret payload keys (`link`, `token`) are removed once a row is sent or failed.
 
 ---
 
@@ -1279,7 +1279,7 @@ NestJS `@nestjs/schedule` enqueues sync jobs into BullMQ. One Redis queue (`bank
 
 **Schedule.** Every 4 h per active connection, plus on-demand (`POST /bank-connections/:id/refresh`) and immediately after `complete-consent`. ECB FX runs separately at 16:30 CET on weekdays.
 
-**Worker.** A dedicated NestJS bootstrap (`worker.main.ts`) loads only the application + infrastructure layers, no HTTP server. Consumes `bank-sync`, `notification-dispatch`, `outbox-relay`, `period-close`, `ecb-fx` queues.
+**Worker.** A dedicated NestJS bootstrap (`worker.main.ts`) loads only the application + infrastructure layers, no HTTP server. Consumes `bank-sync`, `notification-dispatch`, `period-close`, `ecb-fx` queues.
 
 **Retries.** Exponential backoff: 30 s, 2 min, 10 min, 1 h, 6 h (5 attempts then dead-letter). 4xx from the provider is non-retryable except 429 (use `Retry-After`).
 

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { DatabaseModule } from '../database/database.module.js';
 import { QueueModule } from '../queue/queue.module.js';
+import { NotificationsModule } from '../notifications/NotificationsModule.js';
 import { DrizzleUserRepository } from './DrizzleUserRepository.js';
 import { DrizzleHouseholdRepository } from './DrizzleHouseholdRepository.js';
 import { DrizzleHouseholdExportRepository } from './DrizzleHouseholdExportRepository.js';
@@ -16,11 +17,10 @@ import { DrizzleMagicLinkTokenRepository } from './DrizzleMagicLinkTokenReposito
 import { DrizzleTotpSecretRepository } from './DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from './DrizzleHouseholdInviteRepository.js';
 import { DrizzleNotificationOutboxPort } from './DrizzleNotificationOutboxPort.js';
-import { DrizzleBankConnectionChecker } from './DrizzleBankConnectionChecker.js';
 import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule, QueueModule],
+  imports: [DatabaseModule, ConfigModule, QueueModule, NotificationsModule],
   providers: [
     DrizzleUserRepository,
     DrizzleHouseholdRepository,
@@ -30,7 +30,6 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
     DrizzleNotificationOutboxPort,
-    DrizzleBankConnectionChecker,
     Argon2PasswordHashing,
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,
@@ -58,6 +57,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     },
   ],
   exports: [
+    REDIS_CLIENT,
     DrizzleUserRepository,
     DrizzleHouseholdRepository,
     DrizzleHouseholdExportRepository,
@@ -66,7 +66,6 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
     DrizzleNotificationOutboxPort,
-    DrizzleBankConnectionChecker,
     Argon2PasswordHashing,
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,

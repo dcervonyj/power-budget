@@ -89,6 +89,7 @@ describe('UpdatePlannedItemUseCase', () => {
       ITEM_ID,
       { amount: { amountMinor: 9000n, currency: 'PLN' } },
       USER_ID,
+      { householdId: HH_ID },
       undefined,
     );
     expect(auditLog.record).toHaveBeenCalledWith(
@@ -114,6 +115,7 @@ describe('UpdatePlannedItemUseCase', () => {
       ITEM_ID,
       { note: 'updated note' },
       USER_ID,
+      { householdId: HH_ID },
       'Correcting budget',
     );
   });

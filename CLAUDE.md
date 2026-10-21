@@ -135,7 +135,9 @@ FX conversion always uses a `FxRateTable` snapshot passed in explicitly — neve
 
 ## Multi-tenancy via `HouseholdScope`
 
-Every repo method takes `HouseholdScope = { householdId: HouseholdId }` as a parameter and includes `WHERE household_id = $scope.householdId`. An ESLint rule (`no-repo-without-scope`) enforces this. Postgres RLS is intended as defence-in-depth but is **not applied yet**: the policy migration is excluded from the drizzle journal and no session setting is set (CLN-005). Until then the application-level scope is the only protection, and it has known gaps.
+Every repo method that reads or writes household data takes `HouseholdScope = { householdId: HouseholdId }` and includes `household_id` in its WHERE clause (writes too: no update or delete by id alone; ids from the request, such as a transfer counterpart, a bulk-map id or a manual-transaction account, are checked against the scope). The ESLint rule `no-repo-without-scope` (`packages/backend/eslint-local-rules.cjs`) enforces it for `repo.method()` and `this.repo.method()` calls; identity repositories are exempted in `eslint.config.js`.
+
+Postgres RLS (migration `0008_rls_tenancy`, FORCE) is the second layer: the app connects as a non-owner role, and `ScopedPool` sets `app.household_id` / `app.user_id` / `app.rls_bypass` with `set_config(..., true)` in every transaction from the `DbScope` of the request (`DbScopeInterceptor`) or the worker (system scope). See `docs/runbooks/db-roles-and-migrations.md`.
 
 ## TypeScript strictness
 
@@ -206,15 +208,17 @@ Sensitive endpoints can require a recent TOTP verification via:
 @RequireRecentTotp()          // default 5 min window
 ```
 
-`TotpStepUpGuard` checks `RedisTotpStepUpStore` keyed `totp-stepup:{userId}` (TTL 300 s). `VerifyTotpUseCase` accepts an optional third argument `stepUpStore: TotpStepUpStore | null` to record step-up time.
+`TotpStepUpGuard` checks `RedisTotpStepUpStore` keyed `totp-stepup:{userId}` (TTL 300 s); without an enabled TOTP it answers 403 `requires_totp_enrollment`, otherwise 403 `requires_totp`. Every accepted code (`POST /auth/totp/verify`, or a login with `totp`) goes through `TotpAuthenticator`, which decrypts the secret via the `Encryption` port, rejects reused codes and stamps the step-up. First enrolment (`POST /auth/totp/enable`) needs no step-up; replacing an enabled TOTP does. Password and magic-link login share `LoginPolicy`: once TOTP is enabled both need a code. Credential endpoints use `ThrottlerGuard` (per IP and per account, Redis storage; see `presentation/auth/throttling.ts`).
 
 ## Audit log PII redaction
 
-`REDACTING_AUDIT_LOGGER` token in `AuditModule` provides (**not injected anywhere yet**, so audit rows are written unredacted; fixed in CLN-005) a `DrizzleAuditEventRepository`-shaped logger that:
+Audit writers inject `REDACTING_AUDIT_LOGGER` (AuditLogger) or `AUDIT_LOG_PORT` (plans AuditLogPort) from `AuditModule`, never `DrizzleAuditEventRepository` (that is for the read endpoint). The `RedactingAuditLogger`:
 
-- Redacts IBANs matching `[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7,19}` → `****`
-- Skips logging entries where `payload.amountMinor >= AUDIT_REDACTION_THRESHOLD_MINOR`
-  Set `AUDIT_REDACTION_THRESHOLD_MINOR` in `.env` (default 1,000,000 minor units = 10,000 PLN).
+- Masks IBANs (in any string, and any value under `iban` / `accountNumber`) to `***<last 4>`
+- Replaces amounts under amount keys (`amount`, `amountMinor`, `balanceMinor`, any `*Minor`) whose absolute value is above `AUDIT_REDACTION_THRESHOLD_MINOR` with `{ redacted: true }` (default 1,000,000 minor units = 10,000 PLN); other numbers are kept
+- Converts bigint values to strings so the metadata always fits `jsonb`
+
+`audit_log` is append-only for the app role (REVOKE in `db:roles`, no UPDATE/DELETE RLS policy).
 
 ## Internationalisation
 

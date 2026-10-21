@@ -19,11 +19,11 @@
         <mj-table>
           <tr style="background:#f0f0f0">
             <td style="padding:8px">Потрачено</td>
-            <td style="padding:8px"><strong>{{totalSpent}} {{currency}}</strong></td>
+            <td style="padding:8px"><strong>{{totalSpent}}</strong></td>
           </tr>
           <tr>
             <td style="padding:8px">Запланировано</td>
-            <td style="padding:8px"><strong>{{totalPlanned}} {{currency}}</strong></td>
+            <td style="padding:8px"><strong>{{totalPlanned}}</strong></td>
           </tr>
         </mj-table>
         <mj-text color="#888888" font-size="13px">

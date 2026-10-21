@@ -20,6 +20,8 @@ export class PatchTransactionUseCase {
       throw new TransactionNotFoundError();
     }
 
-    await this.transactionRepo.patch(input.transactionId, input.patch);
+    await this.transactionRepo.patch(input.transactionId, input.patch, {
+      householdId: input.householdId,
+    });
   }
 }
