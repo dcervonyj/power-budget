@@ -1,126 +1,89 @@
-import { makeAutoObservable, runInAction } from 'mobx';
-import { readApiError } from '@power-budget/shared-app';
-import { FX_RATE_UNAVAILABLE } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
-import { settingsStore } from '../settings/SettingsStore.js';
-import type { PlanActualsView } from '../../domain/dashboard/PlanActualsView.js';
-import {
-  toPlanActualsView,
-  type PlanDashboardResponseDto,
-} from '../../infrastructure/api/PlanDashboardMapper.js';
-import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
+import { makeAutoObservable } from 'mobx';
+import type { PlansApi } from '@power-budget/shared-app';
 import type { PlanDto } from '@power-budget/shared-app/contract';
+import { categoriesApi, plansApi } from '../../AppProviders.js';
+import { PlanDashboardStore } from './PlanDashboardStore.js';
 
-const FX_CACHE_KEY = 'pb_fx_rates';
+export type DashboardPlans = Pick<PlansApi, 'list'>;
 
-interface FxRateTable {
-  baseCurrency: string;
-  rates: Record<string, number>;
+/** The plan shown first: the personal monthly plan, else the first active one. */
+export function selectDefaultPlan(plans: readonly PlanDto[]): PlanDto | undefined {
+  return plans.find(isPersonalMonthly) ?? plans[0];
 }
 
-function convertMinor(amountMinor: number, fromCurrency: string, toCurrency: string): number {
-  if (fromCurrency === toCurrency) return amountMinor;
-  try {
-    const raw = localStorage.getItem(FX_CACHE_KEY);
-    if (!raw) return amountMinor;
-    const table = JSON.parse(raw) as FxRateTable;
-    const { baseCurrency, rates } = table;
-
-    let amountInBase: number;
-    if (fromCurrency === baseCurrency) {
-      amountInBase = amountMinor;
-    } else {
-      const fromRate = rates[fromCurrency];
-      if (fromRate === undefined) return amountMinor;
-      amountInBase = amountMinor / fromRate;
-    }
-
-    if (toCurrency === baseCurrency) return Math.round(amountInBase);
-    const toRate = rates[toCurrency];
-    if (toRate === undefined) return amountMinor;
-    return Math.round(amountInBase * toRate);
-  } catch {
-    return amountMinor;
-  }
-}
-
+/**
+ * The home dashboard: the active plans as tabs, and the selected plan's dashboard
+ * (delegated to a PlanDashboardStore, shared with /plans/:id/dashboard).
+ */
 export class DashboardStore {
   activePlans: PlanDto[] = [];
   selectedPlanId: string | null = null;
-  actuals: PlanActualsView | null = null;
   loading = false;
-  error: string | null = null;
-  /** The last dashboard load got 503 fx_rate_unavailable (CLN-012). */
-  fxUnavailable = false;
-  displayCurrency: string = '';
+  /** Set once the plan list has been read, so "no plans" is not shown while loading. */
+  plansLoaded = false;
+  plansError = false;
 
-  constructor() {
-    makeAutoObservable(this);
+  readonly planDashboard: PlanDashboardStore;
+  private readonly plans: DashboardPlans;
+
+  constructor(plans: DashboardPlans, planDashboard: PlanDashboardStore) {
+    this.plans = plans;
+    this.planDashboard = planDashboard;
+    makeAutoObservable<DashboardStore, 'plans'>(this, { plans: false, planDashboard: false });
   }
 
-  async fetchPlans(): Promise<void> {
+  /** Reads the active plans and opens the selected one (or the default plan). */
+  async open(): Promise<void> {
     this.loading = true;
-    this.error = null;
+    this.plansError = false;
     try {
-      const res = await apiClient.get<PlanDto[]>('/plans');
-      runInAction(() => {
-        this.activePlans = res.data;
-        this.loading = false;
-      });
+      this.applyPlans(await this.plans.list());
     } catch {
-      runInAction(() => {
-        this.error = 'Failed to load plans';
-        this.loading = false;
-      });
-    }
-  }
-
-  async fetchActuals(planId: string): Promise<void> {
-    this.loading = true;
-    this.error = null;
-    this.fxUnavailable = false;
-    try {
-      const [res, categoryNames] = await Promise.all([
-        apiClient.get<PlanDashboardResponseDto>(`/plans/${planId}/dashboard`),
-        fetchCategoryNames(apiClient),
-      ]);
-      const planName = this.activePlans.find((p) => p.id === planId)?.name ?? '';
-      const actuals = toPlanActualsView(res.data, { planName, categoryNames });
-      runInAction(() => {
-        this.actuals = actuals;
-        this.displayCurrency = actuals.currency;
-        this.loading = false;
-      });
-    } catch (err) {
-      const fxUnavailable = readApiError(err).code === FX_RATE_UNAVAILABLE;
-      runInAction(() => {
-        this.fxUnavailable = fxUnavailable;
-        this.error = 'Failed to load dashboard';
-        this.loading = false;
-      });
+      this.applyPlansFailed();
     }
   }
 
   selectPlan(planId: string): void {
     this.selectedPlanId = planId;
-    void this.fetchActuals(planId);
+    void this.planDashboard.load(planId);
   }
 
-  cycleCurrency(): void {
-    if (!this.actuals) return;
-    const currencies = [this.actuals.currency, ...settingsStore.interestingCurrencies].filter(
-      (c, i, arr) => arr.indexOf(c) === i,
-    );
-
-    if (currencies.length <= 1) return;
-    const currentIndex = currencies.indexOf(this.displayCurrency);
-    const nextIndex = (currentIndex + 1) % currencies.length;
-    this.displayCurrency = currencies[nextIndex] ?? this.actuals.currency;
+  /** Re-reads the selected plan's dashboard (polling, retry). */
+  refresh(): void {
+    if (this.selectedPlanId !== null) {
+      void this.planDashboard.load(this.selectedPlanId);
+    }
   }
 
-  convertAmount(amountMinor: number, fromCurrency: string): number {
-    return convertMinor(amountMinor, fromCurrency, this.displayCurrency || fromCurrency);
+  private applyPlans(plans: PlanDto[]): void {
+    this.activePlans = plans;
+    this.plansLoaded = true;
+    this.loading = false;
+    const plan = findPlan(plans, this.selectedPlanId) ?? selectDefaultPlan(plans);
+    if (plan !== undefined) {
+      this.selectPlan(plan.id);
+    }
+  }
+
+  private applyPlansFailed(): void {
+    this.plansError = true;
+    this.loading = false;
   }
 }
 
-export const dashboardStore = new DashboardStore();
+function findPlan(plans: readonly PlanDto[], planId: string | null): PlanDto | undefined {
+  for (const plan of plans) {
+    if (plan.id === planId) {
+      return plan;
+    }
+  }
+
+  return undefined;
+}
+
+function isPersonalMonthly(plan: PlanDto): boolean {
+  return plan.type === 'personal' && plan.periodKind === 'monthly';
+}
+
+export const planDashboardStore = new PlanDashboardStore(plansApi, categoriesApi);
+export const dashboardStore = new DashboardStore(plansApi, planDashboardStore);

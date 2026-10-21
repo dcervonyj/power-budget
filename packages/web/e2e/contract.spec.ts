@@ -4,10 +4,7 @@ import { BackendApi, PASSWORD, uniqueEmail } from './support/api.js';
 import { assertMatchesSpec } from './support/openapi-contract.js';
 import { ApiClient, PlansApi, type SecureTokenStore } from '@power-budget/shared-app';
 import type { PlanDto, TransactionPageDto } from '@power-budget/shared-app/contract';
-import {
-  toPlanActualsView,
-  type PlanDashboardResponseDto,
-} from '../src/infrastructure/api/PlanDashboardMapper.js';
+import { toPlanDashboard } from '../src/infrastructure/api/PlanDashboardMapper.js';
 import { TransactionMapper } from '../src/infrastructure/api/TransactionMapper.js';
 
 // Web <-> backend contract at runtime (CLN-017): real responses from the running
@@ -89,33 +86,49 @@ test.describe('web <-> backend contract', () => {
       [item.id, category.id, 'expense', { amountMinor: '9007199254740993', currency: 'PLN' }],
     ]);
 
-    const dashboard = await api.json<PlanDashboardResponseDto>(
-      await api.get(`/plans/${created.id}/dashboard`, tokens.accessToken),
-      200,
-    );
+    const dashboard = await plansApi.dashboard(created.id);
     assertMatchesSpec('get', '/plans/{id}/dashboard', 200, dashboard);
-    const view = toPlanActualsView(dashboard, {
-      planName: plan.name,
+    const unplanned = await plansApi.unplanned(created.id, 'expense');
+    assertMatchesSpec('get', '/plans/{id}/dashboard/unplanned', 200, unplanned);
+    expect(unplanned).toEqual({ items: [], nextCursor: null });
+    const view = toPlanDashboard(dashboard, {
+      plan,
       categoryNames: new Map([[category.id, category.name]]),
+      items,
     });
     expect(view).toMatchObject({
       planId: created.id,
       planName: 'Contract plan',
+      planType: 'personal',
       periodStart: '2026-10-01',
       periodEnd: '2026-10-31',
-      currency: 'PLN',
-      totalExpenseActual: 0,
-      unplannedTotal: 0,
+      baseCurrency: 'PLN',
+      income: [],
     });
-    // Minor units become numbers in the view (exact below 2^53, see the mapper).
-    expect(view.items).toEqual([
+    expect(view.totals.actualExpenses).toEqual({ amountMinor: 0n, currency: 'PLN' });
+    expect(view.totals.unplannedExpenses).toEqual({ amountMinor: 0n, currency: 'PLN' });
+    // Minor units stay exact bigints in the view, also beyond 2^53.
+    expect(view.expense).toEqual([
       {
-        id: item.id,
-        category: category.name,
+        categoryId: category.id,
+        categoryName: category.name,
         direction: 'expense',
-        planned: Number(9007199254740993n),
-        actual: 0,
-        currency: 'PLN',
+        planned: { amountMinor: 9007199254740993n, currency: 'PLN' },
+        actual: { amountMinor: 0n, currency: 'PLN' },
+        remaining: { amountMinor: 9007199254740993n, currency: 'PLN' },
+        band: 'ok',
+        lines: [
+          {
+            plannedItemId: item.id,
+            direction: 'expense',
+            planned: { amountMinor: 9007199254740993n, currency: 'PLN' },
+            actual: { amountMinor: 0n, currency: 'PLN' },
+            remaining: { amountMinor: 9007199254740993n, currency: 'PLN' },
+            band: 'ok',
+            original: null,
+            note: '',
+          },
+        ],
       },
     ]);
   });
@@ -130,7 +143,7 @@ test.describe('web <-> backend contract', () => {
     );
     assertMatchesSpec('get', '/transactions', 200, page);
     // No manual account can be created yet (see transactions.spec.ts), so the page is empty.
-    expect(page.items.map((row) => TransactionMapper.fromListItem(row, false))).toEqual([]);
+    expect(page.items.map((row) => TransactionMapper.fromListItem(row))).toEqual([]);
   });
 
   test('household invite, accept and household dashboard responses match the spec', async ({
@@ -172,6 +185,14 @@ test.describe('web <-> backend contract', () => {
       200,
     );
     assertMatchesSpec('get', '/households/{id}/dashboard', 200, dashboard);
+
+    // UI-013: the household screen lists the members.
+    const members = await api.json<Array<{ email: string; role: string }>>(
+      await api.get('/households/members', accepted.accessToken),
+      200,
+    );
+    assertMatchesSpec('get', '/households/members', 200, members);
+    expect(members.map(({ role }) => role)).toEqual(['owner', 'member']);
   });
 });
 

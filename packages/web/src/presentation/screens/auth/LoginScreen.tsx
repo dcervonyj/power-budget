@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
 import type { AuthTokensDto, LoginDto } from '@power-budget/shared-app/contract';
 import { apiClient, tokenStore } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
+import { returnPath } from '../../guards/returnPath.js';
 
 type LoginError = 'invalidCredentials' | 'invalidTotp' | 'tooManyAttempts' | 'serverError' | null;
 
@@ -29,6 +30,7 @@ function classifyLoginError(err: unknown): LoginOutcome {
 export function LoginScreen(): React.JSX.Element {
   const intl = useIntl();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -45,7 +47,8 @@ export function LoginScreen(): React.JSX.Element {
       const body: LoginDto = showTotp && totp ? { email, password, totp } : { email, password };
       const res = await apiClient.post<AuthTokensDto>('/auth/login', body);
       await tokenStore.setTokens(res.data.accessToken, res.data.refreshToken);
-      navigate('/dashboard');
+      // Back to where RequireAuth came from, e.g. the invite link /invite/accept?token=.
+      navigate(returnPath(location.state));
     } catch (err) {
       const outcome = classifyLoginError(err);
       if (outcome === 'requiresTotp') {
@@ -132,7 +135,7 @@ export function LoginScreen(): React.JSX.Element {
       <Link to="/auth/magic-link">
         <FormattedMessage id="screen.login.forgotPassword" defaultMessage="Forgot password?" />
       </Link>
-      <Link to="/register">
+      <Link to="/register" state={location.state}>
         <FormattedMessage id="screen.login.createAccount" defaultMessage="Create account" />
       </Link>
     </div>
