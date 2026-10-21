@@ -1,4 +1,5 @@
 import type { HttpClient, SecureTokenStore } from '@power-budget/shared-app';
+import type { LogoutDto } from '@power-budget/shared-app/contract';
 
 /**
  * Ends the session: revokes the refresh token on the server, then forgets both
@@ -15,7 +16,8 @@ export class SignOut {
     const refreshToken = this.tokens.getRefreshToken();
     try {
       if (refreshToken) {
-        await this.http.post('/auth/logout', { refreshToken });
+        const body: LogoutDto = { refreshToken };
+        await this.http.post('/auth/logout', body);
       }
     } catch {
       // Revocation is best effort; the local session ends regardless.

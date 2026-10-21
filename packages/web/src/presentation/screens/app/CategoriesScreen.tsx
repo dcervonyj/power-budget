@@ -1,55 +1,69 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { apiClient } from '../../../AppProviders.js';
+import { isCategoryEditable, readApiError } from '@power-budget/shared-app';
+import type { SelectOption } from '@power-budget/shared-app';
+import type {
+  CategoryDto,
+  CategoryKindDto,
+  CategoryPrivacyDto,
+  UpdateCategoryDto,
+} from '@power-budget/shared-app/contract';
+import { categoriesApi } from '../../../AppProviders.js';
 import { useTheme } from '../../components/ThemeContext.js';
 import { Button } from '../../components/Button.js';
 import { Select } from '../../components/Select.js';
-import type { Category, CategoryPrivacy } from '../../components/CategoryPickerModal.js';
-import type { SelectOption } from '@power-budget/shared-app';
 
 type LoadState = 'loading' | 'idle' | 'error';
 
-interface CategoryRowProps {
-  readonly category: Category;
-  readonly onRename: (id: string, name: string) => Promise<void>;
-  readonly onArchiveToggle: (id: string, archived: boolean) => Promise<void>;
-  readonly onPrivacyChange: (id: string, privacy: CategoryPrivacy) => Promise<void>;
+/** Why the last change was rejected: 409 name taken, 403 read-only, else a failure. */
+type ActionError = 'nameTaken' | 'readOnly' | 'failed';
+
+function toActionError(err: unknown): ActionError {
+  switch (readApiError(err).status) {
+    case 409:
+      return 'nameTaken';
+    case 403:
+      return 'readOnly';
+    default:
+      return 'failed';
+  }
 }
 
-function CategoryRow({
-  category,
-  onRename,
-  onArchiveToggle,
-  onPrivacyChange,
-}: CategoryRowProps): React.JSX.Element {
+interface CategoryRowProps {
+  readonly category: CategoryDto;
+  readonly onUpdate: (category: CategoryDto, changes: UpdateCategoryDto) => Promise<void>;
+}
+
+function CategoryRow({ category, onUpdate }: CategoryRowProps): React.JSX.Element {
   const theme = useTheme();
   const intl = useIntl();
   const [draftName, setDraftName] = useState(category.name);
+  const editable = isCategoryEditable(category);
 
   useEffect(() => {
     setDraftName(category.name);
   }, [category.name]);
 
-  const privacyOptions: ReadonlyArray<SelectOption<CategoryPrivacy>> = [
-    {
-      value: 'private',
-      label: intl.formatMessage({
-        id: 'screen.categories.privacy.private',
-        defaultMessage: 'Private',
-      }),
-    },
-    {
-      value: 'shared',
-      label: intl.formatMessage({
-        id: 'screen.categories.privacy.shared',
-        defaultMessage: 'Shared',
-      }),
-    },
+  const privacyOptions: ReadonlyArray<SelectOption<CategoryPrivacyDto>> = [
     {
       value: 'full_detail',
       label: intl.formatMessage({
         id: 'screen.categories.privacy.fullDetail',
-        defaultMessage: 'Full Detail',
+        defaultMessage: 'Full detail',
+      }),
+    },
+    {
+      value: 'total_with_counts',
+      label: intl.formatMessage({
+        id: 'screen.categories.privacy.totalWithCounts',
+        defaultMessage: 'Totals and counts',
+      }),
+    },
+    {
+      value: 'total_only',
+      label: intl.formatMessage({
+        id: 'screen.categories.privacy.totalOnly',
+        defaultMessage: 'Totals only',
       }),
     },
   ];
@@ -57,7 +71,7 @@ function CategoryRow({
   const handleBlur = (): void => {
     const trimmed = draftName.trim();
     if (trimmed && trimmed !== category.name) {
-      void onRename(category.id, trimmed);
+      void onUpdate(category, { name: trimmed });
     } else {
       setDraftName(category.name);
     }
@@ -81,8 +95,28 @@ function CategoryRow({
     opacity: category.archived ? 0.6 : 1,
   };
 
+  const kindLabel =
+    category.kind === 'income'
+      ? intl.formatMessage({ id: 'screen.categories.kind.income', defaultMessage: 'Income' })
+      : intl.formatMessage({ id: 'screen.categories.kind.expense', defaultMessage: 'Expense' });
+
+  if (!editable) {
+    // Seeded system categories are shared by every household and cannot be changed.
+    return (
+      <div style={rowStyle} data-testid={`category-row-${category.id}`}>
+        <span style={{ flex: 1, color: theme.color.text.primary }}>{category.name}</span>
+        <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+          {kindLabel}
+        </span>
+        <span style={{ color: theme.color.text.muted, fontSize: theme.fontSize.sm }}>
+          <FormattedMessage id="screen.categories.system" defaultMessage="Built-in" />
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div style={rowStyle}>
+    <div style={rowStyle} data-testid={`category-row-${category.id}`}>
       <input
         type="text"
         value={draftName}
@@ -109,6 +143,10 @@ function CategoryRow({
         }}
       />
 
+      <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+        {kindLabel}
+      </span>
+
       <label
         style={{
           display: 'flex',
@@ -124,18 +162,18 @@ function CategoryRow({
           type="checkbox"
           checked={category.archived}
           onChange={(e) => {
-            void onArchiveToggle(category.id, e.target.checked);
+            void onUpdate(category, { archived: e.target.checked });
           }}
           style={{ cursor: 'pointer' }}
         />
         <FormattedMessage id="screen.categories.archive.label" defaultMessage="Archived" />
       </label>
 
-      <Select<CategoryPrivacy>
+      <Select<CategoryPrivacyDto>
         options={privacyOptions}
         value={category.privacy}
         onChange={(privacy) => {
-          void onPrivacyChange(category.id, privacy);
+          void onUpdate(category, { privacy });
         }}
         id={`privacy-${category.id}`}
       />
@@ -146,16 +184,18 @@ function CategoryRow({
 export function CategoriesScreen(): React.JSX.Element {
   const theme = useTheme();
   const intl = useIntl();
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryKind, setNewCategoryKind] = useState<CategoryKindDto>('expense');
   const [isAdding, setIsAdding] = useState(false);
+  const [actionError, setActionError] = useState<ActionError | null>(null);
 
   const fetchCategories = useCallback(async (): Promise<void> => {
     setLoadState('loading');
     try {
-      const res = await apiClient.get<Category[]>('/categories');
-      setCategories(res.data);
+      // Archived categories are listed too, so they can be restored.
+      setCategories(await categoriesApi.list({ includeArchived: true }));
       setLoadState('idle');
     } catch {
       setLoadState('error');
@@ -166,32 +206,17 @@ export function CategoriesScreen(): React.JSX.Element {
     void fetchCategories();
   }, [fetchCategories]);
 
-  const handleRename = useCallback(async (id: string, name: string): Promise<void> => {
-    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, name } : c)));
-    await apiClient.request<Category>({
-      url: `/categories/${id}`,
-      method: 'PATCH',
-      body: { name },
-    });
-  }, []);
-
-  const handleArchiveToggle = useCallback(async (id: string, archived: boolean): Promise<void> => {
-    setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, archived } : c)));
-    await apiClient.request<Category>({
-      url: `/categories/${id}`,
-      method: 'PATCH',
-      body: { archived },
-    });
-  }, []);
-
-  const handlePrivacyChange = useCallback(
-    async (id: string, privacy: CategoryPrivacy): Promise<void> => {
-      setCategories((prev) => prev.map((c) => (c.id === id ? { ...c, privacy } : c)));
-      await apiClient.request<Category>({
-        url: `/categories/${id}`,
-        method: 'PATCH',
-        body: { privacy },
-      });
+  const handleUpdate = useCallback(
+    async (category: CategoryDto, changes: UpdateCategoryDto): Promise<void> => {
+      setActionError(null);
+      setCategories((prev) => prev.map((c) => (c.id === category.id ? { ...c, ...changes } : c)));
+      try {
+        const updated = await categoriesApi.update(category.id, changes);
+        setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
+      } catch (err) {
+        setCategories((prev) => prev.map((c) => (c.id === category.id ? category : c)));
+        setActionError(toActionError(err));
+      }
     },
     [],
   );
@@ -200,10 +225,13 @@ export function CategoriesScreen(): React.JSX.Element {
     const name = newCategoryName.trim();
     if (!name) return;
     setIsAdding(true);
+    setActionError(null);
     try {
-      const res = await apiClient.post<Category>('/categories', { name });
-      setCategories((prev) => [...prev, res.data]);
+      const created = await categoriesApi.create({ name, kind: newCategoryKind });
+      setCategories((prev) => [...prev, created]);
       setNewCategoryName('');
+    } catch (err) {
+      setActionError(toActionError(err));
     } finally {
       setIsAdding(false);
     }
@@ -212,6 +240,40 @@ export function CategoriesScreen(): React.JSX.Element {
   const handleAddKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === 'Enter') {
       void handleAdd();
+    }
+  };
+
+  const kindOptions: ReadonlyArray<SelectOption<CategoryKindDto>> = [
+    {
+      value: 'expense',
+      label: intl.formatMessage({
+        id: 'screen.categories.kind.expense',
+        defaultMessage: 'Expense',
+      }),
+    },
+    {
+      value: 'income',
+      label: intl.formatMessage({ id: 'screen.categories.kind.income', defaultMessage: 'Income' }),
+    },
+  ];
+
+  const actionErrorMessage = (error: ActionError): string => {
+    switch (error) {
+      case 'nameTaken':
+        return intl.formatMessage({
+          id: 'screen.categories.error.nameTaken',
+          defaultMessage: 'A category with this name already exists.',
+        });
+      case 'readOnly':
+        return intl.formatMessage({
+          id: 'screen.categories.error.readOnly',
+          defaultMessage: 'Built-in categories cannot be changed.',
+        });
+      case 'failed':
+        return intl.formatMessage({
+          id: 'screen.categories.error.saveFailed',
+          defaultMessage: 'Could not save the category. Please try again.',
+        });
     }
   };
 
@@ -254,6 +316,15 @@ export function CategoriesScreen(): React.JSX.Element {
         <FormattedMessage id="screen.categories.title" defaultMessage="Categories" />
       </h1>
 
+      {actionError !== null && (
+        <p
+          role="alert"
+          style={{ color: theme.color.status.danger, margin: `0 0 ${theme.space.md}px` }}
+        >
+          {actionErrorMessage(actionError)}
+        </p>
+      )}
+
       <div
         style={{
           backgroundColor: theme.color.surface.raised,
@@ -279,6 +350,9 @@ export function CategoriesScreen(): React.JSX.Element {
             <FormattedMessage id="screen.categories.rename.label" defaultMessage="Name" />
           </span>
           <span>
+            <FormattedMessage id="screen.categories.kind.label" defaultMessage="Type" />
+          </span>
+          <span>
             <FormattedMessage id="screen.categories.archive.label" defaultMessage="Archived" />
           </span>
           <span>
@@ -301,13 +375,7 @@ export function CategoriesScreen(): React.JSX.Element {
           </div>
         ) : (
           categories.map((cat) => (
-            <CategoryRow
-              key={cat.id}
-              category={cat}
-              onRename={handleRename}
-              onArchiveToggle={handleArchiveToggle}
-              onPrivacyChange={handlePrivacyChange}
-            />
+            <CategoryRow key={cat.id} category={cat} onUpdate={handleUpdate} />
           ))
         )}
       </div>
@@ -338,6 +406,12 @@ export function CategoriesScreen(): React.JSX.Element {
             fontSize: theme.fontSize.md,
             fontFamily: theme.fontFamily.sans,
           }}
+        />
+        <Select<CategoryKindDto>
+          id="new-category-kind"
+          options={kindOptions}
+          value={newCategoryKind}
+          onChange={setNewCategoryKind}
         />
         <Button
           onClick={() => {

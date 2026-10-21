@@ -15,9 +15,12 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import type { AppTabParamList, AppStackParamList } from '../../navigation/types.js';
+import type { TransactionDto, TransactionPageDto } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../../infrastructure/index.js';
-import { TransactionStatusChip } from '../../components/TransactionStatusChip.js';
-import type { TransactionStatus } from '../../components/TransactionStatusChip.js';
+import {
+  formatAmountText,
+  isOutgoing,
+} from '../../../infrastructure/transactions/TransactionView.js';
 
 const t = rnDarkTheme;
 
@@ -26,38 +29,13 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<AppStackParamList>
 >;
 
-interface Transaction {
-  id: string;
-  occurredOn: string;
-  description: string;
-  amountMinor: number;
-  currency: string;
-  source: string;
-  notes: string | null;
-  ignored: boolean;
-  isTransfer: boolean;
-  mapping: { plannedItemId: string; plannedItemName: string } | null;
-}
-
-interface PaginatedTransactions {
-  items: Transaction[];
-  nextCursor?: string | null;
-}
-
-function getStatus(tx: Transaction): TransactionStatus {
-  if (tx.isTransfer) return 'transfer';
-  if (tx.mapping) return 'mapped';
-  return 'unmapped';
-}
-
 function TransactionRow({
   transaction,
   onPress,
 }: {
-  readonly transaction: Transaction;
+  readonly transaction: TransactionDto;
   readonly onPress: () => void;
 }): React.JSX.Element {
-  const status = getStatus(transaction);
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.rowTop}>
@@ -65,10 +43,10 @@ function TransactionRow({
         <Text
           style={[
             styles.rowAmount,
-            { color: transaction.amountMinor < 0 ? t.colorStatusDanger : t.colorStatusSuccess },
+            { color: isOutgoing(transaction.amount) ? t.colorStatusDanger : t.colorStatusSuccess },
           ]}
         >
-          {(transaction.amountMinor / 100).toFixed(2)} {transaction.currency}
+          {formatAmountText(transaction.amount)}
         </Text>
       </View>
       <Text style={styles.rowDesc} numberOfLines={1}>
@@ -78,7 +56,7 @@ function TransactionRow({
         <Text style={styles.rowSource} numberOfLines={1}>
           {transaction.source}
         </Text>
-        <TransactionStatusChip status={status} />
+        {/* The list DTO has no mapping or transfer link, so no status chip here. */}
       </View>
     </TouchableOpacity>
   );
@@ -86,7 +64,7 @@ function TransactionRow({
 
 export function TransactionListScreen({ navigation }: Props): React.JSX.Element {
   const intl = useIntl();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<TransactionDto[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -96,14 +74,14 @@ export function TransactionListScreen({ navigation }: Props): React.JSX.Element 
     async (cursor?: string): Promise<void> => {
       try {
         const url = cursor ? `/transactions?limit=50&cursor=${cursor}` : '/transactions?limit=50';
-        const response = await apiClient.get<PaginatedTransactions>(url);
+        const response = await apiClient.get<TransactionPageDto>(url);
         const data = response.data;
         if (cursor) {
           setTransactions((prev) => [...prev, ...data.items]);
         } else {
           setTransactions(data.items);
         }
-        setNextCursor(data.nextCursor ?? null);
+        setNextCursor(data.nextCursor);
       } catch {
         Alert.alert(
           intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),

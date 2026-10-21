@@ -5,10 +5,8 @@ import { Select } from './Select.js';
 import { CustomPeriodPicker } from './CustomPeriodPicker.js';
 import type { CustomPeriodValue } from './CustomPeriodPicker.js';
 import { useTheme } from './ThemeContext.js';
-import { apiClient } from '../../AppProviders.js';
-import type { ClonePlanDto } from '../../infrastructure/api/PlanMapper.js';
-
-type PlanPeriod = 'weekly' | 'monthly' | 'custom';
+import type { ClonePlanDto, PlanPeriodKindDto } from '@power-budget/shared-app/contract';
+import { plansApi } from '../../AppProviders.js';
 
 export interface ClonePlanModalProps {
   readonly isOpen: boolean;
@@ -25,12 +23,12 @@ export function ClonePlanModal({
 }: ClonePlanModalProps): React.JSX.Element {
   const theme = useTheme();
   const intl = useIntl();
-  const [period, setPeriod] = useState<PlanPeriod>('monthly');
+  const [period, setPeriod] = useState<PlanPeriodKindDto>('monthly');
   const [customDates, setCustomDates] = useState<CustomPeriodValue>({ startDate: '', endDate: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const periodOptions: ReadonlyArray<{ value: PlanPeriod; label: string }> = [
+  const periodOptions: ReadonlyArray<{ value: PlanPeriodKindDto; label: string }> = [
     {
       value: 'weekly',
       label: intl.formatMessage({
@@ -63,7 +61,7 @@ export function ClonePlanModal({
         period === 'custom'
           ? { periodStart: customDates.startDate, periodEnd: customDates.endDate }
           : {};
-      await apiClient.post(`/plans/${planId}/clone`, body);
+      await plansApi.clone(planId, body);
       onCloned();
       onClose();
     } catch {
@@ -110,7 +108,7 @@ export function ClonePlanModal({
       ]}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.md }}>
-        <Select<PlanPeriod>
+        <Select<PlanPeriodKindDto>
           id="clone-period"
           label={intl.formatMessage({
             id: 'modal.clonePlan.periodLabel',

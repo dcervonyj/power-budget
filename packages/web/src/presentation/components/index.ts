@@ -14,7 +14,7 @@ export type { CustomPeriodPickerProps, CustomPeriodValue } from './CustomPeriodP
 export { ClonePlanModal } from './ClonePlanModal.js';
 export type { ClonePlanModalProps } from './ClonePlanModal.js';
 export { CategoryPickerModal } from './CategoryPickerModal.js';
-export type { CategoryPickerModalProps, Category, CategoryPrivacy } from './CategoryPickerModal.js';
+export type { CategoryPickerModalProps } from './CategoryPickerModal.js';
 export { MoneyView } from './MoneyView.js';
 export type { MoneyViewProps } from './MoneyView.js';
 export { CurrencySwitcher } from './CurrencySwitcher.js';
@@ -40,6 +40,3 @@ export type {
   Transaction,
   TransactionMapping,
 } from './TransactionDetailModal.js';
-
-
-

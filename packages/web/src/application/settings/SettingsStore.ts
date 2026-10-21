@@ -1,19 +1,17 @@
-import { makeAutoObservable } from 'mobx';
+import { makeAutoObservable, runInAction } from 'mobx';
+import { isSupportedCurrency } from '@power-budget/core';
 import { readApiError } from '@power-budget/shared-app';
+import type {
+  UpdateUserProfileDto,
+  UserProfileDto,
+  VerifyTotpDto,
+} from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 
 const BASE_CURRENCY_KEY = 'pb_base_currency';
 const INTERESTING_CURRENCIES_KEY = 'pb_interesting_currencies';
-const WEEKLY_DIGEST_KEY = 'pb_weekly_digest';
-const OVER_BUDGET_THRESHOLD_KEY = 'pb_over_budget_threshold';
-const DISPLAY_NAME_KEY = 'pb_display_name';
 
-interface UserProfile {
-  id?: string;
-  email?: string;
-  displayName?: string;
-  householdId?: string;
-}
+export type SaveError = 'save_failed' | 'unsupported_currency';
 
 function readInterestingCurrencies(): string[] {
   try {
@@ -24,19 +22,25 @@ function readInterestingCurrencies(): string[] {
   }
 }
 
+/**
+ * The signed-in user's settings. Profile fields come from `GET /users/me`
+ * (UserProfileDto) and are saved with `PATCH /users/me`; interesting currencies are a
+ * local display preference (the API has no field for them). There is no
+ * notification-preferences endpoint, so the app has no notification settings.
+ */
 export class SettingsStore {
-  displayName: string = localStorage.getItem(DISPLAY_NAME_KEY) ?? '';
+  userId: string = '';
+  displayName: string = '';
   email: string = '';
   householdId: string = '';
+  timezone: string = '';
 
+  /** Cached so screens have a currency before the profile loads. */
   baseCurrency: string = localStorage.getItem(BASE_CURRENCY_KEY) ?? 'EUR';
   interestingCurrencies: string[] = readInterestingCurrencies();
 
-  weeklyDigest: boolean = localStorage.getItem(WEEKLY_DIGEST_KEY) === 'true';
-  overBudgetThreshold: number = Number(localStorage.getItem(OVER_BUDGET_THRESHOLD_KEY) ?? '80');
-
   isSaving: boolean = false;
-  saveError: string | null = null;
+  saveError: SaveError | null = null;
 
   isExporting: boolean = false;
   exportUrl: string | null = null;
@@ -55,6 +59,10 @@ export class SettingsStore {
     this.displayName = value;
   }
 
+  setTimezone(value: string): void {
+    this.timezone = value;
+  }
+
   setBaseCurrency(value: string): void {
     this.baseCurrency = value;
   }
@@ -67,14 +75,6 @@ export class SettingsStore {
     }
   }
 
-  setWeeklyDigest(value: boolean): void {
-    this.weeklyDigest = value;
-  }
-
-  setOverBudgetThreshold(value: number): void {
-    this.overBudgetThreshold = value;
-  }
-
   clearExportUrl(): void {
     this.exportUrl = null;
     this.exportError = null;
@@ -82,82 +82,32 @@ export class SettingsStore {
 
   async loadProfile(): Promise<void> {
     try {
-      const res = await apiClient.get<UserProfile>('/users/me');
-      if (res.data) {
-        if (res.data.email) {
-          this.email = res.data.email;
-        }
-        if (res.data.displayName && !localStorage.getItem(DISPLAY_NAME_KEY)) {
-          this.displayName = res.data.displayName;
-        }
-        if (res.data.householdId) {
-          this.householdId = res.data.householdId;
-        }
-      }
+      const res = await apiClient.get<UserProfileDto>('/users/me');
+      this.applyProfile(res.data);
     } catch {
-      // silently ignore — profile may not be available
+      // The screens keep their defaults when the profile is not available.
     } finally {
-      this.profileLoaded = true;
+      runInAction(() => {
+        this.profileLoaded = true;
+      });
     }
   }
 
   async saveProfile(): Promise<void> {
-    this.isSaving = true;
-    this.saveError = null;
-    try {
-      localStorage.setItem(DISPLAY_NAME_KEY, this.displayName);
-      await apiClient
-        .request({ url: '/users/me', method: 'PATCH', body: { displayName: this.displayName } })
-        .catch(() => undefined);
-    } catch {
-      this.saveError = 'save_failed';
-    } finally {
-      this.isSaving = false;
-    }
+    const body: UpdateUserProfileDto = this.timezone.trim()
+      ? { displayName: this.displayName.trim(), timezone: this.timezone.trim() }
+      : { displayName: this.displayName.trim() };
+    await this.patchProfile(body);
   }
 
   async saveCurrency(): Promise<void> {
-    this.isSaving = true;
-    this.saveError = null;
-    try {
-      localStorage.setItem(BASE_CURRENCY_KEY, this.baseCurrency);
-      localStorage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(this.interestingCurrencies));
-      await apiClient
-        .request({
-          url: '/users/me',
-          method: 'PATCH',
-          // Interesting currencies are a local display preference; the API rejects them.
-          body: { baseCurrency: this.baseCurrency },
-        })
-        .catch(() => undefined);
-    } catch {
-      this.saveError = 'save_failed';
-    } finally {
-      this.isSaving = false;
-    }
-  }
+    localStorage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(this.interestingCurrencies));
+    if (!isSupportedCurrency(this.baseCurrency)) {
+      this.saveError = 'unsupported_currency';
 
-  async saveNotifications(): Promise<void> {
-    this.isSaving = true;
-    this.saveError = null;
-    try {
-      localStorage.setItem(WEEKLY_DIGEST_KEY, String(this.weeklyDigest));
-      localStorage.setItem(OVER_BUDGET_THRESHOLD_KEY, String(this.overBudgetThreshold));
-      await apiClient
-        .request({
-          url: '/users/me/preferences',
-          method: 'PATCH',
-          body: {
-            weeklyDigest: this.weeklyDigest,
-            overBudgetThreshold: this.overBudgetThreshold,
-          },
-        })
-        .catch(() => undefined);
-    } catch {
-      this.saveError = 'save_failed';
-    } finally {
-      this.isSaving = false;
+      return;
     }
+    await this.patchProfile({ baseCurrency: this.baseCurrency });
   }
 
   async exportData(): Promise<void> {
@@ -206,7 +156,7 @@ export class SettingsStore {
     this.isDeleting = true;
     this.deleteError = null;
     if (!this.householdId) {
-      // GET /users/me returns householdId once CLN-011 is deployed.
+      // Only a member of a household can delete it (UserProfileDto.householdId).
       this.deleteError = 'delete_failed';
       this.isDeleting = false;
 
@@ -214,12 +164,42 @@ export class SettingsStore {
     }
     try {
       if (totpCode) {
-        await apiClient.post('/auth/totp/verify', { code: totpCode });
+        const body: VerifyTotpDto = { code: totpCode };
+        await apiClient.post('/auth/totp/verify', body);
       }
       await apiClient.delete(`/households/${this.householdId}`);
     } catch (err) {
       this.deleteError = deleteErrorCode(err);
       this.isDeleting = false;
+    }
+  }
+
+  private async patchProfile(body: UpdateUserProfileDto): Promise<void> {
+    this.isSaving = true;
+    this.saveError = null;
+    try {
+      const res = await apiClient.patch<UserProfileDto>('/users/me', body);
+      this.applyProfile(res.data);
+    } catch {
+      runInAction(() => {
+        this.saveError = 'save_failed';
+      });
+    } finally {
+      runInAction(() => {
+        this.isSaving = false;
+      });
+    }
+  }
+
+  private applyProfile(profile: UserProfileDto): void {
+    this.userId = profile.id;
+    this.email = profile.email;
+    this.displayName = profile.displayName;
+    this.timezone = profile.timezone;
+    this.householdId = profile.householdId ?? '';
+    if (profile.baseCurrency !== null) {
+      this.baseCurrency = profile.baseCurrency;
+      localStorage.setItem(BASE_CURRENCY_KEY, profile.baseCurrency);
     }
   }
 }

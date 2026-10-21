@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
+import { CategoriesApi, PlansApi } from '@power-budget/shared-app';
 import { LocalStorageTokenStore } from './infrastructure/tokens/LocalStorageTokenStore.js';
 import { ReactRouterNavigationAdapter } from './infrastructure/navigation/ReactRouterNavigationAdapter.js';
 import { createApiClient } from './infrastructure/api/ApiClient.js';
@@ -68,6 +69,8 @@ export const apiClient = createApiClient(tokenStore, () => {
 });
 export const signOut = new SignOut(apiClient, tokenStore);
 export const bulkTransactionActions = new BulkTransactionActions(apiClient);
+export const plansApi = new PlansApi(apiClient);
+export const categoriesApi = new CategoriesApi(apiClient);
 
 /**
  * Inner component that has access to the router context and wires up the

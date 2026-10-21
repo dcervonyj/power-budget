@@ -3,8 +3,11 @@ import { observer } from 'mobx-react-lite';
 import { FormattedMessage } from 'react-intl';
 import { useTheme } from '../ThemeContext.js';
 import { Button } from '../Button.js';
-import { SyncStatusChip } from './SyncStatusChip.js';
-import type { BankConnection, ConnectionStatus } from '../../../domain/bank/BankConnection.js';
+import type { BankConnectionStatusDto } from '@power-budget/shared-app/contract';
+import {
+  BankConnectionMapper,
+  type BankConnection,
+} from '../../../infrastructure/api/BankConnectionMapper.js';
 import type { BankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 
 export interface BankConnectionsListProps {
@@ -13,7 +16,7 @@ export interface BankConnectionsListProps {
 }
 
 function statusColors(
-  status: ConnectionStatus,
+  status: BankConnectionStatusDto,
   theme: ReturnType<typeof useTheme>,
 ): { bg: string; color: string } {
   switch (status) {
@@ -21,23 +24,30 @@ function statusColors(
       return { bg: theme.color.status.success + '33', color: theme.color.status.success };
     case 'expired':
       return { bg: theme.color.status.danger + '33', color: theme.color.status.danger };
-    case 'error':
+    case 'reconnect_required':
       return { bg: theme.color.status.warning + '33', color: theme.color.status.warning };
-    case 'pending':
+    case 'disconnected':
       return { bg: theme.color.text.secondary + '22', color: theme.color.text.secondary };
   }
 }
 
-function statusMessageId(status: ConnectionStatus): string {
+function StatusLabel({ status }: { status: BankConnectionStatusDto }): React.JSX.Element {
   switch (status) {
     case 'active':
-      return 'bankConnections.status.active';
+      return <FormattedMessage id="bankConnections.status.active" defaultMessage="Active" />;
     case 'expired':
-      return 'bankConnections.status.expired';
-    case 'error':
-      return 'bankConnections.status.error';
-    case 'pending':
-      return 'bankConnections.status.pending';
+      return <FormattedMessage id="bankConnections.status.expired" defaultMessage="Expired" />;
+    case 'reconnect_required':
+      return (
+        <FormattedMessage
+          id="bankConnections.status.reconnectRequired"
+          defaultMessage="Reconnect needed"
+        />
+      );
+    case 'disconnected':
+      return (
+        <FormattedMessage id="bankConnections.status.disconnected" defaultMessage="Disconnected" />
+      );
   }
 }
 
@@ -81,7 +91,7 @@ const ConnectionCard = observer(function ConnectionCard({
 }: ConnectionCardProps): React.JSX.Element {
   const theme = useTheme();
   const { bg, color } = statusColors(connection.status, theme);
-  const needsReconnect = connection.status === 'expired' || connection.status === 'error';
+  const needsReconnect = BankConnectionMapper.needsReconnect(connection);
 
   return (
     <div
@@ -103,9 +113,8 @@ const ConnectionCard = observer(function ConnectionCard({
             color: theme.color.text.primary,
           }}
         >
-          {connection.name}
+          {connection.bankId}
         </span>
-        <SyncStatusChip lastSuccessfulAt={connection.lastSuccessfulAt} />
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: theme.space.sm }}>
@@ -120,7 +129,7 @@ const ConnectionCard = observer(function ConnectionCard({
             color,
           }}
         >
-          <FormattedMessage id={statusMessageId(connection.status)} />
+          <StatusLabel status={connection.status} />
         </span>
 
         {needsReconnect && (

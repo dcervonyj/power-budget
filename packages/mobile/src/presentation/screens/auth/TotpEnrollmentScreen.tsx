@@ -17,21 +17,14 @@ type Props = NativeStackScreenProps<AuthStackParamList, 'TotpEnrollment'>;
 
 type Phase = 'loading' | 'qr' | 'recovery';
 
-/** Extract the secret key from an otpauth:// URI */
-function extractSecret(otpauthUri: string): string {
-  try {
-    const url = new URL(otpauthUri);
-    return url.searchParams.get('secret') ?? '';
-  } catch {
-    return '';
-  }
-}
+/** TotpEnrollmentDto carries no recovery codes yet, so the recovery phase has none to show. */
+const NO_RECOVERY_CODES: readonly string[] = [];
 
 export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
   const intl = useIntl();
   const [qrCodeUri, setQrCodeUri] = useState<string>('');
   const [manualEntryKey, setManualEntryKey] = useState<string>('');
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
+  const recoveryCodes = NO_RECOVERY_CODES;
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<Phase>('loading');
@@ -39,10 +32,9 @@ export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
   useEffect(() => {
     void authService
       .enableTotp()
-      .then(({ qrCodeUri: uri, recoveryCodes: codes }) => {
+      .then(({ qrCodeUri: uri, secret }) => {
         setQrCodeUri(uri);
-        setManualEntryKey(extractSecret(uri));
-        setRecoveryCodes(codes);
+        setManualEntryKey(secret);
         setPhase('qr');
       })
       .catch(() => {

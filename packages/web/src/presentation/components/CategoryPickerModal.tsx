@@ -1,23 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { apiClient } from '../../AppProviders.js';
+import type { CategoryDto } from '@power-budget/shared-app/contract';
+import { categoriesApi } from '../../AppProviders.js';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
-
-export type CategoryPrivacy = 'private' | 'shared' | 'full_detail';
-
-export interface Category {
-  readonly id: string;
-  readonly name: string;
-  readonly archived: boolean;
-  readonly privacy: CategoryPrivacy;
-}
 
 export interface CategoryPickerModalProps {
   readonly isOpen: boolean;
   readonly onClose: () => void;
-  readonly onSelect: (category: Category) => void;
-  readonly categories?: Category[];
+  readonly onSelect: (category: CategoryDto) => void;
+  readonly categories?: CategoryDto[];
 }
 
 export function CategoryPickerModal({
@@ -29,19 +21,27 @@ export function CategoryPickerModal({
   const theme = useTheme();
   const intl = useIntl();
   const [search, setSearch] = useState('');
-  const [fetchedCategories, setFetchedCategories] = useState<Category[]>([]);
+  const [fetchedCategories, setFetchedCategories] = useState<CategoryDto[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!isOpen || categoriesProp !== undefined) return;
     let cancelled = false;
     setLoading(true);
-    void apiClient.get<Category[]>('/categories').then((res) => {
-      if (!cancelled) {
-        setFetchedCategories(res.data);
-        setLoading(false);
-      }
-    });
+    // Archived categories are not offered (GET /categories leaves them out).
+    void categoriesApi.list().then(
+      (categories) => {
+        if (!cancelled) {
+          setFetchedCategories(categories);
+          setLoading(false);
+        }
+      },
+      () => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      },
+    );
     return () => {
       cancelled = true;
     };

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import type { AuditEventDto, AuditPageDto } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
+import { AuditEventItem } from './AuditEventItem.js';
 import { Drawer } from './Drawer.js';
 import { useTheme } from './ThemeContext.js';
 
@@ -9,16 +11,9 @@ export interface AuditLogDrawerProps {
   subjectId: string;
   isOpen: boolean;
   onClose: () => void;
+  /** The signed-in user (UserProfileDto.id); their own events read "You". */
+  currentUserId: string;
   title?: string;
-}
-
-interface AuditEvent {
-  id: string;
-  actor: string | null;
-  action: string;
-  timestamp: string;
-  before?: Record<string, unknown> | null;
-  after?: Record<string, unknown> | null;
 }
 
 export function AuditLogDrawer({
@@ -26,11 +21,12 @@ export function AuditLogDrawer({
   subjectId,
   isOpen,
   onClose,
+  currentUserId,
   title,
 }: AuditLogDrawerProps): React.JSX.Element {
   const intl = useIntl();
   const theme = useTheme();
-  const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [events, setEvents] = useState<AuditEventDto[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -39,11 +35,10 @@ export function AuditLogDrawer({
     setLoading(true);
     const fetchEvents = async (): Promise<void> => {
       try {
-        const res = await apiClient.get<AuditEvent[]>(
+        const res = await apiClient.get<AuditPageDto>(
           `/audit-log?subjectType=${encodeURIComponent(subjectType)}&subjectId=${encodeURIComponent(subjectId)}`,
         );
-        const data = res.data;
-        setEvents(Array.isArray(data) ? data : []);
+        setEvents(res.data.items);
       } catch {
         setEvents([]);
       } finally {
@@ -80,71 +75,7 @@ export function AuditLogDrawer({
       ) : (
         <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
           {events.map((event) => (
-            <li
-              key={event.id}
-              style={{
-                borderBottom: `1px solid ${theme.color.border.subtle}`,
-                paddingBottom: theme.space.md,
-                marginBottom: theme.space.md,
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: theme.space.xs,
-                  flexWrap: 'wrap' as const,
-                  gap: theme.space.xs,
-                }}
-              >
-                <span
-                  style={{
-                    color: theme.color.text.primary,
-                    fontWeight: theme.fontWeight.semibold,
-                  }}
-                >
-                  {event.actor ?? (
-                    <FormattedMessage
-                      id="component.auditLog.actor.system"
-                      defaultMessage="System"
-                    />
-                  )}
-                </span>
-                <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
-                  {new Date(event.timestamp).toLocaleString()}
-                </span>
-              </div>
-              <div style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm }}>
-                {event.action}
-              </div>
-              {(event.before ?? event.after) && (
-                <div
-                  style={{
-                    marginTop: theme.space.xs,
-                    fontSize: theme.fontSize.sm,
-                    color: theme.color.text.secondary,
-                    fontFamily: 'monospace',
-                  }}
-                >
-                   {event.before && (
-                    <div>
-                      {intl.formatMessage(
-                        { id: 'common.beforeValue', defaultMessage: 'Before: {value}' },
-                        { value: JSON.stringify(event.before) },
-                      )}
-                    </div>
-                  )}
-                   {event.after && (
-                    <div>
-                      {intl.formatMessage(
-                        { id: 'common.afterValue', defaultMessage: 'After: {value}' },
-                        { value: JSON.stringify(event.after) },
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </li>
+            <AuditEventItem key={event.id} event={event} currentUserId={currentUserId} />
           ))}
         </ul>
       )}

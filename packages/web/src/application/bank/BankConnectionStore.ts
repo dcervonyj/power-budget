@@ -1,24 +1,10 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { apiClient } from '../../AppProviders.js';
-import type { BankConnection } from '../../domain/bank/BankConnection.js';
-
-interface RawBankConnection {
-  id: string;
-  name: string;
-  provider: 'gocardless' | 'wise';
-  status: 'active' | 'expired' | 'error' | 'pending';
-  lastSuccessfulAt: string | null;
-  expiresAt: string | null;
-  linkedAccountIds: string[];
-}
-
-function parseConnection(raw: RawBankConnection): BankConnection {
-  return {
-    ...raw,
-    lastSuccessfulAt: raw.lastSuccessfulAt ? new Date(raw.lastSuccessfulAt) : null,
-    expiresAt: raw.expiresAt ? new Date(raw.expiresAt) : null,
-  };
-}
+import type { BankConnectionDto } from '@power-budget/shared-app/contract';
+import {
+  BankConnectionMapper,
+  type BankConnection,
+} from '../../infrastructure/api/BankConnectionMapper.js';
 
 export class BankConnectionStore {
   connections: BankConnection[] = [];
@@ -38,9 +24,9 @@ export class BankConnectionStore {
     this.loading = true;
     this.error = null;
     try {
-      const res = await apiClient.get<RawBankConnection[]>('/bank-connections');
+      const res = await apiClient.get<BankConnectionDto[]>('/bank-connections');
       runInAction(() => {
-        this.connections = res.data.map(parseConnection);
+        this.connections = res.data.map(BankConnectionMapper.toBankConnection);
         this.loading = false;
       });
     } catch {

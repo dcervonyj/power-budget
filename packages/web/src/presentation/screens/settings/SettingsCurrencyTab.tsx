@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import { CURRENCIES } from '@power-budget/core';
 import { useTheme } from '../../components/ThemeContext.js';
 import { Select } from '../../components/Select.js';
 import { Button } from '../../components/Button.js';
@@ -10,6 +11,9 @@ interface LocalSelectOption {
   value: string;
   label: string;
 }
+
+/** Base currencies the API accepts (UpdateUserProfileDto.baseCurrency). */
+const BASE_CURRENCY_LIST: ReadonlyArray<string> = Object.keys(CURRENCIES);
 
 const CURRENCY_LIST: ReadonlyArray<string> = [
   'USD',
@@ -29,7 +33,7 @@ export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): Reac
   const intl = useIntl();
   const [saved, setSaved] = useState(false);
 
-  const currencyOptions: ReadonlyArray<LocalSelectOption> = CURRENCY_LIST.map((c) => ({
+  const currencyOptions: ReadonlyArray<LocalSelectOption> = BASE_CURRENCY_LIST.map((c) => ({
     value: c,
     label: c,
   }));
@@ -128,6 +132,17 @@ export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): Reac
         {saved && (
           <span style={{ color: theme.color.status.success, fontSize: theme.fontSize.sm }}>
             <FormattedMessage id="common.saved" defaultMessage="Saved!" />
+          </span>
+        )}
+        {settingsStore.saveError !== null && (
+          <span
+            role="alert"
+            style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
+          >
+            <FormattedMessage
+              id="settings.saveError"
+              defaultMessage="Could not save. Please try again."
+            />
           </span>
         )}
       </div>

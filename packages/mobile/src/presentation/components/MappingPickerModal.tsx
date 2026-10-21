@@ -10,8 +10,9 @@ import {
 } from 'react-native';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import { useIntl } from 'react-intl';
-import { planService } from '../../infrastructure/index.js';
-import type { Plan, PlannedItem } from '../../infrastructure/index.js';
+import { formatMoneyInput, parseMinorUnits } from '@power-budget/core';
+import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
+import { plansApi } from '../../infrastructure/index.js';
 
 const t = rnDarkTheme;
 
@@ -23,8 +24,8 @@ interface MappingPickerModalProps {
 }
 
 interface PlanWithItems {
-  plan: Plan;
-  items: PlannedItem[];
+  plan: PlanDto;
+  items: PlannedItemDto[];
 }
 
 export function MappingPickerModal({
@@ -40,11 +41,10 @@ export function MappingPickerModal({
   const load = useCallback(async (): Promise<void> => {
     setLoading(true);
     try {
-      const plans = await planService.listPlans();
-      const active = plans.filter((p) => p.archivedAt === null);
+      const active = await plansApi.list('active');
       const results = await Promise.all(
         active.map(async (p) => {
-          const items = await planService.listPlannedItems(p.id);
+          const items = await plansApi.listItems(p.id);
           return { plan: p, items };
         }),
       );
@@ -58,7 +58,7 @@ export function MappingPickerModal({
     if (visible) void load();
   }, [visible, load]);
 
-  const allItems: Array<{ plan: Plan; item: PlannedItem }> = [];
+  const allItems: Array<{ plan: PlanDto; item: PlannedItemDto }> = [];
   for (const pw of plansWithItems) {
     for (const item of pw.items) {
       allItems.push({ plan: pw.plan, item });
@@ -71,14 +71,24 @@ export function MappingPickerModal({
   });
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>
-            {intl.formatMessage({ id: 'screen.transactionDetail.mapTo', defaultMessage: 'Map to planned item' })}
+            {intl.formatMessage({
+              id: 'screen.transactionDetail.mapTo',
+              defaultMessage: 'Map to planned item',
+            })}
           </Text>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>{intl.formatMessage({ id: 'common.closeButton', defaultMessage: '✕' })}</Text>
+            <Text style={styles.closeBtnText}>
+              {intl.formatMessage({ id: 'common.closeButton', defaultMessage: '✕' })}
+            </Text>
           </TouchableOpacity>
         </View>
         {loading ? (
@@ -93,7 +103,10 @@ export function MappingPickerModal({
             renderItem={({ item: { plan, item } }) => {
               const isCurrent = item.id === currentPlannedItemId;
               const dirLabel = item.direction === 'income' ? '↑' : '↓';
-              const amount = (item.amountMinor / 100).toFixed(2);
+              const amount = formatMoneyInput(
+                parseMinorUnits(item.amount.amountMinor),
+                item.amount.currency,
+              );
               return (
                 <TouchableOpacity
                   style={[styles.row, isCurrent && styles.rowCurrent]}
@@ -107,13 +120,22 @@ export function MappingPickerModal({
                     <Text style={styles.dirLabel}>{dirLabel}</Text>
                     <View>
                       <Text style={styles.planName}>{plan.name}</Text>
-                      <Text style={styles.amount}>{intl.formatMessage(
-                        { id: 'common.amountWithCurrency', defaultMessage: '{amount} {currency}' },
-                        { amount, currency: item.currency },
-                      )}</Text>
+                      <Text style={styles.amount}>
+                        {intl.formatMessage(
+                          {
+                            id: 'common.amountWithCurrency',
+                            defaultMessage: '{amount} {currency}',
+                          },
+                          { amount, currency: item.amount.currency },
+                        )}
+                      </Text>
                     </View>
                   </View>
-                  {isCurrent && <Text style={styles.currentTag}>{intl.formatMessage({ id: 'common.checkmark', defaultMessage: '✓' })}</Text>}
+                  {isCurrent && (
+                    <Text style={styles.currentTag}>
+                      {intl.formatMessage({ id: 'common.checkmark', defaultMessage: '✓' })}
+                    </Text>
+                  )}
                 </TouchableOpacity>
               );
             }}
