@@ -2,6 +2,7 @@ import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { useTheme } from '../ThemeContext.js';
+import { formatMinorUnits } from '../../i18n/formatMinorUnits.js';
 import type { DashboardStore } from '../../../application/dashboard/DashboardStore.js';
 import type { PlanActualsView } from '../../../domain/dashboard/PlanActualsView.js';
 
@@ -20,11 +21,7 @@ export const BottomLine = observer(function BottomLine({
   const convertedMinor = store.convertAmount(actuals.leftover, actuals.currency);
   const displayCurrency = store.displayCurrency || actuals.currency;
 
-  const formattedNet = intl.formatNumber(convertedMinor / 100, {
-    style: 'currency',
-    currency: displayCurrency,
-    maximumFractionDigits: 2,
-  });
+  const formattedNet = formatMinorUnits(convertedMinor, displayCurrency, intl.locale);
 
   const isPositive = convertedMinor >= 0;
   const amountColor = isPositive ? theme.color.status.success : theme.color.status.danger;

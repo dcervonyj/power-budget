@@ -12,25 +12,19 @@ import {
   type TransactionDetailDto,
 } from '../../infrastructure/api/TransactionMapper.js';
 import type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
+import {
+  PlanMapper,
+  type PlanDto,
+  type PlannedItemDto,
+  type PlannedItemSummary,
+  type PlanSummary,
+} from '../../infrastructure/api/PlanMapper.js';
+import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
 
 export type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
 
-interface Plan {
-  id: string;
-  name: string;
-  status: 'active' | 'draft' | 'archived';
-}
-
-interface PlannedItem {
-  id: string;
-  planId: string;
-  categoryId: string;
-  categoryName?: string;
-  direction: 'income' | 'expense';
-  /** Minor units; plan item endpoints come with CLN-011 (string per CLN-002, number before). */
-  amountMinor: string | number;
-  currency: string;
-}
+type Plan = PlanSummary;
+type PlannedItem = PlannedItemSummary;
 
 export interface TransactionDetailModalProps {
   transactionId: string;
@@ -119,14 +113,20 @@ export function TransactionDetailModal({
     if (plans.length > 0) return;
     setPickerLoading(true);
     try {
-      const res = await apiClient.get<Plan[]>('/plans');
-      const allPlans = res.data;
+      const [res, categoryNames] = await Promise.all([
+        apiClient.get<PlanDto[]>('/plans'),
+        fetchCategoryNames(apiClient),
+      ]);
+      const allPlans = res.data.map(PlanMapper.toPlan);
       setPlans(allPlans);
-      const activePlans = allPlans.filter((p) => p.status === 'active' || p.status === 'draft');
+      const activePlans = allPlans.filter((p) => p.status === 'active');
       const itemResults = await Promise.all(
         activePlans.map(async (p) => {
-          const r = await apiClient.get<PlannedItem[]>(`/plans/${p.id}/items`);
-          return { planId: p.id, items: r.data };
+          const r = await apiClient.get<PlannedItemDto[]>(`/plans/${p.id}/items`);
+          return {
+            planId: p.id,
+            items: r.data.map((dto) => PlanMapper.toItem(dto, categoryNames)),
+          };
         }),
       );
       const map = new Map<string, PlannedItem[]>();
@@ -180,7 +180,11 @@ export function TransactionDetailModal({
           body: { plannedItemId },
         });
         const updatedTx: Transaction | null = transaction
-          ? { ...transaction, mapping: newMapping }
+          ? {
+              ...transaction,
+              mapping: newMapping,
+              mappingStatus: newMapping === null ? 'unmapped' : 'mapped',
+            }
           : null;
         if (updatedTx) {
           setTransaction(updatedTx);
@@ -559,7 +563,7 @@ export function TransactionDetailModal({
                     >
                       {formatMoney(
                         {
-                          amountMinor: parseMinorUnits(String(item.amountMinor)),
+                          amountMinor: parseMinorUnits(item.amountMinor),
                           currency: item.currency,
                         },
                         toSupportedLocale(intl.locale),

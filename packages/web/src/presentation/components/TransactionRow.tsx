@@ -22,7 +22,8 @@ export function TransactionRow({ transaction, onClick }: TransactionRowProps): R
 
   const isTransfer = transaction.isTransfer;
   const isMapped = transaction.mapping !== null && !isTransfer;
-  const isUnmapped = !transaction.mapping && !isTransfer;
+  // Only claim "Unmapped" when the API said so; list rows usually do not know.
+  const isUnmapped = transaction.mappingStatus === 'unmapped' && !isTransfer;
 
   const chipLabel = isTransfer
     ? intl.formatMessage({

@@ -31,30 +31,42 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </IntlProvider>
 );
 
-const mockPlans = [
-  { id: 'plan-1', name: 'May Budget', status: 'active' as const },
-  { id: 'plan-2', name: 'June Budget', status: 'active' as const },
-];
+function planDto(id: string, name: string) {
+  return {
+    id,
+    name,
+    type: 'personal' as const,
+    ownerUserId: 'u1',
+    periodKind: 'monthly' as const,
+    period: { start: '2026-10-01', end: '2026-10-31' },
+    baseCurrency: 'EUR',
+    archivedAt: null,
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+  };
+}
 
-const mockItems = [
-  {
-    id: 'item-1',
+function itemDto(id: string, categoryId: string, amountMinor: string) {
+  return {
+    id,
     planId: 'plan-1',
-    categoryId: 'cat-1',
-    categoryName: 'Groceries',
+    categoryId,
     direction: 'expense' as const,
-    amountMinor: 50000,
-    currency: 'EUR',
-  },
-  {
-    id: 'item-2',
-    planId: 'plan-1',
-    categoryId: 'cat-2',
-    categoryName: 'Transport',
-    direction: 'expense' as const,
-    amountMinor: 20000,
-    currency: 'EUR',
-  },
+    amount: { amountMinor, currency: 'EUR' },
+    note: null,
+    createdAt: '2026-10-01T00:00:00.000Z',
+    updatedAt: '2026-10-01T00:00:00.000Z',
+  };
+}
+
+// CLN-011 shapes: plans with period/archivedAt, items with `amount` and no category name.
+const mockPlans = [planDto('plan-1', 'May Budget'), planDto('plan-2', 'June Budget')];
+
+const mockItems = [itemDto('item-1', 'cat-1', '50000'), itemDto('item-2', 'cat-2', '20000')];
+
+const mockCategories = [
+  { id: 'cat-1', name: 'Groceries' },
+  { id: 'cat-2', name: 'Transport' },
 ];
 
 describe('MappingModal', () => {
@@ -71,6 +83,9 @@ describe('MappingModal', () => {
       }
       if (url === '/plans/plan-1/items') {
         return Promise.resolve({ status: 200, data: mockItems, headers: {} });
+      }
+      if (url === '/categories') {
+        return Promise.resolve({ status: 200, data: mockCategories, headers: {} });
       }
       return Promise.resolve({ status: 200, data: [], headers: {} });
     });

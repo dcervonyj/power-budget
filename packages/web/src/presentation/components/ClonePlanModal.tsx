@@ -57,12 +57,13 @@ export function ClonePlanModal({
     setLoading(true);
     setError(null);
     try {
-      await apiClient.post(`/plans/${planId}/clone`, {
-        period,
-        ...(period === 'custom'
-          ? { startDate: customDates.startDate, endDate: customDates.endDate }
-          : {}),
-      });
+      // CLN-011: the clone keeps the period kind; without dates it covers the next period.
+      await apiClient.post(
+        `/plans/${planId}/clone`,
+        period === 'custom'
+          ? { periodStart: customDates.startDate, periodEnd: customDates.endDate }
+          : {},
+      );
       onCloned();
       onClose();
     } catch {

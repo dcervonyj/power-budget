@@ -73,6 +73,17 @@ describe('LoginScreen', () => {
     expect(screen.queryByLabelText('Authenticator code')).toBeNull();
   });
 
+  it('asks the user to wait on 429 too_many_requests', async () => {
+    mockPost.mockRejectedValueOnce(apiError(429, 'too_many_requests'));
+    renderLogin();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+
+    expect(
+      await screen.findByText('Too many attempts. Please wait a few minutes and try again.'),
+    ).toBeDefined();
+  });
+
   it('shows a generic error when the server fails', async () => {
     mockPost.mockRejectedValueOnce(apiError(500, 'internal_error'));
     renderLogin();
