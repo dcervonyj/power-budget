@@ -1,8 +1,15 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Inject,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 import type { UserId, HouseholdId } from '@power-budget/core';
+import { JWT_ALGORITHM, resolveJwtSecret } from '../../../infrastructure/auth/jwt-secret.js';
 
 export interface JwtRequestUser {
   userId: UserId;
@@ -11,7 +18,14 @@ export interface JwtRequestUser {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly config: ConfigService) {}
+  private readonly secret: string;
+
+  constructor(@Inject(ConfigService) private readonly config: ConfigService) {
+    this.secret = resolveJwtSecret(
+      config.get<string>('JWT_SECRET'),
+      config.get<string>('NODE_ENV'),
+    );
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<FastifyRequest>();
@@ -22,10 +36,12 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     const token = authHeader.slice(7);
-    const secret = this.config.get<string>('JWT_SECRET') ?? 'dev-secret-change-me';
 
     try {
-      const payload = jwt.verify(token, secret) as { sub: string; householdId: string | null };
+      const payload = jwt.verify(token, this.secret, { algorithms: [JWT_ALGORITHM] }) as {
+        sub: string;
+        householdId: string | null;
+      };
       (request as FastifyRequest & { user: JwtRequestUser }).user = {
         userId: payload.sub as UserId,
         householdId: payload.householdId as HouseholdId | null,

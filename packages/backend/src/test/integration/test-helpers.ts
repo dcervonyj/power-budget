@@ -49,9 +49,11 @@ export async function insertTestUser(
   db: NodePgDatabase<typeof schema>,
   overrides: Partial<TestUser> = {},
 ): Promise<TestUser> {
+  const id = makeUserId();
   const user: TestUser = {
-    id: makeUserId(),
-    email: `test-${Date.now()}@example.com`,
+    id,
+    // Unique per user: a millisecond timestamp collided when two users were inserted back to back.
+    email: `test-${id}@example.com`,
     displayName: 'Test User',
     ...overrides,
   };

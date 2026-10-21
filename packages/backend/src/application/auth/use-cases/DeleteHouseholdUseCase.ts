@@ -1,6 +1,9 @@
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdRepository } from '../../../domain/auth/ports.js';
-import { HouseholdNotFoundError } from '../../../domain/auth/errors.js';
+import {
+  HouseholdNotFoundError,
+  HouseholdOwnerRequiredError,
+} from '../../../domain/auth/errors.js';
 
 export interface DeleteHouseholdInput {
   readonly householdId: HouseholdId;
@@ -17,6 +20,19 @@ export class DeleteHouseholdUseCase {
   constructor(private readonly householdRepo: HouseholdRepository) {}
 
   async execute(input: DeleteHouseholdInput): Promise<DeleteHouseholdOutput> {
+    // Only an owner of this very household may schedule its deletion (audit C3).
+    // A non-member gets "not found" so household ids cannot be probed.
+    const membership = await this.householdRepo.findMembership(
+      input.householdId,
+      input.requestedByUserId,
+    );
+    if (membership === null) {
+      throw new HouseholdNotFoundError();
+    }
+    if (membership.role !== 'owner') {
+      throw new HouseholdOwnerRequiredError();
+    }
+
     const household = await this.householdRepo.findById(input.householdId);
     if (household === null) {
       throw new HouseholdNotFoundError();

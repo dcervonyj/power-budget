@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Inject,
   Param,
   Query,
   UseGuards,
@@ -15,7 +16,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import type { HouseholdId, PlanId } from '@power-budget/core';
+import type { PlanId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
 import { GetHouseholdDashboardUseCase } from '../../application/households/use-cases/GetHouseholdDashboardUseCase.js';
@@ -27,7 +28,10 @@ import {
 @ApiTags('households')
 @Controller('households')
 export class HouseholdsController {
-  constructor(private readonly getHouseholdDashboard: GetHouseholdDashboardUseCase) {}
+  constructor(
+    @Inject(GetHouseholdDashboardUseCase)
+    private readonly getHouseholdDashboard: GetHouseholdDashboardUseCase,
+  ) {}
 
   @Get(':id/dashboard')
   @UseGuards(JwtAuthGuard)
@@ -38,7 +42,7 @@ export class HouseholdsController {
   @ApiResponse({ status: 200, type: HouseholdDashboardResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'No household' })
-  @ApiResponse({ status: 404, description: 'Plan not found' })
+  @ApiResponse({ status: 404, description: 'Household or plan not found' })
   async dashboard(
     @Param('id') id: string,
     @Query('planId') planId: string,
@@ -47,10 +51,15 @@ export class HouseholdsController {
     if (!user.householdId) {
       throw new ForbiddenException('No household');
     }
+    // Only the caller's own household is readable (audit H1). A foreign id
+    // gets the same 404 as a missing one so household ids cannot be probed.
+    if (id !== user.householdId) {
+      throw new NotFoundException('Household not found');
+    }
 
     try {
       const result = await this.getHouseholdDashboard.execute({
-        householdId: id as HouseholdId,
+        householdId: user.householdId,
         planId: planId as PlanId,
         viewerUserId: user.userId,
       });

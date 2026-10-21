@@ -6,6 +6,8 @@ process.env['DATABASE_URL'] ??=
   'postgresql://power_budget:power_budget@localhost:5432/power_budget';
 process.env['REDIS_URL'] ??= 'redis://localhost:6379';
 process.env['RESEND_API_KEY'] ??= 're_placeholder_spec_gen';
+// Spec generation never signs or verifies tokens; this only satisfies the boot check.
+process.env['JWT_SECRET'] ??= 'openapi-spec-generation-placeholder-secret';
 
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
