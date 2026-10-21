@@ -1,4 +1,4 @@
-import type { UserId, HouseholdId, SessionId } from '@power-budget/core';
+import type { UserId, HouseholdId, SessionId, EncryptedString } from '@power-budget/core';
 
 export type LocaleCode = 'en' | 'uk' | 'ru' | 'pl';
 export type HouseholdRole = 'owner' | 'member';
@@ -55,9 +55,13 @@ export interface Session {
 
 export interface TotpSecret {
   readonly userId: UserId;
-  readonly encryptedSecret: string;
+  /** Ciphertext from the Encryption port (context `totp:<userId>`), never the plain secret. */
+  readonly encryptedSecret: EncryptedString;
   readonly enrolledAt: Date;
+  /** Set by the first accepted code; TOTP counts as enabled only from then on. */
   readonly verifiedAt: Date | null;
+  /** Last accepted TOTP time step (replay protection). */
+  readonly lastUsedTimeStep: number | null;
 }
 
 export interface HouseholdInvite {

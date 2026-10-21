@@ -7,7 +7,11 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { WorkerModule } from './worker/worker.module';
 import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
-import { assertBootEnv, configureHttpSecurity } from './bootstrap/http-security.js';
+import {
+  assertBootEnv,
+  configureHttpSecurity,
+  resolveTrustProxy,
+} from './bootstrap/http-security.js';
 
 Sentry.init({
   dsn: process.env['SENTRY_DSN'],
@@ -33,7 +37,10 @@ async function bootstrap() {
   // Refuse to start with a missing/weak JWT_SECRET or a wildcard CORS entry.
   assertBootEnv(process.env);
 
-  const nestApp: INestApplication = await NestFactory.create(AppModule, new FastifyAdapter(), {
+  // request.ip (the per-IP rate-limit key) comes from X-Forwarded-For only for
+  // the trusted proxy hops (TRUST_PROXY, default 1).
+  const adapter = new FastifyAdapter({ trustProxy: resolveTrustProxy(process.env['TRUST_PROXY']) });
+  const nestApp: INestApplication = await NestFactory.create(AppModule, adapter, {
     // Webhook signature checks (Resend/Svix) need the exact request bytes.
     rawBody: true,
   });

@@ -7,6 +7,7 @@ import type {
   HouseholdMembership,
   HouseholdInvite,
   LocaleCode,
+  TotpSecret,
 } from './entities.js';
 
 export interface HouseholdScope {
@@ -41,7 +42,12 @@ export interface PasswordHashing {
 
 export interface TotpVerifier {
   generateSecret(label: string): { secret: string; otpauthUri: string };
-  verify(secret: string, code: string, window?: number): boolean;
+  /**
+   * Checks `code` against the plaintext `secret`. Returns the matched TOTP time
+   * step, or null when the code is wrong or its step is not after `afterTimeStep`
+   * (replay protection, audit M9).
+   */
+  verify(secret: string, code: string, afterTimeStep: number | null): number | null;
 }
 
 export interface OAuthProvider {
@@ -54,13 +60,21 @@ export interface OAuthProvider {
 
 export interface RefreshTokenStore {
   issue(userId: UserId, ttlSeconds: number): Promise<string>;
+  /** Atomic: of two concurrent rotations of the same token only one succeeds. */
   rotate(oldToken: string): Promise<{ userId: UserId; newToken: string } | null>;
   revoke(token: string): Promise<void>;
 }
 
 export interface TotpSecretRepository {
-  findByUser(userId: UserId): Promise<import('./entities.js').TotpSecret | null>;
-  save(secret: import('./entities.js').TotpSecret): Promise<void>;
+  findByUser(userId: UserId): Promise<TotpSecret | null>;
+  /** Upsert of a (re-)enrolment: replaces the secret and resets verifiedAt and lastUsedTimeStep. */
+  save(secret: TotpSecret): Promise<void>;
+  /**
+   * Atomically records `timeStep` as used (and sets verifiedAt if still null).
+   * Returns false when a step >= `timeStep` was already used, so a code can
+   * never be accepted twice, not even by two concurrent requests.
+   */
+  claimTimeStep(userId: UserId, timeStep: number, verifiedAt: Date): Promise<boolean>;
   delete(userId: UserId): Promise<void>;
 }
 
@@ -76,7 +90,12 @@ export interface JwtAccessTokenIssuer {
 
 export interface MagicLinkTokenRepository {
   save(token: { tokenHash: string; userId: UserId; expiresAt: Date }): Promise<void>;
-  /** Returns null if token is expired, not found, or already consumed. */
+  /** Reads a live token without consuming it. Null if expired, not found, or consumed. */
+  find(tokenHash: string): Promise<{ userId: UserId } | null>;
+  /**
+   * Atomically deletes a live token and returns its user. Null if expired, not
+   * found, or already consumed (of two concurrent calls only one gets the user).
+   */
   consume(tokenHash: string): Promise<{ userId: UserId } | null>;
 }
 
@@ -87,10 +106,6 @@ export interface NotificationOutboxPort {
     payload: Record<string, unknown>;
     dedupeKey: string;
   }): Promise<void>;
-}
-
-export interface BankConnectionChecker {
-  hasActiveConnection(userId: UserId): Promise<boolean>;
 }
 
 export interface Encryption {
