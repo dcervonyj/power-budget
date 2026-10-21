@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gte, ilike, isNull, lt, lte, or } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNull, lt, lte, or } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -177,6 +177,29 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     const row = rows[0];
 
     return row ? this.toEntity(row.tx) : null;
+  }
+
+  async findOwnedIds(
+    ids: readonly TransactionId[],
+    ownerUserId: UserId,
+    scope: HouseholdScope,
+  ): Promise<TransactionId[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const rows = await this.db
+      .select({ id: schema.transactions.id })
+      .from(schema.transactions)
+      .innerJoin(schema.bankAccounts, this.ownedAccountJoin(ownerUserId))
+      .where(
+        and(
+          inArray(schema.transactions.id, [...ids]),
+          eq(schema.transactions.householdId, scope.householdId),
+        ),
+      );
+
+    return rows.map((row) => row.id as TransactionId);
   }
 
   async list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>> {

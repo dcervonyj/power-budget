@@ -121,7 +121,11 @@ export class TransactionsController {
   @ApiParam({ name: 'id', description: 'Transaction ID' })
   @ApiResponse({ status: 200, description: 'Transaction detail', type: TransactionDetailDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  @ApiResponse({
+    status: 404,
+    description:
+      "Transaction not found, or a partner's (transactions are private to the account owner)",
+  })
   async getOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -184,7 +188,11 @@ export class TransactionsController {
   })
   @ApiResponse({ status: 400, description: 'Invalid id or body' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  @ApiResponse({
+    status: 404,
+    description:
+      "Transaction not found, or a partner's (transactions are private to the account owner)",
+  })
   async patch(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: PatchTransactionDto,
@@ -217,7 +225,11 @@ export class TransactionsController {
   @ApiBody({ type: SetMappingDto })
   @ApiResponse({ status: 204, description: 'Mapping updated' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  @ApiResponse({
+    status: 404,
+    description:
+      "Transaction not found, or a partner's (transactions are private to the account owner)",
+  })
   async setMapping(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SetMappingDto,
@@ -243,7 +255,11 @@ export class TransactionsController {
   @ApiBody({ type: MarkTransferDto })
   @ApiResponse({ status: 204, description: 'Marked as transfer' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  @ApiResponse({
+    status: 404,
+    description:
+      "Transaction not found, or a partner's (transactions are private to the account owner)",
+  })
   async markTransfer(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: MarkTransferDto,
@@ -267,7 +283,11 @@ export class TransactionsController {
   @ApiParam({ name: 'id', description: 'Transaction ID' })
   @ApiResponse({ status: 204, description: 'Transfer flag removed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Transaction not found' })
+  @ApiResponse({
+    status: 404,
+    description:
+      "Transaction not found, or a partner's (transactions are private to the account owner)",
+  })
   async unmarkTransferHandler(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -279,6 +299,7 @@ export class TransactionsController {
     await this.unmarkTransfer.execute({
       transactionId: id as TransactionId,
       householdId: user.householdId,
+      userId: user.userId,
     });
   }
 
@@ -287,6 +308,10 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Bulk-map or bulk-act on a set of transactions' })
   @ApiBody({ type: BulkMapDto })
   @ApiResponse({ status: 204, description: 'Bulk operation applied' })
+  @ApiResponse({
+    status: 404,
+    description: "An id is not one of the caller's own transactions; nothing is written",
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async bulkMap(@Body() dto: BulkMapDto, @CurrentUser() user: AuthenticatedUser): Promise<void> {
     if (!user.householdId || dto.op !== 'map') {

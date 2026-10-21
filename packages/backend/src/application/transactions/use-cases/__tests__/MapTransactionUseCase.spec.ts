@@ -44,20 +44,20 @@ describe('MapTransactionUseCase', () => {
   });
 
   it('throws TransactionNotFoundError when transaction does not exist', async () => {
-    txRepo.findById.mockResolvedValue(null);
+    txRepo.findOwnedById.mockResolvedValue(null);
 
     await expect(useCase.execute(baseInput)).rejects.toThrow(TransactionNotFoundError);
   });
 
   it('throws AlreadyTransferError when transaction is already a transfer', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     transferRepo.findByTransaction.mockResolvedValue(fakeTransfer);
 
     await expect(useCase.execute(baseInput)).rejects.toThrow(AlreadyTransferError);
   });
 
   it('maps the transaction', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     transferRepo.findByTransaction.mockResolvedValue(null);
     mappingRepo.set.mockResolvedValue(undefined);
 
@@ -67,7 +67,7 @@ describe('MapTransactionUseCase', () => {
   });
 
   it('unmaps the transaction (plannedItemId = null)', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     transferRepo.findByTransaction.mockResolvedValue(null);
     mappingRepo.set.mockResolvedValue(undefined);
 

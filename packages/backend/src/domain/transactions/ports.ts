@@ -39,6 +39,12 @@ export interface TransactionRepository {
     ownerUserId: UserId,
     scope: HouseholdScope,
   ): Promise<Transaction | null>;
+  /** The subset of `ids` that are in `scope` and on accounts owned by `ownerUserId`. */
+  findOwnedIds(
+    ids: readonly TransactionId[],
+    ownerUserId: UserId,
+    scope: HouseholdScope,
+  ): Promise<TransactionId[]>;
   /** One query: each row carries its mapping (with plan and category names) and transfer. */
   list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>>;
   patch(

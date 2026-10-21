@@ -25,7 +25,8 @@ export class MapTransactionUseCase {
   ) {}
 
   async execute(input: MapTransactionInput): Promise<void> {
-    const tx = await this.transactionRepo.findById(input.transactionId, {
+    // Only the account owner maps a transaction; a partner's reads as not found.
+    const tx = await this.transactionRepo.findOwnedById(input.transactionId, input.by, {
       householdId: input.householdId,
     });
     if (tx === null) {

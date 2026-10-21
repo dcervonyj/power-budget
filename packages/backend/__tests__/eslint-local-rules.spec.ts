@@ -113,6 +113,10 @@ describe('no-repo-without-scope', () => {
           code: `this.transactionRepo.findOwnedById(id, userId)`,
           errors: [{ messageId: 'missingScope' }],
         },
+        {
+          code: `this.transactionRepo.findOwnedIds(ids, userId)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
         // The option exempts only matching receivers
         {
           code: `this.planRepo.findById(id)`,

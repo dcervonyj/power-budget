@@ -816,7 +816,7 @@
             "description": "Unauthorized"
           },
           "404": {
-            "description": "Transaction not found"
+            "description": "Transaction not found, or a partner's (transactions are private to the account owner)"
           }
         },
         "security": [
@@ -866,7 +866,7 @@
             "description": "Unauthorized"
           },
           "404": {
-            "description": "Transaction not found"
+            "description": "Transaction not found, or a partner's (transactions are private to the account owner)"
           }
         },
         "security": [
@@ -908,7 +908,7 @@
             "description": "Unauthorized"
           },
           "404": {
-            "description": "Transaction not found"
+            "description": "Transaction not found, or a partner's (transactions are private to the account owner)"
           }
         },
         "security": [
@@ -950,7 +950,7 @@
             "description": "Unauthorized"
           },
           "404": {
-            "description": "Transaction not found"
+            "description": "Transaction not found, or a partner's (transactions are private to the account owner)"
           }
         },
         "security": [
@@ -980,7 +980,7 @@
             "description": "Unauthorized"
           },
           "404": {
-            "description": "Transaction not found"
+            "description": "Transaction not found, or a partner's (transactions are private to the account owner)"
           }
         },
         "security": [
@@ -1012,6 +1012,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "404": {
+            "description": "An id is not one of the caller's own transactions; nothing is written"
           }
         },
         "security": [

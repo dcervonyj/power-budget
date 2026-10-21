@@ -28,6 +28,7 @@ const SCOPED_METHODS = new Set([
   'createManual',
   'findOwnedAccount',
   'findOwnedById',
+  'findOwnedIds',
 ]);
 
 const REPOSITORY_NAME = /[Rr]epository$|[Rr]epo$/;
