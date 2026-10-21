@@ -16,11 +16,11 @@ import { ExpenseSection } from '../../components/dashboard/ExpenseSection.js';
 import { UnplannedSection } from '../../components/dashboard/UnplannedSection.js';
 import { LeftoverBucket } from '../../components/dashboard/LeftoverBucket.js';
 import { BottomLine } from '../../components/dashboard/BottomLine.js';
-import type { Plan } from '../../../application/dashboard/DashboardStore.js';
+import type { PlanDto } from '@power-budget/shared-app/contract';
 
 const POLL_INTERVAL_MS = 30_000;
 
-function selectDefaultPlan(plans: Plan[]): Plan | undefined {
+function selectDefaultPlan(plans: PlanDto[]): PlanDto | undefined {
   return plans.find((p) => p.type === 'personal' && p.periodKind === 'monthly') ?? plans[0];
 }
 

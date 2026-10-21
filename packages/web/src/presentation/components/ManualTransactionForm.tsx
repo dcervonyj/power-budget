@@ -1,28 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { parseMoney, toLocalIsoDate } from '@power-budget/core';
+import { isSupportedCurrency, parseMoney, toLocalIsoDate } from '@power-budget/core';
+import type {
+  AddManualTransactionDto,
+  BankAccountDto,
+  BankConnectionDto,
+  TransactionDto,
+} from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 import { useTheme } from './ThemeContext.js';
 
-interface BankConnection {
-  id: string;
-  provider: string;
-  bankId: string;
-  status: string;
-  displayName?: string;
-}
-
-interface BankAccount {
-  id: string;
-  connectionId: string;
-  name: string;
-  currency?: string;
-  iban?: string;
-}
-
 interface AccountWithConnection {
-  account: BankAccount;
-  connection: BankConnection;
+  account: BankAccountDto;
+  connection: BankConnectionDto;
 }
 
 export interface ManualTransactionFormProps {
@@ -67,10 +57,10 @@ export function ManualTransactionForm({
   useEffect(() => {
     void (async () => {
       try {
-        const connectionsRes = await apiClient.get<BankConnection[]>('/bank-connections');
+        const connectionsRes = await apiClient.get<BankConnectionDto[]>('/bank-connections');
         const items: AccountWithConnection[] = [];
         for (const conn of connectionsRes.data) {
-          const accsRes = await apiClient.get<BankAccount[]>(
+          const accsRes = await apiClient.get<BankAccountDto[]>(
             `/bank-connections/${conn.id}/accounts`,
           );
           for (const account of accsRes.data) {
@@ -82,9 +72,7 @@ export function ManualTransactionForm({
           const first = items[0];
           if (first) {
             setSelectedAccountId(first.account.id);
-            if (first.account.currency) {
-              setCurrency(first.account.currency);
-            }
+            setCurrency(first.account.currency);
           }
         }
       } catch {
@@ -99,7 +87,7 @@ export function ManualTransactionForm({
     const id = e.target.value;
     setSelectedAccountId(id);
     const found = accountsWithConn.find((item) => item.account.id === id);
-    if (found?.account.currency) {
+    if (found) {
       setCurrency(found.account.currency);
     }
   };
@@ -115,21 +103,22 @@ export function ManualTransactionForm({
 
     const normalisedCurrency = currency.trim().toUpperCase();
     const amountMinor = toMinorUnitsString(amount, normalisedCurrency);
-    if (amountMinor === null) {
+    if (amountMinor === null || !isSupportedCurrency(normalisedCurrency)) {
       setError('required');
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await apiClient.post<{ id: string }>('/transactions', {
+      const body: AddManualTransactionDto = {
         accountId: selectedAccountId,
         occurredOn,
         amountMinor,
         currency: normalisedCurrency,
         description: description.trim(),
         notes: notes.trim() || null,
-      });
+      };
+      const res = await apiClient.post<TransactionDto>('/transactions', body);
       onSuccess?.(res.data.id);
       setAmount('');
       setDescription('');
@@ -221,8 +210,7 @@ export function ManualTransactionForm({
                 {intl.formatMessage({ id: 'component.manualTransactionForm.account.placeholder' })}
               </option>
               {Object.entries(groupedByConnection).map(([connId, items]) => {
-                const connName =
-                  items[0]?.connection.displayName ?? items[0]?.connection.bankId ?? connId;
+                const connName = items[0]?.connection.bankId ?? connId;
                 return (
                   <optgroup key={connId} label={connName}>
                     {items.map(({ account }) => {

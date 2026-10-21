@@ -2,13 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
+import type {
+  AuthTokensDto,
+  ConsumeMagicLinkDto,
+  RequestMagicLinkDto,
+} from '@power-budget/shared-app/contract';
 import { apiClient, tokenStore } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
-
-interface ConsumeResponse {
-  accessToken: string;
-  refreshToken: string;
-}
 
 type MagicLinkError = 'consumeFailed' | 'requestFailed' | 'invalidTotp' | 'tooManyAttempts' | null;
 
@@ -50,8 +50,10 @@ export function MagicLinkScreen(): React.JSX.Element {
       setIsLoading(true);
       setMagicLinkError(null);
       try {
-        const body = code ? { token: linkToken, totp: code } : { token: linkToken };
-        const res = await apiClient.post<ConsumeResponse>('/auth/magic-link/consume', body);
+        const body: ConsumeMagicLinkDto = code
+          ? { token: linkToken, totp: code }
+          : { token: linkToken };
+        const res = await apiClient.post<AuthTokensDto>('/auth/magic-link/consume', body);
         await tokenStore.setTokens(res.data.accessToken, res.data.refreshToken);
         navigate('/dashboard');
       } catch (err) {
@@ -80,7 +82,8 @@ export function MagicLinkScreen(): React.JSX.Element {
     setIsLoading(true);
     setMagicLinkError(null);
     try {
-      await apiClient.post('/auth/magic-link/request', { email });
+      const body: RequestMagicLinkDto = { email };
+      await apiClient.post('/auth/magic-link/request', body);
       setSent(true);
     } catch (err) {
       setMagicLinkError(classifyRequestError(err));

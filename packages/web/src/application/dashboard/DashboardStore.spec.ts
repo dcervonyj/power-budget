@@ -72,7 +72,7 @@ function mockDashboardResponses(): void {
   mockGet.mockImplementation((url: string) =>
     Promise.resolve({
       status: 200,
-      data: url === '/categories' ? mockCategories : mockDashboard,
+      data: url === '/categories?includeArchived=true' ? mockCategories : mockDashboard,
       headers: {},
     }),
   );
@@ -148,7 +148,7 @@ describe('DashboardStore', () => {
 
     it('still renders the lines when categories cannot be loaded', async () => {
       mockGet.mockImplementation((url: string) =>
-        url === '/categories'
+        url === '/categories?includeArchived=true'
           ? Promise.reject(new Error('404'))
           : Promise.resolve({ status: 200, data: mockDashboard, headers: {} }),
       );
@@ -185,7 +185,11 @@ describe('DashboardStore', () => {
       mockGet.mockImplementation(async (url: string) => {
         await pending;
 
-        return { status: 200, data: url === '/categories' ? [] : mockDashboard, headers: {} };
+        return {
+          status: 200,
+          data: url === '/categories?includeArchived=true' ? [] : mockDashboard,
+          headers: {},
+        };
       });
 
       const fetchPromise = store.fetchActuals('plan-1');

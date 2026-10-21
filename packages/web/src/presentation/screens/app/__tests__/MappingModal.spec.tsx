@@ -10,6 +10,7 @@ import { darkTheme } from '@power-budget/design-tokens';
 vi.mock('../../../../AppProviders.js', async () => {
   const { BulkTransactionActions } =
     await import('../../../../application/transactions/BulkTransactionActions.js');
+  const { PlansApi } = await import('@power-budget/shared-app');
   const client = {
     request: vi.fn(),
     get: vi.fn(),
@@ -19,7 +20,11 @@ vi.mock('../../../../AppProviders.js', async () => {
     delete: vi.fn(),
   };
 
-  return { apiClient: client, bulkTransactionActions: new BulkTransactionActions(client) };
+  return {
+    apiClient: client,
+    bulkTransactionActions: new BulkTransactionActions(client),
+    plansApi: new PlansApi(client),
+  };
 });
 
 const mockGet = vi.mocked(apiClient.get);
@@ -84,7 +89,7 @@ describe('MappingModal', () => {
       if (url === '/plans/plan-1/items') {
         return Promise.resolve({ status: 200, data: mockItems, headers: {} });
       }
-      if (url === '/categories') {
+      if (url === '/categories?includeArchived=true') {
         return Promise.resolve({ status: 200, data: mockCategories, headers: {} });
       }
       return Promise.resolve({ status: 200, data: [], headers: {} });

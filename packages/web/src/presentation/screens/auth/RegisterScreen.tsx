@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Link, useNavigate } from 'react-router-dom';
+import type { LocaleCode, RegisterDto } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../../AppProviders.js';
 import { Button, Input } from '../../components/index.js';
 
-type SupportedLocale = 'en' | 'uk' | 'ru' | 'pl';
+const SUPPORTED_LOCALES: readonly LocaleCode[] = ['en', 'uk', 'ru', 'pl'];
 
-function resolveLocale(): SupportedLocale {
+function resolveLocale(): LocaleCode {
   const stored = localStorage.getItem('pb_locale');
-  const supported: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
-  return supported.includes(stored as SupportedLocale) ? (stored as SupportedLocale) : 'en';
+
+  return SUPPORTED_LOCALES.find((locale) => locale === stored) ?? 'en';
 }
 
 type RegisterError = 'emailInUse' | 'serverError' | null;
@@ -24,7 +25,6 @@ export function RegisterScreen(): React.JSX.Element {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [registerError, setRegisterError] = useState<RegisterError>(null);
 
@@ -33,12 +33,9 @@ export function RegisterScreen(): React.JSX.Element {
     setIsLoading(true);
     setRegisterError(null);
     try {
-      await apiClient.post('/auth/register', {
-        email,
-        password,
-        displayName,
-        locale: resolveLocale(),
-      });
+      // RegisterDto has no display name; it is set later in Settings (PATCH /users/me).
+      const body: RegisterDto = { email, password, locale: resolveLocale() };
+      await apiClient.post('/auth/register', body);
       navigate('/login');
     } catch (err) {
       if (isApiError(err) && err.response?.status === 409) {
@@ -76,16 +73,6 @@ export function RegisterScreen(): React.JSX.Element {
           })}
           value={password}
           onChange={setPassword}
-        />
-        <Input
-          id="register-displayName"
-          type="text"
-          label={intl.formatMessage({
-            id: 'screen.register.displayName.label',
-            defaultMessage: 'Display name',
-          })}
-          value={displayName}
-          onChange={setDisplayName}
         />
         {registerError === 'emailInUse' && (
           <p>

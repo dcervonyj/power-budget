@@ -1,157 +1,103 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type {
+  HouseholdDashboardCategoryDto,
+  HouseholdDashboardResponseDto,
+} from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 import { HouseholdCategoryStore } from './HouseholdCategoryStore.js';
-import type { CategoryAggregate } from '../../domain/household/CategoryAggregate.js';
 
 vi.mock('../../AppProviders.js', () => ({
   apiClient: {
     get: vi.fn(),
-    post: vi.fn(),
   },
 }));
 
 const mockGet = vi.mocked(apiClient.get);
 
-const mockAggregateTotal: CategoryAggregate = {
+const groceries: HouseholdDashboardCategoryDto = {
   categoryId: 'cat-1',
   categoryName: 'Groceries',
-  privacyLevel: 'total',
-  totalMinor: 50000,
+  privacyLevel: 'total_only',
+  totalAmountMinor: '50000',
   currency: 'EUR',
+  transactionCount: 0,
 };
 
-const mockAggregateTotalAndCount: CategoryAggregate = {
+const transport: HouseholdDashboardCategoryDto = {
   categoryId: 'cat-2',
   categoryName: 'Transport',
-  privacyLevel: 'total_and_count',
-  totalMinor: 12000,
+  privacyLevel: 'total_with_counts',
+  totalAmountMinor: '12000',
   currency: 'EUR',
   transactionCount: 7,
 };
 
-const mockAggregateFullDetail: CategoryAggregate = {
-  categoryId: 'cat-3',
-  categoryName: 'Dining',
-  privacyLevel: 'full_detail',
-  totalMinor: 30000,
-  currency: 'EUR',
-  transactionCount: 3,
-  transactions: [
-    {
-      id: 'tx-1',
-      date: '2025-05-01',
-      description: 'Restaurant A',
-      amountMinor: 10000,
-      currency: 'EUR',
-    },
-    {
-      id: 'tx-2',
-      date: '2025-05-08',
-      description: 'Restaurant B',
-      amountMinor: 12000,
-      currency: 'EUR',
-    },
-    {
-      id: 'tx-3',
-      date: '2025-05-15',
-      description: 'Cafe C',
-      amountMinor: 8000,
-      currency: 'EUR',
-    },
-  ],
-};
+function dashboard(categories: HouseholdDashboardCategoryDto[]): {
+  status: number;
+  data: HouseholdDashboardResponseDto;
+  headers: Record<string, string>;
+} {
+  return { status: 200, data: { planId: 'plan-1', categories }, headers: {} };
+}
 
 describe('HouseholdCategoryStore', () => {
   let store: HouseholdCategoryStore;
 
   beforeEach(() => {
-    store = new HouseholdCategoryStore();
     vi.clearAllMocks();
+    store = new HouseholdCategoryStore();
   });
 
-  describe('fetchAggregate', () => {
-    it('stores aggregate on success', async () => {
-      mockGet.mockResolvedValueOnce({ status: 200, data: mockAggregateTotal, headers: {} });
-
-      await store.fetchAggregate('cat-1');
-
-      expect(store.aggregate).toEqual(mockAggregateTotal);
-      expect(store.loading).toBe(false);
-      expect(store.error).toBeNull();
-    });
-
-    it('calls the correct endpoint', async () => {
-      mockGet.mockResolvedValueOnce({ status: 200, data: mockAggregateTotal, headers: {} });
-
-      await store.fetchAggregate('cat-1');
-
-      expect(mockGet).toHaveBeenCalledWith('/categories/cat-1/aggregate');
-    });
-
-    it('sets loading=true during fetch', async () => {
-      let resolvePromise!: () => void;
-      mockGet.mockReturnValueOnce(
-        new Promise<{ status: number; data: CategoryAggregate; headers: Record<string, string> }>(
-          (resolve) => {
-            resolvePromise = () => resolve({ status: 200, data: mockAggregateTotal, headers: {} });
-          },
-        ),
-      );
-
-      const fetchPromise = store.fetchAggregate('cat-1');
-      expect(store.loading).toBe(true);
-
-      resolvePromise();
-      await fetchPromise;
-      expect(store.loading).toBe(false);
-    });
-
-    it('sets error on failure', async () => {
-      mockGet.mockRejectedValueOnce(new Error('Network error'));
-
-      await store.fetchAggregate('cat-1');
-
-      expect(store.error).toBe('Failed to load category details');
-      expect(store.loading).toBe(false);
-      expect(store.aggregate).toBeNull();
-    });
-
-    it('stores total_and_count aggregate with transactionCount', async () => {
-      mockGet.mockResolvedValueOnce({
-        status: 200,
-        data: mockAggregateTotalAndCount,
-        headers: {},
-      });
-
-      await store.fetchAggregate('cat-2');
-
-      expect(store.aggregate?.privacyLevel).toBe('total_and_count');
-      expect(store.aggregate?.transactionCount).toBe(7);
-    });
-
-    it('full_detail response never contains accountId in transactions', async () => {
-      mockGet.mockResolvedValueOnce({
-        status: 200,
-        data: mockAggregateFullDetail,
-        headers: {},
-      });
-
-      await store.fetchAggregate('cat-3');
-
-      expect(store.aggregate?.privacyLevel).toBe('full_detail');
-      const transactions = store.aggregate?.transactions ?? [];
-      expect(transactions.length).toBeGreaterThan(0);
-      for (const tx of transactions) {
-        expect(Object.keys(tx)).not.toContain('accountId');
-      }
-    });
+  it('starts empty', () => {
+    expect(store.category).toBeNull();
+    expect(store.loading).toBe(false);
+    expect(store.error).toBeNull();
   });
 
-  describe('initial state', () => {
-    it('starts with aggregate=null, loading=false, error=null', () => {
-      expect(store.aggregate).toBeNull();
-      expect(store.loading).toBe(false);
-      expect(store.error).toBeNull();
-    });
+  it('reads the household dashboard for the plan and picks the category', async () => {
+    mockGet.mockResolvedValueOnce(dashboard([groceries, transport]));
+
+    await store.fetchCategory('hh-1', 'plan-1', 'cat-2');
+
+    expect(mockGet).toHaveBeenCalledWith('/households/hh-1/dashboard?planId=plan-1');
+    expect(store.category).toEqual(transport);
+    expect(store.error).toBeNull();
+    expect(store.loading).toBe(false);
+  });
+
+  it('reports not_found when the plan has no line for the category', async () => {
+    mockGet.mockResolvedValueOnce(dashboard([groceries]));
+
+    await store.fetchCategory('hh-1', 'plan-1', 'cat-9');
+
+    expect(store.category).toBeNull();
+    expect(store.error).toBe('not_found');
+  });
+
+  it('reports failed when the request fails', async () => {
+    mockGet.mockRejectedValueOnce(new Error('Network error'));
+
+    await store.fetchCategory('hh-1', 'plan-1', 'cat-1');
+
+    expect(store.category).toBeNull();
+    expect(store.error).toBe('failed');
+    expect(store.loading).toBe(false);
+  });
+
+  it('is loading while the request is in flight', async () => {
+    const resolvers: Array<(value: ReturnType<typeof dashboard>) => void> = [];
+    mockGet.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolvers.push(resolve);
+      }),
+    );
+
+    const pending = store.fetchCategory('hh-1', 'plan-1', 'cat-1');
+    expect(store.loading).toBe(true);
+    resolvers[0]?.(dashboard([groceries]));
+    await pending;
+
+    expect(store.loading).toBe(false);
+    expect(store.category).toEqual(groceries);
   });
 });

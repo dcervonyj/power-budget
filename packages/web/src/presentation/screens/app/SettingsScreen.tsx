@@ -6,11 +6,11 @@ import { Button } from '../../components/Button.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
 import { signOut } from '../../../AppProviders.js';
 
+// No notifications tab: the API has no notification-preferences endpoint yet.
 const TABS = [
   { to: 'profile', labelId: 'settings.tab.profile', defaultMessage: 'Profile' },
   { to: 'locale', labelId: 'settings.tab.locale', defaultMessage: 'Language' },
   { to: 'currency', labelId: 'settings.tab.currency', defaultMessage: 'Currency' },
-  { to: 'notifications', labelId: 'settings.tab.notifications', defaultMessage: 'Notifications' },
   { to: 'data', labelId: 'settings.tab.data', defaultMessage: 'Data & Privacy' },
 ] as const;
 
