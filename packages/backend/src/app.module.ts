@@ -9,6 +9,7 @@ import { BankPresentationModule } from './presentation/bank/BankPresentationModu
 import { PlansPresentationModule } from './presentation/plans/PlansPresentationModule.js';
 import { NotificationsPresentationModule } from './presentation/notifications/NotificationsPresentationModule.js';
 import { HouseholdsPresentationModule } from './presentation/households/HouseholdsPresentationModule.js';
+import { CategoriesPresentationModule } from './presentation/categories/CategoriesPresentationModule.js';
 import { FxPresentationModule } from './presentation/fx/FxPresentationModule.js';
 import { DbScopeInterceptor } from './infrastructure/database/DbScopeInterceptor.js';
 import { validationPipeProvider } from './presentation/http/validation.js';
@@ -24,6 +25,7 @@ import { validationPipeProvider } from './presentation/http/validation.js';
     PlansPresentationModule,
     NotificationsPresentationModule,
     HouseholdsPresentationModule,
+    CategoriesPresentationModule,
     FxPresentationModule,
   ],
   providers: [

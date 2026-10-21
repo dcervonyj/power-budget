@@ -12,6 +12,12 @@ import {
   RefreshTokenDto,
   LogoutDto,
 } from './dto/auth.dto.js';
+import {
+  AuthTokensDto,
+  TotpEnrollmentDto,
+  toAuthTokensDto,
+  toTotpEnrollmentDto,
+} from './dto/auth-response.dto.js';
 import { RegisterUserUseCase } from '../../application/auth/use-cases/RegisterUserUseCase.js';
 import { LoginWithPasswordUseCase } from '../../application/auth/use-cases/LoginWithPasswordUseCase.js';
 import { RequestMagicLinkUseCase } from '../../application/auth/use-cases/RequestMagicLinkUseCase.js';
@@ -45,42 +51,34 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   @ApiBody({ type: RegisterDto })
-  @ApiResponse({ status: 201, description: 'User registered successfully' })
+  @ApiResponse({ status: 201, description: 'User registered successfully', type: AuthTokensDto })
   @ApiResponse({ status: 409, description: 'Email already in use' })
-  async register(@Body() dto: RegisterDto) {
+  async register(@Body() dto: RegisterDto): Promise<AuthTokensDto> {
     const result = await this.registerUser.execute({
       email: dto.email,
       password: dto.password,
       locale: dto.locale,
     });
 
-    return {
-      userId: result.userId,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-    };
+    return toAuthTokensDto(result);
   }
 
   @Post('login')
   @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiBody({ type: LoginDto })
-  @ApiResponse({ status: 201, description: 'Tokens issued' })
+  @ApiResponse({ status: 201, description: 'Tokens issued', type: AuthTokensDto })
   @ApiResponse({ status: 401, description: 'Invalid credentials or TOTP code' })
   @ApiResponse({ status: 403, description: 'TOTP is enabled: send `totp` (code requires_totp)' })
   @ApiResponse({ status: 429, description: 'Too many attempts' })
-  async login(@Body() dto: LoginDto) {
+  async login(@Body() dto: LoginDto): Promise<AuthTokensDto> {
     const result = await this.loginWithPassword.execute({
       email: dto.email,
       password: dto.password,
       totp: dto.totp,
     });
 
-    return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      userId: result.userId,
-    };
+    return toAuthTokensDto(result);
   }
 
   @Post('magic-link/request')
@@ -98,21 +96,17 @@ export class AuthController {
   @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Consume a magic-link token and get tokens' })
   @ApiBody({ type: ConsumeMagicLinkDto })
-  @ApiResponse({ status: 201, description: 'Tokens issued' })
+  @ApiResponse({ status: 201, description: 'Tokens issued', type: AuthTokensDto })
   @ApiResponse({ status: 401, description: 'Token invalid or expired, or invalid TOTP code' })
   @ApiResponse({
     status: 403,
     description: 'TOTP is enabled: resend the token with `totp` (code requires_totp)',
   })
   @ApiResponse({ status: 429, description: 'Too many attempts' })
-  async consumeMagicLinkEndpoint(@Body() dto: ConsumeMagicLinkDto) {
+  async consumeMagicLinkEndpoint(@Body() dto: ConsumeMagicLinkDto): Promise<AuthTokensDto> {
     const result = await this.consumeMagicLink.execute({ token: dto.token, totp: dto.totp });
 
-    return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      userId: result.userId,
-    };
+    return toAuthTokensDto(result);
   }
 
   @Post('totp/enable')
@@ -124,13 +118,17 @@ export class AuthController {
       'First enrolment needs no step-up. Replacing an enabled TOTP needs a recent ' +
       'POST /auth/totp/verify. TOTP is enabled once the first code is verified.',
   })
-  @ApiResponse({ status: 201, description: 'TOTP secret and QR code URI' })
+  @ApiResponse({
+    status: 201,
+    description: 'TOTP secret and QR code URI',
+    type: TotpEnrollmentDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'TOTP already enabled and no recent step-up' })
-  async totpEnable(@CurrentUser() user: AuthenticatedUser) {
+  async totpEnable(@CurrentUser() user: AuthenticatedUser): Promise<TotpEnrollmentDto> {
     const result = await this.enableTotp.execute({ userId: user.userId });
 
-    return { qrCodeUri: result.qrCodeUri, secret: result.secret };
+    return toTotpEnrollmentDto(result);
   }
 
   @Post('totp/verify')
@@ -159,16 +157,12 @@ export class AuthController {
   @Post('refresh')
   @ApiOperation({ summary: 'Rotate refresh token and get a new access token' })
   @ApiBody({ type: RefreshTokenDto })
-  @ApiResponse({ status: 201, description: 'New tokens issued' })
+  @ApiResponse({ status: 201, description: 'New tokens issued', type: AuthTokensDto })
   @ApiResponse({ status: 401, description: 'Refresh token invalid or expired' })
-  async refreshTokenEndpoint(@Body() dto: RefreshTokenDto) {
+  async refreshTokenEndpoint(@Body() dto: RefreshTokenDto): Promise<AuthTokensDto> {
     const result = await this.refreshToken.execute({ refreshToken: dto.refreshToken });
 
-    return {
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-      userId: result.userId,
-    };
+    return toAuthTokensDto(result);
   }
 
   @Post('logout')

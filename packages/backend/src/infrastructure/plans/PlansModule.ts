@@ -5,6 +5,8 @@ import { DrizzlePlanRepository } from './DrizzlePlanRepository.js';
 import { DrizzlePlanActualsReader } from './DrizzlePlanActualsReader.js';
 import { DrizzleUnplannedTransactionReader } from './DrizzleUnplannedTransactionReader.js';
 import { DrizzleHouseholdDashboardReader } from './DrizzleHouseholdDashboardReader.js';
+import { DrizzlePlannedItemRepository } from './DrizzlePlannedItemRepository.js';
+import { DrizzlePlannedItemVersionRepository } from './DrizzlePlannedItemVersionRepository.js';
 
 /**
  * Plan adapters shared by the API and the worker. Processors and the
@@ -17,12 +19,16 @@ import { DrizzleHouseholdDashboardReader } from './DrizzleHouseholdDashboardRead
     DrizzlePlanActualsReader,
     DrizzleUnplannedTransactionReader,
     DrizzleHouseholdDashboardReader,
+    DrizzlePlannedItemRepository,
+    DrizzlePlannedItemVersionRepository,
   ],
   exports: [
     DrizzlePlanRepository,
     DrizzlePlanActualsReader,
     DrizzleUnplannedTransactionReader,
     DrizzleHouseholdDashboardReader,
+    DrizzlePlannedItemRepository,
+    DrizzlePlannedItemVersionRepository,
   ],
 })
 export class PlansModule {}
