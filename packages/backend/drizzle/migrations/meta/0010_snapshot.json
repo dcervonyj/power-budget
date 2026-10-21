@@ -1,5 +1,5 @@
 {
-  "id": "22f2179c-9635-4e07-8de6-461100cc57ba",
+  "id": "d332038e-204b-485b-86a7-332ff816d16b",
   "prevId": "145bd57b-b05d-4b6e-8b93-37d88590f28e",
   "version": "7",
   "dialect": "postgresql",
@@ -2366,33 +2366,6 @@
           "method": "btree",
           "with": {}
         },
-        "transactions_household_date_id_idx": {
-          "name": "transactions_household_date_id_idx",
-          "columns": [
-            {
-              "expression": "household_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "occurred_on",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": false,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "transactions_account_date_idx": {
           "name": "transactions_account_date_idx",
           "columns": [
@@ -2646,6 +2619,19 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'en'"
+        },
+        "base_currency": {
+          "name": "base_currency",
+          "type": "char(3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'UTC'"
         },
         "password_hash": {
           "name": "password_hash",

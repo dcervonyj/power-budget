@@ -160,26 +160,36 @@ export class TransactionsController {
   @ApiOperation({ summary: 'Patch notes or ignored flag on a transaction' })
   @ApiParam({ name: 'id', description: 'Transaction ID' })
   @ApiBody({ type: PatchTransactionDto })
-  @ApiResponse({ status: 200, description: 'Transaction updated' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated transaction',
+    type: TransactionDetailDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid id or body' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Transaction not found' })
   async patch(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: PatchTransactionDto,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<TransactionDetailDto> {
     if (!user.householdId) {
       throw new NotFoundException('No household');
     }
 
+    // Transaction ids are not validated as v7 here, like the other routes of this controller.
+    const transactionId = id as TransactionId;
     await this.patchTransaction.execute({
-      transactionId: id as TransactionId,
+      transactionId,
       householdId: user.householdId,
       patch: {
         notes: dto.notes ?? undefined,
         ignored: dto.ignored,
       },
     });
+    const detail = await this.getTransaction.execute(transactionId, user.householdId);
+
+    return toTransactionDetailDto(detail);
   }
 
   @Patch(':id/mapping')
