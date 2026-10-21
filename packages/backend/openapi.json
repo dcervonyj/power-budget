@@ -1762,6 +1762,9 @@
           },
           "404": {
             "description": "Plan not found"
+          },
+          "503": {
+            "description": "Exchange rate unavailable (fx_rate_unavailable)"
           }
         },
         "security": [
@@ -1909,6 +1912,9 @@
           },
           "404": {
             "description": "Household or plan not found"
+          },
+          "503": {
+            "description": "Exchange rate unavailable (fx_rate_unavailable)"
           }
         },
         "security": [
@@ -3274,7 +3280,12 @@
             "$ref": "#/components/schemas/MoneyDto"
           },
           "net": {
-            "$ref": "#/components/schemas/MoneyDto"
+            "description": "(actual + unplanned income) - (actual + unplanned expenses), in the base currency",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MoneyDto"
+              }
+            ]
           },
           "asOf": {
             "type": "string",
@@ -3340,6 +3351,7 @@
         "type": "object",
         "properties": {
           "items": {
+            "description": "Only the caller's own transactions; a partner's count in the dashboard totals only",
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/UnplannedTransactionDto"
@@ -3377,21 +3389,21 @@
           "privacyLevel": {
             "type": "string",
             "enum": ["full_detail", "total_with_counts", "total_only"],
-            "description": "Privacy level applied for the viewing user"
+            "description": "Level applied to the partner's transactions in this category (total_only when not configured); the viewer's own are always counted"
           },
           "totalAmountMinor": {
             "type": "string",
-            "description": "Total amount in minor currency units (e.g. cents) as an integer string",
+            "description": "Both members' total in the plan's base currency, minor units as an integer string. Expense categories: spend net of refunds; income categories: received",
             "example": "150000"
           },
           "currency": {
             "type": "string",
-            "description": "ISO 4217 currency code",
+            "description": "The plan's base currency (ISO 4217)",
             "example": "PLN"
           },
           "transactionCount": {
             "type": "number",
-            "description": "Number of transactions (0 for total_only privacy)"
+            "description": "The viewer's own transactions, plus the partner's unless privacyLevel is total_only"
           }
         },
         "required": [

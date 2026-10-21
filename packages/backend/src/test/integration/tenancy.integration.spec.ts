@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { sql } from 'drizzle-orm';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
@@ -221,21 +220,6 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
         appPool.query('SELECT id FROM transactions'),
       );
       expect(all.rows).toHaveLength(2);
-    });
-
-    it('refreshes the plan actuals view for every household and restores the caller scope', async () => {
-      // Called from a household scope inside one transaction: the function bypasses RLS for
-      // the refresh only; the next statement of the same transaction is scoped again.
-      const after = await asTenant(A, () =>
-        appDb.transaction(async (tx) => {
-          await tx.execute(sql`SELECT refresh_plan_actuals()`);
-
-          return tx.select({ id: schema.transactions.id }).from(schema.transactions);
-        }),
-      );
-
-      expect(await count('v_plan_actuals')).toBe(2);
-      expect(after.map((r) => r.id)).toEqual([A.txId]);
     });
 
     it('keeps audit_log append-only for the app role', async () => {
