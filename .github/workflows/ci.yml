@@ -108,7 +108,7 @@ jobs:
 
   playwright:
     name: Playwright E2E (smoke)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: ci
     # Only run on PRs, not on push to master (to keep CI fast)
     if: github.event_name == 'pull_request'
