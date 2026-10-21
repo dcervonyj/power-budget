@@ -22,7 +22,7 @@
     "@power-budget/design-tokens": "workspace:^",
     "@power-budget/shared-app": "workspace:*",
     "@sentry/react": "^10.53.1",
-    "mobx": "^6.13.0",
+    "mobx": "^6.16.1",
     "mobx-react-lite": "^4.0.7",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
