@@ -14,7 +14,13 @@ describe('PlansCronService', () => {
     expect(queue.add).toHaveBeenCalledWith(
       'period-close',
       {},
-      { jobId: 'period-close-2026-10-21', removeOnComplete: true, removeOnFail: false },
+      {
+        jobId: 'period-close-2026-10-21',
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 60_000 },
+        removeOnComplete: true,
+        removeOnFail: false,
+      },
     );
   });
 });

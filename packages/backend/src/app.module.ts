@@ -9,7 +9,9 @@ import { BankPresentationModule } from './presentation/bank/BankPresentationModu
 import { PlansPresentationModule } from './presentation/plans/PlansPresentationModule.js';
 import { NotificationsPresentationModule } from './presentation/notifications/NotificationsPresentationModule.js';
 import { HouseholdsPresentationModule } from './presentation/households/HouseholdsPresentationModule.js';
+import { FxPresentationModule } from './presentation/fx/FxPresentationModule.js';
 import { DbScopeInterceptor } from './infrastructure/database/DbScopeInterceptor.js';
+import { validationPipeProvider } from './presentation/http/validation.js';
 
 @Module({
   imports: [
@@ -22,8 +24,14 @@ import { DbScopeInterceptor } from './infrastructure/database/DbScopeInterceptor
     PlansPresentationModule,
     NotificationsPresentationModule,
     HouseholdsPresentationModule,
+    FxPresentationModule,
   ],
-  // Every handler runs in the caller's DbScope, which sets the RLS settings (CLN-005).
-  providers: [{ provide: APP_INTERCEPTOR, useClass: DbScopeInterceptor }],
+  providers: [
+    // Global ValidationPipe (audit C5); registered here, not in main.ts, so the
+    // integration and OpenAPI apps get it too.
+    validationPipeProvider,
+    // Every handler runs in the caller's DbScope, which sets the RLS settings (CLN-005).
+    { provide: APP_INTERCEPTOR, useClass: DbScopeInterceptor },
+  ],
 })
 export class AppModule {}

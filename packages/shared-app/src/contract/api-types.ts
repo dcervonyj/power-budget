@@ -568,6 +568,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/fx-rates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** FX reference rates for a base currency as of a date */
+    get: operations['FxController_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -637,24 +654,68 @@ export interface components {
       /** @example member@example.com */
       email: string;
     };
-    AddManualTransactionDto: {
-      /** @description Bank account ID */
-      accountId: string;
+    MoneyDto: {
       /**
-       * @description Date of transaction (ISO 8601)
-       * @example 2024-06-15
+       * @description Amount in minor currency units (e.g. cents) as an integer string
+       * @example 150000
        */
-      occurredOn: string;
-      /**
-       * @description Amount in minor currency units (e.g. cents)
-       * @example 1500
-       */
-      amountMinor: number;
+      amountMinor: string;
       /**
        * @description ISO 4217 currency code
        * @example PLN
        */
       currency: string;
+    };
+    TransactionDto: {
+      id: string;
+      accountId: string;
+      externalId: string | null;
+      /** @example 2024-06-15 */
+      occurredOn: string;
+      amount: components['schemas']['MoneyDto'];
+      description: string;
+      merchant: string | null;
+      /** @enum {string} */
+      source: 'bank_sync' | 'manual';
+      /** @enum {string} */
+      status: 'pending' | 'posted' | 'cancelled';
+      ignored: boolean;
+      notes: string | null;
+      suggestedPlannedItemId: string | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      createdAt: string;
+    };
+    TransactionPageDto: {
+      items: components['schemas']['TransactionDto'][];
+      nextCursor: string | null;
+      hasMore: boolean;
+    };
+    TransactionDetailDto: {
+      transaction: components['schemas']['TransactionDto'];
+      /** @description Planned-item mapping, if any */
+      mapping: Record<string, never> | null;
+      /** @description Transfer link, if any */
+      transfer: Record<string, never> | null;
+    };
+    AddManualTransactionDto: {
+      /** @description Bank account ID */
+      accountId: string;
+      /**
+       * @description Date of transaction (YYYY-MM-DD)
+       * @example 2024-06-15
+       */
+      occurredOn: string;
+      /**
+       * @description Amount in minor currency units (e.g. cents) as an integer string; a safe JSON integer is also accepted
+       * @example -1500
+       */
+      amountMinor: string;
+      /**
+       * @description ISO 4217 currency code
+       * @enum {string}
+       */
+      currency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
       /** @example Coffee at Starbucks */
       description: string;
       /** @example Starbucks */
@@ -677,7 +738,7 @@ export interface components {
       counterpartTransactionId?: string | null;
     };
     BulkMapDto: {
-      /** @description Transaction IDs to act on */
+      /** @description Transaction IDs to act on (max 500) */
       ids: string[];
       /** @enum {string} */
       op: 'map' | 'transfer' | 'ignore';
@@ -698,6 +759,83 @@ export interface components {
        */
       redirectUri: string;
     };
+    ReconnectBankDto: {
+      /**
+       * @description OAuth redirect URI after consent
+       * @example https://app.power-budget.test/connect/callback
+       */
+      redirectUri?: string;
+    };
+    BankAccountDto: {
+      id: string;
+      connectionId: string;
+      name: string;
+      iban: string | null;
+      /** @example PLN */
+      currency: string;
+      /**
+       * @description Balance in minor currency units as an integer string
+       * @example 150000
+       */
+      balanceMinor: string;
+      /** @example 2024-06-15T10:00:00.000Z */
+      lastSyncedAt: string | null;
+      /** @example 2024-06-15T10:00:00.000Z */
+      createdAt: string;
+    };
+    DateRangeDto: {
+      /** @example 2024-06-01 */
+      start: string;
+      /** @example 2024-06-30 */
+      end: string;
+    };
+    PlannedItemActualsDto: {
+      plannedItemId: string;
+      categoryId: string;
+      /** @enum {string} */
+      direction: 'income' | 'expense';
+      planned: components['schemas']['MoneyDto'];
+      actual: components['schemas']['MoneyDto'];
+      remaining: components['schemas']['MoneyDto'];
+      /** @enum {string} */
+      progressBand: 'ok' | 'warning' | 'over';
+    };
+    PlanDashboardResponseDto: {
+      planId: string;
+      period: components['schemas']['DateRangeDto'];
+      /** @example PLN */
+      baseCurrency: string;
+      incomeLines: components['schemas']['PlannedItemActualsDto'][];
+      expenseLines: components['schemas']['PlannedItemActualsDto'][];
+      totalPlannedIncome: components['schemas']['MoneyDto'];
+      totalActualIncome: components['schemas']['MoneyDto'];
+      totalPlannedExpenses: components['schemas']['MoneyDto'];
+      totalActualExpenses: components['schemas']['MoneyDto'];
+      unplannedExpenses: components['schemas']['MoneyDto'];
+      unplannedIncome: components['schemas']['MoneyDto'];
+      net: components['schemas']['MoneyDto'];
+      /** @example 2024-06-15 */
+      asOf: string;
+    };
+    UnplannedTransactionDto: {
+      id: string;
+      description: string;
+      /**
+       * @description Minor units as an integer string
+       * @example 1500
+       */
+      amountMinor: string;
+      /** @example PLN */
+      currency: string;
+      /** @example 2024-06-15 */
+      occurredOn: string;
+      accountId: string;
+      source: string;
+    };
+    UnplannedTransactionPageDto: {
+      items: components['schemas']['UnplannedTransactionDto'][];
+      nextCursor: string | null;
+    };
     HouseholdDashboardCategoryDto: {
       /** @description Category ID */
       categoryId: string;
@@ -708,8 +846,11 @@ export interface components {
        * @enum {string}
        */
       privacyLevel: 'full_detail' | 'total_with_counts' | 'total_only';
-      /** @description Total amount in minor currency units (e.g. cents) */
-      totalAmountMinor: number;
+      /**
+       * @description Total amount in minor currency units (e.g. cents) as an integer string
+       * @example 150000
+       */
+      totalAmountMinor: string;
       /**
        * @description ISO 4217 currency code
        * @example PLN
@@ -723,6 +864,30 @@ export interface components {
       planId: string;
       /** @description Per-category aggregates */
       categories: components['schemas']['HouseholdDashboardCategoryDto'][];
+    };
+    FxRatesResponseDto: {
+      /**
+       * Format: date
+       * @example 2026-10-20
+       */
+      date: string;
+      /**
+       * @example PLN
+       * @enum {string}
+       */
+      baseCurrency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+      /**
+       * @description 1 baseCurrency = rates[code] code, as decimal strings (never floats). The latest rate within 7 days of the date is used; codes without a rate are absent.
+       * @example {
+       *       "EUR": "0.2284774264",
+       *       "USD": "0.2562374337",
+       *       "UAH": "11.5603231178"
+       *     }
+       */
+      rates: {
+        [key: string]: string;
+      };
     };
   };
   responses: never;
@@ -1199,6 +1364,15 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
+        content: {
+          'application/json': components['schemas']['TransactionPageDto'];
+        };
+      };
+      /** @description Invalid query parameters */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
         content?: never;
       };
       /** @description Unauthorized */
@@ -1225,6 +1399,15 @@ export interface operations {
     responses: {
       /** @description Transaction created */
       201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TransactionDto'];
+        };
+      };
+      /** @description Invalid body */
+      400: {
         headers: {
           [name: string]: unknown;
         };
@@ -1256,7 +1439,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['TransactionDetailDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -1693,7 +1878,11 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['ReconnectBankDto'];
+      };
+    };
     responses: {
       /** @description New consent link returned */
       201: {
@@ -1742,7 +1931,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['BankAccountDto'][];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -1770,7 +1961,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['PlanDashboardResponseDto'];
+        };
       };
       /** @description Unauthorized */
       401: {
@@ -1798,7 +1991,7 @@ export interface operations {
   PlansController_unplanned: {
     parameters: {
       query: {
-        /** @description Page size (default 50) */
+        /** @description Page size (default 50, max 200) */
         limit?: number;
         /** @description Pagination cursor (opaque, from previous response) */
         cursor?: string;
@@ -1819,7 +2012,9 @@ export interface operations {
         headers: {
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['UnplannedTransactionPageDto'];
+        };
       };
       /** @description Missing or invalid direction parameter */
       400: {
@@ -1914,6 +2109,52 @@ export interface operations {
         content?: never;
       };
       /** @description Household or plan not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  FxController_list: {
+    parameters: {
+      query?: {
+        /** @description Base currency. Defaults to EUR. */
+        base?:
+          'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+        /** @description Rates as of this date (YYYY-MM-DD). Defaults to today (UTC). */
+        date?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FxRatesResponseDto'];
+        };
+      };
+      /** @description Invalid date or unsupported base currency */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No rates stored within 7 days of the date */
       404: {
         headers: {
           [name: string]: unknown;
