@@ -49,6 +49,15 @@ export class ConsumeMagicLinkDto {
   @IsString()
   @IsNotEmpty()
   token!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: 'TOTP code, required once 2FA is enabled (the link stays valid until then)',
+    example: '123456',
+  })
+  @IsOptional()
+  @IsString()
+  totp?: string;
 }
 
 export class VerifyTotpDto {

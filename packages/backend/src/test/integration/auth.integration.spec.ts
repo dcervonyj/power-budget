@@ -9,7 +9,7 @@ import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHou
 import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from '../../infrastructure/auth/DrizzleHouseholdInviteRepository.js';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import type { UserId, HouseholdId, EncryptedString } from '@power-budget/core';
 
 type DB = NodePgDatabase<typeof schema>;
 
@@ -251,6 +251,34 @@ describe('Integration: auth infrastructure adapters', () => {
         expect(result).toBeNull();
       });
     });
+
+    it('find reads a live token without consuming it, and ignores expired ones', async () => {
+      await withRollbackTransaction(getPool(), async (db: DB) => {
+        const users = new DrizzleUserRepository(db);
+        const magicLinks = new DrizzleMagicLinkTokenRepository(db);
+        const userId = makeUserId() as UserId;
+        await users.create({
+          id: userId,
+          email: `find-${userId}@example.com`,
+          displayName: 'Find',
+          defaultLocale: 'en',
+        });
+        const live = createHash('sha256').update('live-token').digest('hex');
+        const expired = createHash('sha256').update('old-token').digest('hex');
+        await magicLinks.save({
+          tokenHash: live,
+          userId,
+          expiresAt: new Date(Date.now() + 60_000),
+        });
+        await magicLinks.save({ tokenHash: expired, userId, expiresAt: new Date(Date.now() - 1) });
+
+        expect(await magicLinks.find(live)).toEqual({ userId });
+        expect(await magicLinks.find(live)).toEqual({ userId });
+        expect(await magicLinks.find(expired)).toBeNull();
+        expect(await magicLinks.consume(live)).toEqual({ userId });
+        expect(await magicLinks.find(live)).toBeNull();
+      });
+    });
   });
 
   // ─── DrizzleTotpSecretRepository ────────────────────────────────────────────
@@ -271,9 +299,10 @@ describe('Integration: auth infrastructure adapters', () => {
 
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'enc-secret-abc',
+          encryptedSecret: 'enc-secret-abc' as EncryptedString,
           enrolledAt: new Date(),
           verifiedAt: null,
+          lastUsedTimeStep: null,
         });
 
         const found = await totpSecrets.findByUser(userId);
@@ -298,22 +327,56 @@ describe('Integration: auth infrastructure adapters', () => {
 
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'old-secret',
+          encryptedSecret: 'old-secret' as EncryptedString,
           enrolledAt: new Date(),
           verifiedAt: null,
+          lastUsedTimeStep: null,
         });
 
         const verifiedAt = new Date();
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'new-secret',
+          encryptedSecret: 'new-secret' as EncryptedString,
           enrolledAt: new Date(),
           verifiedAt,
+          lastUsedTimeStep: null,
         });
 
         const found = await totpSecrets.findByUser(userId);
         expect(found!.encryptedSecret).toBe('new-secret');
         expect(found!.verifiedAt).not.toBeNull();
+      });
+    });
+
+    it('claims each time step once and only moving forward', async () => {
+      await withRollbackTransaction(getPool(), async (db: DB) => {
+        const users = new DrizzleUserRepository(db);
+        const totpSecrets = new DrizzleTotpSecretRepository(db);
+        const userId = makeUserId() as UserId;
+        await users.create({
+          id: userId,
+          email: `claim-${userId}@example.com`,
+          displayName: 'Claim',
+          defaultLocale: 'en',
+        });
+        await totpSecrets.save({
+          userId,
+          encryptedSecret: 'env-v1:aes-256-gcm:iv:ct:tag' as EncryptedString,
+          enrolledAt: new Date(),
+          verifiedAt: null,
+          lastUsedTimeStep: null,
+        });
+        const verifiedAt = new Date('2026-10-21T10:00:00.000Z');
+
+        expect(await totpSecrets.claimTimeStep(userId, 100, verifiedAt)).toBe(true);
+        expect(await totpSecrets.claimTimeStep(userId, 100, new Date())).toBe(false);
+        expect(await totpSecrets.claimTimeStep(userId, 99, new Date())).toBe(false);
+        expect(await totpSecrets.claimTimeStep(userId, 101, new Date())).toBe(true);
+
+        const found = await totpSecrets.findByUser(userId);
+        expect(found!.lastUsedTimeStep).toBe(101);
+        // verifiedAt is set by the first claim and kept afterwards.
+        expect(found!.verifiedAt).toEqual(verifiedAt);
       });
     });
 
@@ -340,9 +403,10 @@ describe('Integration: auth infrastructure adapters', () => {
 
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'to-delete',
+          encryptedSecret: 'to-delete' as EncryptedString,
           enrolledAt: new Date(),
           verifiedAt: null,
+          lastUsedTimeStep: null,
         });
 
         await totpSecrets.delete(userId);

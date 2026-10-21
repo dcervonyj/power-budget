@@ -54,4 +54,19 @@ describe('EnvKekEncryption', () => {
     const shortKey = Buffer.alloc(16, 0x42).toString('base64');
     expect(() => new EnvKekEncryption(shortKey)).toThrow('KEK must be 32 bytes');
   });
+
+  it('round-trips with a context bound as additional authenticated data', async () => {
+    const enc = new EnvKekEncryption(VALID_KEK);
+    const ct = await enc.encrypt('JBSWY3DPEHPK3PXP', 'totp:user-a');
+
+    await expect(enc.decrypt(ct, 'totp:user-a')).resolves.toBe('JBSWY3DPEHPK3PXP');
+  });
+
+  it('refuses to decrypt under another context or without one', async () => {
+    const enc = new EnvKekEncryption(VALID_KEK);
+    const ct = await enc.encrypt('JBSWY3DPEHPK3PXP', 'totp:user-a');
+
+    await expect(enc.decrypt(ct, 'totp:user-b')).rejects.toThrow();
+    await expect(enc.decrypt(ct)).rejects.toThrow();
+  });
 });

@@ -26,10 +26,11 @@ export class RedisRefreshTokenStore implements RefreshTokenStore {
 
   async rotate(oldToken: string): Promise<{ userId: UserId; newToken: string } | null> {
     const oldKey = `refresh:${hash(oldToken)}`;
-    const userId = await this.redis.get(oldKey);
-    if (!userId) return null;
-
-    await this.redis.del(oldKey);
+    // GETDEL is atomic: of two concurrent rotations only one sees the user (audit M9).
+    const userId = await this.redis.getdel(oldKey);
+    if (!userId) {
+      return null;
+    }
 
     const ttl = 60 * 60 * 24 * 30; // 30 days
     const newToken = generateToken();

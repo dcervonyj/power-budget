@@ -1,5 +1,5 @@
 {
-  "id": "b1e8d332-d76d-4bc2-97de-44abc995dbc9",
+  "id": "145bd57b-b05d-4b6e-8b93-37d88590f28e",
   "prevId": "34804bea-0aaa-4550-a3f6-094824e350b0",
   "version": "7",
   "dialect": "postgresql",
@@ -2146,6 +2146,12 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "last_used_time_step": {
+          "name": "last_used_time_step",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -2613,19 +2619,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'en'"
-        },
-        "base_currency": {
-          "name": "base_currency",
-          "type": "char(3)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "timezone": {
-          "name": "timezone",
-          "type": "varchar(64)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'UTC'"
         },
         "password_hash": {
           "name": "password_hash",

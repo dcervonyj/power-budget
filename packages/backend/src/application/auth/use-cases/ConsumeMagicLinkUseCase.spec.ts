@@ -1,68 +1,84 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { createHash } from 'node:crypto';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId } from '@power-budget/core';
-import type {
-  UserRepository,
-  HouseholdRepository,
-  MagicLinkTokenRepository,
-  JwtAccessTokenIssuer,
-  RefreshTokenStore,
-} from '../../../domain/auth/ports.js';
+import type { UserId } from '@power-budget/core';
+import type { MagicLinkTokenRepository } from '../../../domain/auth/ports.js';
 import { ConsumeMagicLinkUseCase } from './ConsumeMagicLinkUseCase.js';
-import { MagicLinkExpiredError } from '../../../domain/auth/errors.js';
-import type { Household } from '../../../domain/auth/entities.js';
+import {
+  MagicLinkExpiredError,
+  TotpInvalidError,
+  TotpRequiredError,
+} from '../../../domain/auth/errors.js';
+import type { LoginPolicy } from '../services/LoginPolicy.js';
 
 const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const TEST_HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
-
-function makeHousehold(): Household {
-  return {
-    id: TEST_HOUSEHOLD_ID,
-    name: "alice's household",
-    baseCurrency: 'PLN',
-    createdAt: new Date(),
-  };
-}
+const RAW_TOKEN = 'raw-token-value';
+const TOKEN_HASH = createHash('sha256').update(RAW_TOKEN).digest('hex');
+const SESSION = {
+  accessToken: 'access-token',
+  refreshToken: 'refresh-token',
+  userId: TEST_USER_ID,
+};
 
 describe('ConsumeMagicLinkUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
   let magicLinkTokenRepo: ReturnType<typeof mock<MagicLinkTokenRepository>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
+  let loginPolicy: ReturnType<typeof mock<LoginPolicy>>;
   let useCase: ConsumeMagicLinkUseCase;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    householdRepo = mock<HouseholdRepository>();
     magicLinkTokenRepo = mock<MagicLinkTokenRepository>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
-    refreshTokenStore = mock<RefreshTokenStore>();
-    useCase = new ConsumeMagicLinkUseCase(
-      userRepo,
-      householdRepo,
-      magicLinkTokenRepo,
-      jwtIssuer,
-      refreshTokenStore,
-    );
+    loginPolicy = mock<LoginPolicy>();
+    loginPolicy.issueSession.mockResolvedValue(SESSION);
+    useCase = new ConsumeMagicLinkUseCase(magicLinkTokenRepo, loginPolicy);
   });
 
-  it('issues tokens when magic link token is valid', async () => {
+  it('issues a session when the token is live and the second factor passes', async () => {
+    magicLinkTokenRepo.find.mockResolvedValue({ userId: TEST_USER_ID });
     magicLinkTokenRepo.consume.mockResolvedValue({ userId: TEST_USER_ID });
-    householdRepo.findByUserId.mockResolvedValue(makeHousehold());
-    jwtIssuer.issue.mockReturnValue('access-token');
-    refreshTokenStore.issue.mockResolvedValue('refresh-token');
 
-    const result = await useCase.execute({ token: 'raw-token-value' });
+    const result = await useCase.execute({ token: RAW_TOKEN, totp: '123456' });
 
-    expect(result.accessToken).toBe('access-token');
-    expect(result.refreshToken).toBe('refresh-token');
-    expect(result.userId).toBe(TEST_USER_ID);
+    expect(result).toEqual(SESSION);
+    expect(magicLinkTokenRepo.find).toHaveBeenCalledWith(TOKEN_HASH);
+    expect(loginPolicy.assertSecondFactor).toHaveBeenCalledWith(TEST_USER_ID, '123456');
+    expect(magicLinkTokenRepo.consume).toHaveBeenCalledWith(TOKEN_HASH);
+    expect(loginPolicy.issueSession).toHaveBeenCalledWith(TEST_USER_ID);
   });
 
-  it('throws MagicLinkExpiredError when token is invalid or already consumed', async () => {
+  it('throws MagicLinkExpiredError for an unknown or expired token', async () => {
+    magicLinkTokenRepo.find.mockResolvedValue(null);
+
+    await expect(useCase.execute({ token: 'expired-token' })).rejects.toThrow(
+      MagicLinkExpiredError,
+    );
+    expect(loginPolicy.assertSecondFactor).not.toHaveBeenCalled();
+    expect(magicLinkTokenRepo.consume).not.toHaveBeenCalled();
+  });
+
+  it('keeps the link when TOTP is enabled but no code was sent', async () => {
+    magicLinkTokenRepo.find.mockResolvedValue({ userId: TEST_USER_ID });
+    loginPolicy.assertSecondFactor.mockRejectedValue(new TotpRequiredError());
+
+    await expect(useCase.execute({ token: RAW_TOKEN })).rejects.toThrow(TotpRequiredError);
+    expect(magicLinkTokenRepo.consume).not.toHaveBeenCalled();
+    expect(loginPolicy.issueSession).not.toHaveBeenCalled();
+  });
+
+  it('issues no session for a wrong TOTP code', async () => {
+    magicLinkTokenRepo.find.mockResolvedValue({ userId: TEST_USER_ID });
+    loginPolicy.assertSecondFactor.mockRejectedValue(new TotpInvalidError());
+
+    await expect(useCase.execute({ token: RAW_TOKEN, totp: '000000' })).rejects.toThrow(
+      TotpInvalidError,
+    );
+    expect(loginPolicy.issueSession).not.toHaveBeenCalled();
+  });
+
+  it('throws MagicLinkExpiredError when a concurrent request consumed the link first', async () => {
+    magicLinkTokenRepo.find.mockResolvedValue({ userId: TEST_USER_ID });
     magicLinkTokenRepo.consume.mockResolvedValue(null);
 
-    await expect(useCase.execute({ token: 'bad-token' })).rejects.toThrow(MagicLinkExpiredError);
+    await expect(useCase.execute({ token: RAW_TOKEN })).rejects.toThrow(MagicLinkExpiredError);
+    expect(loginPolicy.issueSession).not.toHaveBeenCalled();
   });
 });
