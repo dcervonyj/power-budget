@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { UserId, HouseholdId } from '../src/domain/auth/ids.js';
+import { CategoryId } from '../src/domain/categories/ids.js';
 import { InvalidIdError } from '../src/domain/shared/errors.js';
 
 const VALID_UUIDV7 = '01956a2c-b4e0-7e34-9e18-000000000001';
@@ -46,5 +47,21 @@ describe('brand assignability', () => {
     // Suppress unused variable warning
     void _;
     expect(true).toBe(true);
+  });
+});
+
+describe('CategoryId', () => {
+  it('accepts a UUIDv4 (seeded system categories)', () => {
+    expect(CategoryId.of('550e8400-e29b-41d4-a716-446655440000')).toBe(
+      '550e8400-e29b-41d4-a716-446655440000',
+    );
+  });
+
+  it('accepts a UUIDv7', () => {
+    expect(CategoryId.of(VALID_UUIDV7)).toBe(VALID_UUIDV7);
+  });
+
+  it('throws InvalidIdError for a malformed string', () => {
+    expect(() => CategoryId.of('not-a-uuid')).toThrow(InvalidIdError);
   });
 });

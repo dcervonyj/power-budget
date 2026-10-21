@@ -1,7 +1,6 @@
-import type { HouseholdId, UserId, IsoDateTime } from '@power-budget/core';
+import type { HouseholdId, UserId, IsoDateTime, AuditEventId } from '@power-budget/core';
 
-type Brand<T, B extends string> = T & { readonly __brand: B };
-export type AuditEventId = Brand<string, 'AuditEventId'>;
+export { AuditEventId } from '@power-budget/core';
 
 export interface AuditEvent {
   readonly id: AuditEventId;

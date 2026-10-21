@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsDateString, IsInt, Min } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsInt, IsUUID, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { ClampMax } from '../../http/validators.js';
@@ -38,9 +38,12 @@ export class ListAuditLogQueryDto {
   @IsDateString()
   to?: string;
 
-  @ApiPropertyOptional({ type: String, description: 'Pagination cursor (last audit event ID)' })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Pagination cursor (`nextCursor` of the previous page)',
+  })
   @IsOptional()
-  @IsString()
+  @IsUUID('7')
   cursor?: string;
 
   @ApiPropertyOptional({

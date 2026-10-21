@@ -1,11 +1,20 @@
 import { Inject } from '@nestjs/common';
-import { and, eq, gte, isNull, lte } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, isNull, lte, or, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { PlanId, HouseholdId, UserId, IsoDate, IsoDateTime } from '@power-budget/core';
-import type { PlanRepository, HouseholdScope } from '../../domain/plans/ports.js';
-import type { Plan, NewPlan } from '../../domain/plans/entities.js';
+import { PlanId, HouseholdId, UserId } from '@power-budget/core';
+import type {
+  PlanRepository,
+  HouseholdScope,
+  PlanListQuery,
+  PlanPatch,
+} from '../../domain/plans/ports.js';
+import type { Plan, NewPlan, PlanType, PlanPeriodKind } from '../../domain/plans/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
+import { isoDateOf, isoDateTimeOf, nullableIsoDateTimeOf, oneOf } from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
+
+const PLAN_TYPES: readonly PlanType[] = ['personal', 'household'];
+const PERIOD_KINDS: readonly PlanPeriodKind[] = ['weekly', 'monthly', 'custom'];
 
 export class DrizzlePlanRepository implements PlanRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
@@ -38,36 +47,46 @@ export class DrizzlePlanRepository implements PlanRepository {
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
-  async listActive(query: {
-    userId: UserId;
-    householdId: HouseholdId;
-    date: Date;
-  }): Promise<Plan[]> {
-    const dateStr = query.date.toISOString().slice(0, 10) as IsoDate;
+  /**
+   * Audit M13: honours archivedAt and the owner (a partner's personal plans are
+   * not returned), and filters by period overlap instead of "today".
+   */
+  async list(query: PlanListQuery): Promise<Plan[]> {
+    const conditions: SQL[] = [
+      eq(schema.plans.householdId, query.householdId),
+      this.visibleTo(query.viewerUserId),
+    ];
+    const status = this.statusCondition(query.status);
+    if (status !== undefined) {
+      conditions.push(status);
+    }
+    if (query.overlapping !== undefined) {
+      conditions.push(lte(schema.plans.periodStart, query.overlapping.end));
+      conditions.push(gte(schema.plans.periodEnd, query.overlapping.start));
+    }
+
     const rows = await this.db
       .select()
       .from(schema.plans)
-      .where(
-        and(
-          eq(schema.plans.householdId, query.householdId),
-          lte(schema.plans.periodStart, dateStr),
-          gte(schema.plans.periodEnd, dateStr),
-        ),
-      );
+      .where(and(...conditions))
+      .orderBy(asc(schema.plans.periodStart), asc(schema.plans.id));
     return rows.map((r) => this.toEntity(r));
   }
 
-  async update(
-    id: PlanId,
-    patch: { readonly name?: string },
-    scope: HouseholdScope,
-  ): Promise<Plan> {
+  async update(id: PlanId, patch: PlanPatch, scope: HouseholdScope): Promise<Plan> {
     const [row] = await this.db
       .update(schema.plans)
-      .set({ ...(patch.name !== undefined ? { name: patch.name } : {}), updatedAt: new Date() })
+      .set({
+        ...(patch.name !== undefined ? { name: patch.name } : {}),
+        ...(patch.baseCurrency !== undefined ? { baseCurrency: patch.baseCurrency } : {}),
+        ...(patch.period !== undefined
+          ? { periodStart: patch.period.start, periodEnd: patch.period.end }
+          : {}),
+        updatedAt: new Date(),
+      })
       .where(and(eq(schema.plans.id, id), eq(schema.plans.householdId, scope.householdId)))
       .returning();
-    if (!row) throw new Error(`Plan ${id} not found`);
+    if (!row) throw new Error(`PLAN_NOT_FOUND: Plan ${id} not found`);
     return this.toEntity(row);
   }
 
@@ -79,7 +98,7 @@ export class DrizzlePlanRepository implements PlanRepository {
   }
 
   async findByPeriodEnd(date: Date): Promise<Plan[]> {
-    const dateStr = date.toISOString().slice(0, 10) as IsoDate;
+    const dateStr = date.toISOString().slice(0, 10);
     const rows = await this.db
       .select()
       .from(schema.plans)
@@ -87,22 +106,40 @@ export class DrizzlePlanRepository implements PlanRepository {
     return rows.map((r) => this.toEntity(r));
   }
 
+  private visibleTo(userId: UserId): SQL {
+    return (
+      or(eq(schema.plans.type, 'household'), eq(schema.plans.ownerUserId, userId)) ??
+      eq(schema.plans.type, 'household')
+    );
+  }
+
+  private statusCondition(status: PlanListQuery['status']): SQL | undefined {
+    switch (status) {
+      case 'active':
+        return isNull(schema.plans.archivedAt);
+      case 'archived':
+        return isNotNull(schema.plans.archivedAt);
+      case 'all':
+        return undefined;
+    }
+  }
+
   private toEntity(row: schema.SelectPlan): Plan {
     return {
-      id: row.id as PlanId,
-      householdId: row.householdId as HouseholdId,
-      ownerUserId: row.ownerUserId as UserId | null,
+      id: PlanId.of(row.id),
+      householdId: HouseholdId.of(row.householdId),
+      ownerUserId: row.ownerUserId === null ? null : UserId.of(row.ownerUserId),
       name: row.name,
-      type: row.type as Plan['type'],
-      periodKind: row.periodKind as Plan['periodKind'],
+      type: oneOf(PLAN_TYPES, row.type, 'plan type'),
+      periodKind: oneOf(PERIOD_KINDS, row.periodKind, 'plan period kind'),
       period: {
-        start: row.periodStart as IsoDate,
-        end: row.periodEnd as IsoDate,
+        start: isoDateOf(row.periodStart),
+        end: isoDateOf(row.periodEnd),
       },
       baseCurrency: row.baseCurrency,
-      archivedAt: row.archivedAt ? (row.archivedAt.toISOString() as IsoDateTime) : null,
-      createdAt: row.createdAt.toISOString() as IsoDateTime,
-      updatedAt: row.updatedAt.toISOString() as IsoDateTime,
+      archivedAt: nullableIsoDateTimeOf(row.archivedAt),
+      createdAt: isoDateTimeOf(row.createdAt),
+      updatedAt: isoDateTimeOf(row.updatedAt),
     };
   }
 }
