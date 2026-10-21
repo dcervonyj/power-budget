@@ -55,6 +55,18 @@ const BY_MESSAGE_CODE: Readonly<Record<string, HttpErrorMapping>> = {
     'already_in_household',
     'User already belongs to a household',
   ),
+  INVITE_NOT_FOUND: mapping(HttpStatus.NOT_FOUND, 'invite_not_found', 'Invite not found'),
+  INVITE_SELF: mapping(HttpStatus.CONFLICT, 'invite_self', 'You cannot invite yourself'),
+  HOUSEHOLD_FULL: mapping(
+    HttpStatus.CONFLICT,
+    'household_full',
+    'The household already has two members',
+  ),
+  HOUSEHOLD_NOT_EMPTY: mapping(
+    HttpStatus.CONFLICT,
+    'household_not_empty',
+    'Your own household already has data, so it cannot be left',
+  ),
   HOUSEHOLD_NOT_FOUND: mapping(HttpStatus.NOT_FOUND, 'household_not_found', 'Household not found'),
   HOUSEHOLD_OWNER_REQUIRED: mapping(
     HttpStatus.FORBIDDEN,

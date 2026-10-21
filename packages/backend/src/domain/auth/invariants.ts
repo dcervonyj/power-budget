@@ -1,5 +1,11 @@
 import type { HouseholdMembership } from './entities.js';
 
+/** MVP: a household is a couple (docs/mvp/PRODUCT.md: "two users, you + partner"). */
+export const MAX_HOUSEHOLD_MEMBERS = 2;
+
+/** docs/mvp/ARCHITECTURE.md: an invite is single-use, bound to an email, valid 7 days. */
+export const HOUSEHOLD_INVITE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 export class HouseholdInvariants {
   /**
    * MVP invariant: each user belongs to at most one household.

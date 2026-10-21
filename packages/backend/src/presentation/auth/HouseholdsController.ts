@@ -1,8 +1,10 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
   Param,
+  ParseUUIDPipe,
   Delete,
   HttpCode,
   HttpStatus,
@@ -19,14 +21,26 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
+import type { HouseholdId } from '@power-budget/core';
 import { JwtAuthGuard } from './guards/JwtAuthGuard.js';
 import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { RequireRecentTotp } from './decorators/RequireRecentTotp.js';
 import { CurrentUser, type AuthenticatedUser } from './decorators/CurrentUser.js';
-import { CreateHouseholdDto, InviteToHouseholdDto } from './dto/households.dto.js';
+import {
+  AcceptInviteDto,
+  AcceptInviteResponseDto,
+  CreateHouseholdDto,
+  HouseholdInviteResponseDto,
+  InviteToHouseholdDto,
+} from './dto/households.dto.js';
 import { CreateHouseholdUseCase } from '../../application/auth/use-cases/CreateHouseholdUseCase.js';
 import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/InviteToHouseholdUseCase.js';
 import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInviteUseCase.js';
+import { ResendHouseholdInviteUseCase } from '../../application/auth/use-cases/ResendHouseholdInviteUseCase.js';
+import { RevokeHouseholdInviteUseCase } from '../../application/auth/use-cases/RevokeHouseholdInviteUseCase.js';
+import { ListHouseholdInvitesUseCase } from '../../application/auth/use-cases/ListHouseholdInvitesUseCase.js';
+import type { HouseholdInviteView } from '../../application/auth/use-cases/HouseholdInviteView.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 import { HouseholdNotFoundError, HouseholdOwnerRequiredError } from '../../domain/auth/errors.js';
@@ -40,6 +54,11 @@ export class HouseholdsController {
     @Inject(CreateHouseholdUseCase) private readonly createHousehold: CreateHouseholdUseCase,
     @Inject(InviteToHouseholdUseCase) private readonly inviteToHousehold: InviteToHouseholdUseCase,
     @Inject(AcceptInviteUseCase) private readonly acceptInvite: AcceptInviteUseCase,
+    @Inject(ResendHouseholdInviteUseCase)
+    private readonly resendInvite: ResendHouseholdInviteUseCase,
+    @Inject(RevokeHouseholdInviteUseCase)
+    private readonly revokeInvite: RevokeHouseholdInviteUseCase,
+    @Inject(ListHouseholdInvitesUseCase) private readonly listInvites: ListHouseholdInvitesUseCase,
     @Inject(ExportHouseholdDataUseCase) private readonly exportData: ExportHouseholdDataUseCase,
     @Inject(DeleteHouseholdUseCase) private readonly scheduleDelete: DeleteHouseholdUseCase,
   ) {}
@@ -59,37 +78,122 @@ export class HouseholdsController {
     return { householdId: result.id };
   }
 
-  @Post('invite')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Invite a user to the current household' })
+  @Post('invites')
+  // Per IP and per invitee email (body `email`), like the credential endpoints.
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: 'Invite the partner by email (owner only)',
+    description:
+      'Emails a single-use link valid for 7 days. A household has one open invite: a new ' +
+      'invite revokes the previous one. At most two members per household.',
+  })
   @ApiBody({ type: InviteToHouseholdDto })
-  @ApiResponse({ status: 204, description: 'Invitation sent' })
+  @ApiResponse({ status: 201, type: HouseholdInviteResponseDto, description: 'Invite emailed' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Caller is not the owner (household_owner_required)' })
+  @ApiResponse({
+    status: 409,
+    description: 'Household already has two members (household_full) or own email (invite_self)',
+  })
+  @ApiResponse({ status: 429, description: 'Too many invites' })
   async invite(
     @Body() dto: InviteToHouseholdDto,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<void> {
-    if (user.householdId === null) {
-      return;
-    }
-    await this.inviteToHousehold.execute({
+  ): Promise<HouseholdInviteResponseDto> {
+    const view = await this.inviteToHousehold.execute({
       inviterUserId: user.userId,
       inviteeEmail: dto.email,
-      householdId: user.householdId,
+      householdId: this.householdOf(user),
     });
+
+    return this.toInviteDto(view);
   }
 
-  @Post('invite/:token/accept')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Accept a household invitation' })
-  @ApiParam({ name: 'token', description: 'Invitation token from email' })
-  @ApiResponse({ status: 204, description: 'Invitation accepted' })
+  @Get('invites')
+  @ApiOperation({ summary: 'List the open invite of the household (owner only)' })
+  @ApiResponse({ status: 200, type: [HouseholdInviteResponseDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Caller is not the owner (household_owner_required)' })
+  async invites(@CurrentUser() user: AuthenticatedUser): Promise<HouseholdInviteResponseDto[]> {
+    const views = await this.listInvites.execute({
+      userId: user.userId,
+      householdId: this.householdOf(user),
+    });
+
+    return views.map((view) => this.toInviteDto(view));
+  }
+
+  @Post('invites/accept')
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Accept a household invite',
+    description:
+      'The caller must be signed in with the invited email. Their own solo household is ' +
+      'left (and scheduled for deletion) when it holds no data; otherwise 409 ' +
+      'household_not_empty. Use the returned access token from now on.',
+  })
+  @ApiBody({ type: AcceptInviteDto })
+  @ApiResponse({ status: 200, type: AcceptInviteResponseDto, description: 'Joined' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Signed in with another email (email_mismatch)' })
+  @ApiResponse({ status: 404, description: 'Unknown or revoked invite (invite_not_found)' })
+  @ApiResponse({
+    status: 409,
+    description: 'invite_already_used, already_in_household, household_full or household_not_empty',
+  })
+  @ApiResponse({ status: 410, description: 'Invite expired (invite_expired)' })
   async acceptInviteEndpoint(
-    @Param('token') token: string,
+    @Body() dto: AcceptInviteDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<AcceptInviteResponseDto> {
+    return this.acceptInvite.execute({ token: dto.token, acceptingUserId: user.userId });
+  }
+
+  @Post('invites/:inviteId/resend')
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Resend an open invite (owner only)',
+    description: 'Issues a new token and a new 7-day expiry; the previous link stops working.',
+  })
+  @ApiParam({ name: 'inviteId', description: 'Invite ID' })
+  @ApiResponse({ status: 200, type: HouseholdInviteResponseDto, description: 'Invite emailed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Caller is not the owner (household_owner_required)' })
+  @ApiResponse({ status: 404, description: 'No open invite with this id (invite_not_found)' })
+  @ApiResponse({ status: 429, description: 'Too many invites' })
+  async resend(
+    @Param('inviteId', ParseUUIDPipe) inviteId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<HouseholdInviteResponseDto> {
+    const view = await this.resendInvite.execute({
+      userId: user.userId,
+      householdId: this.householdOf(user),
+      inviteId,
+    });
+
+    return this.toInviteDto(view);
+  }
+
+  @Delete('invites/:inviteId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Revoke an open invite (owner only)' })
+  @ApiParam({ name: 'inviteId', description: 'Invite ID' })
+  @ApiResponse({ status: 204, description: 'Invite revoked' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Caller is not the owner (household_owner_required)' })
+  @ApiResponse({ status: 404, description: 'No open invite with this id (invite_not_found)' })
+  async revoke(
+    @Param('inviteId', ParseUUIDPipe) inviteId: string,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
-    await this.acceptInvite.execute({ token, acceptingUserId: user.userId });
+    await this.revokeInvite.execute({
+      userId: user.userId,
+      householdId: this.householdOf(user),
+      inviteId,
+    });
   }
 
   @Post('export')
@@ -141,6 +245,25 @@ export class HouseholdsController {
     } catch (err) {
       throw this.toHttpError(err);
     }
+  }
+
+  /** A user without a household owns none, so the owner-only endpoints answer 403. */
+  private householdOf(user: AuthenticatedUser): HouseholdId {
+    if (user.householdId === null) {
+      throw new HouseholdOwnerRequiredError();
+    }
+
+    return user.householdId;
+  }
+
+  private toInviteDto(view: HouseholdInviteView): HouseholdInviteResponseDto {
+    return {
+      id: view.id,
+      email: view.email,
+      status: view.status,
+      expiresAt: view.expiresAt.toISOString(),
+      createdAt: view.createdAt.toISOString(),
+    };
   }
 
   private toHttpError(err: unknown): unknown {

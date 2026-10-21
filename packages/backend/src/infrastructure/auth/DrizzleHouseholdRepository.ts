@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { UserId, HouseholdId } from '@power-budget/core';
 import type { Household, NewHousehold, HouseholdMembership } from '../../domain/auth/entities.js';
@@ -66,6 +66,15 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
       .where(eq(schema.householdUsers.userId, userId))
       .limit(1);
     return rows[0] ? this.toEntity(rows[0].household) : null;
+  }
+
+  async countMembers(householdId: HouseholdId): Promise<number> {
+    const rows = await this.db
+      .select({ members: count() })
+      .from(schema.householdUsers)
+      .where(eq(schema.householdUsers.householdId, householdId));
+
+    return rows[0]?.members ?? 0;
   }
 
   async scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void> {
