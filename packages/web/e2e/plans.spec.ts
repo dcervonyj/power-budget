@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { FULL_STACK } from './support/stack.js';
-import { BackendApi, signInWithTokens, uniqueEmail, type PlannedItemDto } from './support/api.js';
+import {
+  BackendApi,
+  signInWithTokens,
+  uniqueEmail,
+  type PlanDto,
+  type PlannedItemDto,
+} from './support/api.js';
 import type { PlanDashboardResponseDto } from '../src/infrastructure/api/PlanDashboardMapper.js';
 
 test.skip(!FULL_STACK, 'needs the e2e stack (TEST_ENV=e2e)');
@@ -20,11 +26,16 @@ test.describe('plan journey', () => {
     await page.getByRole('button', { name: 'Create new plan' }).click();
     await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
     const planId = page.url().split('/').pop() ?? '';
+    // Item in the plan currency: a fresh stack has no FX rates to convert with.
+    const plan = await api.json<PlanDto>(
+      await api.get(`/plans/${planId}`, tokens.accessToken),
+      200,
+    );
 
     // The category cell is a free-text id field today (no picker yet).
     await page.getByLabel('Category').fill(category.id);
     await page.getByLabel('Amount').last().fill('250.50');
-    await page.getByLabel('Currency').last().fill('PLN');
+    await page.getByLabel('Currency').last().fill(plan.baseCurrency);
     await page.getByRole('button', { name: 'Add item' }).click();
 
     // The item is stored, with exact minor units.
@@ -37,21 +48,15 @@ test.describe('plan journey', () => {
 
         return items.map((item) => [item.categoryId, item.direction, item.amount]);
       })
-      .toEqual([[category.id, 'expense', { amountMinor: '25050', currency: 'PLN' }]]);
+      .toEqual([[category.id, 'expense', { amountMinor: '25050', currency: plan.baseCurrency }]]);
 
     await page.goto('/dashboard');
     await expect(page.getByText('New Plan')).toBeVisible();
     await expect(page.getByText('Expenses')).toBeVisible();
+    await expect(page.getByText(category.name, { exact: true })).toBeVisible();
   });
 
-  // FIXME(CLN-017, dashboard backend CLN-012): GET /plans/:id/dashboard reads the
-  // v_plan_actuals materialized view, which is not refreshed when a planned item is
-  // added, so a new item is missing from expenseLines (and from the screen) and
-  // totalPlannedExpenses stays 0 until a later refresh.
-  test.fixme('the dashboard lists a new planned item with its amount', async ({
-    page,
-    request,
-  }) => {
+  test('the dashboard lists a new planned item with its amount', async ({ page, request }) => {
     const api = new BackendApi(request);
     const tokens = await api.register(uniqueEmail('dashboard'));
     const category = await api.expenseCategory(tokens.accessToken);
