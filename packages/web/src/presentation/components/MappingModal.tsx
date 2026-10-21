@@ -202,7 +202,7 @@ export function MappingModal({
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
-              {items.map((item, index) => (
+              {items.map((item) => (
                 <label
                   key={item.id}
                   style={{
@@ -236,21 +236,6 @@ export function MappingModal({
                   <span style={{ flex: 1, color: theme.color.text.primary }}>
                     {categoryNames.get(item.categoryId) ?? item.categoryId}
                   </span>
-                  {index === 0 && (
-                    <span
-                      style={{
-                        fontSize: theme.fontSize.xs,
-                        color: theme.color.accent.default,
-                        backgroundColor: `${theme.color.accent.default}22`,
-                        border: `1px solid ${theme.color.accent.default}`,
-                        borderRadius: theme.radius.sm,
-                        padding: `2px ${theme.space.sm}px`,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      <FormattedMessage id="mapping.suggested" defaultMessage="Suggested" />
-                    </span>
-                  )}
                 </label>
               ))}
             </div>
