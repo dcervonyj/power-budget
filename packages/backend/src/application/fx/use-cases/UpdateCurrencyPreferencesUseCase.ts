@@ -6,7 +6,7 @@ import type {
 } from '../../../domain/fx/index.js';
 
 export class UpdateCurrencyPreferencesUseCase {
-  constructor(private readonly repo: CurrencyPreferencesRepository) {}
+  constructor(private readonly currencyPreferencesRepo: CurrencyPreferencesRepository) {}
 
   async execute(input: {
     userId: UserId;
@@ -19,6 +19,6 @@ export class UpdateCurrencyPreferencesUseCase {
       interestingCurrencies: input.interestingCurrencies,
     };
 
-    await this.repo.set(input.userId, prefs);
+    await this.currencyPreferencesRepo.set(input.userId, prefs);
   }
 }

@@ -97,7 +97,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Enable TOTP 2FA for the current user */
+    /**
+     * Start TOTP enrolment for the current user
+     * @description First enrolment needs no step-up. Replacing an enabled TOTP needs a recent POST /auth/totp/verify. TOTP is enabled once the first code is verified.
+     */
     post: operations['AuthController_totpEnable'];
     delete?: never;
     options?: never;
@@ -114,7 +117,10 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    /** Verify and activate TOTP for the current user */
+    /**
+     * Verify a TOTP code
+     * @description Activates a pending enrolment and opens the 5-minute step-up window. A code is accepted only once.
+     */
     post: operations['AuthController_totpVerify'];
     delete?: never;
     options?: never;
@@ -568,6 +574,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/fx-rates': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** FX reference rates for a base currency as of a date */
+    get: operations['FxController_list'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -601,6 +624,11 @@ export interface components {
     ConsumeMagicLinkDto: {
       /** @description Magic-link token from email */
       token: string;
+      /**
+       * @description TOTP code, required once 2FA is enabled (the link stays valid until then)
+       * @example 123456
+       */
+      totp?: string;
     };
     VerifyTotpDto: {
       /**
@@ -848,6 +876,30 @@ export interface components {
       /** @description Per-category aggregates */
       categories: components['schemas']['HouseholdDashboardCategoryDto'][];
     };
+    FxRatesResponseDto: {
+      /**
+       * Format: date
+       * @example 2026-10-20
+       */
+      date: string;
+      /**
+       * @example PLN
+       * @enum {string}
+       */
+      baseCurrency:
+        'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+      /**
+       * @description 1 baseCurrency = rates[code] code, as decimal strings (never floats). The latest rate within 7 days of the date is used; codes without a rate are absent.
+       * @example {
+       *       "EUR": "0.2284774264",
+       *       "USD": "0.2562374337",
+       *       "UAH": "11.5603231178"
+       *     }
+       */
+      rates: {
+        [key: string]: string;
+      };
+    };
   };
   responses: never;
   parameters: never;
@@ -923,8 +975,22 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Invalid credentials */
+      /** @description Invalid credentials or TOTP code */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description TOTP is enabled: send `totp` (code requires_totp) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -952,6 +1018,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description Too many attempts */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   AuthController_consumeMagicLinkEndpoint: {
@@ -974,8 +1047,22 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Token invalid or expired */
+      /** @description Token invalid or expired, or invalid TOTP code */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description TOTP is enabled: resend the token with `totp` (code requires_totp) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1006,6 +1093,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description TOTP already enabled and no recent step-up */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   AuthController_totpVerify: {
@@ -1028,8 +1122,22 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description Unauthorized or invalid code */
+      /** @description Unauthorized, or invalid or reused code */
       401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No TOTP enrolment (code requires_totp_enrollment) */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -1293,7 +1401,7 @@ export interface operations {
         };
         content?: never;
       };
-      /** @description No household or caller is not the owner */
+      /** @description No household, caller is not the owner, or no recent TOTP verification (codes requires_totp, requires_totp_enrollment) */
       403: {
         headers: {
           [name: string]: unknown;
@@ -2068,6 +2176,52 @@ export interface operations {
         content?: never;
       };
       /** @description Household or plan not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  FxController_list: {
+    parameters: {
+      query?: {
+        /** @description Base currency. Defaults to EUR. */
+        base?:
+          'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+        /** @description Rates as of this date (YYYY-MM-DD). Defaults to today (UTC). */
+        date?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FxRatesResponseDto'];
+        };
+      };
+      /** @description Invalid date or unsupported base currency */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No rates stored within 7 days of the date */
       404: {
         headers: {
           [name: string]: unknown;

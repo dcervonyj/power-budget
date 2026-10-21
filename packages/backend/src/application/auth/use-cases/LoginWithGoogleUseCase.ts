@@ -4,15 +4,16 @@ import type {
   UserRepository,
   HouseholdRepository,
   OAuthProvider,
-  JwtAccessTokenIssuer,
-  RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
 import { InvalidCredentialsError } from '../../../domain/auth/errors.js';
+import type { User } from '../../../domain/auth/entities.js';
+import type { LoginPolicy } from '../services/LoginPolicy.js';
 
 export interface LoginWithGoogleInput {
   readonly code: string;
   readonly redirectUri: string;
   readonly state: string;
+  readonly totp?: string;
 }
 
 export interface LoginWithGoogleOutput {
@@ -21,15 +22,14 @@ export interface LoginWithGoogleOutput {
   readonly userId: UserId;
 }
 
-const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
-
+// Not wired to any route since CLN-001 (audit C2). If it is re-added it goes
+// through the same LoginPolicy as password and magic-link login (audit H6).
 export class LoginWithGoogleUseCase {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly householdRepo: HouseholdRepository,
     private readonly oauthProvider: OAuthProvider,
-    private readonly jwtIssuer: JwtAccessTokenIssuer,
-    private readonly refreshTokenStore: RefreshTokenStore,
+    private readonly loginPolicy: LoginPolicy,
   ) {}
 
   async execute(input: LoginWithGoogleInput): Promise<LoginWithGoogleOutput> {
@@ -45,18 +45,12 @@ export class LoginWithGoogleUseCase {
     const existingUser = await this.userRepo.findByEmail(email);
     const user = existingUser !== null ? existingUser : await this.createUserWithHousehold(email);
 
-    const household = await this.householdRepo.findByUserId(user.id);
-    const householdId: HouseholdId | null = household !== null ? household.id : null;
+    await this.loginPolicy.assertSecondFactor(user.id, input.totp);
 
-    const accessToken = this.jwtIssuer.issue({ userId: user.id, householdId });
-    const refreshToken = await this.refreshTokenStore.issue(user.id, REFRESH_TOKEN_TTL_SECONDS);
-
-    return { accessToken, refreshToken, userId: user.id };
+    return this.loginPolicy.issueSession(user.id);
   }
 
-  private async createUserWithHousehold(
-    email: string,
-  ): Promise<import('../../../domain/auth/entities.js').User> {
+  private async createUserWithHousehold(email: string): Promise<User> {
     const userId = uuidv7() as UserId;
     const user = await this.userRepo.create({
       id: userId,

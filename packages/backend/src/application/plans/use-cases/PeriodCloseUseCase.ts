@@ -1,9 +1,23 @@
-import type { IsoDateTime } from '@power-budget/core';
+import type { IsoDateTime, PlanId } from '@power-budget/core';
 import type { PlanRepository } from '../../../domain/plans/ports.js';
 import { ClosePeriodSnapshotUseCase } from './ClosePeriodSnapshotUseCase.js';
 
 export interface PeriodCloseResult {
   readonly plansProcessed: number;
+}
+
+/** Some plans could not be closed. The job fails so BullMQ retries; closed plans are skipped then. */
+export class PeriodCloseFailedError extends Error {
+  constructor(
+    readonly failures: ReadonlyMap<PlanId, Error>,
+    readonly plansProcessed: number,
+  ) {
+    super(
+      `PERIOD_CLOSE_FAILED: ${failures.size} plan(s) not closed (${[...failures.keys()].join(', ')}); ` +
+        `${plansProcessed} closed. First error: ${[...failures.values()][0]?.message ?? 'unknown'}`,
+    );
+    this.name = 'PeriodCloseFailedError';
+  }
 }
 
 export class PeriodCloseUseCase {
@@ -20,7 +34,9 @@ export class PeriodCloseUseCase {
     const closedAt = now.toISOString() as IsoDateTime;
 
     let processed = 0;
+    const failures = new Map<PlanId, Error>();
     for (const plan of plans) {
+      // One bad plan must not stop the others; snapshots are idempotent on re-run.
       try {
         await this.closePeriodSnapshot.execute({
           planId: plan.id,
@@ -29,11 +45,12 @@ export class PeriodCloseUseCase {
         });
         processed++;
       } catch (err) {
-        // Log but continue — idempotent on re-run
-        console.error(
-          `[PeriodCloseUseCase] Failed to close plan ${plan.id}: ${(err as Error).message}`,
-        );
+        failures.set(plan.id, err instanceof Error ? err : new Error(String(err)));
       }
+    }
+
+    if (failures.size > 0) {
+      throw new PeriodCloseFailedError(failures, processed);
     }
 
     return { plansProcessed: processed };

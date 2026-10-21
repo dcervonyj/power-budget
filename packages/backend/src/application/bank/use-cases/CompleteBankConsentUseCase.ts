@@ -26,9 +26,8 @@ export class CompleteBankConsentUseCase {
     // Look the connection up by its own id inside the caller's household, and
     // require that the caller started it (audit C4). The consent token from the
     // callback can then only ever land on the caller's own pending connection.
-    const connection = await this.connectionRepo.findById(input.connectionId, {
-      householdId: input.householdId,
-    });
+    const scope = { householdId: input.householdId };
+    const connection = await this.connectionRepo.findById(input.connectionId, scope);
     if (
       connection === null ||
       connection.userId !== input.userId ||
@@ -43,8 +42,8 @@ export class CompleteBankConsentUseCase {
       callbackPayload: input.callbackPayload,
     });
 
-    await this.connectionRepo.updateConsent(connection.id, consentToken, expiresAt);
-    await this.connectionRepo.markActive(connection.id);
+    await this.connectionRepo.updateConsent(connection.id, consentToken, expiresAt, scope);
+    await this.connectionRepo.markActive(connection.id, scope);
 
     return { connectionId: connection.id };
   }

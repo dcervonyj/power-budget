@@ -2,6 +2,7 @@ import type { HouseholdId, CurrencyCode, IsoDate, BankAccountId } from '@power-b
 import { TransactionId } from '@power-budget/core';
 import type { TransactionRepository } from '../../../domain/transactions/ports.js';
 import type { Transaction, NewManualTransaction } from '../../../domain/transactions/entities.js';
+import { BankAccountNotFoundError } from '../../../domain/transactions/errors.js';
 
 export interface AddManualTransactionInput {
   readonly householdId: HouseholdId;
@@ -21,6 +22,13 @@ export class AddManualTransactionUseCase {
   ) {}
 
   async execute(input: AddManualTransactionInput): Promise<Transaction> {
+    const accountIsOwn = await this.transactionRepo.accountBelongsTo(input.accountId, {
+      householdId: input.householdId,
+    });
+    if (!accountIsOwn) {
+      throw new BankAccountNotFoundError();
+    }
+
     const newTx: NewManualTransaction = {
       id: TransactionId.of(this.generateId()),
       householdId: input.householdId,

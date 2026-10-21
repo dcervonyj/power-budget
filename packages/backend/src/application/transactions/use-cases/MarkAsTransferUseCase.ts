@@ -31,11 +31,19 @@ export class MarkAsTransferUseCase {
       throw new TransactionNotFoundError();
     }
 
-    const existingMapping = await this.mappingRepo.findByTransaction(input.transactionId);
+    const scope = { householdId: input.householdId };
+    if (input.counterpartId !== null) {
+      const counterpart = await this.transactionRepo.findById(input.counterpartId, scope);
+      if (counterpart === null) {
+        throw new TransactionNotFoundError();
+      }
+    }
+
+    const existingMapping = await this.mappingRepo.findByTransaction(input.transactionId, scope);
     if (existingMapping !== null) {
       throw new AlreadyMappedError();
     }
 
-    await this.transferRepo.mark(input.transactionId, input.counterpartId, input.by);
+    await this.transferRepo.mark(input.transactionId, input.counterpartId, input.by, scope);
   }
 }

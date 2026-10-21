@@ -1,5 +1,16 @@
-import type { NotificationRepository } from '../../../domain/notifications/ports.js';
+import { formatMoney, type SupportedLocale } from '@power-budget/core';
+import type {
+  HouseholdMemberRow,
+  WeeklyDigestPayload,
+  WeeklyDigestSummary,
+} from '../../../domain/notifications/entities.js';
+import type {
+  NotificationRepository,
+  WeeklyDigestSummaryReader,
+} from '../../../domain/notifications/ports.js';
 import type { EnqueueNotificationUseCase } from './EnqueueNotificationUseCase.js';
+
+const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
 
 /**
  * Households have no time-zone setting yet, so the digest week is computed in
@@ -11,6 +22,7 @@ export class RunWeeklyDigestUseCase {
   constructor(
     private readonly notificationRepo: NotificationRepository,
     private readonly enqueueNotification: EnqueueNotificationUseCase,
+    private readonly summaryReader: WeeklyDigestSummaryReader,
   ) {}
 
   async execute(
@@ -21,24 +33,41 @@ export class RunWeeklyDigestUseCase {
     const periodLabel = this.getIsoWeekLabel(now, timeZone);
 
     for (const member of members) {
-      if (member.emailBouncing) continue;
+      if (member.emailBouncing) {
+        continue;
+      }
+      // No active plan means nothing to summarise: no digest for this member.
+      const summary = await this.summaryReader.read(member, now);
+      if (summary === null) {
+        continue;
+      }
 
       await this.enqueueNotification.execute({
         recipientUserId: member.userId,
         householdId: member.householdId,
         kind: 'weekly_digest',
         dedupeKey: `${member.householdId}:${member.userId}:${periodLabel}`,
-        payload: {
-          name: member.displayName,
-          planName: '',
-          totalSpent: '',
-          totalPlanned: '',
-          currency: '',
-          periodStart: periodLabel,
-          periodEnd: periodLabel,
-        },
+        payload: { ...this.toPayload(member, summary) },
       });
     }
+  }
+
+  private toPayload(member: HouseholdMemberRow, summary: WeeklyDigestSummary): WeeklyDigestPayload {
+    const locale = this.toSupportedLocale(member.locale);
+
+    return {
+      name: member.displayName,
+      planName: summary.planName,
+      totalSpent: formatMoney(summary.totalSpent, locale),
+      totalPlanned: formatMoney(summary.totalPlanned, locale),
+      currency: summary.totalSpent.currency,
+      periodStart: summary.periodStart,
+      periodEnd: summary.periodEnd,
+    };
+  }
+
+  private toSupportedLocale(locale: string): SupportedLocale {
+    return SUPPORTED_LOCALES.find((supported) => supported === locale) ?? 'en';
   }
 
   /** ISO-8601 week label (e.g. `2026-W53`, `2027-W01`) of the local calendar date in `timeZone`. */

@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
-import type { INestApplication, Provider, Type } from '@nestjs/common';
+import type { DynamicModule, INestApplication, Provider, Type } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fastify';
@@ -19,6 +19,7 @@ export const HTTP_TEST_JWT_SECRET = 'http-test-jwt-secret-that-is-at-least-32-by
 export interface HttpTestAppOptions {
   readonly controllers: Type<unknown>[];
   readonly providers?: Provider[];
+  readonly imports?: DynamicModule[];
   readonly env?: Record<string, string>;
 }
 
@@ -41,6 +42,7 @@ export class HttpTestApp {
 export async function createHttpTestApp(options: HttpTestAppOptions): Promise<HttpTestApp> {
   const env = { NODE_ENV: 'test', JWT_SECRET: HTTP_TEST_JWT_SECRET, ...options.env };
   const moduleRef = await Test.createTestingModule({
+    imports: options.imports ?? [],
     controllers: options.controllers,
     providers: [
       { provide: ConfigService, useValue: new ConfigService(env) },

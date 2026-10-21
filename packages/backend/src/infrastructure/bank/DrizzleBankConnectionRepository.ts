@@ -1,5 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { BankConnectionId, HouseholdId, UserId, EncryptedString } from '@power-budget/core';
 import type {
@@ -85,25 +86,26 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
     id: BankConnectionId,
     consent: EncryptedString,
     expiresAt: Date | null,
+    scope: HouseholdScope,
   ): Promise<void> {
     await this.db
       .update(schema.bankConnections)
       .set({ encryptedConsent: consent, expiresAt })
-      .where(eq(schema.bankConnections.id, id));
+      .where(this.inScope(id, scope));
   }
 
-  async markActive(id: BankConnectionId): Promise<void> {
+  async markActive(id: BankConnectionId, scope: HouseholdScope): Promise<void> {
     await this.db
       .update(schema.bankConnections)
       .set({ status: 'active' })
-      .where(eq(schema.bankConnections.id, id));
+      .where(this.inScope(id, scope));
   }
 
-  async markDisconnected(id: BankConnectionId, at: Date): Promise<void> {
+  async markDisconnected(id: BankConnectionId, at: Date, scope: HouseholdScope): Promise<void> {
     await this.db
       .update(schema.bankConnections)
       .set({ status: 'disconnected', disconnectedAt: at })
-      .where(eq(schema.bankConnections.id, id));
+      .where(this.inScope(id, scope));
   }
 
   async findActiveConnections(): Promise<BankConnection[]> {
@@ -112,6 +114,13 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
       .from(schema.bankConnections)
       .where(eq(schema.bankConnections.status, 'active'));
     return rows.map((r) => this.toEntity(r));
+  }
+
+  private inScope(id: BankConnectionId, scope: HouseholdScope): SQL | undefined {
+    return and(
+      eq(schema.bankConnections.id, id),
+      eq(schema.bankConnections.householdId, scope.householdId),
+    );
   }
 
   private toEntity(row: schema.SelectBankConnection): BankConnection {
