@@ -20,7 +20,8 @@ export interface Transaction {
   readonly merchantName: string | null;
   readonly bookedAt: IsoDate;
   readonly createdAt: IsoDateTime;
-  readonly ignored?: boolean;
+  /** Excluded from every total when true. */
+  readonly ignored: boolean;
 }
 
 export interface Mapping {
@@ -38,7 +39,8 @@ export interface Transfer {
   readonly id: TransferId;
   readonly householdId: HouseholdId;
   readonly fromTransactionId: TransactionId;
-  readonly toTransactionId: TransactionId;
+  /** Null when the counterpart account is not connected (a one-sided transfer). */
+  readonly toTransactionId: TransactionId | null;
   readonly status: TransferStatus;
   readonly createdAt: IsoDateTime;
 }

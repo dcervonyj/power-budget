@@ -12,7 +12,7 @@ import type {
   CategoryAggregate,
   Money,
 } from '@power-budget/core';
-import type { PlanActualsView } from '@power-budget/core';
+import type { PlanActualsView, Transaction, Mapping, Transfer } from '@power-budget/core';
 import type {
   Plan,
   NewPlan,
@@ -77,8 +77,29 @@ export interface PlannedItemVersionRepository {
   listByItem(itemId: PlannedItemId, scope: HouseholdScope): Promise<PlannedItemVersion[]>;
 }
 
+/** The plan dashboard numbers (core computePlanActuals) of a plan the caller may see. */
 export interface PlanActualsReader {
-  read(planId: PlanId, asOf: Date): Promise<PlanActualsView>;
+  read(plan: Plan, asOf: Date): Promise<PlanActualsView>;
+}
+
+export interface PlanActivityQuery {
+  readonly householdId: HouseholdId;
+  /** Inclusive range on the booking date. */
+  readonly period: PlanPeriod;
+}
+
+/** Household transactions of a period with what the core functions need to count them. */
+export interface PlanActivity {
+  readonly transactions: readonly Transaction[];
+  /** Transaction → the user who owns its account. */
+  readonly owners: ReadonlyMap<TransactionId, UserId>;
+  readonly mappings: readonly Mapping[];
+  /** Transfers with at least one leg among `transactions`. */
+  readonly transfers: readonly Transfer[];
+}
+
+export interface PlanActivityReader {
+  read(query: PlanActivityQuery): Promise<PlanActivity>;
 }
 
 export interface NewLeftoverSnapshot {
@@ -127,11 +148,14 @@ export interface UnplannedTransactionPage {
 
 export interface UnplannedTransactionQuery {
   readonly householdId: HouseholdId;
+  /** Only this user's own transactions are listed (accounts are private to their owner). */
+  readonly ownerUserId: UserId;
   readonly periodStart: IsoDate;
   readonly periodEnd: IsoDate;
   readonly direction: 'income' | 'expense';
   readonly cursor?: string;
-  readonly limit?: number;
+  /** Already clamped by the use case. */
+  readonly limit: number;
 }
 
 export interface UnplannedTransactionReader {
@@ -142,14 +166,4 @@ export interface UnplannedTransactionReader {
 
 export interface HouseholdDashboardData {
   readonly categories: CategoryAggregate[];
-}
-
-export interface HouseholdDashboardReader {
-  read(params: {
-    readonly householdId: HouseholdId;
-    readonly planId: PlanId;
-    readonly periodStart: IsoDate;
-    readonly periodEnd: IsoDate;
-    readonly viewerUserId: UserId;
-  }): Promise<HouseholdDashboardData>;
 }

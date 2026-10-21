@@ -319,6 +319,7 @@ export class PlansController {
   @ApiParam({ name: 'id', description: 'Plan ID (UUIDv7)' })
   @ApiResponse({ status: 200, description: 'Plan actuals view', type: PlanDashboardResponseDto })
   @ApiResponse({ status: 404, description: 'Plan not found' })
+  @ApiResponse({ status: 503, description: 'Exchange rate unavailable (fx_rate_unavailable)' })
   async dashboard(
     @Param('id', UUID_V7) id: string,
     @CurrentUser() user: AuthenticatedUser,

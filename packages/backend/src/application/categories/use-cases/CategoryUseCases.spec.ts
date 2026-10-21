@@ -31,7 +31,7 @@ beforeEach(() => {
 });
 
 describe('ListCategoriesUseCase', () => {
-  it('joins the household privacy levels, defaulting to full_detail', async () => {
+  it('joins the household privacy levels, defaulting to total_only', async () => {
     const own = makeCategory();
     categoryRepo.list.mockResolvedValue([SYSTEM, own]);
     privacyRepo.listByHousehold.mockResolvedValue([
@@ -50,7 +50,7 @@ describe('ListCategoriesUseCase', () => {
     });
 
     expect(result).toEqual([
-      { ...SYSTEM, privacy: 'full_detail' },
+      { ...SYSTEM, privacy: 'total_only' },
       { ...own, privacy: 'total_only' },
     ]);
     expect(categoryRepo.list).toHaveBeenCalledWith(SCOPE, { includeArchived: true });
@@ -74,7 +74,7 @@ describe('CreateCategoryUseCase', () => {
       householdId: HH,
     });
 
-    expect(result).toEqual({ ...created, privacy: 'full_detail' });
+    expect(result).toEqual({ ...created, privacy: 'total_only' });
     expect(categoryRepo.create).toHaveBeenCalledWith({
       id: NEW_ID,
       householdId: HH,
@@ -122,7 +122,7 @@ describe('UpdateCategoryUseCase', () => {
       householdId: HH,
     });
 
-    expect(result).toEqual({ ...reloaded, privacy: 'full_detail' });
+    expect(result).toEqual({ ...reloaded, privacy: 'total_only' });
     expect(categoryRepo.update).toHaveBeenCalledWith(CATEGORY, { name: 'Cafe' }, SCOPE);
     expect(categoryRepo.setArchivedAt).toHaveBeenCalledWith(CATEGORY, NOW, SCOPE);
     expect(privacyRepo.set).toHaveBeenCalledWith(CATEGORY, 'total_with_counts', USER, SCOPE);
