@@ -39,7 +39,9 @@ export class DisconnectBankUseCase {
     }
 
     const now = new Date();
-    await this.connectionRepo.markDisconnected(connection.id, now);
+    await this.connectionRepo.markDisconnected(connection.id, now, {
+      householdId: input.householdId,
+    });
 
     await this.auditLogger.log({
       householdId: input.householdId,

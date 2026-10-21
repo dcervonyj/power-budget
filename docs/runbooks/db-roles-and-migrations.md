@@ -9,7 +9,7 @@
 
 `DATABASE_URL` is what the backend reads at runtime. `drizzle/migrate.mjs` and `drizzle.config.ts` use `MIGRATION_DATABASE_URL` and fall back to `DATABASE_URL`, so a single-role setup keeps working until the roles are split.
 
-The app role is not the table owner, so it is subject to row level security once CLN-005 enables `FORCE`/policies. The owner bypasses RLS unless `FORCE` is set; never hand the owner URL to the running app.
+The app role is not the table owner and has no `BYPASSRLS`, so the row level security policies (migration `0008_rls_tenancy`, see below) bind it. `FORCE` makes them bind the owner too; never hand the owner URL to the running app.
 
 `REFRESH MATERIALIZED VIEW` needs ownership, so migration `0007_refresh_plan_actuals_fn` adds a `SECURITY DEFINER` function `refresh_plan_actuals()`; the plan-actuals processor calls it.
 
@@ -36,17 +36,29 @@ An existing volume does not re-run init scripts: either `pnpm dev:db:reset`, or 
 - `src/test/integration/migrations.integration.spec.ts` proves the journal applies from an empty database and from journal idx 2, 5 and 6 without re-running applied migrations.
 - Hand-written SQL: use `drizzle-kit generate --custom --name=<slug>` so the snapshot and journal stay consistent.
 
-## `0003_rls_policies.sql` (CLN-005 hand-off)
+## Row level security (CLN-005)
 
-The file is deliberately outside the journal (it was written as "prod only, apply manually"), so a normal `db:migrate` never applies it, and the live DB does not have it.
+Migration `0008_rls_tenancy` (journal idx 8) replaces the never-applied `0003_rls_policies.sql` (deleted). It enables **and forces** RLS on the tenant data tables: `transactions`, `transaction_mappings` (tenant derived from the transaction; the planned item must be in the same household), `transfers`, `bank_connections`, `bank_accounts`, `sync_runs` (via the connection), `plans`, `planned_items`, `planned_item_versions`, `categories` (NULL-household seed rows readable by all), `category_privacy`, `leftover_snapshots`, `household_exports`, `audit_log` (SELECT/INSERT policies only: append-only).
 
-Known defects CLN-005 must fix before applying it:
+Identity, membership and outbox tables (`users`, `sessions`, `auth_methods`, `totp_secrets`, `magic_link_tokens`, `households`, `household_users`, `household_invites`, `notifications_outbox`) are read before a household is known and are scoped in the repositories only.
 
-- `transaction_mappings` has no `household_id` column, so the whole file fails with `42703` (asserted in the integration test). Add the column or derive the policy through `transactions`.
-- It sets no `FORCE ROW LEVEL SECURITY`.
+How the app binds the policies (`src/infrastructure/database/`):
 
-How CLN-005 should apply it:
+- `DbScope` (AsyncLocalStorage): `household` (householdId + userId), `user` (no household yet) or `system` (RLS bypass).
+- `DbScopeInterceptor` (global `APP_INTERCEPTOR`) runs every HTTP handler in the scope of `req.user` (JWT). Unauthenticated requests have no scope and see no tenant rows.
+- `WorkerDbScopeModule` (worker only) makes `system` the fallback: processors and crons work across households.
+- `ScopedPool` wraps the pg pool: every statement outside a transaction runs as `BEGIN; set_config('app.household_id' | 'app.user_id' | 'app.rls_bypass', ..., true); <statement>; COMMIT`, and `db.transaction` gets the same settings after its `BEGIN`. Settings are transaction-local, so nothing leaks between pooled requests.
+- Pre-auth code that must read a tenant table uses `runInDbScope({ kind: 'system', reason }, ...)` explicitly, filtering by an id it already trusts (only `DrizzleBankConnectionChecker`, at login).
+- `refresh_plan_actuals()` turns the bypass on for the refresh only and restores the caller's value.
+- Seed scripts set the bypass on their own connections.
 
-1. Fix the file, then add it as a normal journal entry via `drizzle-kit generate --custom --name=rls_policies` (copy the SQL in; the new idx gets a `when` later than every applied entry, so it runs exactly once on the live DB). Do not reuse the `0003` tag: the journal already has other `0003`-era positions applied.
-2. Migrate as the owner role; run the app as `power_budget_app` so policies bind it, and set `app.household_id` / `app.user_id` per transaction with `set_config`.
-3. Remove the "unjournaled SQL" exception for `0003_rls_policies` in `__tests__/migrations-hygiene.spec.ts` and the matching assertion in the integration test.
+FORCE also binds the owner/migrator role. A future migration that backfills tenant rows must `SELECT set_config('app.rls_bypass', 'on', true);` first.
+
+`audit_log`: `db:roles` revokes `UPDATE, DELETE, TRUNCATE` from the app role, and with no UPDATE/DELETE policy those statements match no row for any role subject to RLS.
+
+### Deploy (Neon / Render), once
+
+1. Merge, let the container apply migration 0008 as the owner (`MIGRATION_DATABASE_URL`).
+2. Re-run `pnpm --filter @power-budget/backend db:roles` with `MIGRATION_DATABASE_URL`, `APP_DB_USER`, `APP_DB_PASSWORD` (adds the audit_log REVOKE; idempotent).
+3. Make sure Render's `DATABASE_URL` is the app role, not the owner. With the owner URL the app still works (FORCE binds it too), but it can run DDL. A superuser or `BYPASSRLS` URL would silently skip every policy.
+4. Check: `SELECT relname FROM pg_class WHERE relforcerowsecurity;` lists the 14 tables above.

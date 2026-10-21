@@ -270,8 +270,7 @@ export class TransactionsController {
     }
 
     const plannedItemId = dto.payload?.['plannedItemId'] as string | undefined as
-      | PlannedItemId
-      | undefined;
+      PlannedItemId | undefined;
     if (!plannedItemId) {
       return;
     }
@@ -282,6 +281,7 @@ export class TransactionsController {
         plannedItemId,
       })),
       by: user.userId,
+      householdId: user.householdId,
       planId: STUB_PLAN_ID,
     });
   }

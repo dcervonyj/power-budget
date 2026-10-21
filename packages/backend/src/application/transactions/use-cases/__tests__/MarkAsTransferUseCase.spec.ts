@@ -64,6 +64,6 @@ describe('MarkAsTransferUseCase', () => {
 
     await useCase.execute(baseInput);
 
-    expect(transferRepo.mark).toHaveBeenCalledWith(txId, null, userId);
+    expect(transferRepo.mark).toHaveBeenCalledWith(txId, null, userId, { householdId });
   });
 });

@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BankModule } from '../../infrastructure/bank/BankModule.js';
-import { AuditModule } from '../../infrastructure/audit/AuditModule.js';
+import { AuditModule, REDACTING_AUDIT_LOGGER } from '../../infrastructure/audit/AuditModule.js';
 import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
 import { DrizzleBankConnectionRepository } from '../../infrastructure/bank/DrizzleBankConnectionRepository.js';
 import { InMemoryBankConnectorRegistry } from '../../infrastructure/bank/InMemoryBankConnectorRegistry.js';
-import { DrizzleAuditEventRepository } from '../../infrastructure/audit/DrizzleAuditEventRepository.js';
+import type { AuditLogger } from '../../domain/audit/ports.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { BullMQBankSyncQueue } from '../../infrastructure/bank/BullMQBankSyncQueue.js';
 import { InitiateBankConnectionUseCase } from '../../application/bank/use-cases/InitiateBankConnectionUseCase.js';
@@ -56,12 +56,12 @@ import { BankController } from './BankController.js';
       inject: [
         DrizzleBankConnectionRepository,
         InMemoryBankConnectorRegistry,
-        DrizzleAuditEventRepository,
+        REDACTING_AUDIT_LOGGER,
       ],
       useFactory: (
         repo: DrizzleBankConnectionRepository,
         reg: InMemoryBankConnectorRegistry,
-        audit: DrizzleAuditEventRepository,
+        audit: AuditLogger,
       ) => new DisconnectBankUseCase(repo, reg, audit),
     },
     {
