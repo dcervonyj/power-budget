@@ -79,6 +79,9 @@ const HouseholdScreen = lazy(() =>
 const SettingsScreen = lazy(() =>
   import('./screens/app/SettingsScreen.js').then((m) => ({ default: m.SettingsScreen })),
 );
+const AcceptInviteScreen = lazy(() =>
+  import('./screens/app/AcceptInviteScreen.js').then((m) => ({ default: m.AcceptInviteScreen })),
+);
 const AuditLogScreen = lazy(() =>
   import('./screens/app/AuditLogScreen.js').then((m) => ({ default: m.AuditLogScreen })),
 );
@@ -113,6 +116,8 @@ export function App() {
           <Route path="/bank/consent/callback" element={<BankConsentCallbackScreen />} />
           <Route path="/categories" element={<CategoriesScreen />} />
           <Route path="/household" element={<HouseholdScreen />} />
+          {/* The household invite email links here (CLN-006). */}
+          <Route path="/invite/accept" element={<AcceptInviteScreen />} />
           <Route path="/settings" element={<SettingsScreen />}>
             <Route index element={<Navigate to="profile" replace />} />
             <Route path="profile" element={<SettingsProfileTab />} />

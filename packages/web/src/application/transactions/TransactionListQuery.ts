@@ -6,8 +6,9 @@ import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js
 const LIMIT = 50;
 
 /**
- * `GET /transactions` accepts from, to, q, unmappedOnly, cursor and limit; any
- * other query parameter is a 400. Currency and source are filtered on the page.
+ * `GET /transactions` accepts from, to, q, cursor and limit; any other query
+ * parameter is a 400. `unmappedOnly` is accepted but not applied by the API, so
+ * currency, source and mapping status are filtered on the page.
  */
 export function buildQuery(f: TransactionFilters, cursor?: string): string {
   const params = new URLSearchParams();
@@ -44,10 +45,8 @@ function matchesSource(tx: Transaction, source: TransactionFilters['source']): b
 }
 
 export function toTransactions(page: TransactionPageDto, f: TransactionFilters): Transaction[] {
-  const unmappedOnly = f.status === 'unmapped';
-
   return page.items
-    .map((dto) => TransactionMapper.fromListItem(dto, unmappedOnly))
+    .map((dto) => TransactionMapper.fromListItem(dto))
     .filter(
       (tx) => (!f.currency || tx.amount.currency === f.currency) && matchesSource(tx, f.source),
     );

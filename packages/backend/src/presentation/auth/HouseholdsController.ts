@@ -32,6 +32,7 @@ import {
   AcceptInviteResponseDto,
   CreateHouseholdDto,
   HouseholdInviteResponseDto,
+  HouseholdMemberResponseDto,
   InviteToHouseholdDto,
 } from './dto/households.dto.js';
 import {
@@ -48,7 +49,9 @@ import { AcceptInviteUseCase } from '../../application/auth/use-cases/AcceptInvi
 import { ResendHouseholdInviteUseCase } from '../../application/auth/use-cases/ResendHouseholdInviteUseCase.js';
 import { RevokeHouseholdInviteUseCase } from '../../application/auth/use-cases/RevokeHouseholdInviteUseCase.js';
 import { ListHouseholdInvitesUseCase } from '../../application/auth/use-cases/ListHouseholdInvitesUseCase.js';
+import { ListHouseholdMembersUseCase } from '../../application/auth/use-cases/ListHouseholdMembersUseCase.js';
 import type { HouseholdInviteView } from '../../application/auth/use-cases/HouseholdInviteView.js';
+import type { HouseholdMember } from '../../domain/auth/entities.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 import { HouseholdNotFoundError, HouseholdOwnerRequiredError } from '../../domain/auth/errors.js';
@@ -67,6 +70,7 @@ export class HouseholdsController {
     @Inject(RevokeHouseholdInviteUseCase)
     private readonly revokeInvite: RevokeHouseholdInviteUseCase,
     @Inject(ListHouseholdInvitesUseCase) private readonly listInvites: ListHouseholdInvitesUseCase,
+    @Inject(ListHouseholdMembersUseCase) private readonly listMembers: ListHouseholdMembersUseCase,
     @Inject(ExportHouseholdDataUseCase) private readonly exportData: ExportHouseholdDataUseCase,
     @Inject(DeleteHouseholdUseCase) private readonly scheduleDelete: DeleteHouseholdUseCase,
   ) {}
@@ -87,6 +91,21 @@ export class HouseholdsController {
     });
 
     return toHouseholdCreatedDto(result.id);
+  }
+
+  @Get('members')
+  @ApiOperation({ summary: "List the members of the caller's household" })
+  @ApiResponse({ status: 200, type: [HouseholdMemberResponseDto] })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'No household (household_owner_required)' })
+  @ApiResponse({ status: 404, description: 'Not a member of the household (household_not_found)' })
+  async members(@CurrentUser() user: AuthenticatedUser): Promise<HouseholdMemberResponseDto[]> {
+    const members = await this.listMembers.execute({
+      userId: user.userId,
+      householdId: this.householdOf(user),
+    });
+
+    return members.map((member) => this.toMemberDto(member));
   }
 
   @Post('invites')
@@ -287,6 +306,16 @@ export class HouseholdsController {
       status: view.status,
       expiresAt: view.expiresAt.toISOString(),
       createdAt: view.createdAt.toISOString(),
+    };
+  }
+
+  private toMemberDto(member: HouseholdMember): HouseholdMemberResponseDto {
+    return {
+      userId: member.userId,
+      email: member.email,
+      displayName: member.displayName,
+      role: member.role,
+      joinedAt: member.joinedAt.toISOString(),
     };
   }
 

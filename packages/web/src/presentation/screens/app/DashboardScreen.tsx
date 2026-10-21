@@ -5,24 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../components/ThemeContext.js';
 import { ReconnectBanner } from '../../components/bank/ReconnectBanner.js';
 import { BankSyncFailureBanner } from '../../components/bank/BankSyncFailureBanner.js';
-import { SkeletonList } from '../../components/shared/SkeletonList.js';
 import { EmptyState } from '../../components/shared/EmptyState.js';
-import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
 import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 import { dashboardStore } from '../../../application/dashboard/DashboardStore.js';
-import { PlanHeader } from '../../components/dashboard/PlanHeader.js';
-import { IncomeSection } from '../../components/dashboard/IncomeSection.js';
-import { ExpenseSection } from '../../components/dashboard/ExpenseSection.js';
-import { UnplannedSection } from '../../components/dashboard/UnplannedSection.js';
-import { LeftoverBucket } from '../../components/dashboard/LeftoverBucket.js';
-import { BottomLine } from '../../components/dashboard/BottomLine.js';
-import type { PlanDto } from '@power-budget/shared-app/contract';
+import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
+import { SkeletonList } from '../../components/shared/SkeletonList.js';
+import { PlanDashboardView } from '../../components/plan-dashboard/PlanDashboardView.js';
 
 const POLL_INTERVAL_MS = 30_000;
-
-function selectDefaultPlan(plans: PlanDto[]): PlanDto | undefined {
-  return plans.find((p) => p.type === 'personal' && p.periodKind === 'monthly') ?? plans[0];
-}
 
 export const DashboardScreen = observer(function DashboardScreen(): React.JSX.Element {
   const theme = useTheme();
@@ -31,17 +21,10 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
   useEffect(() => {
     void bankConnectionStore.fetchConnections();
 
-    void dashboardStore.fetchPlans().then(() => {
-      const plan = selectDefaultPlan(dashboardStore.activePlans);
-      if (plan) {
-        dashboardStore.selectPlan(plan.id);
-      }
-    });
+    void dashboardStore.open();
 
     const interval = setInterval(() => {
-      if (dashboardStore.selectedPlanId) {
-        void dashboardStore.fetchActuals(dashboardStore.selectedPlanId);
-      }
+      dashboardStore.refresh();
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
@@ -54,35 +37,23 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
         flexDirection: 'column',
         gap: theme.space.md,
         padding: theme.space.lg,
-        maxWidth: 720,
+        maxWidth: 880,
         margin: '0 auto',
       }}
     >
       <ReconnectBanner connections={bankConnectionStore.connections} />
       <BankSyncFailureBanner />
 
-      {/* Error banner */}
-      {dashboardStore.error !== null && (
+      {dashboardStore.plansError && (
         <ErrorBanner
           message={
-            dashboardStore.fxUnavailable ? (
-              <FormattedMessage
-                id="common.fxRateUnavailable"
-                defaultMessage="Exchange rates are not available right now. Please try again later."
-              />
-            ) : (
-              <FormattedMessage
-                id="screen.dashboard.error"
-                defaultMessage="Failed to load dashboard"
-              />
-            )
+            <FormattedMessage
+              id="screen.dashboard.plansError"
+              defaultMessage="Failed to load plans"
+            />
           }
           onRetry={() => {
-            if (dashboardStore.selectedPlanId) {
-              void dashboardStore.fetchActuals(dashboardStore.selectedPlanId);
-            } else {
-              void dashboardStore.fetchPlans();
-            }
+            void dashboardStore.open();
           }}
         />
       )}
@@ -129,54 +100,42 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
       )}
 
       {/* Loading skeleton */}
-      {dashboardStore.loading && !dashboardStore.actuals && (
+      {dashboardStore.loading && !dashboardStore.plansLoaded && (
         <SkeletonList rows={5} rowHeight={64} />
       )}
 
       {/* No plans */}
-      {!dashboardStore.loading &&
-        dashboardStore.actuals === null &&
-        dashboardStore.error === null &&
-        dashboardStore.activePlans.length === 0 && (
-          <EmptyState
-            icon="📋"
-            title={
+      {dashboardStore.plansLoaded && dashboardStore.activePlans.length === 0 && (
+        <EmptyState
+          icon="📋"
+          title={
+            <FormattedMessage
+              id="component.shared.empty.noPlans"
+              defaultMessage="No active budget plan"
+            />
+          }
+          action={{
+            label: (
               <FormattedMessage
-                id="component.shared.empty.noPlans"
-                defaultMessage="No active budget plan"
+                id="component.shared.empty.createPlan"
+                defaultMessage="Create plan"
               />
-            }
-            action={{
-              label: (
-                <FormattedMessage
-                  id="component.shared.empty.createPlan"
-                  defaultMessage="Create plan"
-                />
-              ),
-              onPress: () => {
-                void navigate('/plans');
-              },
-            }}
-          />
-        )}
+            ),
+            onPress: () => {
+              void navigate('/plans');
+            },
+          }}
+        />
+      )}
 
-      {/* Dashboard widgets */}
-      {dashboardStore.actuals !== null && (
-        <>
-          <PlanHeader actuals={dashboardStore.actuals} />
-          <IncomeSection items={dashboardStore.actuals.items} />
-          <ExpenseSection items={dashboardStore.actuals.items} />
-          <UnplannedSection
-            count={dashboardStore.actuals.unplannedCount}
-            totalMinor={dashboardStore.actuals.unplannedTotal}
-            currency={dashboardStore.actuals.currency}
-          />
-          <LeftoverBucket
-            leftoverMinor={dashboardStore.actuals.leftover}
-            currency={dashboardStore.actuals.currency}
-          />
-          <BottomLine store={dashboardStore} actuals={dashboardStore.actuals} />
-        </>
+      {/* The selected plan */}
+      {dashboardStore.selectedPlanId !== null && (
+        <PlanDashboardView
+          store={dashboardStore.planDashboard}
+          onRetry={() => {
+            dashboardStore.refresh();
+          }}
+        />
       )}
     </div>
   );

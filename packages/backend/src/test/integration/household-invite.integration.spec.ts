@@ -223,6 +223,19 @@ describe('household invite journey (real app, app role + RLS)', () => {
     expect((await call('GET', dashboard, joined.accessToken)).statusCode).toBe(200);
     expect((await call('GET', dashboard, bob.accessToken)).statusCode).toBe(404);
 
+    // Both see who is in the household (UI-013); the stale token sees nothing.
+    const members = await call('GET', '/households/members', joined.accessToken);
+    expect(members.statusCode).toBe(200);
+    expect(
+      members
+        .json<Array<{ userId: string; email: string; role: string }>>()
+        .map(({ userId, email, role }) => ({ userId, email, role })),
+    ).toEqual([
+      { userId: ann.userId, email: ANN, role: 'owner' },
+      { userId: bob.userId, email: BOB, role: 'member' },
+    ]);
+    expect((await call('GET', '/households/members', bob.accessToken)).statusCode).toBe(404);
+
     // A refresh also lands Bob in the shared household.
     const refreshed = await app.inject({
       method: 'POST',

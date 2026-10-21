@@ -135,15 +135,16 @@ describe('MappingModal', () => {
     expect(mockGet).toHaveBeenCalledWith('/plans/plan-1/items');
   });
 
-  it('shows "Suggested" badge on the first planned item', async () => {
+  it('does not invent a "Suggested" badge: the bulk modal has no suggestion data', async () => {
     render(
       <MappingModal isOpen selectedIds={selectedIds} onClose={onClose} onSuccess={onSuccess} />,
       { wrapper },
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Suggested')).toBeDefined();
+      expect(screen.getByText('Groceries')).toBeDefined();
     });
+    expect(screen.queryByText('Suggested')).toBeNull();
 
     const allItems = screen.getAllByRole('radio');
     expect(allItems.length).toBe(2);

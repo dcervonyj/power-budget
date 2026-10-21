@@ -46,6 +46,23 @@ export class HouseholdInviteResponseDto {
   createdAt!: string;
 }
 
+export class HouseholdMemberResponseDto {
+  @ApiProperty({ type: String, format: 'uuid' })
+  userId!: string;
+
+  @ApiProperty({ type: String, example: 'anna@example.com' })
+  email!: string;
+
+  @ApiProperty({ type: String, example: 'Anna', description: 'Empty when the user set none' })
+  displayName!: string;
+
+  @ApiProperty({ enum: ['owner', 'member'] })
+  role!: 'owner' | 'member';
+
+  @ApiProperty({ type: String, format: 'date-time' })
+  joinedAt!: string;
+}
+
 export class AcceptInviteResponseDto {
   @ApiProperty({ type: String, format: 'uuid', description: 'The household joined' })
   householdId!: string;
