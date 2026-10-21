@@ -8,8 +8,9 @@ import type {
 } from '../../../domain/plans/ports.js';
 import { MoneyDto, minorUnitsToString, toMoneyDto } from '../../http/money.js';
 import { ClampMax } from '../../http/validators.js';
+import { UNPLANNED_MAX_LIMIT } from '../../../application/plans/use-cases/GetUnplannedTransactionsUseCase.js';
 
-export const UNPLANNED_PAGE_MAX = 200;
+export const UNPLANNED_PAGE_MAX = UNPLANNED_MAX_LIMIT;
 
 export class UnplannedQueryDto {
   @ApiProperty({ enum: ['income', 'expense'], description: 'Filter by transaction direction' })
@@ -101,7 +102,11 @@ export class PlanDashboardResponseDto {
   @ApiProperty({ type: MoneyDto })
   unplannedIncome!: MoneyDto;
 
-  @ApiProperty({ type: MoneyDto })
+  @ApiProperty({
+    type: MoneyDto,
+    description:
+      '(actual + unplanned income) - (actual + unplanned expenses), in the base currency',
+  })
   net!: MoneyDto;
 
   @ApiProperty({ type: String, example: '2024-06-15' })
@@ -132,7 +137,11 @@ export class UnplannedTransactionDto {
 }
 
 export class UnplannedTransactionPageDto {
-  @ApiProperty({ type: [UnplannedTransactionDto] })
+  @ApiProperty({
+    type: [UnplannedTransactionDto],
+    description:
+      "Only the caller's own transactions; a partner's count in the dashboard totals only",
+  })
   items!: UnplannedTransactionDto[];
 
   @ApiProperty({ type: String, nullable: true })

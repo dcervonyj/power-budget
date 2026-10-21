@@ -50,7 +50,7 @@ function makeTx(
   id_str: string,
   amountMinor: bigint,
   currency: CurrencyCode = 'PLN',
-  extra: Record<string, unknown> = {},
+  extra: Partial<Transaction> = {},
 ): Transaction {
   return {
     id: id(id_str),
@@ -64,8 +64,9 @@ function makeTx(
     merchantName: null,
     bookedAt: D('2024-01-15'),
     createdAt: DT('2024-01-15T00:00:00Z'),
+    ignored: false,
     ...extra,
-  } as unknown as Transaction;
+  };
 }
 
 function makeMapping(txId: string, itemId: string): Mapping {
@@ -111,7 +112,7 @@ describe('computeLeftover', () => {
     const entries = computeLeftover({
       plan: makePlan(),
       plannedItems: [makeItem('item-1', 10000n)],
-      transactions: [makeTx('tx-1', 6000n)],
+      transactions: [makeTx('tx-1', -6000n)],
       mappings: [makeMapping('tx-1', 'item-1')],
       fxTable: emptyFx,
       clock: CLOCK,
@@ -123,7 +124,7 @@ describe('computeLeftover', () => {
     const entries = computeLeftover({
       plan: makePlan(),
       plannedItems: [makeItem('item-1', 10000n)],
-      transactions: [makeTx('tx-1', 15000n)],
+      transactions: [makeTx('tx-1', -15000n)],
       mappings: [makeMapping('tx-1', 'item-1')],
       fxTable: emptyFx,
       clock: CLOCK,
@@ -136,7 +137,7 @@ describe('computeLeftover', () => {
     const entries = computeLeftover({
       plan: makePlan(),
       plannedItems: [makeItem('item-1', 10000n)],
-      transactions: [makeTx('tx-1', 10000n, 'PLN', { ignored: true })],
+      transactions: [makeTx('tx-1', -10000n, 'PLN', { ignored: true })],
       mappings: [makeMapping('tx-1', 'item-1')],
       fxTable: emptyFx,
       clock: CLOCK,
@@ -156,7 +157,7 @@ describe('computeLeftover', () => {
     const entries = computeLeftover({
       plan: makePlan(),
       plannedItems: [makeItem('item-1', 10000n)],
-      transactions: [makeTx('tx-1', 10000n)],
+      transactions: [makeTx('tx-1', -10000n)],
       mappings: [makeMapping('tx-1', 'item-1')],
       transfers: [transfer],
       fxTable: emptyFx,
@@ -184,12 +185,67 @@ describe('computeLeftover', () => {
     const entries = computeLeftover({
       plan: makePlan(),
       plannedItems: [makeItem('item-1', 10000n)],
-      transactions: [makeTx('tx-1', 1000n, 'EUR')],
+      transactions: [makeTx('tx-1', -1000n, 'EUR')],
       mappings: [makeMapping('tx-1', 'item-1')],
       fxTable: rates,
       clock: CLOCK,
     });
     expect(entries[0]!.leftover.amountMinor).toBe(6000n);
+    expect(entries[0]!.actualAmount.amountMinor).toBe(4000n);
+  });
+
+  it('reduces the spend by a refund mapped to the same item', () => {
+    const entries = computeLeftover({
+      plan: makePlan(),
+      plannedItems: [makeItem('item-1', 10000n)],
+      transactions: [makeTx('tx-1', -8000n), makeTx('tx-2', 3000n)],
+      mappings: [makeMapping('tx-1', 'item-1'), makeMapping('tx-2', 'item-1')],
+      fxTable: emptyFx,
+      clock: CLOCK,
+    });
+    expect(entries[0]!.actualAmount.amountMinor).toBe(5000n);
+    expect(entries[0]!.leftover.amountMinor).toBe(5000n);
+  });
+
+  it('never lets refunds beyond the spend push leftover above the plan', () => {
+    const entries = computeLeftover({
+      plan: makePlan(),
+      plannedItems: [makeItem('item-1', 10000n)],
+      transactions: [makeTx('tx-1', 2000n)],
+      mappings: [makeMapping('tx-1', 'item-1')],
+      fxTable: emptyFx,
+      clock: CLOCK,
+    });
+    expect(entries[0]!.actualAmount.amountMinor).toBe(-2000n);
+    expect(entries[0]!.leftover.amountMinor).toBe(10000n);
+  });
+
+  it('counts only transactions booked inside the plan period', () => {
+    const entries = computeLeftover({
+      plan: makePlan(),
+      plannedItems: [makeItem('item-1', 10000n)],
+      transactions: [
+        makeTx('tx-dec', -1000n, 'PLN', { bookedAt: D('2023-12-31') }),
+        makeTx('tx-first', -2000n, 'PLN', { bookedAt: D('2024-01-01') }),
+        makeTx('tx-last', -3000n, 'PLN', { bookedAt: D('2024-01-31') }),
+        makeTx('tx-feb', -4000n, 'PLN', { bookedAt: D('2024-02-01') }),
+      ],
+      mappings: ['tx-dec', 'tx-first', 'tx-last', 'tx-feb'].map((tx) => makeMapping(tx, 'item-1')),
+      fxTable: emptyFx,
+      clock: CLOCK,
+    });
+    expect(entries[0]!.actualAmount.amountMinor).toBe(5000n);
+  });
+
+  it('counts income as inflows', () => {
+    const entries = computeLeftover({
+      plan: makePlan(),
+      plannedItems: [makeItem('item-1', 10000n, 'income')],
+      transactions: [makeTx('tx-1', 4000n)],
+      mappings: [makeMapping('tx-1', 'item-1')],
+      fxTable: emptyFx,
+      clock: CLOCK,
+    });
     expect(entries[0]!.actualAmount.amountMinor).toBe(4000n);
   });
 });

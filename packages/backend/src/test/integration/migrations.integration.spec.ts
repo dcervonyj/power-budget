@@ -77,10 +77,11 @@ async function expectFullSchema(pool: Pool): Promise<void> {
     "SELECT 1 FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'email_bouncing'",
   );
   expect(column.rowCount).toBe(1);
+  // CLN-012 dropped the never-refreshed plan actuals view and its refresh function.
   const view = await pool.query("SELECT 1 FROM pg_matviews WHERE matviewname = 'v_plan_actuals'");
-  expect(view.rowCount).toBe(1);
+  expect(view.rowCount).toBe(0);
   const fn = await pool.query("SELECT 1 FROM pg_proc WHERE proname = 'refresh_plan_actuals'");
-  expect(fn.rowCount).toBe(1);
+  expect(fn.rowCount).toBe(0);
 }
 
 describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
@@ -214,13 +215,6 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
       ['write to drizzle bookkeeping', 'DELETE FROM drizzle.__drizzle_migrations'],
     ])('cannot run DDL: %s', async (_name, statement) => {
       await expect(app.query(statement)).rejects.toMatchObject({ code: '42501' });
-    });
-
-    it('can still refresh the plan actuals view through the owner-defined function', async () => {
-      await expect(app.query('SELECT refresh_plan_actuals()')).resolves.toBeDefined();
-      await expect(app.query('REFRESH MATERIALIZED VIEW v_plan_actuals')).rejects.toMatchObject({
-        code: '42501',
-      });
     });
 
     it('covers tables created by later migrations through default privileges', async () => {

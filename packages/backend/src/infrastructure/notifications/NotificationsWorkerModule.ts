@@ -3,7 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { QueueModule } from '../queue/queue.module.js';
 import { PlansModule } from '../plans/PlansModule.js';
 import { DrizzlePlanRepository } from '../plans/DrizzlePlanRepository.js';
-import { DrizzlePlanActualsReader } from '../plans/DrizzlePlanActualsReader.js';
+import { PlanActualsService } from '../../application/plans/PlanActualsService.js';
 import { NotificationsModule } from './NotificationsModule.js';
 import { DrizzleNotificationRepository } from './DrizzleNotificationRepository.js';
 import { ResendEmailChannel } from './ResendEmailChannel.js';
@@ -43,8 +43,8 @@ import { RunReconnectRemindersUseCase } from '../../application/notifications/us
     },
     {
       provide: PlanActualsWeeklyDigestSummaryReader,
-      inject: [DrizzlePlanRepository, DrizzlePlanActualsReader],
-      useFactory: (plans: DrizzlePlanRepository, actuals: DrizzlePlanActualsReader) =>
+      inject: [DrizzlePlanRepository, PlanActualsService],
+      useFactory: (plans: DrizzlePlanRepository, actuals: PlanActualsService) =>
         new PlanActualsWeeklyDigestSummaryReader(plans, actuals),
     },
     {
