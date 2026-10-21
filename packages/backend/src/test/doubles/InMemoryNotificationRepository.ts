@@ -18,6 +18,8 @@ interface StoredNotification {
   id: string;
   householdId: NotificationOutbox['householdId'];
   recipientUserId: NotificationOutbox['recipientUserId'];
+  recipientEmail: string | null;
+  recipientLocale: string | null;
   kind: NotificationOutbox['kind'];
   dedupeKey: string;
   payload: Record<string, unknown>;
@@ -82,6 +84,31 @@ export class InMemoryNotificationRepository implements NotificationRepository {
       ...notification,
       payload: { ...notification.payload },
       householdId: notification.householdId ?? null,
+      recipientEmail: null,
+      recipientLocale: null,
+      createdAt: new Date(),
+      sentAt: null,
+      failedAt: null,
+      attempts: 0,
+    });
+  }
+
+  /** An address-only row, as DrizzleNotificationOutboxPort.enqueueToAddress writes it. */
+  enqueueToAddress(
+    notification: Omit<NewNotificationOutbox, 'recipientUserId'> & {
+      email: string | null;
+      locale: string | null;
+    },
+  ): void {
+    this._outbox.push({
+      id: notification.id,
+      householdId: notification.householdId ?? null,
+      recipientUserId: null,
+      recipientEmail: notification.email,
+      recipientLocale: notification.locale,
+      kind: notification.kind,
+      dedupeKey: notification.dedupeKey,
+      payload: { ...notification.payload },
       createdAt: new Date(),
       sentAt: null,
       failedAt: null,

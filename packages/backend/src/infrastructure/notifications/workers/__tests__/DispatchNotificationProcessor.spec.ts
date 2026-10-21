@@ -83,6 +83,60 @@ describe('DispatchNotificationProcessor', () => {
     expect((await outbox.findById('n-2'))?.payload).toEqual({});
   });
 
+  it('sends an address-only invite in its stored locale and scrubs the link (CLN-006)', async () => {
+    outbox.enqueueToAddress({
+      id: 'n-3',
+      kind: 'household_invite',
+      dedupeKey: 'k-3',
+      email: 'eve@example.com',
+      locale: 'uk',
+      payload: { link: 'https://app.example/invite/accept?token=xyz', inviterName: 'Ann' },
+    });
+
+    await processor.process(jobFor('n-3'));
+
+    expect(email.sent).toEqual([
+      {
+        to: 'eve@example.com',
+        subject: 'You are invited to a household — Power Budget',
+        html: '<p>household_invite.uk:{"link":"https://app.example/invite/accept?token=xyz","inviterName":"Ann"}</p>',
+        idempotencyKey: 'notification-n-3',
+      },
+    ]);
+    expect((await outbox.findById('n-3'))?.payload).toEqual({ inviterName: 'Ann' });
+  });
+
+  it('defaults an address-only row without a locale to English', async () => {
+    outbox.enqueueToAddress({
+      id: 'n-4',
+      kind: 'household_invite',
+      dedupeKey: 'k-4',
+      email: 'eve@example.com',
+      locale: null,
+      payload: {},
+    });
+
+    await processor.process(jobFor('n-4'));
+
+    expect(email.sent[0]?.html).toBe('<p>household_invite.en:{}</p>');
+  });
+
+  it('drops a row that has neither a user nor an address', async () => {
+    outbox.enqueueToAddress({
+      id: 'n-5',
+      kind: 'household_invite',
+      dedupeKey: 'k-5',
+      email: null,
+      locale: null,
+      payload: {},
+    });
+
+    await processor.process(jobFor('n-5'));
+
+    expect(email.calls).toEqual([]);
+    expect((await outbox.findById('n-5'))?.failedAt).toBeInstanceOf(Date);
+  });
+
   it('rethrows a send error so BullMQ retries, and keeps the row pending', async () => {
     email.failNext(1);
 
