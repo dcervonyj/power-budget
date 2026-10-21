@@ -16,7 +16,7 @@ The system uses a two-layer encryption scheme:
 
 ### Prerequisites
 
-- Access to the production environment variables (Fly.io secrets or equivalent)
+- Access to the production environment variables (the Render dashboard today; the VPS `.env` after HOST-002 per ADR-003)
 - Database admin access
 - Ability to run a Node.js migration script
 
@@ -52,11 +52,9 @@ The script must:
 #### 1.3 Deploy with new KEK
 
 ```bash
-# Update the environment variable in production
-fly secrets set KEK_BASE64="<NEW_KEK_BASE64>" --app power-budget-api
-
-# Verify the deployment completed
-fly status --app power-budget-api
+# Render (current): Dashboard -> power-budget-api -> Environment -> set KEK_BASE64, then redeploy.
+# VPS (after HOST-002): edit the compose .env, then `docker compose up -d api worker`.
+# Verify the deployment completed (Render deploy log, or `docker compose ps`).
 ```
 
 #### 1.4 Verify
@@ -70,7 +68,7 @@ fly status --app power-budget-api
 If decryption failures occur after rotation:
 
 ```bash
-fly secrets set KEK_BASE64="<OLD_KEK_BASE64>" --app power-budget-api
+# Put the old KEK_BASE64 back (Render dashboard, or the VPS .env) and redeploy.
 ```
 
 ---

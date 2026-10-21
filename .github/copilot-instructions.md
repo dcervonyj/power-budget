@@ -6,7 +6,7 @@
 
 ## Project status
 
-The monorepo scaffold is complete (INF-002 ✅). Conventions documented here are authoritative from `docs/mvp/ARCHITECTURE.md`; code must be written to match them from day one.
+The monorepo scaffold is complete, but the product is a **pre-alpha scaffold**: the 21 Oct 2026 audit found that most user journeys do not work end to end and that the deployed API has security holes being fixed in CLN-001. Real task status is in `docs/mvp/BACKLOG.md` §0; the current plan is §7 (v1.1); short status is `STATUS.md`. Conventions documented here are authoritative from `docs/mvp/ARCHITECTURE.md`; code must be written to match them.
 
 ## Commands
 
@@ -77,7 +77,7 @@ Backend layer responsibilities:
 Frontend (web/mobile) layer responsibilities:
 
 - **domain/** — re-exports from `@power-budget/core`
-- **application/** — RTK slices + RTK Query endpoints
+- **application/** — MobX stores / `ReactiveView` view-models and use cases (MobX, not Redux/RTK; no Redux packages). `@power-budget/shared-app` is meant to hold this layer but is empty scaffolding today (CLN-016); web stores live in `packages/web` for now
 - **infrastructure/** — API client, localStorage/SecureStore adapters, i18n loader
 - **presentation/** — screens, components
 
@@ -135,7 +135,7 @@ FX conversion always uses a `FxRateTable` snapshot passed in explicitly — neve
 
 ## Multi-tenancy via `HouseholdScope`
 
-Every repo method takes `HouseholdScope = { householdId: HouseholdId }` as a parameter and includes `WHERE household_id = $scope.householdId`. An ESLint rule (`no-repo-without-scope`) enforces this. Postgres RLS is also enabled in prod as defence-in-depth.
+Every repo method takes `HouseholdScope = { householdId: HouseholdId }` as a parameter and includes `WHERE household_id = $scope.householdId`. An ESLint rule (`no-repo-without-scope`) enforces this. Postgres RLS is intended as defence-in-depth but is **not applied yet**: the policy migration is excluded from the drizzle journal and no session setting is set (CLN-005). Until then the application-level scope is the only protection, and it has known gaps.
 
 ## TypeScript strictness
 
@@ -191,7 +191,7 @@ The backend bootstrap function follows this strict order — do not reorder:
 
 ## OpenAPI / Swagger conventions
 
-- `/docs` is served in development and staging only (`NODE_ENV !== 'production'`).
+- `/docs` is served in development and staging only (`NODE_ENV !== 'production'`). The deployed service runs with `NODE_ENV=staging`, so `/docs` is currently public (closed in CLN-001).
 - Every controller must be decorated with `@ApiTags(...)`, `@ApiOperation(...)`, `@ApiResponse(...)`.
 - Controllers with `@UseGuards(JwtAuthGuard)` must have `@ApiBearerAuth()` at class level.
 - Every DTO must have `@ApiProperty()` / `@ApiPropertyOptional()` — use explicit `type:` fields since tsx/swc don't emit decorator metadata.
@@ -210,7 +210,7 @@ Sensitive endpoints can require a recent TOTP verification via:
 
 ## Audit log PII redaction
 
-`REDACTING_AUDIT_LOGGER` token in `AuditModule` provides a `DrizzleAuditEventRepository`-shaped logger that:
+`REDACTING_AUDIT_LOGGER` token in `AuditModule` provides (**not injected anywhere yet**, so audit rows are written unredacted; fixed in CLN-005) a `DrizzleAuditEventRepository`-shaped logger that:
 
 - Redacts IBANs matching `[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7,19}` → `****`
 - Skips logging entries where `payload.amountMinor >= AUDIT_REDACTION_THRESHOLD_MINOR`
@@ -234,5 +234,6 @@ Dev credentials: user/password/db all `power_budget`. Copy `.env.example` → `.
 
 - `docs/mvp/ARCHITECTURE.md` — authoritative technical spec (wins on "how to build")
 - `docs/mvp/PRODUCT.md` — product requirements (wins on "what behaviour")
-- `docs/mvp/BACKLOG.md` — ordered task list with IDs (`INF-*`, `BE-*`, `WEB-*`, `MOB-*`, etc.)
+- `docs/mvp/BACKLOG.md` — task list with IDs; §0 has the real status of the v1.0 tasks, §7 is the v1.1 plan (`CLN-*`, `HOST-*`, `BNK-*`, `SYNC-*`, `AI-*`, `UI-*` ...)
+- `docs/mvp/plan-banking.md` — design reference for the bank-feed tasks (Enable Banking, Wise, PKO email, AI categorisation)
 - `docs/mvp/plans/<ID>.md` — detailed implementation plan per backlog task
