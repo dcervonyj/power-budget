@@ -19,7 +19,16 @@ export const SUBJECT_BY_KIND: Record<NotificationOutbox['kind'], string> = {
   weekly_digest: 'Your Weekly Budget Summary — Power Budget',
   reconnect_reminder: 'Bank Connection Expiring — Power Budget',
   magic_link: 'Your sign-in link — Power Budget',
+  household_invite: 'You are invited to a household — Power Budget',
 };
+
+interface Recipient {
+  readonly email: string;
+  readonly locale: string;
+  readonly emailBouncing: boolean;
+}
+
+const DEFAULT_LOCALE = 'en';
 
 export type DeliveryOutcome =
   | { readonly status: 'sent' }
@@ -69,7 +78,7 @@ export class DispatchNotificationProcessor
   /** Runs while the outbox row is claimed. Never throws for a delivery failure. */
   async handle(claim: NotificationClaim): Promise<DeliveryOutcome> {
     const { notification } = claim;
-    const user = await this.outbox.findUserById(notification.recipientUserId);
+    const user = await this.resolveRecipient(notification);
     if (user === null || user.emailBouncing) {
       await claim.markFailed();
 
@@ -140,6 +149,22 @@ export class DispatchNotificationProcessor
     if (current !== null && current.sentAt === null && current.failedAt === null) {
       throw new NotificationBusyError(outboxId);
     }
+  }
+
+  /** A user's address and locale, or the stored address of an invitee without an account. */
+  private async resolveRecipient(notification: NotificationOutbox): Promise<Recipient | null> {
+    if (notification.recipientUserId !== null) {
+      return this.outbox.findUserById(notification.recipientUserId);
+    }
+    if (notification.recipientEmail === null) {
+      return null;
+    }
+
+    return {
+      email: notification.recipientEmail,
+      locale: notification.recipientLocale ?? DEFAULT_LOCALE,
+      emailBouncing: false,
+    };
   }
 
   private toError(err: unknown): Error {

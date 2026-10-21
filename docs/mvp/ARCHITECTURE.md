@@ -459,8 +459,10 @@ Each domain is documented with the same template: purpose, core concepts, backen
   - `POST /auth/refresh` — body `{ refreshToken }` → new pair.
   - `POST /auth/logout` — revoke refresh.
   - `POST /households` — create.
-  - `POST /households/:id/invites` → `{ inviteUrl }`.
-  - `POST /invites/:token/accept`.
+  - `POST /households/invites` — body `{ email }`, owner only → `{ id, email, status, expiresAt, createdAt }`. The link (`/invite/accept?token=`) goes out only by email (outbox kind `household_invite`; an invitee without an account is addressed by `recipient_email`). One open invite per household: a new one revokes the previous one. Max 2 members (`household_full`).
+  - `GET /households/invites` — the open invite (pending or expired), owner only.
+  - `POST /households/invites/:inviteId/resend` — new token + new 7-day expiry, old link dies. `DELETE /households/invites/:inviteId` — revoke.
+  - `POST /households/invites/accept` — body `{ token }`, signed in with the invited email → `{ householdId, accessToken }` (new access token for the joined household). Registration gives every user a solo household: the invitee leaves it when it is empty (only member; no plans, bank connections, accounts, transactions or custom categories) and it is scheduled for deletion; a solo household with data is never merged: 409 `household_not_empty`, nothing changes (CLN-006).
   - `PATCH /me` — partial profile update including `localePreference`.
 
 **Frontend — Clean Architecture.**

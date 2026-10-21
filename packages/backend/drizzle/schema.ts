@@ -14,6 +14,7 @@ import {
   index,
   uniqueIndex,
   primaryKey,
+  check,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
@@ -137,10 +138,18 @@ export const householdInvites = pgTable(
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    // CLN-006: who sent the invite, who accepted it, and owner revocation.
+    invitedByUserId: uuid('invited_by_user_id').references(() => users.id),
+    acceptedByUserId: uuid('accepted_by_user_id').references(() => users.id),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
   },
   (t) => [
     index('household_invites_token_idx').on(t.tokenHash),
     uniqueIndex('household_invites_token_unique').on(t.tokenHash),
+    // At most one open (not accepted, not revoked) invite per household.
+    uniqueIndex('household_invites_one_open_unique')
+      .on(t.householdId)
+      .where(sql`accepted_at IS NULL AND revoked_at IS NULL`),
   ],
 );
 
@@ -430,9 +439,10 @@ export const notificationsOutbox = pgTable(
   {
     id: uuid('id').primaryKey(),
     householdId: uuid('household_id').references(() => households.id),
-    recipientUserId: uuid('recipient_user_id')
-      .notNull()
-      .references(() => users.id),
+    // Null for an email address without an account yet (CLN-006: household invite).
+    recipientUserId: uuid('recipient_user_id').references(() => users.id),
+    recipientEmail: varchar('recipient_email', { length: 320 }),
+    recipientLocale: varchar('recipient_locale', { length: 10 }),
     kind: varchar('kind', { length: 50 }).notNull(),
     dedupeKey: varchar('dedupe_key', { length: 255 }).notNull(),
     payload: jsonb('payload').notNull().default({}),
@@ -445,6 +455,13 @@ export const notificationsOutbox = pgTable(
     index('notifications_outbox_dispatch_idx').on(t.sentAt, t.createdAt),
     index('notifications_outbox_recipient_idx').on(t.recipientUserId),
     uniqueIndex('notifications_outbox_dedupe_unique').on(t.recipientUserId, t.kind, t.dedupeKey),
+    uniqueIndex('notifications_outbox_address_dedupe_unique')
+      .on(t.recipientEmail, t.kind, t.dedupeKey)
+      .where(sql`recipient_user_id IS NULL`),
+    check(
+      'notifications_outbox_recipient_check',
+      sql`recipient_user_id IS NOT NULL OR recipient_email IS NOT NULL`,
+    ),
   ],
 );
 

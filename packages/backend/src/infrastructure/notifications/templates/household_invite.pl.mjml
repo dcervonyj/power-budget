@@ -1,0 +1,22 @@
+<mjml>
+  <mj-head>
+    <mj-title>Zaproszenie do gospodarstwa domowego</mj-title>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-text font-size="16px" line-height="1.5" color="#333333" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f4f4f4">
+    <mj-section background-color="#ffffff" padding="20px">
+      <mj-column>
+        <mj-text font-size="22px" font-weight="bold" color="#2d6a4f">Dołącz do gospodarstwa w Power Budget</mj-text>
+        <mj-divider border-color="#2d6a4f" border-width="2px" />
+        <mj-text>Cześć,</mj-text>
+        <mj-text>{{inviterName}} zaprasza Cię do wspólnego gospodarstwa &quot;{{householdName}}&quot; w Power Budget.</mj-text>
+        <mj-text>Zaloguj się lub załóż konto na ten adres e-mail, a następnie kliknij przycisk poniżej. Link działa jeden raz i wygasa po 7 dniach.</mj-text>
+        <mj-button background-color="#2d6a4f" color="#ffffff" href="{{link}}">Przyjmij zaproszenie</mj-button>
+        <mj-text color="#888888" font-size="13px">Jeśli nie spodziewałeś się tego zaproszenia, zignoruj tę wiadomość.</mj-text>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>
