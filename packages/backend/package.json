@@ -44,7 +44,7 @@
     "class-validator": "^0.15.1",
     "drizzle-orm": "^0.45.2",
     "fastify": "5.11.3",
-    "ioredis": "^5.10.1",
+    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "mjml": "^5.2.1",
     "otplib": "^13.4.0",
