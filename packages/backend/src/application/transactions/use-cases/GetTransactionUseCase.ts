@@ -31,8 +31,8 @@ export class GetTransactionUseCase {
     }
 
     const [mapping, transfer] = await Promise.all([
-      this.mappingRepo.findByTransaction(id),
-      this.transferRepo.findByTransaction(id),
+      this.mappingRepo.findByTransaction(id, { householdId }),
+      this.transferRepo.findByTransaction(id, { householdId }),
     ]);
 
     return { transaction, mapping, transfer };

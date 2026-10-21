@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { HealthModule } from './health/health.module';
 import { AuthPresentationModule } from './presentation/auth/AuthPresentationModule.js';
@@ -9,7 +9,8 @@ import { BankPresentationModule } from './presentation/bank/BankPresentationModu
 import { PlansPresentationModule } from './presentation/plans/PlansPresentationModule.js';
 import { NotificationsPresentationModule } from './presentation/notifications/NotificationsPresentationModule.js';
 import { HouseholdsPresentationModule } from './presentation/households/HouseholdsPresentationModule.js';
-import { RlsMiddleware } from './infrastructure/database/RlsMiddleware.js';
+import { FxPresentationModule } from './presentation/fx/FxPresentationModule.js';
+import { DbScopeInterceptor } from './infrastructure/database/DbScopeInterceptor.js';
 import { validationPipeProvider } from './presentation/http/validation.js';
 
 @Module({
@@ -23,13 +24,14 @@ import { validationPipeProvider } from './presentation/http/validation.js';
     PlansPresentationModule,
     NotificationsPresentationModule,
     HouseholdsPresentationModule,
+    FxPresentationModule,
   ],
-  // Global ValidationPipe (audit C5); registered here, not in main.ts, so the
-  // integration and OpenAPI apps get it too.
-  providers: [validationPipeProvider],
+  providers: [
+    // Global ValidationPipe (audit C5); registered here, not in main.ts, so the
+    // integration and OpenAPI apps get it too.
+    validationPipeProvider,
+    // Every handler runs in the caller's DbScope, which sets the RLS settings (CLN-005).
+    { provide: APP_INTERCEPTOR, useClass: DbScopeInterceptor },
+  ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RlsMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}

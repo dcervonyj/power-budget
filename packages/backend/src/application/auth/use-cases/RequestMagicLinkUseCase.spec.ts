@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { UserId } from '@power-budget/core';
@@ -5,6 +6,7 @@ import type {
   UserRepository,
   MagicLinkTokenRepository,
   NotificationOutboxPort,
+  AppConfigPort,
 } from '../../../domain/auth/ports.js';
 import { RequestMagicLinkUseCase } from './RequestMagicLinkUseCase.js';
 import type { User } from '../../../domain/auth/entities.js';
@@ -35,7 +37,9 @@ describe('RequestMagicLinkUseCase', () => {
     userRepo = mock<UserRepository>();
     magicLinkTokenRepo = mock<MagicLinkTokenRepository>();
     notificationOutbox = mock<NotificationOutboxPort>();
-    useCase = new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox);
+    const config = mock<AppConfigPort>();
+    config.get.mockReturnValue('https://power-budget.pages.dev/');
+    useCase = new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox, config);
   });
 
   it('enqueues a magic link notification for existing user', async () => {
@@ -49,6 +53,23 @@ describe('RequestMagicLinkUseCase', () => {
     expect(notificationOutbox.enqueue).toHaveBeenCalledOnce();
     const [call] = notificationOutbox.enqueue.mock.calls;
     expect(call?.[0]?.kind).toBe('magic_link');
+  });
+
+  it('puts only a web sign-in link in the payload, no email and no bare token', async () => {
+    userRepo.findByEmail.mockResolvedValue(makeUser());
+
+    await useCase.execute({ email: 'alice@example.com' });
+
+    const event = notificationOutbox.enqueue.mock.calls[0]?.[0];
+    const rawToken = new URL(String(event?.payload['link'])).searchParams.get('token') ?? '';
+    const savedHash = magicLinkTokenRepo.save.mock.calls[0]?.[0]?.tokenHash;
+
+    expect(Object.keys(event?.payload ?? {})).toEqual(['link']);
+    expect(event?.payload['link']).toBe(
+      `https://power-budget.pages.dev/auth/magic-link?token=${rawToken}`,
+    );
+    expect(rawToken).toMatch(/^[0-9a-f]{64}$/);
+    expect(savedHash).toBe(createHash('sha256').update(rawToken).digest('hex'));
   });
 
   it('returns silently when email is not found (no email enumeration)', async () => {

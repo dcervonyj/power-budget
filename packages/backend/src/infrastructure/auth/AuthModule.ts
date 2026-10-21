@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import Redis from 'ioredis';
 import { DatabaseModule } from '../database/database.module.js';
 import { QueueModule } from '../queue/queue.module.js';
+import { NotificationsModule } from '../notifications/NotificationsModule.js';
 import { DrizzleUserRepository } from './DrizzleUserRepository.js';
 import { DrizzleHouseholdRepository } from './DrizzleHouseholdRepository.js';
 import { DrizzleHouseholdExportRepository } from './DrizzleHouseholdExportRepository.js';
@@ -19,7 +20,7 @@ import { DrizzleNotificationOutboxPort } from './DrizzleNotificationOutboxPort.j
 import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule, QueueModule],
+  imports: [DatabaseModule, ConfigModule, QueueModule, NotificationsModule],
   providers: [
     DrizzleUserRepository,
     DrizzleHouseholdRepository,

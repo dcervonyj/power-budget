@@ -130,12 +130,14 @@ import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteH
         DrizzleUserRepository,
         DrizzleMagicLinkTokenRepository,
         DrizzleNotificationOutboxPort,
+        AppConfigAdapter,
       ],
       useFactory: (
         userRepo: DrizzleUserRepository,
         magicLinkTokenRepo: DrizzleMagicLinkTokenRepository,
         notificationOutbox: DrizzleNotificationOutboxPort,
-      ) => new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox),
+        config: AppConfigAdapter,
+      ) => new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox, config),
     },
     {
       provide: ConsumeMagicLinkUseCase,
