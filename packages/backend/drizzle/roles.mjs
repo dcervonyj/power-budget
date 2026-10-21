@@ -5,7 +5,8 @@
 //
 // Run as the owner/migrator role after the migrations (`pnpm db:roles`).
 // Re-running is safe; it also refreshes the grants on existing tables.
-// This does NOT enable RLS: that is CLN-005 (see docs/runbooks/db-roles-and-migrations.md).
+// Row level security is enabled by migration 0008_rls_tenancy (CLN-005); the app role is
+// NOBYPASSRLS and owns nothing, so the policies bind it. audit_log is append-only for it.
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
@@ -49,6 +50,8 @@ export async function applyRoles(db, { appUser, appPassword }) {
     // Tables created by later migrations (run by the owner) are readable/writable without a re-run.
     `ALTER DEFAULT PRIVILEGES FOR ROLE ${ownerId} IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO ${role}`,
     `ALTER DEFAULT PRIVILEGES FOR ROLE ${ownerId} IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO ${role}`,
+    // audit_log is append-only for the app (CLN-005, audit M17).
+    `REVOKE UPDATE, DELETE, TRUNCATE ON TABLE audit_log FROM ${role}`,
     // The drizzle bookkeeping schema is owner-only.
     `REVOKE ALL ON SCHEMA drizzle FROM ${role}`,
   ];
@@ -58,6 +61,10 @@ export async function applyRoles(db, { appUser, appPassword }) {
     } catch (error) {
       // `drizzle` schema does not exist before the first migration: nothing to revoke.
       if (statement.includes('SCHEMA drizzle') && error.code === '3F000') {
+        continue;
+      }
+      // Neither does audit_log.
+      if (statement.includes('audit_log') && error.code === '42P01') {
         continue;
       }
       throw error;

@@ -159,9 +159,7 @@ export class DrizzleNotificationRepository implements NotificationRepository {
       .where(eq(sql`lower(${schema.users.email})`, email.toLowerCase()));
   }
 
-  async findUserById(
-    userId: UserId,
-  ): Promise<{
+  async findUserById(userId: UserId): Promise<{
     email: string;
     displayName: string;
     locale: string;

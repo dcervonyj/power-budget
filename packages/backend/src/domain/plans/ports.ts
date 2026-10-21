@@ -32,7 +32,7 @@ export interface PlanRepository {
   findById(id: PlanId, scope: HouseholdScope): Promise<Plan | null>;
   listActive(query: { userId: UserId; householdId: HouseholdId; date: Date }): Promise<Plan[]>;
   update(id: PlanId, patch: { readonly name?: string }, scope: HouseholdScope): Promise<Plan>;
-  archive(id: PlanId, at: Date): Promise<void>;
+  archive(id: PlanId, at: Date, scope: HouseholdScope): Promise<void>;
   /** System-level query — no HouseholdScope needed. Returns all non-archived plans ending on the given date. */
   findByPeriodEnd(date: Date): Promise<Plan[]>;
 }
@@ -43,15 +43,16 @@ export interface PlannedItemRepository {
     id: PlannedItemId,
     patch: PlannedItemPatch,
     changedBy: UserId,
+    scope: HouseholdScope,
     reason?: string,
   ): Promise<PlannedItem>;
-  remove(id: PlannedItemId): Promise<void>;
-  listByPlan(planId: PlanId): Promise<PlannedItem[]>;
+  remove(id: PlannedItemId, scope: HouseholdScope): Promise<void>;
+  listByPlan(planId: PlanId, scope: HouseholdScope): Promise<PlannedItem[]>;
 }
 
 export interface PlannedItemVersionRepository {
   append(version: NewPlannedItemVersion): Promise<void>;
-  listByItem(itemId: PlannedItemId): Promise<PlannedItemVersion[]>;
+  listByItem(itemId: PlannedItemId, scope: HouseholdScope): Promise<PlannedItemVersion[]>;
 }
 
 export interface PlanActualsReader {

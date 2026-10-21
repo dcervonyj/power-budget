@@ -27,6 +27,6 @@ export class RemovePlannedItemUseCase {
       );
     }
 
-    await this.plannedItemRepo.remove(input.itemId);
+    await this.plannedItemRepo.remove(input.itemId, scope);
   }
 }

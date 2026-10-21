@@ -6,13 +6,18 @@ import Redis from 'ioredis';
 import { Pool } from 'pg';
 import * as path from 'node:path';
 import * as schema from '../../../drizzle/schema.js';
+import { applyRoles } from '../../../drizzle/roles.mjs';
+import { APP_ROLE, appRoleUrl } from './app-role.js';
 
 export interface TestContainers {
   pg: StartedPostgreSqlContainer | null;
   redis: StartedRedisContainer | null;
   db: NodePgDatabase<typeof schema>;
   pool: Pool;
+  /** Superuser: fixtures, truncation. Bypasses RLS. */
   databaseUrl: string;
+  /** Least-privilege app role (what the Nest app uses as DATABASE_URL). Subject to RLS. */
+  appDatabaseUrl: string;
   redisUrl: string;
 }
 
@@ -28,8 +33,9 @@ export async function startContainers(): Promise<TestContainers> {
 
   const sharedDb = process.env['TEST_DATABASE_URL'];
   const sharedRedis = process.env['TEST_REDIS_URL'];
+  const sharedAppDb = process.env['TEST_APP_DATABASE_URL'];
 
-  if (sharedDb && sharedRedis) {
+  if (sharedDb && sharedRedis && sharedAppDb) {
     const pool = new Pool({ connectionString: sharedDb });
     containers = {
       pg: null,
@@ -37,6 +43,7 @@ export async function startContainers(): Promise<TestContainers> {
       pool,
       db: drizzle(pool, { schema }),
       databaseUrl: sharedDb,
+      appDatabaseUrl: sharedAppDb,
       redisUrl: sharedRedis,
     };
   } else {
@@ -47,17 +54,19 @@ export async function startContainers(): Promise<TestContainers> {
     const pool = new Pool({ connectionString: pg.getConnectionUri() });
     const db = drizzle(pool, { schema });
     await migrate(db, { migrationsFolder: path.resolve(process.cwd(), 'drizzle/migrations') });
+    await applyRoles(pool, { appUser: APP_ROLE.user, appPassword: APP_ROLE.password });
     containers = {
       pg,
       redis,
       db,
       pool,
       databaseUrl: pg.getConnectionUri(),
+      appDatabaseUrl: appRoleUrl(pg.getConnectionUri()),
       redisUrl: redis.getConnectionUrl(),
     };
   }
 
-  process.env['DATABASE_URL'] = containers.databaseUrl;
+  process.env['DATABASE_URL'] = containers.appDatabaseUrl;
   process.env['REDIS_URL'] = containers.redisUrl;
 
   return containers;

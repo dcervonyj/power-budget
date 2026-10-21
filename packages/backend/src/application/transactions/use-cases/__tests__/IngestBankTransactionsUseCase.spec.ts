@@ -72,7 +72,11 @@ describe('IngestBankTransactionsUseCase', () => {
 
     await useCase.execute({ accountId, rawTransactions: [rawTx], householdId });
 
-    expect(txRepo.patch).toHaveBeenCalledWith(txId, { suggestedPlannedItemId: plannedItemId });
+    expect(txRepo.patch).toHaveBeenCalledWith(
+      txId,
+      { suggestedPlannedItemId: plannedItemId },
+      { householdId },
+    );
   });
 
   it('does not patch when suggestion is null', async () => {

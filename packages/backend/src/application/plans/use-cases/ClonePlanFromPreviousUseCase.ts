@@ -70,19 +70,17 @@ export class ClonePlanFromPreviousUseCase {
     newPlanId: PlanId,
     householdId: HouseholdId,
   ): Promise<void> {
-    const items = await this.plannedItemRepo.listByPlan(sourcePlanId);
+    const items = await this.plannedItemRepo.listByPlan(sourcePlanId, { householdId });
 
-    const additions = items.map(
-      (item): NewPlannedItem => ({
-        id: PlannedItemId.of(this.generateId()),
-        planId: newPlanId,
-        householdId,
-        categoryId: item.categoryId,
-        direction: item.direction,
-        amount: item.amount,
-        note: item.note,
-      }),
-    );
+    const additions = items.map((item): NewPlannedItem => ({
+      id: PlannedItemId.of(this.generateId()),
+      planId: newPlanId,
+      householdId,
+      categoryId: item.categoryId,
+      direction: item.direction,
+      amount: item.amount,
+      note: item.note,
+    }));
 
     await Promise.all(additions.map((item) => this.plannedItemRepo.add(item)));
   }

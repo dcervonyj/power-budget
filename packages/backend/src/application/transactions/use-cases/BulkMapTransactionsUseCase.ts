@@ -1,4 +1,4 @@
-import type { TransactionId, PlannedItemId, UserId, PlanId } from '@power-budget/core';
+import type { TransactionId, PlannedItemId, UserId, PlanId, HouseholdId } from '@power-budget/core';
 import type {
   MappingRepository,
   PlanActualsRefreshPort,
@@ -7,6 +7,7 @@ import type {
 export interface BulkMapTransactionsInput {
   readonly mappings: ReadonlyArray<{ transactionId: TransactionId; plannedItemId: PlannedItemId }>;
   readonly by: UserId;
+  readonly householdId: HouseholdId;
   readonly planId: PlanId;
 }
 
@@ -21,7 +22,10 @@ export class BulkMapTransactionsUseCase {
       return;
     }
 
-    await this.mappingRepo.bulkSet([...input.mappings], input.by);
+    // The repository rejects the whole batch if any transaction or planned item is foreign.
+    await this.mappingRepo.bulkSet([...input.mappings], input.by, {
+      householdId: input.householdId,
+    });
     await this.refreshPort.scheduleRefresh(input.planId);
   }
 }

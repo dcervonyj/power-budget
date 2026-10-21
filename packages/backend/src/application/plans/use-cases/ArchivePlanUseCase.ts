@@ -23,7 +23,7 @@ export class ArchivePlanUseCase {
       );
     }
 
-    await this.planRepo.archive(input.planId, new Date());
+    await this.planRepo.archive(input.planId, new Date(), scope);
 
     await this.auditLog.record({
       householdId: input.householdId,
