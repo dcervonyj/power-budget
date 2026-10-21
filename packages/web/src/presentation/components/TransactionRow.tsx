@@ -4,11 +4,12 @@ import { useTheme } from './ThemeContext.js';
 import { parseLocalIsoDate } from '@power-budget/core';
 import { MoneyView } from './MoneyView.js';
 import type { Transaction } from '../../domain/transactions/Transaction.js';
-import type { MappingView } from '../../application/transactions/TransactionMappingStore.js';
+import type { MappingView } from '../../application/transactions/MappingView.js';
+import type { MappedBy } from '../../domain/transactions/Transaction.js';
 
 export interface TransactionRowProps {
   transaction: Transaction;
-  /** What the row is: mapped to an item, transfer, ignored, unmapped, or still being checked. */
+  /** What the row is: mapped to an item (and by whom), transfer, ignored or unmapped. */
   mapping: MappingView;
   /** Opens the detail modal. */
   onClick: (id: string) => void;
@@ -33,6 +34,10 @@ export function TransactionRow({
 
   const statusLabel = statusChipLabel(transaction.status);
   const mappingChip = mappingChipOf(mapping);
+  const archivedLabel = intl.formatMessage({
+    id: 'component.transactionRow.archivedPlan',
+    defaultMessage: 'Archived plan',
+  });
   const canMap = mapping.kind !== 'transfer' && mapping.kind !== 'ignored';
 
   function statusChipLabel(status: Transaction['status']): string | null {
@@ -51,8 +56,6 @@ export function TransactionRow({
 
   function mappingChipOf(view: MappingView): { label: string; color: string } | null {
     switch (view.kind) {
-      case 'checking':
-        return null;
       case 'transfer':
         return {
           label: intl.formatMessage({
@@ -70,15 +73,54 @@ export function TransactionRow({
           color: theme.color.text.secondary,
         };
       case 'unmapped':
-        return {
-          label: intl.formatMessage({
-            id: 'component.transactionRow.unmapped',
-            defaultMessage: 'Unmapped',
-          }),
-          color: theme.color.status.danger,
-        };
+        return view.suggested
+          ? {
+              label: intl.formatMessage({
+                id: 'component.transactionRow.suggested',
+                defaultMessage: 'Suggested',
+              }),
+              color: theme.color.status.warning,
+            }
+          : {
+              label: intl.formatMessage({
+                id: 'component.transactionRow.unmapped',
+                defaultMessage: 'Unmapped',
+              }),
+              color: theme.color.status.danger,
+            };
       case 'mapped':
-        return null;
+        return { label: mappedByLabel(view.by), color: mappedByColor(view.by) };
+    }
+  }
+
+  /** Mapping provenance, as in the design ("Auto · AI", "Manual"). */
+  function mappedByLabel(by: MappedBy): string {
+    switch (by) {
+      case 'manual':
+        return intl.formatMessage({
+          id: 'component.transactionRow.mappedBy.manual',
+          defaultMessage: 'Manual',
+        });
+      case 'rule':
+        return intl.formatMessage({
+          id: 'component.transactionRow.mappedBy.rule',
+          defaultMessage: 'Auto · rule',
+        });
+      case 'ai':
+        return intl.formatMessage({
+          id: 'component.transactionRow.mappedBy.ai',
+          defaultMessage: 'Auto · AI',
+        });
+    }
+  }
+
+  function mappedByColor(by: MappedBy): string {
+    switch (by) {
+      case 'manual':
+        return theme.color.text.secondary;
+      case 'rule':
+      case 'ai':
+        return theme.color.accent.default;
     }
   }
 
@@ -141,6 +183,10 @@ export function TransactionRow({
         >
           {mapping.categoryName || mapping.planName || mapping.plannedItemId}
         </span>
+      )}
+
+      {mapping.kind === 'mapped' && mapping.planArchived && (
+        <Chip label={archivedLabel} color={theme.color.text.secondary} />
       )}
 
       {mappingChip !== null && <Chip label={mappingChip.label} color={mappingChip.color} />}

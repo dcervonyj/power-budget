@@ -39,11 +39,6 @@ const OnboardingScreen = lazy(() =>
 const DashboardScreen = lazy(() =>
   import('./screens/app/DashboardScreen.js').then((m) => ({ default: m.DashboardScreen })),
 );
-const TransactionListScreen = lazy(() =>
-  import('./screens/app/TransactionListScreen.js').then((m) => ({
-    default: m.TransactionListScreen,
-  })),
-);
 const TransactionDetailScreen = lazy(() =>
   import('./screens/app/TransactionDetailScreen.js').then((m) => ({
     default: m.TransactionDetailScreen,
@@ -106,8 +101,8 @@ export function App() {
           <Route path="/auth/totp-enroll" element={<TotpEnrollmentScreen />} />
           <Route path="/onboarding" element={<OnboardingScreen />} />
           <Route path="/dashboard" element={<DashboardScreen />} />
-          <Route path="/transactions" element={<TransactionListScreen />} />
-          <Route path="/transactions/:id" element={<TransactionDetailScreen />} />
+          {/* One route, so opening or closing a detail keeps the list (rows, toast). */}
+          <Route path="/transactions/:id?" element={<TransactionDetailScreen />} />
           <Route path="/plans" element={<PlansListScreen />} />
           <Route path="/plans/:id" element={<PlanEditorScreen />} />
           <Route path="/plans/:id/dashboard" element={<PlanDashboardScreen />} />

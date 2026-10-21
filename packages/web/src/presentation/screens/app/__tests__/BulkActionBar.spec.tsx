@@ -74,69 +74,80 @@ describe('BulkActionBar', () => {
     expect(onClear).toHaveBeenCalledOnce();
   });
 
-  it('marks each selected transaction as a transfer (bulk op transfer is a no-op in the API)', async () => {
+  function renderBar(onGone?: () => void): void {
     render(
       <BulkActionBar
         selectedIds={selectedIds}
         onMapAll={onMapAll}
         onClear={onClear}
         onActionComplete={onActionComplete}
+        onGone={onGone}
       />,
       { wrapper },
     );
+  }
+
+  it('marks the selection as transfers in one bulk request', async () => {
+    renderBar();
     fireEvent.click(screen.getByText(/Mark as Transfer/i));
-    await waitFor(() => {
-      expect(mockPost.mock.calls).toEqual([
-        ['/transactions/tx1/transfer', {}],
-        ['/transactions/tx2/transfer', {}],
-        ['/transactions/tx3/transfer', {}],
-      ]);
-    });
-    await waitFor(() => {
-      expect(onActionComplete).toHaveBeenCalled();
-    });
     await waitFor(() => {
       expect(onClear).toHaveBeenCalled();
     });
+    expect(mockPost.mock.calls).toEqual([
+      ['/transactions/bulk', { ids: ['tx1', 'tx2', 'tx3'], op: 'transfer' }],
+    ]);
+    expect(onActionComplete).toHaveBeenCalledOnce();
+    expect(mockPatch).not.toHaveBeenCalled();
   });
 
-  it('patches each selected transaction as ignored', async () => {
-    render(
-      <BulkActionBar
-        selectedIds={selectedIds}
-        onMapAll={onMapAll}
-        onClear={onClear}
-        onActionComplete={onActionComplete}
-      />,
-      { wrapper },
-    );
+  it('ignores the selection in one bulk request', async () => {
+    renderBar();
     fireEvent.click(screen.getByText(/Ignore/i));
     await waitFor(() => {
-      expect(mockPatch.mock.calls).toEqual([
-        ['/transactions/tx1', { ignored: true }],
-        ['/transactions/tx2', { ignored: true }],
-        ['/transactions/tx3', { ignored: true }],
-      ]);
+      expect(onClear).toHaveBeenCalled();
     });
-    expect(mockPost).not.toHaveBeenCalled();
+    expect(mockPost.mock.calls).toEqual([
+      ['/transactions/bulk', { ids: ['tx1', 'tx2', 'tx3'], op: 'ignore' }],
+    ]);
   });
 
   it('keeps the selection and shows an error when an action fails', async () => {
-    mockPatch.mockRejectedValueOnce(new Error('500'));
-    render(
-      <BulkActionBar
-        selectedIds={selectedIds}
-        onMapAll={onMapAll}
-        onClear={onClear}
-        onActionComplete={onActionComplete}
-      />,
-      { wrapper },
-    );
+    mockPost.mockRejectedValueOnce({ response: { status: 500, data: {} } });
+    renderBar();
     fireEvent.click(screen.getByText(/Ignore/i));
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toBeDefined();
+      expect(screen.getByRole('alert').textContent).toBe(
+        'Some transactions could not be updated. Please try again.',
+      );
     });
     expect(onClear).not.toHaveBeenCalled();
+    expect(onActionComplete).not.toHaveBeenCalled();
+  });
+
+  it('explains a 409 already_mapped on transfer', async () => {
+    mockPost.mockRejectedValueOnce({ response: { status: 409, data: { code: 'already_mapped' } } });
+    renderBar();
+    fireEvent.click(screen.getByText(/Mark as Transfer/i));
+    await waitFor(() => {
+      expect(screen.getByRole('alert').textContent).toBe(
+        'Mapped transactions cannot be marked as transfers. Clear their mapping first.',
+      );
+    });
+    expect(onClear).not.toHaveBeenCalled();
+  });
+
+  it('hands a 404 (a transaction is no longer the caller’s) to onGone', async () => {
+    const onGone = vi.fn();
+    mockPost.mockRejectedValueOnce({
+      response: { status: 404, data: { code: 'transaction_not_found' } },
+    });
+    renderBar(onGone);
+    fireEvent.click(screen.getByText(/Ignore/i));
+    await waitFor(() => {
+      expect(onGone).toHaveBeenCalledOnce();
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(onActionComplete).not.toHaveBeenCalled();
   });
 
   it('wraps on narrow widths instead of overflowing horizontally', () => {
