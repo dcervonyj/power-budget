@@ -7,6 +7,7 @@ import { Input } from '../../components/Input.js';
 import { Select } from '../../components/Select.js';
 import { CustomPeriodPicker } from '../../components/CustomPeriodPicker.js';
 import type { CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
+import { formatMoneyInput, parseMinorUnits, parseMoney } from '@power-budget/core';
 import { apiClient } from '../../../AppProviders.js';
 import { PlannedItemHistoryDrawer } from '../../components/PlannedItemHistoryDrawer.js';
 
@@ -32,7 +33,8 @@ interface PlannedItem {
   categoryId: string;
   categoryName?: string;
   direction: Direction;
-  amountMinor: number;
+  /** Minor units; plan item endpoints come with CLN-011 (string per CLN-002, number before). */
+  amountMinor: string | number;
   currency: string;
   version: number;
 }
@@ -41,8 +43,29 @@ interface DraftItem {
   draftId: string;
   categoryId: string;
   direction: Direction;
-  amountMinor: string;
+  /** What the user typed, in major units ("12,50"). */
+  amount: string;
   currency: string;
+}
+
+/** Exact minor units as the API's integer string, or null when the input is not an amount. */
+function toMinorUnitsString(amount: string, currency: string): string | null {
+  if (!currency) {
+    return null;
+  }
+  try {
+    return parseMoney(amount, currency).toString();
+  } catch {
+    return null;
+  }
+}
+
+function toAmountInput(item: PlannedItem): string {
+  try {
+    return formatMoneyInput(parseMinorUnits(String(item.amountMinor)), item.currency);
+  } catch {
+    return '';
+  }
 }
 
 export function PlanEditorScreen(): React.JSX.Element {
@@ -56,14 +79,16 @@ export function PlanEditorScreen(): React.JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [historyDrawer, setHistoryDrawer] = useState<{ planId: string; itemId: string } | null>(null);
+  const [historyDrawer, setHistoryDrawer] = useState<{ planId: string; itemId: string } | null>(
+    null,
+  );
 
   // Draft new item
   const [draftItem, setDraftItem] = useState<DraftItem>({
     draftId: crypto.randomUUID(),
     categoryId: '',
     direction: 'expense',
-    amountMinor: '',
+    amount: '',
     currency: '',
   });
 
@@ -166,14 +191,14 @@ export function PlanEditorScreen(): React.JSX.Element {
 
   const handleAddItem = async (): Promise<void> => {
     if (!plan) return;
-    const amount = parseInt(draftItem.amountMinor, 10);
-    if (!draftItem.categoryId || isNaN(amount) || !draftItem.currency) return;
+    const amountMinor = toMinorUnitsString(draftItem.amount, draftItem.currency);
+    if (!draftItem.categoryId || amountMinor === null) return;
 
     try {
       const res = await apiClient.post<PlannedItem>(`/plans/${plan.id}/items`, {
         categoryId: draftItem.categoryId,
         direction: draftItem.direction,
-        amountMinor: amount,
+        amountMinor,
         currency: draftItem.currency,
       });
       setItems((prev) => [...prev, res.data]);
@@ -181,7 +206,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         draftId: crypto.randomUUID(),
         categoryId: '',
         direction: 'expense',
-        amountMinor: '',
+        amount: '',
         currency: '',
       });
     } catch {
@@ -498,11 +523,13 @@ export function PlanEditorScreen(): React.JSX.Element {
                   </td>
                   <td style={cellStyle}>
                     <input
-                      type="number"
-                      value={item.amountMinor}
-                      onChange={(e) => {
-                        const parsed = parseInt(e.target.value, 10);
-                        if (!isNaN(parsed)) {
+                      key={`${item.id}:${String(item.amountMinor)}`}
+                      type="text"
+                      inputMode="decimal"
+                      defaultValue={toAmountInput(item)}
+                      onBlur={(e) => {
+                        const parsed = toMinorUnitsString(e.target.value, item.currency);
+                        if (parsed !== null && parsed !== String(item.amountMinor)) {
                           void handleUpdateItem(item, { amountMinor: parsed });
                         }
                       }}
@@ -534,7 +561,10 @@ export function PlanEditorScreen(): React.JSX.Element {
                         setHistoryDrawer({ planId: id ?? '', itemId: item.id });
                       }}
                     >
-                      {intl.formatMessage({ id: 'screen.planEditor.historyButton', defaultMessage: 'History' })}
+                      {intl.formatMessage({
+                        id: 'screen.planEditor.historyButton',
+                        defaultMessage: 'History',
+                      })}
                     </Button>
                     <Button
                       variant="danger"
@@ -582,14 +612,15 @@ export function PlanEditorScreen(): React.JSX.Element {
                 </td>
                 <td style={cellStyle}>
                   <input
-                    type="number"
-                    value={draftItem.amountMinor}
+                    type="text"
+                    inputMode="decimal"
+                    value={draftItem.amount}
                     placeholder={intl.formatMessage({
                       id: 'screen.planEditor.itemAmountPlaceholder',
                       defaultMessage: 'Amount',
                     })}
                     onChange={(e) => {
-                      setDraftItem((d) => ({ ...d, amountMinor: e.target.value }));
+                      setDraftItem((d) => ({ ...d, amount: e.target.value }));
                     }}
                     aria-label={intl.formatMessage({
                       id: 'screen.planEditor.itemAmountPlaceholder',

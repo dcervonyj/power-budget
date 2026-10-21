@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
-import { apiClient } from '../../AppProviders.js';
+import { apiClient, bulkTransactionActions } from '../../AppProviders.js';
 
 interface Plan {
   id: string;
@@ -16,7 +16,7 @@ interface PlannedItem {
   categoryId: string;
   categoryName?: string;
   direction: 'income' | 'expense';
-  amountMinor: number;
+  amountMinor: string | number;
   currency: string;
 }
 
@@ -93,11 +93,7 @@ export function MappingModal({
     setSubmitting(true);
     setError(null);
     try {
-      await apiClient.post('/transactions/bulk', {
-        action: 'map',
-        ids: Array.from(selectedIds),
-        plannedItemId: selectedItemId,
-      });
+      await bulkTransactionActions.map(selectedIds, selectedItemId);
       onSuccess();
       onClose();
     } catch {

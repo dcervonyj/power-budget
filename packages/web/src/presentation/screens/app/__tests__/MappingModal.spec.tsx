@@ -7,12 +7,20 @@ import { MappingModal } from '../../../components/MappingModal.js';
 import { apiClient } from '../../../../AppProviders.js';
 import { darkTheme } from '@power-budget/design-tokens';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  apiClient: {
+vi.mock('../../../../AppProviders.js', async () => {
+  const { BulkTransactionActions } =
+    await import('../../../../application/transactions/BulkTransactionActions.js');
+  const client = {
+    request: vi.fn(),
     get: vi.fn(),
-    post: vi.fn().mockResolvedValue({ status: 200, data: {}, headers: {} }),
-  },
-}));
+    post: vi.fn().mockResolvedValue({ status: 204, data: undefined, headers: {} }),
+    put: vi.fn(),
+    patch: vi.fn(),
+    delete: vi.fn(),
+  };
+
+  return { apiClient: client, bulkTransactionActions: new BulkTransactionActions(client) };
+});
 
 const mockGet = vi.mocked(apiClient.get);
 const mockPost = vi.mocked(apiClient.post);
@@ -121,7 +129,7 @@ describe('MappingModal', () => {
     expect(allItems.length).toBe(2);
   });
 
-  it('calls POST /transactions/bulk with map action on confirm', async () => {
+  it('calls POST /transactions/bulk with the op/payload body the API validates', async () => {
     render(
       <MappingModal isOpen selectedIds={selectedIds} onClose={onClose} onSuccess={onSuccess} />,
       { wrapper },
@@ -135,9 +143,9 @@ describe('MappingModal', () => {
 
     await waitFor(() => {
       expect(mockPost).toHaveBeenCalledWith('/transactions/bulk', {
-        action: 'map',
         ids: selectedIds,
-        plannedItemId: 'item-1',
+        op: 'map',
+        payload: { plannedItemId: 'item-1' },
       });
     });
     await waitFor(() => {

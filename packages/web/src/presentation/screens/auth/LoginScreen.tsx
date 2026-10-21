@@ -9,19 +9,38 @@ interface LoginResponse {
   refreshToken: string;
 }
 
-type LoginError = 'invalidCredentials' | 'serverError' | null;
+type LoginError = 'invalidCredentials' | 'invalidTotp' | 'serverError' | null;
 
-function isApiError(err: unknown): err is { response?: { status?: number; data?: unknown } } {
-  return typeof err === 'object' && err !== null && 'response' in err;
+type LoginOutcome = 'requiresTotp' | Exclude<LoginError, null>;
+
+function errorCode(err: unknown): string {
+  if (typeof err !== 'object' || err === null || !('response' in err)) {
+    return '';
+  }
+  const { response } = err;
+  if (typeof response !== 'object' || response === null || !('data' in response)) {
+    return '';
+  }
+  const { data } = response;
+  if (typeof data !== 'object' || data === null || !('code' in data)) {
+    return '';
+  }
+
+  return String(data.code);
 }
 
-function hasRequiresTotp(data: unknown): boolean {
-  return (
-    typeof data === 'object' &&
-    data !== null &&
-    'requires_totp' in data &&
-    (data as Record<string, unknown>)['requires_totp'] === true
-  );
+/** Error bodies carry a stable `code` (CLN-002): 403 requires_totp, 401 totp_invalid ... */
+function classifyLoginError(err: unknown): LoginOutcome {
+  switch (errorCode(err)) {
+    case 'requires_totp':
+      return 'requiresTotp';
+    case 'totp_invalid':
+      return 'invalidTotp';
+    case 'invalid_credentials':
+      return 'invalidCredentials';
+    default:
+      return 'serverError';
+  }
 }
 
 export function LoginScreen(): React.JSX.Element {
@@ -48,10 +67,11 @@ export function LoginScreen(): React.JSX.Element {
       await tokenStore.setTokens(res.data.accessToken, res.data.refreshToken);
       navigate('/dashboard');
     } catch (err) {
-      if (isApiError(err) && err.response?.status === 401 && hasRequiresTotp(err.response.data)) {
+      const outcome = classifyLoginError(err);
+      if (outcome === 'requiresTotp') {
         setShowTotp(true);
       } else {
-        setLoginError('invalidCredentials');
+        setLoginError(outcome);
       }
     } finally {
       setIsLoading(false);
@@ -98,6 +118,14 @@ export function LoginScreen(): React.JSX.Element {
             <FormattedMessage
               id="screen.login.error.invalidCredentials"
               defaultMessage="Invalid email or password."
+            />
+          </p>
+        )}
+        {loginError === 'invalidTotp' && (
+          <p>
+            <FormattedMessage
+              id="screen.login.error.invalidTotp"
+              defaultMessage="Invalid authenticator code."
             />
           </p>
         )}
