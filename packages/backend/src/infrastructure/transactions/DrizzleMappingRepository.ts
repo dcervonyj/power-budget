@@ -195,13 +195,16 @@ export class DrizzleMappingRepository implements MappingRepository {
         currency: amount.currency,
         mappedBy: by,
         mappedAt: new Date(),
+        source: 'manual',
       })
       .onConflictDoUpdate({
         target: schema.transactionMappings.transactionId,
+        // A user's choice replaces any rule or AI mapping.
         set: {
           plannedItemId,
           mappedBy: by,
           mappedAt: new Date(),
+          source: 'manual',
         },
       });
   }

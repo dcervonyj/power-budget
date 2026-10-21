@@ -41,20 +41,20 @@ describe('MarkAsTransferUseCase', () => {
   });
 
   it('throws TransactionNotFoundError when transaction does not exist', async () => {
-    txRepo.findById.mockResolvedValue(null);
+    txRepo.findOwnedById.mockResolvedValue(null);
 
     await expect(useCase.execute(baseInput)).rejects.toThrow(TransactionNotFoundError);
   });
 
   it('throws AlreadyMappedError when transaction has an existing mapping', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     mappingRepo.findByTransaction.mockResolvedValue(fakeMapping);
 
     await expect(useCase.execute(baseInput)).rejects.toThrow(AlreadyMappedError);
   });
 
   it('marks transaction as transfer', async () => {
-    txRepo.findById.mockResolvedValue(fakeTx);
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
     mappingRepo.findByTransaction.mockResolvedValue(null);
     transferRepo.mark.mockResolvedValue(
       'tr-1' as unknown as ReturnType<typeof transferRepo.mark> extends Promise<infer R>
@@ -65,5 +65,18 @@ describe('MarkAsTransferUseCase', () => {
     await useCase.execute(baseInput);
 
     expect(transferRepo.mark).toHaveBeenCalledWith(txId, null, userId, { householdId });
+  });
+
+  it("rejects a counterpart that is not on the caller's own accounts and writes nothing", async () => {
+    const counterpartId = 'tx-2' as unknown as TransactionId;
+    txRepo.findOwnedById.mockImplementation(async (id) => (id === txId ? fakeTx : null));
+
+    await expect(useCase.execute({ ...baseInput, counterpartId })).rejects.toThrow(
+      TransactionNotFoundError,
+    );
+
+    expect(txRepo.findOwnedById).toHaveBeenCalledWith(txId, userId, { householdId });
+    expect(txRepo.findOwnedById).toHaveBeenCalledWith(counterpartId, userId, { householdId });
+    expect(transferRepo.mark).not.toHaveBeenCalled();
   });
 });

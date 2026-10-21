@@ -310,10 +310,11 @@ export class BankController {
   @Get(':id/accounts')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'List bank accounts for a connection' })
+  @ApiOperation({ summary: "List bank accounts of one of the caller's own connections" })
   @ApiParam({ name: 'id', description: 'Bank connection ID' })
   @ApiResponse({ status: 200, description: 'List of bank accounts', type: [BankAccountDto] })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: "Connection not found or the partner's" })
   async listAccounts(
     @Param('id', UUID_V7_PIPE) id: string,
     @CurrentUser() user: AuthenticatedUser,
@@ -325,6 +326,7 @@ export class BankController {
     const accounts = await this.listConnectionAccounts.execute({
       connectionId: BankConnectionId.of(id),
       householdId: user.householdId,
+      userId: user.userId,
     });
 
     return accounts.map(toBankAccountDto);

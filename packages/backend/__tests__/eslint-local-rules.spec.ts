@@ -40,6 +40,8 @@ describe('no-repo-without-scope', () => {
         { code: `this.mappingRepo.bulkSet(items, by, { householdId })` },
         { code: `this.transferRepo.mark(id, counterpart, by, input.scope)` },
         { code: `deps.planRepository.archive(id, at, this.scope)` },
+        { code: `this.accountRepo.listOwned(userId, { householdId })` },
+        { code: `this.transactionRepo.findOwnedAccount(accountId, userId, scope)` },
         // Computed members are not repository calls the rule can reason about
         { code: `this.repos[name].findById(id)` },
         // Repositories exempted through the option
@@ -92,6 +94,27 @@ describe('no-repo-without-scope', () => {
         },
         {
           code: `this.planRepository.archive(id, at, { userId })`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        // CLN-023: account reads and writes
+        {
+          code: `this.accountRepo.listOwned(userId)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.accountRepo.createManual(input)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.transactionRepo.findOwnedAccount(accountId, userId)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.transactionRepo.findOwnedById(id, userId)`,
+          errors: [{ messageId: 'missingScope' }],
+        },
+        {
+          code: `this.transactionRepo.findOwnedIds(ids, userId)`,
           errors: [{ messageId: 'missingScope' }],
         },
         // The option exempts only matching receivers

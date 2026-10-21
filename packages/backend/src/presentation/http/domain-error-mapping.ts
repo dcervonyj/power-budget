@@ -105,6 +105,11 @@ const BY_MESSAGE_CODE: Readonly<Record<string, HttpErrorMapping>> = {
     'bank_account_not_found',
     'Bank account not found',
   ),
+  TRANSACTION_CURRENCY_MISMATCH: mapping(
+    HttpStatus.BAD_REQUEST,
+    'transaction_currency_mismatch',
+    'The amount must be in the account currency',
+  ),
   PLANNED_ITEM_NOT_FOUND: mapping(
     HttpStatus.NOT_FOUND,
     'planned_item_not_found',

@@ -377,9 +377,9 @@ describe('Plan and household dashboards (real app, 2-member household)', () => {
       [connection, member.householdId, member.userId],
     );
     await getPool().query(
-      `INSERT INTO bank_accounts (id, household_id, connection_id, external_id, name, currency)
-       VALUES ($1, $2, $3, $4, 'Main', $5)`,
-      [account, member.householdId, connection, account, currency],
+      `INSERT INTO bank_accounts (id, household_id, owner_user_id, connection_id, external_id, name, currency)
+       VALUES ($1, $2, $3, $4, $5, 'Main', $6)`,
+      [account, member.householdId, member.userId, connection, account, currency],
     );
 
     return account;

@@ -143,9 +143,9 @@ describe('HTTP hygiene: validation, error codes, bigint money (real app)', () =>
       [connectionId, householdId, userId],
     );
     await getPool().query(
-      `INSERT INTO bank_accounts (id, household_id, connection_id, external_id, name, currency, balance_minor)
-       VALUES ($1, $2, $3, 'ext-1', 'Main', 'PLN', $4)`,
-      [accountId, householdId, connectionId, BEYOND_SAFE],
+      `INSERT INTO bank_accounts (id, household_id, owner_user_id, connection_id, external_id, name, currency, balance_minor)
+       VALUES ($1, $2, $3, $4, 'ext-1', 'Main', 'PLN', $5)`,
+      [accountId, householdId, userId, connectionId, BEYOND_SAFE],
     );
 
     const created = await app.inject({

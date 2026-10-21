@@ -24,7 +24,8 @@ export class MarkAsTransferUseCase {
   ) {}
 
   async execute(input: MarkAsTransferInput): Promise<void> {
-    const tx = await this.transactionRepo.findById(input.transactionId, {
+    // Transfers move money between the caller's own accounts: both sides must be theirs.
+    const tx = await this.transactionRepo.findOwnedById(input.transactionId, input.by, {
       householdId: input.householdId,
     });
     if (tx === null) {
@@ -33,7 +34,11 @@ export class MarkAsTransferUseCase {
 
     const scope = { householdId: input.householdId };
     if (input.counterpartId !== null) {
-      const counterpart = await this.transactionRepo.findById(input.counterpartId, scope);
+      const counterpart = await this.transactionRepo.findOwnedById(
+        input.counterpartId,
+        input.by,
+        scope,
+      );
       if (counterpart === null) {
         throw new TransactionNotFoundError();
       }

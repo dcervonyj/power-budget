@@ -61,9 +61,9 @@ describe('Integration: transaction list keyset pagination (CLN-008r)', () => {
       [connectionId, householdId, userId],
     );
     await q.query(
-      `INSERT INTO bank_accounts (id, household_id, connection_id, external_id, name, currency)
-       VALUES ($1, $2, $3, 'ext', 'Main', 'PLN')`,
-      [accountId, householdId, connectionId],
+      `INSERT INTO bank_accounts (id, household_id, owner_user_id, connection_id, external_id, name, currency)
+       VALUES ($1, $2, $3, $4, 'ext', 'Main', 'PLN')`,
+      [accountId, householdId, userId, connectionId],
     );
     for (let i = 0; i < TOTAL; i++) {
       await q.query(

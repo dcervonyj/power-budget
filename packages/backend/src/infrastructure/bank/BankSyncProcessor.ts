@@ -45,12 +45,9 @@ export class BankSyncProcessor extends WorkerHost {
 
     try {
       const connector = this.connectorRegistry.resolve(connection.provider);
-      const accounts = await connector.listAccounts(
-        connectionId,
-        connection.encryptedConsent,
-      );
+      const accounts = await connector.listAccounts(connectionId, connection.encryptedConsent);
 
-      await this.bankAccountRepo.upsertAll(accounts, connectionId, scope);
+      await this.bankAccountRepo.upsertAll(accounts, connectionId, connection.userId, scope);
 
       const dbAccounts = await this.bankAccountRepo.listByConnection(connectionId, scope);
 
