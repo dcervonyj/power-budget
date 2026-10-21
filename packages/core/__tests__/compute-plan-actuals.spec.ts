@@ -81,7 +81,7 @@ function makeEurPlnTable(): FxRateTable {
     id: id('fx-1'),
     baseCurrency: 'EUR',
     quoteCurrency: 'PLN',
-    rate: 4.25,
+    rate: '4.25',
     rateDate: id('2024-01-31'),
     source: 'ecb',
     fetchedAt: id('2024-01-31T16:30:00Z'),
