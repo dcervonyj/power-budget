@@ -61,8 +61,15 @@
     {
       "idx": 8,
       "version": "7",
-      "when": 1792587938004,
-      "tag": "0008_cln-004_totp_hardening",
+      "when": 1792586372460,
+      "tag": "0008_rls_tenancy",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792592772579,
+      "tag": "0009_cln-004_totp_hardening",
       "breakpoints": true
     }
   ]

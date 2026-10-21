@@ -67,7 +67,7 @@ describe('MapTransactionUseCase', () => {
 
     await useCase.execute(baseInput);
 
-    expect(mappingRepo.set).toHaveBeenCalledWith(txId, plannedItemId, userId);
+    expect(mappingRepo.set).toHaveBeenCalledWith(txId, plannedItemId, userId, { householdId });
     expect(refreshPort.scheduleRefresh).toHaveBeenCalledWith(planId);
   });
 
@@ -79,7 +79,7 @@ describe('MapTransactionUseCase', () => {
 
     await useCase.execute({ ...baseInput, plannedItemId: null });
 
-    expect(mappingRepo.set).toHaveBeenCalledWith(txId, null, userId);
+    expect(mappingRepo.set).toHaveBeenCalledWith(txId, null, userId, { householdId });
     expect(refreshPort.scheduleRefresh).toHaveBeenCalledWith(planId);
   });
 });

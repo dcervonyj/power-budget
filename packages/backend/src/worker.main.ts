@@ -8,7 +8,7 @@ async function bootstrap(): Promise<void> {
   });
   app.enableShutdownHooks();
   console.log(
-    'Worker started — consuming queues: bank-sync, notification-dispatch, outbox-relay, period-close, ecb-fx, refresh-plan-actuals',
+    'Worker started — consuming queues: bank-sync, notification-dispatch, period-close, ecb-fx, refresh-plan-actuals',
   );
 }
 

@@ -55,7 +55,7 @@ describe('RemovePlannedItemUseCase', () => {
 
     await useCase.execute({ planId: PLAN_ID, itemId: ITEM_ID, householdId: HH_ID });
 
-    expect(plannedItemRepo.remove).toHaveBeenCalledWith(ITEM_ID);
+    expect(plannedItemRepo.remove).toHaveBeenCalledWith(ITEM_ID, { householdId: HH_ID });
   });
 
   it('throws PLAN_NOT_FOUND when plan is not in household', async () => {

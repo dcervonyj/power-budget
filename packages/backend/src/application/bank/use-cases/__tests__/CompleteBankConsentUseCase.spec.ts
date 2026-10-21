@@ -83,8 +83,15 @@ describe('CompleteBankConsentUseCase', () => {
       externalConsentRef: 'wise-mallory-ref',
       callbackPayload: { apiToken: 'mallory-token' },
     });
-    expect(connectionRepo.updateConsent).toHaveBeenCalledWith(MALLORY_CONN, MALLORY_TOKEN, null);
-    expect(connectionRepo.updateConsent).not.toHaveBeenCalledWith(ALICE_CONN, MALLORY_TOKEN, null);
+    expect(connectionRepo.updateConsent).toHaveBeenCalledWith(MALLORY_CONN, MALLORY_TOKEN, null, {
+      householdId: MALLORY_HOUSEHOLD,
+    });
+    expect(connectionRepo.updateConsent).not.toHaveBeenCalledWith(
+      ALICE_CONN,
+      MALLORY_TOKEN,
+      null,
+      expect.anything(),
+    );
   });
 
   it("refuses to complete another household's connection", async () => {

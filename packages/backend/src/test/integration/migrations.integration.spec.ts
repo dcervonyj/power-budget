@@ -137,24 +137,34 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     },
   );
 
-  it('keeps 0003_rls_policies out of the journal; all but the known-broken transaction_mappings policy apply (CLN-005)', async () => {
+  it('enables and forces row level security on every tenant data table (CLN-005)', async () => {
     const pool = await createDatabase(`rls_${SUFFIX}`);
     await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
-    const rlsSql = readFileSync(path.join(MIGRATIONS, '0003_rls_policies.sql'), 'utf8');
-    const rlsState = "SELECT relrowsecurity FROM pg_class WHERE relname = 'transactions'";
-    expect((await pool.query(rlsState)).rows[0].relrowsecurity).toBe(false);
 
-    // Known defect (audit C6): transaction_mappings has no household_id column,
-    // so the file as written fails. CLN-005 must fix it, then drop this assertion.
-    await expect(pool.query(rlsSql)).rejects.toMatchObject({ code: '42703' });
-    expect((await pool.query(rlsState)).rows[0].relrowsecurity).toBe(false);
-
-    const withoutBrokenPolicy = rlsSql.replace(
-      /ALTER TABLE transaction_mappings[\s\S]*?household_id[^;]*;\n/,
-      '',
+    const { rows } = await pool.query<{ relname: string; enabled: boolean; forced: boolean }>(
+      `SELECT relname, relrowsecurity AS enabled, relforcerowsecurity AS forced
+         FROM pg_class
+        WHERE relnamespace = 'public'::regnamespace AND relkind = 'r' AND relrowsecurity
+        ORDER BY relname`,
     );
-    await pool.query(withoutBrokenPolicy);
-    expect((await pool.query(rlsState)).rows[0].relrowsecurity).toBe(true);
+
+    expect(rows.map((r) => r.relname)).toEqual([
+      'audit_log',
+      'bank_accounts',
+      'bank_connections',
+      'categories',
+      'category_privacy',
+      'household_exports',
+      'leftover_snapshots',
+      'planned_item_versions',
+      'planned_items',
+      'plans',
+      'sync_runs',
+      'transaction_mappings',
+      'transactions',
+      'transfers',
+    ]);
+    expect(rows.every((r) => r.enabled && r.forced)).toBe(true);
   });
 
   describe('least-privilege app role', () => {
@@ -217,6 +227,13 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
       await owner.query('CREATE TABLE later_table (id int PRIMARY KEY)');
 
       await expect(app.query('INSERT INTO later_table VALUES (1)')).resolves.toBeDefined();
+    });
+
+    it('makes audit_log append-only for the app role', async () => {
+      await expect(app.query("UPDATE audit_log SET action = 'x'")).rejects.toMatchObject({
+        code: '42501',
+      });
+      await expect(app.query('DELETE FROM audit_log')).rejects.toMatchObject({ code: '42501' });
     });
 
     it('is idempotent', async () => {

@@ -37,6 +37,7 @@ const APPLIED = [
   [4, '0004_be-030_plan_actuals_view', 1778860930461],
   [5, '0004_be-034_exports_soft_delete', 1778860930462],
   [6, '0005_be-029_email_bouncing', 1778860930463],
+  [7, '0007_refresh_plan_actuals_fn', 1792583357095],
 ] as const;
 
 describe('drizzle migration hygiene (CLN-018)', () => {
@@ -57,7 +58,7 @@ describe('drizzle migration hygiene (CLN-018)', () => {
     });
   });
 
-  it('has a SQL file for every journal entry and no unjournaled SQL besides 0003_rls_policies', () => {
+  it('has a SQL file for every journal entry and no unjournaled SQL', () => {
     const tags = journal.map((e) => e.tag);
     for (const tag of tags) {
       expect(existsSync(path.join(MIGRATIONS, `${tag}.sql`)), tag).toBe(true);
@@ -67,7 +68,7 @@ describe('drizzle migration hygiene (CLN-018)', () => {
       .map((f) => f.replace(/\.sql$/, ''));
     const unjournaled = sqlFiles.filter((f) => !tags.includes(f));
 
-    expect(unjournaled).toEqual(['0003_rls_policies']);
+    expect(unjournaled).toEqual([]);
   });
 
   it('has a snapshot for every journal entry, chained by prevId', () => {

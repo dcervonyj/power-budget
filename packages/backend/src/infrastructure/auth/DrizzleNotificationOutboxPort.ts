@@ -1,13 +1,21 @@
-import { randomUUID } from 'node:crypto';
-import { Inject } from '@nestjs/common';
+import { Inject, Logger } from '@nestjs/common';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { uuidv7 } from 'uuidv7';
 import type { UserId } from '@power-budget/core';
 import type { NotificationOutboxPort } from '../../domain/auth/ports.js';
+import type { NotificationDispatchQueue } from '../../domain/notifications/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
+import { BullMQNotificationDispatchQueue } from '../notifications/BullMQNotificationDispatchQueue.js';
 import * as schema from '../../../drizzle/schema.js';
 
 export class DrizzleNotificationOutboxPort implements NotificationOutboxPort {
-  constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
+  private readonly logger = new Logger(DrizzleNotificationOutboxPort.name);
+
+  constructor(
+    @Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>,
+    @Inject(BullMQNotificationDispatchQueue)
+    private readonly dispatchQueue: NotificationDispatchQueue,
+  ) {}
 
   async enqueue(event: {
     kind: string;
@@ -15,16 +23,36 @@ export class DrizzleNotificationOutboxPort implements NotificationOutboxPort {
     payload: Record<string, unknown>;
     dedupeKey: string;
   }): Promise<void> {
-    await this.db
+    const inserted = await this.db
       .insert(schema.notificationsOutbox)
       .values({
-        id: randomUUID(),
+        id: uuidv7(),
         recipientUserId: event.userId,
         kind: event.kind,
         dedupeKey: event.dedupeKey,
         payload: event.payload,
         createdAt: new Date(),
       })
-      .onConflictDoNothing();
+      .onConflictDoNothing()
+      .returning({ id: schema.notificationsOutbox.id });
+
+    for (const row of inserted) {
+      await this.scheduleNow(row.id);
+    }
+  }
+
+  /**
+   * Sign-in emails should not wait for the 5-minute relay cron. The row is
+   * already committed, so a Redis failure here only delays the email until the
+   * relay picks the row up.
+   */
+  private async scheduleNow(outboxId: string): Promise<void> {
+    try {
+      await this.dispatchQueue.schedule(outboxId);
+    } catch (err) {
+      this.logger.warn(
+        `Dispatch of ${outboxId} left to the outbox relay: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
   }
 }

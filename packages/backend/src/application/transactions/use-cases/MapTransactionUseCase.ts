@@ -34,12 +34,13 @@ export class MapTransactionUseCase {
       throw new TransactionNotFoundError();
     }
 
-    const transfer = await this.transferRepo.findByTransaction(input.transactionId);
+    const scope = { householdId: input.householdId };
+    const transfer = await this.transferRepo.findByTransaction(input.transactionId, scope);
     if (transfer !== null) {
       throw new AlreadyTransferError();
     }
 
-    await this.mappingRepo.set(input.transactionId, input.plannedItemId, input.by);
+    await this.mappingRepo.set(input.transactionId, input.plannedItemId, input.by, scope);
     await this.refreshPort.scheduleRefresh(input.planId);
   }
 }

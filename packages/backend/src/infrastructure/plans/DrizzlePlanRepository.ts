@@ -71,11 +71,11 @@ export class DrizzlePlanRepository implements PlanRepository {
     return this.toEntity(row);
   }
 
-  async archive(id: PlanId, at: Date): Promise<void> {
+  async archive(id: PlanId, at: Date, scope: HouseholdScope): Promise<void> {
     await this.db
       .update(schema.plans)
       .set({ archivedAt: at, updatedAt: at })
-      .where(eq(schema.plans.id, id));
+      .where(and(eq(schema.plans.id, id), eq(schema.plans.householdId, scope.householdId)));
   }
 
   async findByPeriodEnd(date: Date): Promise<Plan[]> {

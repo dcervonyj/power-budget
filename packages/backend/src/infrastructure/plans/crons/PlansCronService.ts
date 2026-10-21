@@ -20,6 +20,9 @@ export class PlansCronService {
       {
         // One job per UTC day; BullMQ rejects custom ids with a single ':'.
         jobId: `period-close-${now.toISOString().slice(0, 10)}`,
+        // A failed plan fails the job; retries skip the plans already closed.
+        attempts: 5,
+        backoff: { type: 'exponential', delay: 60_000 },
         removeOnComplete: true,
         removeOnFail: false,
       },

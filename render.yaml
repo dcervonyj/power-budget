@@ -40,16 +40,17 @@ services:
         sync: false
       - key: KEK_BASE64
         sync: false
-      - key: SMTP_HOST
+      # Required: the embedded worker refuses to boot without it (staging/production).
+      # Email goes out through Resend only; there is no SMTP channel.
+      - key: RESEND_API_KEY
         sync: false
-      - key: SMTP_PORT
+      # Optional sender, e.g. "Power Budget <noreply@your-verified-domain>". The domain
+      # must be verified in Resend. Default: Power Budget <noreply@powerbudget.app>.
+      - key: EMAIL_FROM
         sync: false
-      - key: SMTP_USER
-        sync: false
-      - key: SMTP_PASSWORD
-        sync: false
-      - key: SMTP_FROM
-        sync: false
+      # Web app origin used in email links (magic-link sign-in, invites).
+      - key: APP_BASE_URL
+        value: "https://power-budget.pages.dev"
       - key: SENTRY_DSN
         sync: false
       - key: GOCARDLESS_SECRET_ID
