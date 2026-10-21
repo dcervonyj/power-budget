@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { UserId } from '@power-budget/core';
 import type { MagicLinkTokenRepository } from '../../domain/auth/ports.js';
@@ -18,20 +18,37 @@ export class DrizzleMagicLinkTokenRepository implements MagicLinkTokenRepository
     });
   }
 
-  async consume(tokenHash: string): Promise<{ userId: UserId } | null> {
-    const now = new Date();
+  async find(tokenHash: string): Promise<{ userId: UserId } | null> {
     const rows = await this.db
-      .select()
+      .select({ userId: schema.magicLinkTokens.userId })
       .from(schema.magicLinkTokens)
-      .where(eq(schema.magicLinkTokens.tokenHash, tokenHash));
+      .where(this.liveToken(tokenHash));
 
-    const row = rows[0];
-    if (!row || row.expiresAt < now) return null;
-
-    await this.db
-      .delete(schema.magicLinkTokens)
-      .where(eq(schema.magicLinkTokens.tokenHash, tokenHash));
-
-    return { userId: row.userId as UserId };
+    return toResult(rows[0]);
   }
+
+  async consume(tokenHash: string): Promise<{ userId: UserId } | null> {
+    // DELETE ... RETURNING: the row goes to exactly one caller (audit M9).
+    const rows = await this.db
+      .delete(schema.magicLinkTokens)
+      .where(this.liveToken(tokenHash))
+      .returning({ userId: schema.magicLinkTokens.userId });
+
+    return toResult(rows[0]);
+  }
+
+  private liveToken(tokenHash: string) {
+    return and(
+      eq(schema.magicLinkTokens.tokenHash, tokenHash),
+      gt(schema.magicLinkTokens.expiresAt, new Date()),
+    );
+  }
+}
+
+function toResult(row: { userId: string } | undefined): { userId: UserId } | null {
+  if (row === undefined) {
+    return null;
+  }
+
+  return { userId: row.userId as UserId };
 }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
+import type { Redis } from 'ioredis';
 import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
 import { AuthController } from './AuthController.js';
 import { UsersController } from './UsersController.js';
@@ -16,11 +17,17 @@ import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/Drizz
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from '../../infrastructure/auth/DrizzleHouseholdInviteRepository.js';
 import { DrizzleNotificationOutboxPort } from '../../infrastructure/auth/DrizzleNotificationOutboxPort.js';
-import { DrizzleBankConnectionChecker } from '../../infrastructure/auth/DrizzleBankConnectionChecker.js';
 import { Argon2PasswordHashing } from '../../infrastructure/auth/Argon2PasswordHashing.js';
 import { OtplibTotpVerifier } from '../../infrastructure/auth/OtplibTotpVerifier.js';
 import { JwtAccessTokenIssuerAdapter } from '../../infrastructure/auth/JwtAccessTokenIssuer.js';
-import { RedisRefreshTokenStore } from '../../infrastructure/auth/RedisRefreshTokenStore.js';
+import {
+  RedisRefreshTokenStore,
+  REDIS_CLIENT,
+} from '../../infrastructure/auth/RedisRefreshTokenStore.js';
+import { EnvKekEncryption } from '../../infrastructure/auth/EnvKekEncryption.js';
+import { TotpAuthenticator } from '../../application/auth/services/TotpAuthenticator.js';
+import { LoginPolicy } from '../../application/auth/services/LoginPolicy.js';
+import { buildThrottlerOptions } from './throttling.js';
 import { RedisTotpStepUpStore } from '../../infrastructure/auth/RedisTotpStepUpStore.js';
 import { RegisterUserUseCase } from '../../application/auth/use-cases/RegisterUserUseCase.js';
 import { LoginWithPasswordUseCase } from '../../application/auth/use-cases/LoginWithPasswordUseCase.js';
@@ -39,17 +46,49 @@ import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/Exp
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 
 @Module({
-  imports: [AuthModule, ConfigModule],
+  imports: [
+    AuthModule,
+    ConfigModule,
+    // Per-IP and per-account limits on the credential endpoints, counted in Redis (audit H4).
+    ThrottlerModule.forRootAsync({
+      imports: [AuthModule],
+      inject: [REDIS_CLIENT],
+      useFactory: (redis: Redis) => buildThrottlerOptions(redis),
+    }),
+  ],
   controllers: [AuthController, UsersController, HouseholdsController],
   providers: [
     JwtAuthGuard,
+    TotpStepUpGuard,
     {
-      // RedisTotpStepUpStore is a type-only import in the guard, so decorator
-      // metadata cannot resolve it — wire explicitly.
-      provide: TotpStepUpGuard,
-      inject: [Reflector, RedisTotpStepUpStore],
-      useFactory: (reflector: Reflector, stepUpStore: RedisTotpStepUpStore) =>
-        new TotpStepUpGuard(reflector, stepUpStore),
+      provide: TotpAuthenticator,
+      inject: [
+        DrizzleTotpSecretRepository,
+        OtplibTotpVerifier,
+        EnvKekEncryption,
+        RedisTotpStepUpStore,
+      ],
+      useFactory: (
+        totpSecretRepo: DrizzleTotpSecretRepository,
+        totpVerifier: OtplibTotpVerifier,
+        encryption: EnvKekEncryption,
+        stepUpStore: RedisTotpStepUpStore,
+      ) => new TotpAuthenticator(totpSecretRepo, totpVerifier, encryption, stepUpStore),
+    },
+    {
+      provide: LoginPolicy,
+      inject: [
+        TotpAuthenticator,
+        DrizzleHouseholdRepository,
+        JwtAccessTokenIssuerAdapter,
+        RedisRefreshTokenStore,
+      ],
+      useFactory: (
+        totp: TotpAuthenticator,
+        householdRepo: DrizzleHouseholdRepository,
+        jwtIssuer: JwtAccessTokenIssuerAdapter,
+        refreshTokenStore: RedisRefreshTokenStore,
+      ) => new LoginPolicy(totp, householdRepo, jwtIssuer, refreshTokenStore),
     },
     AppConfigAdapter,
     {
@@ -78,36 +117,12 @@ import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteH
     },
     {
       provide: LoginWithPasswordUseCase,
-      inject: [
-        DrizzleUserRepository,
-        DrizzleHouseholdRepository,
-        Argon2PasswordHashing,
-        OtplibTotpVerifier,
-        DrizzleTotpSecretRepository,
-        DrizzleBankConnectionChecker,
-        JwtAccessTokenIssuerAdapter,
-        RedisRefreshTokenStore,
-      ],
+      inject: [DrizzleUserRepository, Argon2PasswordHashing, LoginPolicy],
       useFactory: (
         userRepo: DrizzleUserRepository,
-        householdRepo: DrizzleHouseholdRepository,
         passwordHashing: Argon2PasswordHashing,
-        totpVerifier: OtplibTotpVerifier,
-        totpSecretRepo: DrizzleTotpSecretRepository,
-        bankConnectionChecker: DrizzleBankConnectionChecker,
-        jwtIssuer: JwtAccessTokenIssuerAdapter,
-        refreshTokenStore: RedisRefreshTokenStore,
-      ) =>
-        new LoginWithPasswordUseCase(
-          userRepo,
-          householdRepo,
-          passwordHashing,
-          totpVerifier,
-          totpSecretRepo,
-          bankConnectionChecker,
-          jwtIssuer,
-          refreshTokenStore,
-        ),
+        loginPolicy: LoginPolicy,
+      ) => new LoginWithPasswordUseCase(userRepo, passwordHashing, loginPolicy),
     },
     {
       provide: RequestMagicLinkUseCase,
@@ -124,45 +139,20 @@ import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteH
     },
     {
       provide: ConsumeMagicLinkUseCase,
-      inject: [
-        DrizzleUserRepository,
-        DrizzleHouseholdRepository,
-        DrizzleMagicLinkTokenRepository,
-        JwtAccessTokenIssuerAdapter,
-        RedisRefreshTokenStore,
-      ],
-      useFactory: (
-        userRepo: DrizzleUserRepository,
-        householdRepo: DrizzleHouseholdRepository,
-        magicLinkTokenRepo: DrizzleMagicLinkTokenRepository,
-        jwtIssuer: JwtAccessTokenIssuerAdapter,
-        refreshTokenStore: RedisRefreshTokenStore,
-      ) =>
-        new ConsumeMagicLinkUseCase(
-          userRepo,
-          householdRepo,
-          magicLinkTokenRepo,
-          jwtIssuer,
-          refreshTokenStore,
-        ),
+      inject: [DrizzleMagicLinkTokenRepository, LoginPolicy],
+      useFactory: (magicLinkTokenRepo: DrizzleMagicLinkTokenRepository, loginPolicy: LoginPolicy) =>
+        new ConsumeMagicLinkUseCase(magicLinkTokenRepo, loginPolicy),
     },
     {
       provide: EnableTotpUseCase,
-      inject: [DrizzleUserRepository, OtplibTotpVerifier, DrizzleTotpSecretRepository],
-      useFactory: (
-        userRepo: DrizzleUserRepository,
-        totpVerifier: OtplibTotpVerifier,
-        totpSecretRepo: DrizzleTotpSecretRepository,
-      ) => new EnableTotpUseCase(userRepo, totpVerifier, totpSecretRepo),
+      inject: [DrizzleUserRepository, TotpAuthenticator],
+      useFactory: (userRepo: DrizzleUserRepository, totp: TotpAuthenticator) =>
+        new EnableTotpUseCase(userRepo, totp),
     },
     {
       provide: VerifyTotpUseCase,
-      inject: [OtplibTotpVerifier, DrizzleTotpSecretRepository, RedisTotpStepUpStore],
-      useFactory: (
-        totpVerifier: OtplibTotpVerifier,
-        totpSecretRepo: DrizzleTotpSecretRepository,
-        stepUpStore: RedisTotpStepUpStore,
-      ) => new VerifyTotpUseCase(totpVerifier, totpSecretRepo, stepUpStore),
+      inject: [TotpAuthenticator],
+      useFactory: (totp: TotpAuthenticator) => new VerifyTotpUseCase(totp),
     },
     {
       provide: RefreshTokenUseCase,

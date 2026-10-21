@@ -71,7 +71,7 @@ export class AlreadyInHouseholdError extends Error {
 export class TotpEnrollmentRequiredError extends Error {
   readonly code = 'requires_totp_enrollment';
   constructor() {
-    super('TOTP enrollment required before connecting a bank account');
+    super('TOTP enrollment required');
     this.name = 'TotpEnrollmentRequiredError';
   }
 }

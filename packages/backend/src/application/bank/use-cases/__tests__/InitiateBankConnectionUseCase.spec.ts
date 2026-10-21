@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId, BankConnectionId } from '@power-budget/core';
+import type { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
 import type {
   BankConnectionRepository,
   BankConnectorRegistry,
@@ -35,9 +35,10 @@ function makeConnection(overrides?: Partial<BankConnection>): BankConnection {
 function makeTotp(verifiedAt: Date | null = new Date()): TotpSecret {
   return {
     userId: TEST_USER_ID,
-    encryptedSecret: 'enc-secret',
+    encryptedSecret: 'enc-secret' as EncryptedString,
     enrolledAt: new Date(),
     verifiedAt,
+    lastUsedTimeStep: null,
   };
 }
 

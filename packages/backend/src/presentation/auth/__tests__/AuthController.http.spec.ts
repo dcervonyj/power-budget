@@ -1,12 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthController } from '../AuthController.js';
+import { AUTH_THROTTLERS } from '../throttling.js';
 import { createHttpTestApp, type HttpTestApp } from '../../../test/http/createHttpTestApp.js';
 
 describe('Google OAuth routes (HTTP)', () => {
   let app: HttpTestApp;
 
   beforeEach(async () => {
-    app = await createHttpTestApp({ controllers: [AuthController] });
+    app = await createHttpTestApp({
+      controllers: [AuthController],
+      imports: [ThrottlerModule.forRoot({ throttlers: [...AUTH_THROTTLERS] })],
+    });
   });
 
   afterEach(async () => {
