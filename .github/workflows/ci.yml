@@ -61,6 +61,9 @@ jobs:
           pnpm exec prettier --write packages/backend/openapi.json
           git diff --exit-code packages/backend/openapi.json
 
+      - name: Check drizzle migration drift
+        run: pnpm --filter @power-budget/backend db:check
+
       - name: Check API types drift
         run: |
           pnpm --filter @power-budget/shared-app codegen
