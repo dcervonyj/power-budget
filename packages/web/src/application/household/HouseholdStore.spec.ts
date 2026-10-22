@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import type {
   HouseholdDashboardResponseDto,
   HouseholdInviteResponseDto,
@@ -59,7 +59,7 @@ function makeApi() {
 
 describe('HouseholdStore', () => {
   let api: ReturnType<typeof makeApi>;
-  let list: ReturnType<typeof vi.fn>;
+  let list: Mock<() => Promise<PlanDto[]>>;
   let store: HouseholdStore;
 
   beforeEach(() => {
