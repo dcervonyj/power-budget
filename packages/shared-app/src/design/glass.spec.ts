@@ -35,11 +35,13 @@ describe('glass maths', () => {
     expect(
       lightFraction({ amountMinor: 2n, currency: 'PLN' }, { amountMinor: 1n, currency: 'PLN' }),
     ).toBe(1);
-    expect(
+    expect(() =>
       lightFraction({ amountMinor: 1n, currency: 'EUR' }, { amountMinor: 1n, currency: 'PLN' }),
-    ).toBe(0);
+    ).toThrow('different currencies');
     expect(lensGeometry(0).hasCore).toBe(false);
     expect(rodBeam(-1)).toEqual({ width: '0.0%', hasSpark: false });
+    expect(lensGeometry(Number.NaN).hasCore).toBe(false);
+    expect(rodBeam(Number.NaN)).toEqual({ width: '0.0%', hasSpark: false });
   });
 
   it('creates independent row timing and state tags', () => {
@@ -52,6 +54,16 @@ describe('glass maths', () => {
 
 describe('formatMoneyParts', () => {
   const locales: readonly DesignLocale[] = ['en', 'pl', 'uk', 'ru'];
+  const eurCases: ReadonlyArray<{
+    readonly locale: DesignLocale;
+    readonly expected: string;
+    readonly expectedNegative: string;
+  }> = [
+    { locale: 'en', expected: '€1,234.56', expectedNegative: '−€10.99' },
+    { locale: 'pl', expected: '1 234,56 €', expectedNegative: '−10,99 €' },
+    { locale: 'uk', expected: '1 234,56 €', expectedNegative: '−10,99 €' },
+    { locale: 'ru', expected: '1 234,56 €', expectedNegative: '−10,99 €' },
+  ];
 
   it.each(locales)('formats PLN in %s with a narrow zł symbol', (locale) => {
     const parts = formatMoneyParts({ amountMinor: 123456n, currency: 'PLN' }, locale);
@@ -60,10 +72,28 @@ describe('formatMoneyParts', () => {
     expect(parts.some((part) => part.type === 'fraction' && part.value === '56')).toBe(true);
   });
 
-  it('formats EUR and replaces the locale minus with U+2212', () => {
-    const parts = formatMoneyParts({ amountMinor: -1099n, currency: 'EUR' }, 'en');
+  it('uses grouping for four-digit Polish amounts', () => {
+    const parts = formatMoneyParts({ amountMinor: 123456n, currency: 'PLN' }, 'pl');
 
-    expect(parts.some((part) => part.type === 'currency' && part.value === '€')).toBe(true);
-    expect(parts.some((part) => part.type === 'minusSign' && part.value === '−')).toBe(true);
+    expect(parts).toContainEqual({ type: 'integer', value: '1' });
+    expect(parts).toContainEqual({ type: 'group', value: ' ' });
+    expect(parts).toContainEqual({ type: 'integer', value: '234' });
+  });
+
+  it.each(eurCases)(
+    'formats EUR negatives with U+2212 in $locale',
+    ({ locale, expected, expectedNegative }) => {
+      const eurParts = formatMoneyParts({ amountMinor: 123456n, currency: 'EUR' }, locale);
+      const negativeParts = formatMoneyParts({ amountMinor: -1099n, currency: 'EUR' }, locale);
+
+      expect(eurParts.map((part) => part.value).join('')).toBe(expected);
+      expect(negativeParts.map((part) => part.value).join('')).toBe(expectedNegative);
+    },
+  );
+
+  it('uses the currency minor-unit digits', () => {
+    const parts = formatMoneyParts({ amountMinor: 1234n, currency: 'JPY' }, 'en');
+
+    expect(parts.map((part) => part.value).join('')).toBe('¥1,234');
   });
 });

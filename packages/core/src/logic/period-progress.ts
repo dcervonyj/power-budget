@@ -19,7 +19,7 @@ export function periodProgress(period: PlanPeriod, today: IsoDate): PeriodProgre
   const totalDays = daysBetween(range.start, range.end) + 1;
 
   if (today < range.start) {
-    return { state: 'future', elapsedFraction: 0, daysLeft: 0, totalDays };
+    return { state: 'future', elapsedFraction: 0, daysLeft: totalDays, totalDays };
   }
   if (today > range.end) {
     return { state: 'past', elapsedFraction: 1, daysLeft: 0, totalDays };

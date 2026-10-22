@@ -2,6 +2,8 @@
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
+export type DesignLocale = 'en' | 'pl' | 'uk' | 'ru';
+
 export type InputState = 'default' | 'error' | 'disabled';
 
 export interface SelectOption<T = string> {
@@ -89,7 +91,7 @@ export interface IconProps {
 export interface AmountTextProps {
   readonly amountMinor: bigint;
   readonly currency: string;
-  readonly locale: 'en' | 'pl' | 'uk' | 'ru';
+  readonly locale: DesignLocale;
   readonly size?: 'display' | 'hero' | 'figure' | 'amount';
 }
 
@@ -125,7 +127,11 @@ export interface TxRowData {
   readonly currency: string;
   readonly status: 'pending' | 'booked' | 'transfer' | 'to-sort';
   readonly categoryLabel?: string;
+  readonly payer?: string;
+  readonly originalAmountMinor?: bigint;
+  readonly originalCurrency?: string;
   readonly suggestionLabel?: string;
+  readonly suggestionConfidence?: number;
 }
 
 export interface TxRowProps {
@@ -146,6 +152,7 @@ export interface CategoryRowData {
   readonly status: StatusKind;
   readonly paid: boolean;
   readonly totalOnly?: boolean;
+  readonly forecastMinor?: bigint;
 }
 
 export interface CategoryRowProps {

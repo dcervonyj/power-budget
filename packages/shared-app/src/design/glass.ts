@@ -1,6 +1,6 @@
-export type DesignLocale = 'en' | 'pl' | 'uk' | 'ru';
 export type ProgressBand = 'ok' | 'warning' | 'over';
-import type { StatusKind } from './types.js';
+import type { DesignLocale, StatusKind } from './types.js';
+export type { DesignLocale } from './types.js';
 
 export interface MoneyValue {
   readonly amountMinor: bigint;
@@ -39,7 +39,10 @@ const LOCALES: Record<DesignLocale, string> = {
 
 /** Remaining/planned fraction, constrained for light rendering. */
 export function lightFraction(left: MoneyValue, plan: MoneyValue): number {
-  if (left.currency !== plan.currency || plan.amountMinor <= 0n) {
+  if (left.currency !== plan.currency) {
+    throw new Error('Cannot compare money with different currencies');
+  }
+  if (plan.amountMinor <= 0n) {
     return 0;
   }
 
@@ -100,16 +103,12 @@ export function statusKind(progressBand: ProgressBand, paid: boolean): StatusKin
 export function formatMoneyParts(money: MoneyValue, locale: DesignLocale): readonly MoneyPart[] {
   const negative = money.amountMinor < 0n;
   const absolute = negative ? -money.amountMinor : money.amountMinor;
-  const whole = absolute / 100n;
-  const fraction = (absolute % 100n).toString().padStart(2, '0');
+  const digits = currencyDigits(locale, money.currency);
+  const divisor = 10n ** BigInt(digits);
+  const whole = absolute / divisor;
+  const fraction = (absolute % divisor).toString().padStart(digits, '0');
   const sample = negative ? -(whole === 0n ? 1n : whole) : whole;
-  const formatter = new Intl.NumberFormat(LOCALES[locale], {
-    style: 'currency',
-    currency: money.currency,
-    currencyDisplay: 'narrowSymbol',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  const formatter = currencyFormatter(locale, money.currency, digits);
 
   return formatter.formatToParts(sample).map((part) => ({
     type: part.type,
@@ -118,7 +117,54 @@ export function formatMoneyParts(money: MoneyValue, locale: DesignLocale): reado
 }
 
 function clamp(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
   return Math.max(0, Math.min(1, value));
+}
+
+function currencyDigits(locale: DesignLocale, currency: string): number {
+  const formatter = new Intl.NumberFormat(LOCALES[locale], {
+    style: 'currency',
+    currency,
+  });
+
+  const digits = formatter.resolvedOptions().maximumFractionDigits;
+  if (digits === undefined) {
+    throw new Error('Currency formatter did not provide fractional digits');
+  }
+
+  return digits;
+}
+
+function currencyFormatter(
+  locale: DesignLocale,
+  currency: string,
+  digits: number,
+): Intl.NumberFormat {
+  const baseOptions: Omit<Intl.NumberFormatOptions, 'useGrouping'> = {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  };
+  const alwaysGrouping: Record<string, string> = { useGrouping: 'always' };
+  const options = { ...baseOptions, ...alwaysGrouping };
+
+  try {
+    return new Intl.NumberFormat(LOCALES[locale], options);
+  } catch (error) {
+    if (!(error instanceof RangeError)) {
+      throw error;
+    }
+
+    return new Intl.NumberFormat(LOCALES[locale], {
+      ...options,
+      useGrouping: true,
+    });
+  }
 }
 
 function moneyPartValue(

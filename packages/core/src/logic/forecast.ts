@@ -30,7 +30,7 @@ export function linearForecast(
 }
 
 function forecastAmount(spent: bigint, elapsedFraction: number): bigint {
-  if (elapsedFraction <= 0) {
+  if (!Number.isFinite(elapsedFraction) || elapsedFraction <= 0) {
     return 0n;
   }
 
