@@ -5,15 +5,15 @@ Both web (CSS custom properties) and React Native (flat JS object) outputs are g
 
 ## Token categories
 
-| Category | Prefix | Example |
-|---|---|---|
-| Colours | `--pb-color-` | `--pb-color-surface-base` |
-| Spacing | `--pb-space-` | `--pb-space-md` (12 px) |
-| Radius | `--pb-radius-` | `--pb-radius-pill` (999 px) |
-| Font size | `--pb-font-size-` | `--pb-font-size-lg` (18 px) |
+| Category    | Prefix              | Example                     |
+| ----------- | ------------------- | --------------------------- |
+| Colours     | `--pb-color-`       | `--pb-color-surface-base`   |
+| Spacing     | `--pb-space-`       | `--pb-space-md` (12 px)     |
+| Radius      | `--pb-radius-`      | `--pb-radius-pill` (999 px) |
+| Font size   | `--pb-font-size-`   | `--pb-font-size-lg` (18 px) |
 | Font weight | `--pb-font-weight-` | `--pb-font-weight-semibold` |
-| Font family | `--pb-font-family-` | `--pb-font-family-sans` |
-| Line height | `--pb-line-height-` | `--pb-line-height-normal` |
+| Font family | `--pb-font-family-` | `--pb-font-family-sans`     |
+| Line height | `--pb-line-height-` | `--pb-line-height-normal`   |
 
 ## Usage — Web
 
@@ -46,6 +46,22 @@ const styles = StyleSheet.create({
 2. Run `pnpm --filter @power-budget/design-tokens build` to regenerate.
 3. Update `rn.ts` if the token should be available in RN.
 4. Run `pnpm test --update` to update snapshots.
+
+## D7 Glass
+
+The D7 Night/Day foundation remains separate from legacy Arctic exports during migration.
+
+```ts
+import { glassDarkTheme, glassLightTheme } from '@power-budget/design-tokens/glass';
+import { glassCss } from '@power-budget/design-tokens/glass/css';
+import { glassThemeToRn } from '@power-budget/design-tokens/glass/rn';
+import { glassGlobalResets } from '@power-budget/design-tokens/glass/reset';
+```
+
+`glassCss(glassDarkTheme, glassLightTheme)` emits theme variables, D7 keyframes, and the final
+reduced-motion rule. `glassThemeToRn()` preserves CSS shadow and gradient syntax for RN's new
+architecture and Skia consumers. `glassGlobalResets` is optional; it keeps legacy screens unchanged
+when only `glass.css` is loaded.
 
 ## ESLint rule
 

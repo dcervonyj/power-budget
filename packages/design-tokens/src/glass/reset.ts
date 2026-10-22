@@ -1,0 +1,1 @@
+export const glassGlobalResets = `body{margin:0}\na{color:inherit}a:hover{color:inherit}\nbutton,input{font:inherit;color:inherit}\nbutton:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid currentColor;outline-offset:2px}\n`;
