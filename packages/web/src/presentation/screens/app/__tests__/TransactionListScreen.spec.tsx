@@ -165,6 +165,20 @@ describe('TransactionListScreen', () => {
     expect(screen.getByText('Savings')).toBeDefined();
   });
 
+  it('sends the mapped filter from the URL to the API', async () => {
+    routeGets();
+    renderAt('/transactions?status=mapped');
+    await screen.findByText('Biedronka');
+    expect(mockGet).toHaveBeenCalledWith('/transactions?mapped=true&limit=50');
+  });
+
+  it('sends the transfer filter from the URL to the API', async () => {
+    routeGets();
+    renderAt('/transactions?status=transfer');
+    await screen.findByText('Biedronka');
+    expect(mockGet).toHaveBeenCalledWith('/transactions?transfer=true&limit=50');
+  });
+
   it('drops a row whose mapping write answers 404 and says so', async () => {
     routeGets();
     mockPatch.mockRejectedValue(apiError(404));
