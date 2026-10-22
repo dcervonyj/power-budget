@@ -1,10 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { AcceptInvite } from './AcceptInvite.js';
 import { apiError } from '../../test/dashboardFixtures.js';
 
 describe('AcceptInvite', () => {
-  let acceptInvite: ReturnType<typeof vi.fn>;
-  let setTokens: ReturnType<typeof vi.fn>;
+  let acceptInvite: Mock<(token: string) => Promise<{ householdId: string; accessToken: string }>>;
+  let setTokens: Mock<(accessToken: string, refreshToken: string) => Promise<void>>;
   let useCase: AcceptInvite;
 
   beforeEach(() => {
