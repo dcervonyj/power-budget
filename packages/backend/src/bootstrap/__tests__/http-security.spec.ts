@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { Controller, Get } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
-import Fastify, { type FastifyInstance } from 'fastify';
+import { type FastifyInstance } from 'fastify';
 import { HttpTestApp } from '../../test/http/createHttpTestApp.js';
 import {
   resolveTrustProxy,
@@ -209,7 +209,7 @@ describe('resolveTrustProxy', () => {
   });
 
   it('with the default, request.ip is the address the platform proxy saw, not a spoofed one', async () => {
-    const fastify = Fastify({ trustProxy: resolveTrustProxy(undefined) });
+    const fastify = new FastifyAdapter({ trustProxy: resolveTrustProxy(undefined) }).getInstance();
     fastify.get('/ip', async (request) => ({ ip: request.ip }));
 
     const res = await fastify.inject({
