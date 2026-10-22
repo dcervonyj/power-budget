@@ -1,5 +1,5 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { desc, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
 import type { HouseholdExport, HouseholdExportRepository } from '../../domain/auth/ports.js';
@@ -48,6 +48,16 @@ export class DrizzleHouseholdExportRepository implements HouseholdExportReposito
       .select()
       .from(schema.householdExports)
       .where(eq(schema.householdExports.id, id))
+      .limit(1);
+    return rows[0] ? this.toEntity(rows[0]) : null;
+  }
+
+  async findLatestByHousehold(householdId: HouseholdId): Promise<HouseholdExport | null> {
+    const rows = await this.db
+      .select()
+      .from(schema.householdExports)
+      .where(eq(schema.householdExports.householdId, householdId))
+      .orderBy(desc(schema.householdExports.createdAt))
       .limit(1);
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
