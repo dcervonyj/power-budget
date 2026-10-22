@@ -9,7 +9,9 @@
     "jsx": "react-jsx",
     "outDir": "dist",
     "paths": {
-      "@web/*": ["./src/*"]
+      "@web/*": ["./src/*"],
+      "react": ["./packages/web/node_modules/@types/react"],
+      "react/*": ["./packages/web/node_modules/@types/react/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

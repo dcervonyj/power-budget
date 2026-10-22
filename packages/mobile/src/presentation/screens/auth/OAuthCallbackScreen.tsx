@@ -23,14 +23,14 @@ export function OAuthCallbackScreen({ route, navigation }: Props): React.JSX.Ele
           defaultMessage: 'Sign in with Google failed. Please try again.',
         }),
       );
-      navigation.navigate('Login');
+      navigation.popTo('Login');
       return;
     }
 
     void authService
       .handleOAuthCallback(code, state)
       .then(() => {
-        navigation.navigate('Login');
+        navigation.popTo('Login');
       })
       .catch(() => {
         Alert.alert(
@@ -40,7 +40,7 @@ export function OAuthCallbackScreen({ route, navigation }: Props): React.JSX.Ele
             defaultMessage: 'Sign in with Google failed. Please try again.',
           }),
         );
-        navigation.navigate('Login');
+        navigation.popTo('Login');
       });
   }, [code, state]);
 
@@ -48,10 +48,7 @@ export function OAuthCallbackScreen({ route, navigation }: Props): React.JSX.Ele
     <View style={styles.container}>
       <ActivityIndicator size="large" color={t.colorAccentDefault} />
       <Text style={styles.text}>
-        <FormattedMessage
-          id="screen.oauthCallback.loading"
-          defaultMessage="Completing sign in…"
-        />
+        <FormattedMessage id="screen.oauthCallback.loading" defaultMessage="Completing sign in…" />
       </Text>
     </View>
   );
