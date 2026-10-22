@@ -63,7 +63,8 @@
       "@sentry/react-native",
       "expo-localization",
       "expo-secure-store",
-      "expo-sharing"
+      "expo-sharing",
+      "expo-font"
     ]
   }
 }
