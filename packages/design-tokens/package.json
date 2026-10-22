@@ -7,10 +7,14 @@
   "exports": {
     ".": "./dist/index.js",
     "./css": "./dist/css.js",
-    "./rn": "./dist/rn.js"
+    "./rn": "./dist/rn.js",
+    "./glass": "./dist/glass/index.js",
+    "./glass/css": "./dist/glass/css.js",
+    "./glass/rn": "./dist/glass/rn.js",
+    "./glass/reset": "./dist/glass/reset.js"
   },
   "scripts": {
-    "build": "tsc -b && node dist/cli.js > dist/tokens.css",
+    "build": "tsc -b && node dist/cli.js > dist/tokens.css && node dist/glass/cli.js > dist/glass.css",
     "typecheck": "tsc -b --pretty",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
