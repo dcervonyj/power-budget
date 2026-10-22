@@ -10,7 +10,8 @@
     "./rn": "./dist/rn.js",
     "./glass": "./dist/glass/index.js",
     "./glass/css": "./dist/glass/css.js",
-    "./glass/rn": "./dist/glass/rn.js"
+    "./glass/rn": "./dist/glass/rn.js",
+    "./glass/reset": "./dist/glass/reset.js"
   },
   "scripts": {
     "build": "tsc -b && node dist/cli.js > dist/tokens.css && node dist/glass/cli.js > dist/glass.css",

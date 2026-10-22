@@ -7,6 +7,10 @@ function toKebab(key: string): string {
 function renderTheme(selector: string, theme: GlassTheme): string {
   const variables: string[] = [];
   for (const [key, value] of Object.entries(theme.color)) {
+    if (key === 'name') {
+      continue;
+    }
+
     variables.push(`  --pb-glass-${toKebab(key)}: ${value};`);
   }
   for (const [key, value] of Object.entries(theme.space)) {
@@ -19,13 +23,41 @@ function renderTheme(selector: string, theme: GlassTheme): string {
     variables.push(
       `  --pb-glass-type-${toKebab(key)}-web: ${value.web}px;\n  --pb-glass-type-${toKebab(key)}-mobile: ${value.mobile}px;`,
     );
+    if (value.weight !== undefined) {
+      variables.push(`  --pb-glass-type-${toKebab(key)}-weight: ${value.weight};`);
+    }
   }
+  renderMotionVariables(variables, theme);
   variables.push(
     `  --pb-glass-blur-web: ${theme.blur.web}px;`,
     `  --pb-glass-blur-rn-intensity: ${theme.blur.rnIntensity};`,
   );
 
   return `${selector} {\n${variables.join('\n')}\n}`;
+}
+
+function renderMotionVariables(variables: string[], theme: GlassTheme): void {
+  for (const [motionName, motionValue] of Object.entries(theme.motion)) {
+    if (Array.isArray(motionValue)) {
+      for (const [index, durationMs] of motionValue.entries()) {
+        variables.push(`  --pb-glass-motion-${toKebab(motionName)}-${index}: ${durationMs}ms;`);
+      }
+      continue;
+    }
+
+    for (const [property, value] of Object.entries(motionValue)) {
+      const name = `--pb-glass-motion-${toKebab(motionName)}-${toKebab(property)}`;
+      if (Array.isArray(value)) {
+        for (const [index, item] of value.entries()) {
+          variables.push(`${name}-${index}: ${item}ms;`);
+        }
+      } else if (typeof value === 'number') {
+        variables.push(`${name}: ${property.endsWith('Ms') ? `${value}ms` : value};`);
+      } else {
+        variables.push(`${name}: ${value};`);
+      }
+    }
+  }
 }
 
 export function glassThemesToCss(dark: GlassTheme, light: GlassTheme): string {
@@ -39,7 +71,7 @@ export function glassThemesToCss(dark: GlassTheme, light: GlassTheme): string {
   ].join('\n');
 }
 
-export const glassKeyframes = `body{margin:0}\na{color:inherit}a:hover{color:inherit}\nbutton,input{font:inherit;color:inherit}\nbutton:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid currentColor;outline-offset:2px}\n@keyframes d7-rise{from{opacity:0;transform:translateY(18px) scale(.96)}}\n@keyframes d7-drift1{to{transform:translate(90px,70px) scale(1.12)}}\n@keyframes d7-drift2{to{transform:translate(-110px,-60px) scale(.92)}}\n@keyframes d7-drift3{to{transform:translate(80px,-70px) scale(1.08)}}\n@keyframes d7-float{to{transform:translate(-24px,18px)}}\n@keyframes d7-breathe{from{opacity:.6}to{opacity:1}}\n@keyframes d7-glint{from{left:0%}}\n@keyframes d7-sheen{from{transform:translateX(-130%) skewX(-14deg)}to{transform:translateX(340%) skewX(-14deg)}}\n@keyframes d7-live{50%{opacity:.35}}\n@keyframes d7-pop{from{opacity:0;transform:translateY(6px)}}\n@keyframes d7-sheet{from{transform:translateY(100%)}}\n@keyframes d7-fade{from{opacity:0}}\n@keyframes d7-sweep{0%{transform:translateX(-140%) skewX(-16deg)}14%,100%{transform:translateX(380%) skewX(-16deg)}}\n@keyframes d7-film{from{background-position:0% 50%}to{background-position:100% 50%}}\n@keyframes d7-flicker{0%,100%{opacity:1}38%{opacity:.84}52%{opacity:.97}71%{opacity:.9}}\n@keyframes d7-travel{0%{left:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:100%;opacity:0}}\n@keyframes d7-rise-v{0%{bottom:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{bottom:100%;opacity:0}}\n@keyframes d7-twinkle{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1)}}\n@keyframes d7-caustic{from{transform:translate(-6px,2px) rotate(-2deg)}to{transform:translate(6px,-2px) rotate(2deg)}}\n@keyframes d7-bloom{from{opacity:.7}to{opacity:1}}\n@keyframes d7-reveal{from{clip-path:inset(0 100% 0 0)}}\n@keyframes d7-reveal-v{from{clip-path:inset(100% 0 0 0)}}\n@keyframes d7-glowin{from{opacity:0;transform:scale(.6)}}\n@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}\n`;
+export const glassKeyframes = `@keyframes d7-rise{from{opacity:0;transform:translateY(18px) scale(.96)}}\n@keyframes d7-drift1{to{transform:translate(90px,70px) scale(1.12)}}\n@keyframes d7-drift2{to{transform:translate(-110px,-60px) scale(.92)}}\n@keyframes d7-drift3{to{transform:translate(80px,-70px) scale(1.08)}}\n@keyframes d7-float{to{transform:translate(-24px,18px)}}\n@keyframes d7-breathe{from{opacity:.6}to{opacity:1}}\n@keyframes d7-fillup{from{transform:translateY(101%)}}\n@keyframes d7-grow{from{transform:scaleX(0)}}\n@keyframes d7-growy{from{transform:scaleY(0)}}\n@keyframes d7-glint{from{left:0%}}\n@keyframes d7-shimmer{0%,100%{transform:translateX(-6px)}50%{transform:translateX(6px)}}\n@keyframes d7-sheen{from{transform:translateX(-130%) skewX(-14deg)}to{transform:translateX(340%) skewX(-14deg)}}\n@keyframes d7-live{50%{opacity:.35}}\n@keyframes d7-pop{from{opacity:0;transform:translateY(6px)}}\n@keyframes d7-sheet{from{transform:translateY(100%)}}\n@keyframes d7-fade{from{opacity:0}}\n@keyframes d7-sweep{0%{transform:translateX(-140%) skewX(-16deg)}14%,100%{transform:translateX(380%) skewX(-16deg)}}\n@keyframes d7-film{from{background-position:0% 50%}to{background-position:100% 50%}}\n@keyframes d7-flicker{0%,100%{opacity:1}38%{opacity:.84}52%{opacity:.97}71%{opacity:.9}}\n@keyframes d7-travel{0%{left:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:100%;opacity:0}}\n@keyframes d7-rise-v{0%{bottom:0%;opacity:0}12%{opacity:1}88%{opacity:1}100%{bottom:100%;opacity:0}}\n@keyframes d7-twinkle{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1)}}\n@keyframes d7-caustic{from{transform:translate(-6px,2px) rotate(-2deg)}to{transform:translate(6px,-2px) rotate(2deg)}}\n@keyframes d7-bloom{from{opacity:.7}to{opacity:1}}\n@keyframes d7-reveal{from{clip-path:inset(0 100% 0 0)}}\n@keyframes d7-reveal-v{from{clip-path:inset(100% 0 0 0)}}\n@keyframes d7-glowin{from{opacity:0;transform:scale(.6)}}\n@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation:none!important;transition:none!important}}\n`;
 
 export function glassCss(dark: GlassTheme, light: GlassTheme): string {
   return `${glassThemesToCss(dark, light)}\n${glassKeyframes}`;

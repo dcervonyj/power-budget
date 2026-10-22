@@ -21,6 +21,24 @@ function hex(value: string): Rgb {
   return { red, green, blue };
 }
 
+function rgba(value: string, occurrence = 0): { readonly color: Rgb; readonly alpha: number } {
+  const matches = [...value.matchAll(/rgba\((\d+),(\d+),(\d+),([\d.]+)\)/g)];
+  const match = matches[occurrence];
+  if (match === undefined) {
+    throw new Error(`Expected rgba colour at ${occurrence}: ${value}`);
+  }
+
+  const [, red, green, blue, alpha] = match;
+  if (red === undefined || green === undefined || blue === undefined || alpha === undefined) {
+    throw new Error(`Expected rgba channels: ${value}`);
+  }
+
+  return {
+    color: { red: Number(red), green: Number(green), blue: Number(blue) },
+    alpha: Number(alpha),
+  };
+}
+
 function composite(foreground: Rgb, alpha: number, background: Rgb): Rgb {
   return {
     red: foreground.red * alpha + background.red * (1 - alpha),
@@ -57,18 +75,28 @@ function expectContrast(pair: string, foreground: string, background: Rgb): void
   expect(ratio(hex(foreground), background), pair).toBeGreaterThanOrEqual(4.5);
 }
 
+function over(background: Rgb, value: string, occurrence?: number): Rgb {
+  const foreground = rgba(value, occurrence);
+
+  return composite(foreground.color, foreground.alpha, background);
+}
+
 describe('R2.6 contrast', () => {
   it('passes worst-case and Android no-blur composites', () => {
-    const darkBloom = composite(hex('#F0AA46'), 0.26, hex('#05070D'));
-    const darkFrosted = composite(hex('#292B32'), 0.54, darkBloom);
-    const darkNoBlur = composite(hex('#1C263C'), 0.56, darkBloom);
-    const lightSun = hex('#FBE5BA');
-    const lightClear = composite(hex('#FFFFFF'), 0.16, lightSun);
-    const lightNoBlur = composite(hex('#E2ECF8'), 0.62, lightSun);
+    const darkBloom = over(hex(glassDarkTheme.color.base), glassDarkTheme.color.bloomFar);
+    const darkFrosted = over(darkBloom, glassDarkTheme.color.g1);
+    const darkNoBlur = over(darkBloom, glassDarkTheme.color.tint);
+    const darkClearOverBloom = over(darkBloom, glassDarkTheme.color.clear);
+    const lightSun = over(hex(glassLightTheme.color.base), glassLightTheme.color.b1);
+    const lightClear = over(lightSun, glassLightTheme.color.clear);
+    const lightNoBlur = over(lightSun, glassLightTheme.color.tint);
+    const darkCoreFringe = over(hex(glassDarkTheme.color.base), glassDarkTheme.color.core, 3);
+    const lightCoreFringe = over(hex(glassLightTheme.color.base), glassLightTheme.color.core, 3);
 
     const contrastCases = [
       { name: 'dark frosted', background: darkFrosted, theme: glassDarkTheme },
       { name: 'dark Android no-blur', background: darkNoBlur, theme: glassDarkTheme },
+      { name: 'dark clear over bloom', background: darkClearOverBloom, theme: glassDarkTheme },
       { name: 'light clear', background: lightClear, theme: glassLightTheme },
       { name: 'light Android no-blur', background: lightNoBlur, theme: glassLightTheme },
     ];
@@ -94,6 +122,11 @@ describe('R2.6 contrast', () => {
         contrastCase.background,
       );
     }
+
+    expectContrast('dark core fringe: fg', glassDarkTheme.color.fg, darkCoreFringe);
+    expectContrast('dark core fringe: dim', glassDarkTheme.color.dim, darkCoreFringe);
+    expectContrast('light core fringe: fg', glassLightTheme.color.fg, lightCoreFringe);
+    expectContrast('light core fringe: dim', glassLightTheme.color.dim, lightCoreFringe);
 
     expectContrast(
       'dark accentInk on lightSolid',

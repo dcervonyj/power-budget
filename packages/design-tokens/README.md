@@ -55,11 +55,13 @@ The D7 Night/Day foundation remains separate from legacy Arctic exports during m
 import { glassDarkTheme, glassLightTheme } from '@power-budget/design-tokens/glass';
 import { glassCss } from '@power-budget/design-tokens/glass/css';
 import { glassThemeToRn } from '@power-budget/design-tokens/glass/rn';
+import { glassGlobalResets } from '@power-budget/design-tokens/glass/reset';
 ```
 
 `glassCss(glassDarkTheme, glassLightTheme)` emits theme variables, D7 keyframes, and the final
 reduced-motion rule. `glassThemeToRn()` preserves CSS shadow and gradient syntax for RN's new
-architecture and Skia consumers.
+architecture and Skia consumers. `glassGlobalResets` is optional; it keeps legacy screens unchanged
+when only `glass.css` is loaded.
 
 ## ESLint rule
 

@@ -82,14 +82,26 @@ export interface GlassMotion {
   readonly meniscusShimmer: { readonly durationMs: 6000; readonly easing: 'ease-in-out' };
   readonly ambientDrift: readonly [52000, 61000, 57000];
   readonly live: { readonly durationMs: 2400 };
-  readonly sweep: { readonly durationMs: 12000; readonly passMs: 700 };
-  readonly film: { readonly durationMs: 14000; readonly direction: 'alternate' };
+  readonly sweep: {
+    readonly durationMs: 12000;
+    readonly passMs: 700;
+    readonly easing: string;
+    readonly delayMs: 1200;
+    readonly staggerDelaysMs: readonly [0, 4000, 8000];
+  };
+  readonly film: {
+    readonly durationMs: 14000;
+    readonly easing: 'ease-in-out';
+    readonly direction: 'alternate';
+  };
   readonly flicker: { readonly durationMs: readonly [4200, 5000] };
   readonly travel: { readonly durationMs: 3400 };
   readonly twinkle: { readonly durationMs: readonly [2800, 3400] };
   readonly caustic: { readonly durationMs: 7000; readonly direction: 'alternate' };
   readonly bloom: { readonly durationMs: 4800; readonly direction: 'alternate' };
   readonly reveal: { readonly durationMs: 700; readonly easing: string };
+  readonly glowin: { readonly durationMs: 700; readonly easing: string };
+  readonly layeredPaneFloat: { readonly durationMs: 40000; readonly easing: 'ease-in-out' };
 }
 
 export interface GlassTheme {
@@ -126,14 +138,22 @@ const motion: GlassMotion = {
   meniscusShimmer: { durationMs: 6000, easing: 'ease-in-out' },
   ambientDrift: [52000, 61000, 57000],
   live: { durationMs: 2400 },
-  sweep: { durationMs: 12000, passMs: 700 },
-  film: { durationMs: 14000, direction: 'alternate' },
+  sweep: {
+    durationMs: 12000,
+    passMs: 700,
+    easing: 'cubic-bezier(.4,0,.2,1)',
+    delayMs: 1200,
+    staggerDelaysMs: [0, 4000, 8000],
+  },
+  film: { durationMs: 14000, easing: 'ease-in-out', direction: 'alternate' },
   flicker: { durationMs: [4200, 5000] },
   travel: { durationMs: 3400 },
   twinkle: { durationMs: [2800, 3400] },
   caustic: { durationMs: 7000, direction: 'alternate' },
   bloom: { durationMs: 4800, direction: 'alternate' },
   reveal: { durationMs: 700, easing: 'cubic-bezier(.22,.9,.3,1)' },
+  glowin: { durationMs: 700, easing: 'cubic-bezier(.22,.9,.3,1)' },
+  layeredPaneFloat: { durationMs: 40000, easing: 'ease-in-out' },
 };
 
 const type: GlassTheme['type'] = {
@@ -241,7 +261,6 @@ const lightColors: GlassColors = {
   pace: '#0E1726',
 };
 const darkColors: GlassColors = {
-  ...lightColors,
   name: 'dark',
   base: '#05070D',
   fg: '#F4F6FA',
@@ -261,6 +280,7 @@ const darkColors: GlassColors = {
   far: 'rgba(255,255,255,0.025)',
   farEdge: 'rgba(255,255,255,0.06)',
   accent: '#F5C46A',
+  accentInk: '#1A1206',
   accentTint: 'rgba(245,196,106,0.12)',
   accentEdge: 'rgba(245,196,106,0.34)',
   light: 'linear-gradient(180deg,#FFE3A3 0%,#F5C062 45%,#E39A2E 100%)',
