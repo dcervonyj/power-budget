@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { resolve } from 'node:path';
 import { loadMessages } from '../AppProviders.js';
+import { excludeFeatureMessages, readFeatureMessageIds } from '../i18n/ExtractedMessageFilter.mjs';
 import en from '../../public/locales/en.json';
 import pl from '../../public/locales/pl.json';
 import ru from '../../public/locales/ru.json';
@@ -42,5 +44,17 @@ describe('loadMessages', () => {
 
       expect(messages[FIXTURE_FEATURE_KEY]).toBeDefined();
     }
+  });
+
+  it('keeps legacy ids that share a feature prefix during extraction', () => {
+    const extractedMessages = {
+      'glass-fixture.message': 'Fixture message',
+      'settings.profile.displayName': 'Display name',
+    };
+    const featureMessageIds = readFeatureMessageIds(resolve(process.cwd(), 'public/locales/en'));
+
+    const legacyMessages = excludeFeatureMessages(extractedMessages, featureMessageIds);
+
+    expect(legacyMessages).toEqual({ 'settings.profile.displayName': 'Display name' });
   });
 });

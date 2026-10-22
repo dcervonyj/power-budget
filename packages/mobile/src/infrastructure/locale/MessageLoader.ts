@@ -17,6 +17,8 @@ declare global {
 }
 
 const legacyMessagesByLocale: Record<SupportedLocale, Catalog> = { en, pl, ru, uk };
+export const METRO_FEATURE_MESSAGES_DIRECTORY = '../../../assets/locales';
+export const METRO_FEATURE_MESSAGES_PATTERN = /^\.\/[^/]+\/[^/]+\.json$/;
 let getFeatureContext = getMetroFeatureContext;
 
 export function setFeatureMessageContextForTests(context: FeatureMessageContext): void {
@@ -35,5 +37,5 @@ export async function loadMessages(locale: SupportedLocale): Promise<Catalog> {
 }
 
 function getMetroFeatureContext(): FeatureMessageContext {
-  return require.context('../../../assets/locales', true, /^\.\/[^/]+\/[^/]+\.json$/);
+  return require.context(METRO_FEATURE_MESSAGES_DIRECTORY, true, METRO_FEATURE_MESSAGES_PATTERN);
 }

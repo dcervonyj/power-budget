@@ -16,7 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --grep smoke",
     "test:e2e:stack": "TEST_ENV=e2e playwright test --project=chromium",
-    "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-web-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]' && node -e \"const fs=require('fs'),messages=JSON.parse(fs.readFileSync('/tmp/power-budget-web-message-ids.json','utf8')),feature=/^(shell|overview|tx|plan|auth|onboarding|categories|household|banks|settings|glass-[^.]+)\\./;for(const id of Object.keys(messages)){if(feature.test(id)){delete messages[id]}}fs.writeFileSync('public/locales/en.json',JSON.stringify(messages,null,2)+'\\n')\""
+    "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-web-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]' && node src/i18n/ExtractedMessageFilter.mjs /tmp/power-budget-web-message-ids.json public/locales/en public/locales/en.json"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",
