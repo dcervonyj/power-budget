@@ -48,6 +48,7 @@ import { ListHouseholdInvitesUseCase } from '../../application/auth/use-cases/Li
 import { ListHouseholdMembersUseCase } from '../../application/auth/use-cases/ListHouseholdMembersUseCase.js';
 import { HouseholdAccess } from '../../application/auth/services/HouseholdAccess.js';
 import { HouseholdInviteMailer } from '../../application/auth/services/HouseholdInviteMailer.js';
+import { GetHouseholdExportStatusUseCase } from '../../application/auth/use-cases/GetHouseholdExportStatusUseCase.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 import { GetUserProfileUseCase } from '../../application/auth/use-cases/GetUserProfileUseCase.js';
@@ -300,6 +301,12 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
         exportRepo: DrizzleHouseholdExportRepository,
         exportQueue: BullMQHouseholdExportQueue,
       ) => new ExportHouseholdDataUseCase(exportRepo, exportQueue),
+    },
+    {
+      provide: GetHouseholdExportStatusUseCase,
+      inject: [DrizzleHouseholdExportRepository],
+      useFactory: (exportRepo: DrizzleHouseholdExportRepository) =>
+        new GetHouseholdExportStatusUseCase(exportRepo),
     },
     {
       provide: DeleteHouseholdUseCase,

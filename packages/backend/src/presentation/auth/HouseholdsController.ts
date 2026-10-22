@@ -39,9 +39,11 @@ import {
   HouseholdCreatedDto,
   HouseholdDeletionScheduledDto,
   HouseholdExportRequestedDto,
+  HouseholdExportStatusDto,
   toHouseholdCreatedDto,
   toHouseholdDeletionScheduledDto,
   toHouseholdExportRequestedDto,
+  toHouseholdExportStatusDto,
 } from './dto/households-response.dto.js';
 import { CreateHouseholdUseCase } from '../../application/auth/use-cases/CreateHouseholdUseCase.js';
 import { InviteToHouseholdUseCase } from '../../application/auth/use-cases/InviteToHouseholdUseCase.js';
@@ -53,6 +55,7 @@ import { ListHouseholdMembersUseCase } from '../../application/auth/use-cases/Li
 import type { HouseholdInviteView } from '../../application/auth/use-cases/HouseholdInviteView.js';
 import type { HouseholdMember } from '../../domain/auth/entities.js';
 import { ExportHouseholdDataUseCase } from '../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
+import { GetHouseholdExportStatusUseCase } from '../../application/auth/use-cases/GetHouseholdExportStatusUseCase.js';
 import { DeleteHouseholdUseCase } from '../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 import { HouseholdNotFoundError, HouseholdOwnerRequiredError } from '../../domain/auth/errors.js';
 
@@ -72,6 +75,8 @@ export class HouseholdsController {
     @Inject(ListHouseholdInvitesUseCase) private readonly listInvites: ListHouseholdInvitesUseCase,
     @Inject(ListHouseholdMembersUseCase) private readonly listMembers: ListHouseholdMembersUseCase,
     @Inject(ExportHouseholdDataUseCase) private readonly exportData: ExportHouseholdDataUseCase,
+    @Inject(GetHouseholdExportStatusUseCase)
+    private readonly exportStatus: GetHouseholdExportStatusUseCase,
     @Inject(DeleteHouseholdUseCase) private readonly scheduleDelete: DeleteHouseholdUseCase,
   ) {}
 
@@ -244,6 +249,29 @@ export class HouseholdsController {
     });
 
     return toHouseholdExportRequestedDto(output);
+  }
+
+  @Get('export/status')
+  @ApiOperation({
+    summary: "Status of the household's latest data export",
+    description: 'Polled after POST /households/export; `url` is set once the export is ready.',
+  })
+  @ApiResponse({ status: 200, type: HouseholdExportStatusDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'No household' })
+  @ApiResponse({ status: 404, description: 'No export requested yet' })
+  async exportStatusEndpoint(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<HouseholdExportStatusDto> {
+    if (!user.householdId) {
+      throw new ForbiddenException('No household');
+    }
+    const output = await this.exportStatus.execute({ householdId: user.householdId });
+    if (!output) {
+      throw new NotFoundException('No export requested');
+    }
+
+    return toHouseholdExportStatusDto(output);
   }
 
   @Delete(':id')

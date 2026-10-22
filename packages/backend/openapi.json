@@ -710,6 +710,41 @@
         "tags": ["households"]
       }
     },
+    "/households/export/status": {
+      "get": {
+        "description": "Polled after POST /households/export; `url` is set once the export is ready.",
+        "operationId": "HouseholdsController_exportStatusEndpoint",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdExportStatusDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No household"
+          },
+          "404": {
+            "description": "No export requested yet"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Status of the household's latest data export",
+        "tags": ["households"]
+      }
+    },
     "/households/{id}": {
       "delete": {
         "operationId": "HouseholdsController_deleteHousehold",
@@ -2767,6 +2802,26 @@
           }
         },
         "required": ["exportId", "status"]
+      },
+      "HouseholdExportStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "processing", "ready", "failed"]
+          },
+          "url": {
+            "type": "string",
+            "nullable": true,
+            "description": "Download link; set once the export is ready and not yet expired"
+          },
+          "expiresAt": {
+            "type": "string",
+            "nullable": true,
+            "example": "2024-07-15T10:00:00.000Z"
+          }
+        },
+        "required": ["status", "url", "expiresAt"]
       },
       "HouseholdDeletionScheduledDto": {
         "type": "object",
