@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, type MockInstance } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock, type MockInstance } from 'vitest';
 import type { PlanDto } from '@power-budget/shared-app/contract';
 import { DashboardStore, selectDefaultPlan } from './DashboardStore.js';
 import { PlanDashboardStore } from './PlanDashboardStore.js';
@@ -18,7 +18,7 @@ describe('selectDefaultPlan', () => {
 });
 
 describe('DashboardStore', () => {
-  let list: ReturnType<typeof vi.fn>;
+  let list: Mock<() => Promise<PlanDto[]>>;
   let planDashboard: PlanDashboardStore;
   let load: MockInstance<(planId: string) => Promise<void>>;
   let store: DashboardStore;
