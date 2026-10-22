@@ -30,6 +30,12 @@ export interface MoneyPart {
   readonly value: string;
 }
 
+export type MoneyFormatterFactory = (
+  locale: DesignLocale,
+  currency: string,
+  digits: number,
+) => Intl.NumberFormat;
+
 const LOCALES: Record<DesignLocale, string> = {
   en: 'en-GB',
   pl: 'pl-PL',
@@ -100,7 +106,11 @@ export function statusKind(progressBand: ProgressBand, paid: boolean): StatusKin
 }
 
 /** Exact minor-unit formatter parts for AmountText. */
-export function formatMoneyParts(money: MoneyValue, locale: DesignLocale): readonly MoneyPart[] {
+export function formatMoneyParts(
+  money: MoneyValue,
+  locale: DesignLocale,
+  formatterFactory: MoneyFormatterFactory = currencyFormatter,
+): readonly MoneyPart[] {
   const negative = money.amountMinor < 0n;
   const absolute = negative ? -money.amountMinor : money.amountMinor;
   const digits = currencyDigits(locale, money.currency);
@@ -108,12 +118,31 @@ export function formatMoneyParts(money: MoneyValue, locale: DesignLocale): reado
   const whole = absolute / divisor;
   const fraction = (absolute % divisor).toString().padStart(digits, '0');
   const sample = negative ? -(whole === 0n ? 1n : whole) : whole;
-  const formatter = currencyFormatter(locale, money.currency, digits);
+  const formatter = formatterFactory(locale, money.currency, digits);
+  const integerParts = groupedIntegerParts(whole, groupSeparator(formatter));
+  const parts: MoneyPart[] = [];
+  let includedInteger = false;
 
-  return formatter.formatToParts(sample).map((part) => ({
-    type: part.type,
-    value: moneyPartValue(part.type, part.value, fraction, whole === 0n, money.currency),
-  }));
+  for (const part of formatter.formatToParts(sample)) {
+    if (part.type === 'integer') {
+      if (!includedInteger) {
+        parts.push(...integerParts);
+        includedInteger = true;
+      }
+
+      continue;
+    }
+    if (part.type === 'group') {
+      continue;
+    }
+
+    parts.push({
+      type: part.type,
+      value: moneyPartValue(part.type, part.value, fraction, whole === 0n, money.currency),
+    });
+  }
+
+  return parts;
 }
 
 function clamp(value: number): number {
@@ -143,28 +172,36 @@ function currencyFormatter(
   currency: string,
   digits: number,
 ): Intl.NumberFormat {
-  const baseOptions: Omit<Intl.NumberFormatOptions, 'useGrouping'> = {
+  return new Intl.NumberFormat(LOCALES[locale], {
     style: 'currency',
     currency,
     currencyDisplay: 'narrowSymbol',
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
-  };
-  const alwaysGrouping: Record<string, string> = { useGrouping: 'always' };
-  const options = { ...baseOptions, ...alwaysGrouping };
+  });
+}
 
-  try {
-    return new Intl.NumberFormat(LOCALES[locale], options);
-  } catch (error) {
-    if (!(error instanceof RangeError)) {
-      throw error;
+function groupSeparator(formatter: Intl.NumberFormat): string {
+  for (const part of formatter.formatToParts(1234567n)) {
+    if (part.type === 'group') {
+      return part.value;
     }
-
-    return new Intl.NumberFormat(LOCALES[locale], {
-      ...options,
-      useGrouping: true,
-    });
   }
+
+  throw new Error('Currency formatter did not provide a group separator');
+}
+
+function groupedIntegerParts(whole: bigint, separator: string): MoneyPart[] {
+  const digits = whole.toString();
+  const firstGroupLength = digits.length % 3 || 3;
+  const parts: MoneyPart[] = [{ type: 'integer', value: digits.slice(0, firstGroupLength) }];
+
+  for (let index = firstGroupLength; index < digits.length; index += 3) {
+    parts.push({ type: 'group', value: separator });
+    parts.push({ type: 'integer', value: digits.slice(index, index + 3) });
+  }
+
+  return parts;
 }
 
 function moneyPartValue(
