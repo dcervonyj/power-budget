@@ -16,7 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --grep smoke",
     "test:e2e:stack": "TEST_ENV=e2e playwright test --project=chromium",
-    "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file public/locales/en.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]'"
+    "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-web-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]'"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

@@ -6,7 +6,11 @@ import { IntlProvider } from 'react-intl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import { RootNavigator } from './navigation/RootNavigator.js';
-import { LocaleResolver, LOCALE_STORAGE_KEY } from '../infrastructure/locale/index.js';
+import {
+  loadMessages,
+  LocaleResolver,
+  LOCALE_STORAGE_KEY,
+} from '../infrastructure/locale/index.js';
 import type { SupportedLocale } from '../infrastructure/locale/index.js';
 import type { RootStackParamList } from './navigation/types.js';
 import { BiometricGate } from './components/BiometricGate.js';
@@ -48,19 +52,6 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 function getDeviceLanguage(): string {
   return getLocales()[0]?.languageCode ?? 'en';
-}
-
-async function loadMessages(locale: SupportedLocale): Promise<Record<string, string>> {
-  switch (locale) {
-    case 'uk':
-      return (await import('../../assets/locales/uk.json')) as unknown as Record<string, string>;
-    case 'ru':
-      return (await import('../../assets/locales/ru.json')) as unknown as Record<string, string>;
-    case 'pl':
-      return (await import('../../assets/locales/pl.json')) as unknown as Record<string, string>;
-    default:
-      return (await import('../../assets/locales/en.json')) as unknown as Record<string, string>;
-  }
 }
 
 export function App(): React.JSX.Element {

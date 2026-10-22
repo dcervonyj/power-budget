@@ -39,6 +39,8 @@ function resolveLocale(): SupportedLocale {
 
 type MessagesModule = { default: Record<string, string> };
 
+const featureMessageModules = import.meta.glob<MessagesModule>('../public/locales/*/*.json');
+
 // A dynamic import of a JSON file resolves to a module object; the messages are
 // its `default` export. Passing the module itself to IntlProvider made every
 // non-English string fall back to the default message.
@@ -56,9 +58,17 @@ function importMessages(locale: SupportedLocale): Promise<MessagesModule> {
 }
 
 export async function loadMessages(locale: SupportedLocale): Promise<Record<string, string>> {
-  const messages = await importMessages(locale);
+  const legacyMessages = await importMessages(locale);
+  const featureEntries = Object.entries(featureMessageModules)
+    .filter(([path]) => path.includes(`/locales/${locale}/`))
+    .sort(([left], [right]) => left.localeCompare(right));
+  const featureModules = await Promise.all(featureEntries.map(([, load]) => load()));
 
-  return messages.default;
+  return Object.assign(
+    {},
+    legacyMessages.default,
+    ...featureModules.map((module) => module.default),
+  );
 }
 
 // Singleton infrastructure adapters — created once, wired at runtime.
