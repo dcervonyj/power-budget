@@ -153,7 +153,7 @@ export function TransactionListScreen({ navigation }: Props): React.JSX.Element 
             <View style={styles.footerLoader}>
               <ActivityIndicator size="small" color={t.colorAccentDefault} />
             </View>
-          ) : null
+          ) : undefined
         }
         renderItem={({ item }) => (
           <TransactionRow

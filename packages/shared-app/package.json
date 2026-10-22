@@ -78,17 +78,26 @@
   },
   "dependencies": {
     "axios": "^1.18.0",
-    "mobx": "^6",
-    "mobx-react-lite": "^3",
-    "react": "^18"
+    "mobx": "^6"
   },
   "peerDependencies": {
-    "react": "^18"
+    "mobx-react-lite": "^4.0.7",
+    "react": "^18.2.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "mobx-react-lite": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^18",
+    "mobx-react-lite": "^4.0.7",
     "openapi-typescript": "^7.13.0",
+    "react": "^18",
     "tsup": "^8.0.0",
     "vitest": "^4.1.11"
   }
