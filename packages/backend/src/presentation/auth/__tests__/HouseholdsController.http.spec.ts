@@ -17,6 +17,7 @@ import { CreateHouseholdUseCase } from '../../../application/auth/use-cases/Crea
 import { InviteToHouseholdUseCase } from '../../../application/auth/use-cases/InviteToHouseholdUseCase.js';
 import { AcceptInviteUseCase } from '../../../application/auth/use-cases/AcceptInviteUseCase.js';
 import { ExportHouseholdDataUseCase } from '../../../application/auth/use-cases/ExportHouseholdDataUseCase.js';
+import { GetHouseholdExportStatusUseCase } from '../../../application/auth/use-cases/GetHouseholdExportStatusUseCase.js';
 import { DeleteHouseholdUseCase } from '../../../application/auth/use-cases/DeleteHouseholdUseCase.js';
 import { ResendHouseholdInviteUseCase } from '../../../application/auth/use-cases/ResendHouseholdInviteUseCase.js';
 import { RevokeHouseholdInviteUseCase } from '../../../application/auth/use-cases/RevokeHouseholdInviteUseCase.js';
@@ -114,6 +115,10 @@ describe('DELETE /households/:id (HTTP)', () => {
         { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
         ...inviteProviders(makeInviteMocks()),
         { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
+        {
+          provide: GetHouseholdExportStatusUseCase,
+          useValue: mock<GetHouseholdExportStatusUseCase>(),
+        },
         { provide: DeleteHouseholdUseCase, useValue: new DeleteHouseholdUseCase(householdRepo) },
         { provide: RedisTotpStepUpStore, useValue: stepUpStore },
         { provide: DrizzleTotpSecretRepository, useValue: totpSecretRepo },
@@ -200,6 +205,83 @@ describe('DELETE /households/:id (HTTP)', () => {
   });
 });
 
+describe('GET /households/export/status (HTTP)', () => {
+  let app: HttpTestApp;
+  let statusUseCase: ReturnType<typeof mock<GetHouseholdExportStatusUseCase>>;
+
+  beforeEach(async () => {
+    statusUseCase = mock<GetHouseholdExportStatusUseCase>();
+    app = await createHttpTestApp({
+      controllers: [HouseholdsController],
+      providers: [
+        { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
+        ...inviteProviders(makeInviteMocks()),
+        { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
+        { provide: GetHouseholdExportStatusUseCase, useValue: statusUseCase },
+        { provide: DeleteHouseholdUseCase, useValue: mock<DeleteHouseholdUseCase>() },
+        { provide: RedisTotpStepUpStore, useValue: mock<TotpStepUpStore>() },
+        { provide: DrizzleTotpSecretRepository, useValue: mock<TotpSecretRepository>() },
+      ],
+      imports: [ThrottlerModule.forRoot({ throttlers: [...AUTH_THROTTLERS] })],
+    });
+  });
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it('returns the status and download url of the latest export', async () => {
+    statusUseCase.execute.mockResolvedValue({
+      status: 'ready',
+      url: 'https://dl.example/x',
+      expiresAt: new Date('2026-10-23T12:00:00Z'),
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/households/export/status',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      status: 'ready',
+      url: 'https://dl.example/x',
+      expiresAt: '2026-10-23T12:00:00.000Z',
+    });
+    expect(statusUseCase.execute).toHaveBeenCalledWith({ householdId: ALICE_HOUSEHOLD });
+  });
+
+  it('returns 404 when no export was requested', async () => {
+    statusUseCase.execute.mockResolvedValue(null);
+
+    const res = await app.inject({
+      method: 'GET',
+      url: '/households/export/status',
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(404);
+  });
+
+  it('returns 403 without a household', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: '/households/export/status',
+      headers: { authorization: bearerFor(ALICE, null) },
+    });
+
+    expect(res.statusCode).toBe(403);
+    expect(statusUseCase.execute).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 without a token', async () => {
+    const res = await app.inject({ method: 'GET', url: '/households/export/status' });
+
+    expect(res.statusCode).toBe(401);
+  });
+});
+
 describe('household invite endpoints (HTTP)', () => {
   const VIEW: HouseholdInviteView = {
     id: INVITE_ID,
@@ -226,6 +308,10 @@ describe('household invite endpoints (HTTP)', () => {
         { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
         ...inviteProviders(mocks),
         { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
+        {
+          provide: GetHouseholdExportStatusUseCase,
+          useValue: mock<GetHouseholdExportStatusUseCase>(),
+        },
         { provide: DeleteHouseholdUseCase, useValue: mock<DeleteHouseholdUseCase>() },
         { provide: RedisTotpStepUpStore, useValue: mock<TotpStepUpStore>() },
         { provide: DrizzleTotpSecretRepository, useValue: mock<TotpSecretRepository>() },
