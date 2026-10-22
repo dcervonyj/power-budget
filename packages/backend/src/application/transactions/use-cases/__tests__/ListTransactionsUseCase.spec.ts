@@ -16,6 +16,8 @@ describe('ListTransactionsUseCase', () => {
       householdId: HOUSEHOLD,
       ownerUserId: UserId.of('01890a5d-ac96-774b-bcce-b302099a8058'),
       unmappedOnly: true,
+      mapped: true,
+      transfer: false,
       status: 'pending' as const,
     };
 

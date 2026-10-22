@@ -239,6 +239,8 @@
   "screen.transactionList.filter.status": "Статус",
   "screen.transactionList.filter.status.all": "Все",
   "screen.transactionList.filter.status.unmapped": "Непривязанные",
+  "screen.transactionList.filter.status.mapped": "Сопоставленные",
+  "screen.transactionList.filter.status.transfer": "Переводы",
   "screen.transactionList.filter.currency": "Валюта",
   "screen.transactionList.filter.source": "Источник",
   "screen.transactionList.filter.search": "Поиск…",

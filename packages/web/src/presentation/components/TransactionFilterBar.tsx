@@ -7,8 +7,8 @@ export interface TransactionFilters {
   from: string;
   to: string;
   category: string;
-  /** Mapping filter, applied by the API (`unmappedOnly`). */
-  status: '' | 'unmapped';
+  /** Mapping filter, applied by the API (`unmappedOnly`, `mapped`, `transfer`). */
+  status: '' | 'unmapped' | 'mapped' | 'transfer';
   /** Booking status, applied by the API (`status`). */
   booking: '' | TransactionStatus;
   currency: string;
@@ -151,6 +151,18 @@ export function TransactionFilterBar({
               defaultMessage: 'Unmapped',
             })}
           </option>
+          <option value="mapped">
+            {intl.formatMessage({
+              id: 'screen.transactionList.filter.status.mapped',
+              defaultMessage: 'Mapped',
+            })}
+          </option>
+          <option value="transfer">
+            {intl.formatMessage({
+              id: 'screen.transactionList.filter.status.transfer',
+              defaultMessage: 'Transfers',
+            })}
+          </option>
         </select>
       </div>
 
@@ -269,7 +281,14 @@ export function TransactionFilterBar({
 
 /** URL and select values outside the known set read as "all". */
 export function toMappingFilter(value: string | null): TransactionFilters['status'] {
-  return value === 'unmapped' ? 'unmapped' : '';
+  switch (value) {
+    case 'unmapped':
+    case 'mapped':
+    case 'transfer':
+      return value;
+    default:
+      return '';
+  }
 }
 
 export function toBooking(value: string | null): TransactionFilters['booking'] {

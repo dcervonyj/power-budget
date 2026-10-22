@@ -239,6 +239,8 @@
   "screen.transactionList.filter.status": "Статус",
   "screen.transactionList.filter.status.all": "Усі",
   "screen.transactionList.filter.status.unmapped": "Неприв’язані",
+  "screen.transactionList.filter.status.mapped": "Зіставлені",
+  "screen.transactionList.filter.status.transfer": "Перекази",
   "screen.transactionList.filter.currency": "Валюта",
   "screen.transactionList.filter.source": "Джерело",
   "screen.transactionList.filter.search": "Пошук…",

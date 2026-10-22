@@ -108,6 +108,8 @@ export class TransactionsController {
         dateTo: query.to as IsoDate | undefined,
         search: query.q,
         unmappedOnly: query.unmappedOnly,
+        mapped: query.mapped,
+        transfer: query.transfer,
         status: query.status,
         cursor: query.cursor,
         limit: query.limit,
