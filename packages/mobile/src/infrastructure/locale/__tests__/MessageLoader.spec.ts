@@ -3,9 +3,12 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   loadMessages,
+  METRO_FEATURE_MESSAGES_DIRECTORY,
+  METRO_FEATURE_MESSAGES_PATTERN,
   setFeatureMessageContextForTests,
   type FeatureMessageContext,
 } from '../MessageLoader.js';
+import { excludeFeatureMessages, readFeatureMessageIds } from '../ExtractedMessageFilter.mjs';
 
 type Catalog = Record<string, string>;
 
@@ -40,6 +43,12 @@ function stubMetroRequire(): void {
 }
 
 describe('loadMessages', () => {
+  it('uses a Metro context pattern for locale feature catalogs', () => {
+    expect(METRO_FEATURE_MESSAGES_DIRECTORY).toBe('../../../assets/locales');
+    expect(METRO_FEATURE_MESSAGES_PATTERN.test('./pl/glass-fixture.json')).toBe(true);
+    expect(METRO_FEATURE_MESSAGES_PATTERN.test('./pl.json')).toBe(false);
+  });
+
   it('merges legacy and feature messages for every supported locale', async () => {
     stubMetroRequire();
 
@@ -70,5 +79,17 @@ describe('loadMessages', () => {
         }
       }
     }
+  });
+
+  it('keeps legacy ids that share a feature prefix during extraction', () => {
+    const extractedMessages = {
+      'glass-fixture.message': 'Fixture message',
+      'settings.profile.displayName': 'Display name',
+    };
+    const featureMessageIds = readFeatureMessageIds(resolve(ASSETS_DIRECTORY, 'en'));
+
+    const legacyMessages = excludeFeatureMessages(extractedMessages, featureMessageIds);
+
+    expect(legacyMessages).toEqual({ 'settings.profile.displayName': 'Display name' });
   });
 });
