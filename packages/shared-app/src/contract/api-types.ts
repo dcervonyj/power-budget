@@ -331,6 +331,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/households/export/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Status of the household's latest data export
+     * @description Polled after POST /households/export; `url` is set once the export is ready.
+     */
+    get: operations['HouseholdsController_exportStatusEndpoint'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/households/{id}': {
     parameters: {
       query?: never;
@@ -1047,6 +1067,14 @@ export interface components {
       exportId: string;
       /** @enum {string} */
       status: 'pending';
+    };
+    HouseholdExportStatusDto: {
+      /** @enum {string} */
+      status: 'pending' | 'processing' | 'ready' | 'failed';
+      /** @description Download link; set once the export is ready and not yet expired */
+      url: string | null;
+      /** @example 2024-07-15T10:00:00.000Z */
+      expiresAt: string | null;
     };
     HouseholdDeletionScheduledDto: {
       /**
@@ -2377,6 +2405,46 @@ export interface operations {
       };
       /** @description No household */
       403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  HouseholdsController_exportStatusEndpoint: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HouseholdExportStatusDto'];
+        };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No household */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description No export requested yet */
+      404: {
         headers: {
           [name: string]: unknown;
         };

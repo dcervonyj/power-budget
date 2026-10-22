@@ -175,6 +175,7 @@ export interface HouseholdExportRepository {
     update: { status: 'processing' | 'ready' | 'failed'; downloadUrl?: string; expiresAt?: Date },
   ): Promise<void>;
   findById(id: HouseholdExportId): Promise<HouseholdExport | null>;
+  findLatestByHousehold(householdId: HouseholdId): Promise<HouseholdExport | null>;
 }
 
 export interface HouseholdExportQueuePort {
