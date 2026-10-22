@@ -53,7 +53,39 @@ describe('glass maths', () => {
 });
 
 describe('formatMoneyParts', () => {
-  const locales: readonly DesignLocale[] = ['en', 'pl', 'uk', 'ru'];
+  const plGrouping = ' ';
+  const plOnlyFormatter = booleanOnlyPolishFormatter('pl', 'PLN', 2);
+  const plMoneyCases: ReadonlyArray<{
+    readonly locale: DesignLocale;
+    readonly fourDigits: string;
+    readonly sevenDigits: string;
+    readonly belowThousand: string;
+  }> = [
+    {
+      locale: 'en',
+      fourDigits: 'zł 1,234.56',
+      sevenDigits: 'zł 1,234,567.00',
+      belowThousand: 'zł 123.45',
+    },
+    {
+      locale: 'pl',
+      fourDigits: '1 234,56 zł',
+      sevenDigits: '1 234 567,00 zł',
+      belowThousand: '123,45 zł',
+    },
+    {
+      locale: 'uk',
+      fourDigits: '1 234,56 zł',
+      sevenDigits: '1 234 567,00 zł',
+      belowThousand: '123,45 zł',
+    },
+    {
+      locale: 'ru',
+      fourDigits: '1 234,56 zł',
+      sevenDigits: '1 234 567,00 zł',
+      belowThousand: '123,45 zł',
+    },
+  ];
   const eurCases: ReadonlyArray<{
     readonly locale: DesignLocale;
     readonly expected: string;
@@ -65,19 +97,33 @@ describe('formatMoneyParts', () => {
     { locale: 'ru', expected: '1 234,56 €', expectedNegative: '−10,99 €' },
   ];
 
-  it.each(locales)('formats PLN in %s with a narrow zł symbol', (locale) => {
-    const parts = formatMoneyParts({ amountMinor: 123456n, currency: 'PLN' }, locale);
+  it.each(plMoneyCases)(
+    'formats four-digit, seven-digit, and below-thousand PLN amounts in $locale',
+    ({ locale, fourDigits, sevenDigits, belowThousand }) => {
+      expect(
+        formatMoneyParts({ amountMinor: 123456n, currency: 'PLN' }, locale).map(partValue).join(''),
+      ).toBe(fourDigits);
+      expect(
+        formatMoneyParts({ amountMinor: 123456700n, currency: 'PLN' }, locale)
+          .map(partValue)
+          .join(''),
+      ).toBe(sevenDigits);
+      expect(
+        formatMoneyParts({ amountMinor: 12345n, currency: 'PLN' }, locale).map(partValue).join(''),
+      ).toBe(belowThousand);
+    },
+  );
 
-    expect(parts.some((part) => part.type === 'currency' && part.value === 'zł')).toBe(true);
-    expect(parts.some((part) => part.type === 'fraction' && part.value === '56')).toBe(true);
-  });
+  it('groups Polish four-digit amounts when the formatter supports boolean grouping only', () => {
+    expect(plOnlyFormatter.formatToParts(1234.56).some(hasGroupPart)).toBe(false);
 
-  it('uses grouping for four-digit Polish amounts', () => {
-    const parts = formatMoneyParts({ amountMinor: 123456n, currency: 'PLN' }, 'pl');
+    const formatted = formatMoneyParts(
+      { amountMinor: 123456n, currency: 'PLN' },
+      'pl',
+      booleanOnlyPolishFormatter,
+    );
 
-    expect(parts).toContainEqual({ type: 'integer', value: '1' });
-    expect(parts).toContainEqual({ type: 'group', value: ' ' });
-    expect(parts).toContainEqual({ type: 'integer', value: '234' });
+    expect(formatted.map(partValue).join('')).toBe(`1${plGrouping}234,56${plGrouping}zł`);
   });
 
   it.each(eurCases)(
@@ -97,3 +143,44 @@ describe('formatMoneyParts', () => {
     expect(parts.map((part) => part.value).join('')).toBe('¥1,234');
   });
 });
+
+function booleanOnlyPolishFormatter(
+  _locale: DesignLocale,
+  currency: string,
+  digits: number,
+): Intl.NumberFormat {
+  const formatter = new Intl.NumberFormat('pl-PL', {
+    style: 'currency',
+    currency,
+    currencyDisplay: 'narrowSymbol',
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+    useGrouping: true,
+  });
+  const formatToParts = formatter.formatToParts.bind(formatter);
+
+  Object.defineProperty(formatter, 'formatToParts', {
+    value(value: number | bigint): Intl.NumberFormatPart[] {
+      const parts = formatToParts(value);
+      if (Number(value) < 1000000) {
+        return parts.filter(notGroupPart);
+      }
+
+      return parts;
+    },
+  });
+
+  return formatter;
+}
+
+function hasGroupPart(part: Intl.NumberFormatPart): boolean {
+  return part.type === 'group';
+}
+
+function notGroupPart(part: Intl.NumberFormatPart): boolean {
+  return part.type !== 'group';
+}
+
+function partValue(part: { readonly value: string }): string {
+  return part.value;
+}
