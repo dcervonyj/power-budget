@@ -186,7 +186,7 @@ export function TotpEnrollmentScreen({ navigation }: Props): React.JSX.Element {
         <Button
           variant="primary"
           onPress={() => {
-            navigation.navigate('Login');
+            navigation.popTo('Login');
           }}
         >
           {intl.formatMessage({ id: 'action.done', defaultMessage: 'Done' })}
