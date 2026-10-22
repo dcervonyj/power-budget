@@ -60,7 +60,7 @@ export function MagicLinkScreen({ navigation }: Props): React.JSX.Element {
         <Button
           variant="secondary"
           onPress={() => {
-            navigation.navigate('Login');
+            navigation.popTo('Login');
           }}
         >
           {intl.formatMessage({ id: 'action.backToSignIn', defaultMessage: 'Back to Sign In' })}
@@ -106,7 +106,7 @@ export function MagicLinkScreen({ navigation }: Props): React.JSX.Element {
       <Button
         variant="secondary"
         onPress={() => {
-          navigation.navigate('Login');
+          navigation.popTo('Login');
         }}
       >
         {intl.formatMessage({ id: 'action.backToSignIn', defaultMessage: 'Back to Sign In' })}

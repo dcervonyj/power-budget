@@ -57,6 +57,13 @@
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ]
-    }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker",
+      "@sentry/react-native",
+      "expo-localization",
+      "expo-secure-store",
+      "expo-sharing"
+    ]
   }
 }
