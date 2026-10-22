@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "vitest run",
-    "i18n:extract": "node src/infrastructure/locale/generateFeatureMessages.mjs && formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-mobile-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]'"
+    "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-mobile-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]' && node -e \"const fs=require('fs'),messages=JSON.parse(fs.readFileSync('/tmp/power-budget-mobile-message-ids.json','utf8')),feature=/^(shell|overview|tx|plan|auth|onboarding|categories|household|banks|settings|glass-[^.]+)\\./;for(const id of Object.keys(messages)){if(feature.test(id)){delete messages[id]}}fs.writeFileSync('assets/locales/en.json',JSON.stringify(messages,null,2)+'\\n')\""
   },
   "dependencies": {
     "@expo-google-fonts/geist": "^0.4.2",
