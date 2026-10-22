@@ -239,6 +239,8 @@
   "screen.transactionList.filter.status": "Status",
   "screen.transactionList.filter.status.all": "Wszystkie",
   "screen.transactionList.filter.status.unmapped": "Nieprzypisane",
+  "screen.transactionList.filter.status.mapped": "Przypisane",
+  "screen.transactionList.filter.status.transfer": "Przelewy własne",
   "screen.transactionList.filter.currency": "Waluta",
   "screen.transactionList.filter.source": "Źródło",
   "screen.transactionList.filter.search": "Szukaj…",

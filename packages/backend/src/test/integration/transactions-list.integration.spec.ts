@@ -318,6 +318,50 @@ describe('Integration: transaction list read model, accounts and manual transact
       });
       expect(bad.statusCode).toBe(400);
     });
+
+    it('applies mapped and transfer in SQL across keyset pages', async () => {
+      const householdId = await insertHousehold();
+      const me = await insertUser(householdId, 'owner');
+      const account = await insertBankAccount(me);
+      const item = await insertPlannedItem(me, { name: 'October', archived: false });
+      const dates = ['2026-10-03', '2026-10-02', '2026-10-01'];
+
+      const mapped: string[] = [];
+      const transfers: string[] = [];
+      const others: string[] = [];
+      for (let i = 0; i < 24; i++) {
+        const date = dates[i % dates.length]!;
+        const id = await insertTx(me, account, date, { ignored: i % 6 === 4 });
+        if (i % 6 === 0) {
+          await map(me, id, item.plannedItemId);
+          mapped.push(id);
+        } else if (i % 6 === 1) {
+          await markTransfer(me, id, null);
+          transfers.push(id);
+        } else {
+          others.push(id);
+        }
+      }
+
+      const seenMapped = await listAll(me, 'mapped=true&limit=3');
+      expect(new Set(seenMapped.map((row) => row.id))).toEqual(new Set(mapped));
+      expect(seenMapped.every((row) => row.mapping !== null && row.transfer === null)).toBe(true);
+
+      const seenTransfers = await listAll(me, 'transfer=true&limit=3');
+      expect(new Set(seenTransfers.map((row) => row.id))).toEqual(new Set(transfers));
+
+      const seenNonTransfers = await listAll(me, 'transfer=false&limit=5');
+      expect(new Set(seenNonTransfers.map((row) => row.id))).toEqual(
+        new Set([...mapped, ...others]),
+      );
+
+      const bad = await app.inject({
+        method: 'GET',
+        url: '/transactions?transfer=maybe',
+        headers: me.headers,
+      });
+      expect(bad.statusCode).toBe(400);
+    });
   });
 
   describe('accounts and manual transactions', () => {

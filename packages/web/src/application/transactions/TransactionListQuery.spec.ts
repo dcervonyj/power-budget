@@ -60,6 +60,11 @@ describe('buildQuery', () => {
     );
   });
 
+  it('sends the mapped and transfer mapping filters', () => {
+    expect(buildQuery({ ...noFilters, status: 'mapped' })).toBe('mapped=true&limit=50');
+    expect(buildQuery({ ...noFilters, status: 'transfer' })).toBe('transfer=true&limit=50');
+  });
+
   it('sends just the page size without filters', () => {
     expect(buildQuery(noFilters)).toBe('limit=50');
   });

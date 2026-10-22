@@ -77,6 +77,26 @@ export class ListTransactionsQueryDto {
   unmappedOnly?: boolean;
 
   @ApiPropertyOptional({
+    type: Boolean,
+    description:
+      'Return only transactions mapped to a planned item (not a transfer, not ignored); `false` adds no filter, use `unmappedOnly` for the opposite',
+  })
+  @IsOptional()
+  @ToBoolean()
+  @IsBoolean()
+  mapped?: boolean;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    description:
+      '`true`: only internal transfers (not ignored); `false`: only transactions that are not part of a transfer',
+  })
+  @IsOptional()
+  @ToBoolean()
+  @IsBoolean()
+  transfer?: boolean;
+
+  @ApiPropertyOptional({
     type: String,
     enum: [...TRANSACTION_STATUSES],
     description: 'Booking status filter (`posted` is booked)',

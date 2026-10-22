@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gte, ilike, inArray, isNull, lt, lte, or } from 'drizzle-orm';
+import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, or } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -344,6 +344,23 @@ export class DrizzleTransactionRepository implements TransactionRepository {
         isNull(transferAsB.id),
         eq(t.ignored, false),
       );
+    }
+    if (query.mapped) {
+      conditions.push(
+        isNotNull(schema.transactionMappings.transactionId),
+        isNull(transferAsA.id),
+        isNull(transferAsB.id),
+        eq(t.ignored, false),
+      );
+    }
+    if (query.transfer === true) {
+      const isTransfer = or(isNotNull(transferAsA.id), isNotNull(transferAsB.id));
+      if (isTransfer) {
+        conditions.push(isTransfer, eq(t.ignored, false));
+      }
+    }
+    if (query.transfer === false) {
+      conditions.push(isNull(transferAsA.id), isNull(transferAsB.id));
     }
     if (query.cursor) {
       const after = decodeTransactionCursor(query.cursor);

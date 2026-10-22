@@ -173,6 +173,8 @@
   "screen.transactionList.filter.status": "Status",
   "screen.transactionList.filter.status.all": "All",
   "screen.transactionList.filter.status.unmapped": "Unmapped",
+  "screen.transactionList.filter.status.mapped": "Mapped",
+  "screen.transactionList.filter.status.transfer": "Transfers",
   "screen.transactionList.filter.currency": "Currency",
   "screen.transactionList.filter.source": "Source",
   "screen.transactionList.filter.search": "Search…",
