@@ -76,11 +76,16 @@ describe('global ValidationPipe', () => {
 
   it('converts and clamps the page size, and parses booleans', async () => {
     const dto = await createValidationPipe().transform(
-      { limit: '100000', unmappedOnly: 'true' },
+      { limit: '100000', unmappedOnly: 'true', mapped: 'true', transfer: 'false' },
       LIST_QUERY,
     );
 
-    expect(dto).toMatchObject({ limit: TRANSACTIONS_PAGE_MAX, unmappedOnly: true });
+    expect(dto).toMatchObject({
+      limit: TRANSACTIONS_PAGE_MAX,
+      unmappedOnly: true,
+      mapped: true,
+      transfer: false,
+    });
   });
 
   it('rejects a non-numeric or non-positive page size', async () => {

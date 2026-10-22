@@ -6,7 +6,7 @@ import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js
 const LIMIT = 50;
 
 /**
- * `GET /transactions` filters from, to, q, `unmappedOnly` and booking `status` in SQL
+ * `GET /transactions` filters from, to, q, `unmappedOnly`, `mapped`, `transfer` and booking `status` in SQL
  * under the keyset cursor (CLN-023); any other query parameter is a 400. Currency and
  * source have no API filter yet and are filtered on the page.
  */
@@ -23,6 +23,12 @@ export function buildQuery(f: TransactionFilters, cursor?: string): string {
   }
   if (f.status === 'unmapped') {
     params.set('unmappedOnly', 'true');
+  }
+  if (f.status === 'mapped') {
+    params.set('mapped', 'true');
+  }
+  if (f.status === 'transfer') {
+    params.set('transfer', 'true');
   }
   if (f.booking) {
     params.set('status', f.booking);

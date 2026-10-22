@@ -153,6 +153,10 @@ export interface TransactionQuery {
   readonly search?: string;
   /** Only rows that still need attention: no mapping, not a transfer, not ignored. */
   readonly unmappedOnly?: boolean;
+  /** `true`: only rows with a mapping that are not a transfer and not ignored. */
+  readonly mapped?: boolean;
+  /** `true`: only transfers (not ignored); `false`: only rows that are not part of a transfer. */
+  readonly transfer?: boolean;
   readonly status?: TransactionStatus;
   /** Opaque keyset cursor returned as `nextCursor` by the previous page. */
   readonly cursor?: string;
