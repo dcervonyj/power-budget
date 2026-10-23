@@ -13,6 +13,7 @@ import { excludeFeatureMessages, readFeatureMessageIds } from '../ExtractedMessa
 type Catalog = Record<string, string>;
 
 const ASSETS_DIRECTORY = resolve(__dirname, '../../../../assets/locales');
+const MESSAGE_LOADER_SOURCE_PATH = resolve(__dirname, '../MessageLoader.ts');
 
 function createFeatureContext(): FeatureMessageContext {
   const catalogs = new Map<string, Catalog>();
@@ -47,6 +48,17 @@ describe('loadMessages', () => {
     expect(METRO_FEATURE_MESSAGES_DIRECTORY).toBe('../../../assets/locales');
     expect(METRO_FEATURE_MESSAGES_PATTERN.test('./pl/glass-fixture.json')).toBe(true);
     expect(METRO_FEATURE_MESSAGES_PATTERN.test('./pl.json')).toBe(false);
+  });
+
+  it('passes literal arguments to Metro require.context', () => {
+    const source = readFileSync(MESSAGE_LOADER_SOURCE_PATH, 'utf8');
+    const literalPattern = /^\.\/[^/]+\/[^/]+\.json$/;
+
+    expect(source).toMatch(
+      /require\.context\(\s*'\.\.\/\.\.\/\.\.\/assets\/locales'\s*,\s*true\s*,\s*\/\^\\\.\\\/\[\^\/\]\+\\\/\[\^\/\]\+\\\.json\$\/\s*\)/,
+    );
+    expect(literalPattern.test('./pl/glass-fixture.json')).toBe(true);
+    expect(literalPattern.test('./pl.json')).toBe(false);
   });
 
   it('merges legacy and feature messages for every supported locale', async () => {

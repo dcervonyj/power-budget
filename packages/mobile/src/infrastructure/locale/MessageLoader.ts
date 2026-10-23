@@ -37,5 +37,5 @@ export async function loadMessages(locale: SupportedLocale): Promise<Catalog> {
 }
 
 function getMetroFeatureContext(): FeatureMessageContext {
-  return require.context(METRO_FEATURE_MESSAGES_DIRECTORY, true, METRO_FEATURE_MESSAGES_PATTERN);
+  return require.context('../../../assets/locales', true, /^\.\/[^/]+\/[^/]+\.json$/);
 }
