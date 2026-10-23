@@ -1,6 +1,6 @@
 # ADR-002: Free-tier test deployment topology (Render instead of Fly.io)
 
-- **Status**: Accepted
+- **Status**: Accepted; runtime choice superseded by [ADR-003](ADR-003-render-starter-always-on.md) (23 Oct 2026)
 - **Date**: 2026-06-10
 - **Relates to**: INF-009, INF-010, INF-011, ARCHITECTURE.md §10 Option A
 
