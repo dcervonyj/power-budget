@@ -52,7 +52,7 @@ The script must:
 #### 1.3 Deploy with new KEK
 
 ```bash
-# Render (current): Dashboard -> power-budget-api -> Environment -> set KEK_BASE64, then redeploy.
+# Render (current): Dashboard -> power-budget-api-eu -> Environment -> set KEK_BASE64, then redeploy.
 # VPS (after HOST-002): edit the compose .env, then `docker compose up -d api worker`.
 # Verify the deployment completed (Render deploy log, or `docker compose ps`).
 ```
