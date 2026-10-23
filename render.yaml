@@ -1,13 +1,24 @@
-# Render Blueprint — free-tier test deployment (ADR-002).
-# One web service runs API + embedded BullMQ worker (START_WORKER=true).
-# Postgres lives on Neon, Redis on Upstash — set DATABASE_URL / REDIS_URL
-# in the Render dashboard (sync: false keeps them out of this file).
+# Render Blueprint — always-on test deployment (ADR-003, revises ADR-002).
+# One Starter web service in Frankfurt (next to Neon) runs API + embedded BullMQ
+# worker (START_WORKER=true). Redis is a Render Key Value instance on the private
+# network; Postgres lives on Neon — set DATABASE_URL in the Render dashboard
+# (sync: false keeps secrets out of this file).
 
 services:
-  - type: web
-    name: power-budget-api
-    runtime: docker
+  - type: keyvalue
+    name: power-budget-redis
+    region: frankfurt
     plan: free
+    # BullMQ needs noeviction: an evicted job key silently loses the job.
+    maxmemoryPolicy: noeviction
+    # Empty list = no access from the internet, only from services in this workspace.
+    ipAllowList: []
+
+  - type: web
+    name: power-budget-api-eu
+    runtime: docker
+    region: frankfurt
+    plan: starter
     dockerfilePath: packages/backend/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -16,28 +27,33 @@ services:
       - key: NODE_ENV
         value: staging
       - key: START_WORKER
-        value: "true"
+        value: 'true'
       # Exact origins only; localhost is for local .env files, never a deployment.
       - key: CORS_ORIGINS
-        value: "https://power-budget.pages.dev,*.power-budget.pages.dev"
-      # Required: the API refuses to boot without a JWT_SECRET of >= 32 bytes
-      # (generate with `openssl rand -base64 48`, set it in the dashboard).
+        value: 'https://power-budget.pages.dev,*.power-budget.pages.dev'
+      # Required: the API refuses to boot without a JWT_SECRET of >= 32 bytes.
+      # Render generates a random 256-bit base64 value (44 bytes) once.
       - key: JWT_SECRET
-        sync: false
+        generateValue: true
       # Resend webhook signing secret (whsec_...). Unset = bounce webhook rejects everything.
       - key: RESEND_WEBHOOK_SECRET
         sync: false
       # Proxy hops trusted for X-Forwarded-For (client IP for the auth rate limits).
       - key: TRUST_PROXY
-        value: "1"
+        value: '1'
       # App runtime: least-privilege role (see docs/runbooks/db-roles-and-migrations.md)
       - key: DATABASE_URL
         sync: false
       # Owner/migrator role, used only by `node drizzle/migrate.mjs` at boot
       - key: MIGRATION_DATABASE_URL
         sync: false
+      # Internal redis:// URL of the Key Value instance above (private network, no TLS hop).
       - key: REDIS_URL
-        sync: false
+        fromService:
+          type: keyvalue
+          name: power-budget-redis
+          property: connectionString
+      # Must stay the same key across services: it decrypts secrets already stored in Neon.
       - key: KEK_BASE64
         sync: false
       # Required: the embedded worker refuses to boot without it (staging/production).
@@ -50,7 +66,7 @@ services:
         sync: false
       # Web app origin used in email links (magic-link sign-in, invites).
       - key: APP_BASE_URL
-        value: "https://power-budget.pages.dev"
+        value: 'https://power-budget.pages.dev'
       - key: SENTRY_DSN
         sync: false
       - key: GOCARDLESS_SECRET_ID
@@ -58,4 +74,4 @@ services:
       - key: GOCARDLESS_SECRET_KEY
         sync: false
       - key: AUDIT_REDACTION_THRESHOLD_MINOR
-        value: "1000000"
+        value: '1000000'
