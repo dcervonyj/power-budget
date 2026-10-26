@@ -1,0 +1,12 @@
+{
+  "glass-light.daysLeft": "{days, plural, one {# день до кінця} few {# дні до кінця} many {# днів до кінця} other {# дня до кінця}}",
+  "glass-light.lens.perDay": "{currency} на день",
+  "glass-light.lens.aria": "{amount} на день, {days, plural, one {# день до кінця} few {# дні до кінця} many {# днів до кінця} other {# дня до кінця}}",
+  "glass-light.rod.aria.under": "{name}: залишилось {left} з {plan}",
+  "glass-light.rod.aria.over": "{name}: перевищено на {over}",
+  "glass-light.rod.aria.paid": "{name}: сплачено",
+  "glass-light.rod.aria.empty": "{name}: нічого не залишилось з {plan}",
+  "glass-light.rod.tag.over": "Бюджет перевищено",
+  "glass-light.rod.tag.paid": "Сплачено",
+  "glass-light.tube.aria": "{name}: {saved} з {goal}"
+}
