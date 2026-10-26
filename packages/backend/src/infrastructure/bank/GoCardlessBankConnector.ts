@@ -1,9 +1,17 @@
 import type { BankConnectionId, EncryptedString, UserId } from '@power-budget/core';
-import type { BankConnector } from '../../domain/bank/ports.js';
+import { IsoDate, bankTxDirectionOf, parseMoney } from '@power-budget/core';
+import type {
+  BankConnector,
+  FetchBalancesInput,
+  FetchTransactionsInput,
+} from '../../domain/bank/ports.js';
 import type {
   BankProvider,
   BankCatalogEntry,
+  BankConsentStatus,
+  BankConsentStatusReport,
   CountryCode,
+  RawBalance,
   RawBankAccount,
   RawTransaction,
   BankId,
@@ -60,6 +68,19 @@ interface GcTransactionsResponse {
     booked: GcTransaction[];
     pending: GcTransaction[];
   };
+}
+
+interface GcBalance {
+  balanceAmount: {
+    amount: string;
+    currency: string;
+  };
+  balanceType: string;
+  referenceDate?: string;
+}
+
+interface GcBalancesResponse {
+  balances: GcBalance[];
 }
 
 interface ConsentPayload {
@@ -141,8 +162,7 @@ export class GoCardlessBankConnector implements BankConnector {
     _connectionId: BankConnectionId,
     consent: EncryptedString,
   ): Promise<RawBankAccount[]> {
-    const raw = await this.encryption.decrypt(consent);
-    const payload = JSON.parse(raw) as ConsentPayload;
+    const payload = await this.decodeConsent(consent);
 
     const accounts = await Promise.all(
       payload.accounts.map(async (accountId) => {
@@ -164,33 +184,50 @@ export class GoCardlessBankConnector implements BankConnector {
     return accounts;
   }
 
-  async fetchTransactions(input: {
-    accountExternalId: string;
-    consent: EncryptedString;
-    since: Date;
-  }): Promise<RawTransaction[]> {
-    const dateFrom = input.since.toISOString().slice(0, 10);
+  /**
+   * Booked rows only, as before the v2 port; GoCardless leaves with BNK-008. The PSU context
+   * is not sent: this integration has no PSU headers.
+   */
+  async fetchTransactions(input: FetchTransactionsInput): Promise<RawTransaction[]> {
+    const dateFrom = input.dateFrom.toISOString().slice(0, 10);
+    // `longest`: without date_from GoCardless returns all the history the consent allows.
+    const query = input.strategy === 'longest' ? '' : `?date_from=${dateFrom}`;
     const data = await this.request<GcTransactionsResponse>(
       'GET',
-      `/accounts/${input.accountExternalId}/transactions/?date_from=${dateFrom}`,
+      `/accounts/${input.account.externalId}/transactions/${query}`,
     );
 
-    return data.transactions.booked.map((tx) => {
-      const occurredOn = tx.bookingDate ?? tx.valueDate ?? dateFrom;
-      const amountMinor = BigInt(Math.round(parseFloat(tx.transactionAmount.amount) * 100));
-      const description =
-        tx.remittanceInformationUnstructured ?? tx.remittanceInformationStructured ?? '';
+    return data.transactions.booked.map((tx) =>
+      this.toRawTransaction(tx, input.account.externalId, dateFrom),
+    );
+  }
 
-      return {
-        externalId: tx.transactionId ?? null,
-        accountExternalId: input.accountExternalId,
-        occurredOn,
-        amountMinor,
-        currency: tx.transactionAmount.currency,
-        description,
-        merchant: tx.creditorName ?? null,
-      } satisfies RawTransaction;
-    });
+  async fetchBalances(input: FetchBalancesInput): Promise<RawBalance[]> {
+    const data = await this.request<GcBalancesResponse>(
+      'GET',
+      `/accounts/${input.account.externalId}/balances/`,
+    );
+
+    return data.balances.map((balance) => ({
+      accountExternalId: input.account.externalId,
+      amount: {
+        amountMinor: parseMoney(balance.balanceAmount.amount, balance.balanceAmount.currency),
+        currency: balance.balanceAmount.currency,
+      },
+      balanceType: balance.balanceType,
+      referenceDate: balance.referenceDate ? IsoDate.of(balance.referenceDate) : null,
+    }));
+  }
+
+  /** GoCardless does not say when a requisition ends, so `validUntil` is null. */
+  async getConsentStatus(consent: EncryptedString): Promise<BankConsentStatusReport> {
+    const payload = await this.decodeConsent(consent);
+    const requisition = await this.request<GcRequisition>(
+      'GET',
+      `/requisitions/${payload.requisitionId}/`,
+    );
+
+    return { status: this.toConsentStatus(requisition.status), validUntil: null };
   }
 
   async refreshConsent(): Promise<{ consentUrl: string }> {
@@ -198,13 +235,79 @@ export class GoCardlessBankConnector implements BankConnector {
   }
 
   async disconnect(_connectionId: BankConnectionId, consent: EncryptedString): Promise<void> {
-    const raw = await this.encryption.decrypt(consent);
-    const payload = JSON.parse(raw) as ConsentPayload;
+    const payload = await this.decodeConsent(consent);
 
     await this.request<void>('DELETE', `/requisitions/${payload.requisitionId}/`);
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────────
+
+  private async decodeConsent(consent: EncryptedString): Promise<ConsentPayload> {
+    const raw = await this.encryption.decrypt(consent);
+
+    return JSON.parse(raw) as ConsentPayload;
+  }
+
+  private toRawTransaction(
+    tx: GcTransaction,
+    accountExternalId: string,
+    dateFrom: string,
+  ): RawTransaction {
+    const amountMinor = parseMoney(tx.transactionAmount.amount, tx.transactionAmount.currency);
+
+    return {
+      accountExternalId,
+      status: 'booked',
+      // GoCardless's transactionId stays the key so re-syncs of stored rows do not duplicate.
+      entryReference: tx.transactionId ?? null,
+      bookingDate: this.bookingDateOf(tx, dateFrom),
+      valueDate: tx.valueDate ? IsoDate.of(tx.valueDate) : null,
+      transactionDate: null,
+      amountMinor,
+      currency: tx.transactionAmount.currency,
+      direction: bankTxDirectionOf(amountMinor),
+      originalAmount: null,
+      counterpartyName: tx.creditorName ?? null,
+      counterpartyIban: null,
+      remittance: tx.remittanceInformationUnstructured ?? tx.remittanceInformationStructured ?? '',
+      mcc: null,
+      bankTxCode: null,
+      balanceAfter: null,
+    };
+  }
+
+  /** A row with neither booking nor value date keeps the old fallback: the fetch start date. */
+  private bookingDateOf(tx: GcTransaction, dateFrom: string): IsoDate | null {
+    if (tx.bookingDate) {
+      return IsoDate.of(tx.bookingDate);
+    }
+    if (tx.valueDate) {
+      return null;
+    }
+
+    return IsoDate.of(dateFrom);
+  }
+
+  /** GoCardless requisition status codes (CR, GC, UA, SA, GA, LN, RJ, EX, SU). */
+  private toConsentStatus(status: string): BankConsentStatus {
+    switch (status) {
+      case 'LN':
+        return 'active';
+      case 'EX':
+        return 'expired';
+      case 'RJ':
+      case 'SU':
+        return 'failed';
+      case 'CR':
+      case 'GC':
+      case 'UA':
+      case 'SA':
+      case 'GA':
+        return 'pending_authorization';
+      default:
+        throw new Error(`Unknown GoCardless requisition status ${status}`);
+    }
+  }
 
   private async getAccessToken(): Promise<string> {
     if (this.accessToken !== null && Date.now() < this.tokenExpiresAt) {
