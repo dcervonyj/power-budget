@@ -151,6 +151,23 @@ describe('BankSyncProcessor', () => {
     });
   });
 
+  it('treats a job queued before BNK-003 (no trigger) as scheduled and unattended', async () => {
+    connectionRepo.findById.mockResolvedValue(makeConnection());
+    connector.listAccounts.mockResolvedValue([]);
+    bankAccountRepo.listByConnection.mockResolvedValue([]);
+    const legacyData: BankSyncJobPayload = {
+      connectionId: CONNECTION_ID,
+      householdId: HOUSEHOLD_ID,
+    };
+
+    await processor.process({ data: legacyData } as Job<BankSyncJobPayload>);
+
+    expect(syncRunRepo.start).toHaveBeenCalledWith(CONNECTION_ID, {
+      trigger: 'scheduled',
+      attended: false,
+    });
+  });
+
   it('skips processing when connection is not found', async () => {
     connectionRepo.findById.mockResolvedValue(null);
 
