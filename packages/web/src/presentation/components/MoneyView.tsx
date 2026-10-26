@@ -1,10 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import { formatMoney, getMinorUnitExponent, type MinorUnitAmount } from '@power-budget/core';
+import type { MinorUnitAmount } from '@power-budget/core';
+import { formatMoneyParts } from '@power-budget/shared-app';
 import { apiClient } from '../../AppProviders.js';
 import { fetchAndCacheRates, getCachedRates } from '../../infrastructure/fx/FxRateCache.js';
 import type { FxRateTable } from '../../infrastructure/fx/FxRateCache.js';
 import { toSupportedLocale } from '../i18n/supportedLocale.js';
+import { AmountText } from '../glass/atoms/AmountText.js';
+import {
+  convertDisplayMoney,
+  displayFxRatio,
+  formatDisplayRate,
+} from '../glass/atoms/convertDisplayMoney.js';
 
 export interface MoneyViewProps {
   /** Exact minor units; shown in its own currency without any float maths. */
@@ -28,51 +35,6 @@ function readInterestingCurrencies(): string[] {
   } catch {
     return [];
   }
-}
-
-function convertAmount(
-  amountMajor: number,
-  fromCurrency: string,
-  toCurrency: string,
-  rates: FxRateTable,
-): number | null {
-  if (fromCurrency === toCurrency) return amountMajor;
-
-  const { baseCurrency } = rates;
-
-  if (fromCurrency === baseCurrency) {
-    const toRate = rates.rates[toCurrency];
-    if (toRate === undefined) return null;
-    return amountMajor * toRate;
-  }
-
-  if (toCurrency === baseCurrency) {
-    const fromRate = rates.rates[fromCurrency];
-    if (fromRate === undefined) return null;
-    return amountMajor / fromRate;
-  }
-
-  const fromRate = rates.rates[fromCurrency];
-  const toRate = rates.rates[toCurrency];
-  if (fromRate === undefined || toRate === undefined) return null;
-  return (amountMajor / fromRate) * toRate;
-}
-
-function getDisplayRate(
-  fromCurrency: string,
-  toCurrency: string,
-  rates: FxRateTable,
-): number | null {
-  // Returns: 1 fromCurrency = X toCurrency
-  return convertAmount(1, fromCurrency, toCurrency, rates);
-}
-
-/**
- * Approximate major units, only as input to a display-only FX conversion. The
- * amount in its own currency is always formatted from the exact bigint.
- */
-function approximateMajorUnits(amount: MinorUnitAmount): number {
-  return Number(amount.amountMinor) / 10 ** getMinorUnitExponent(amount.currency);
 }
 
 export function MoneyView({ amount, showTooltip = true }: MoneyViewProps): React.JSX.Element {
@@ -104,48 +66,32 @@ export function MoneyView({ amount, showTooltip = true }: MoneyViewProps): React
 
   const targetCurrency = modes[modeIndex] ?? currency;
 
-  let formattedAmount = '–';
-  let rateAvailable = true;
-
-  if (targetCurrency === currency) {
-    formattedAmount = formatMoney(amount, toSupportedLocale(intl.locale));
-  } else if (fxRates) {
-    const converted = convertAmount(
-      approximateMajorUnits(amount),
-      currency,
-      targetCurrency,
-      fxRates,
-    );
-    rateAvailable = converted !== null;
-    if (converted !== null) {
-      formattedAmount = intl.formatNumber(converted, {
-        style: 'currency',
-        currency: targetCurrency,
-      });
-    }
-  } else {
-    rateAvailable = false;
-  }
+  const locale = toSupportedLocale(intl.locale);
+  const shown =
+    targetCurrency === currency ? amount : toTargetAmount(amount, targetCurrency, fxRates);
+  const rate = fxRates === null ? null : displayFxRatio(currency, targetCurrency, fxRates);
 
   let tooltipText = '';
   if (showTooltip && targetCurrency !== currency) {
-    if (fxRates && rateAvailable) {
-      const rate = getDisplayRate(currency, targetCurrency, fxRates);
-      if (rate !== null) {
-        tooltipText = intl.formatMessage(
-          { id: 'component.moneyView.tooltip', defaultMessage: '1 {from} = {rate} {to}' },
-          { from: currency, rate: rate.toFixed(4), to: targetCurrency },
-        );
-      }
-    } else {
-      tooltipText = intl.formatMessage({
-        id: 'component.moneyView.rateUnavailable',
-        defaultMessage: 'Rate unavailable',
-      });
-    }
+    tooltipText =
+      rate === null
+        ? intl.formatMessage({
+            id: 'component.moneyView.rateUnavailable',
+            defaultMessage: 'Rate unavailable',
+          })
+        : intl.formatMessage(
+            { id: 'component.moneyView.tooltip', defaultMessage: '1 {from} = {rate} {to}' },
+            { from: currency, rate: formatDisplayRate(rate), to: targetCurrency },
+          );
   }
 
-  const display = rateAvailable ? formattedAmount : `≈ ${targetCurrency} –`;
+  const label =
+    shown === null
+      ? `≈ ${targetCurrency} –`
+      : formatMoneyParts(shown, locale)
+          .map((part) => part.value)
+          .join('');
+  const content = shown === null ? label : <AmountText amount={shown} locale={locale} />;
 
   return (
     <span
@@ -157,9 +103,21 @@ export function MoneyView({ amount, showTooltip = true }: MoneyViewProps): React
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') handleClick();
       }}
-      aria-label={display}
+      aria-label={label}
     >
-      {display}
+      {content}
     </span>
   );
+}
+
+function toTargetAmount(
+  amount: MinorUnitAmount,
+  targetCurrency: string,
+  fxRates: FxRateTable | null,
+): MinorUnitAmount | null {
+  if (fxRates === null) {
+    return null;
+  }
+
+  return convertDisplayMoney(amount, targetCurrency, fxRates);
 }
