@@ -91,9 +91,13 @@ describe('Select', () => {
 
     expect(trigger).toBeCollapsed();
     await user.press(trigger);
+
+    expect(screen.getByRole('radio', { name: 'Alpha' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: 'Beta' })).not.toBeChecked();
     await user.press(screen.getByRole('radio', { name: 'Beta' }));
 
     expect(onChange).toHaveBeenCalledWith('b');
+    expect(screen.queryByRole('radio')).toBeNull();
   });
 
   it('marks the selected option and ignores presses when disabled', async () => {

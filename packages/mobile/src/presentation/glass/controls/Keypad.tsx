@@ -92,7 +92,11 @@ export function Keypad({
               onPress={() => {
                 onChange(applyKeypadKey(value, key));
               }}
-              style={({ pressed }) => [styles.key, pressed && styles.pressed]}
+              style={({ pressed }) => [
+                styles.key,
+                pressed && styles.pressed,
+                disabled && styles.disabled,
+              ]}
             >
               {key === 'backspace' ? (
                 <BackspaceGlyph />

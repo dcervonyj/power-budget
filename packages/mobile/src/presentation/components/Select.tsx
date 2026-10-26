@@ -114,7 +114,7 @@ export function Select<T extends string = string>({
         }}
       >
         <Pressable
-          accessibilityRole="none"
+          accessible={false}
           style={styles.overlay}
           onPress={() => {
             setOpen(false);
