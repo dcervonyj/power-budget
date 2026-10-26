@@ -1,0 +1,62 @@
+/* D7 glass overlays: keyframes and pseudo-states that inline styles cannot express. */
+@keyframes pbg-skeleton {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+@keyframes pbg-side-sheet {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+.pbg-skeleton {
+  background-color: var(--pb-glass-fill);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    var(--pb-glass-sheen) 50%,
+    transparent 70%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: pbg-skeleton 1600ms ease-in-out infinite;
+}
+
+.pbg-sheet-bottom {
+  animation: d7-sheet var(--pb-glass-motion-sheet-duration-ms) var(--pb-glass-motion-sheet-easing);
+}
+
+.pbg-sheet-side {
+  animation: pbg-side-sheet var(--pb-glass-motion-sheet-duration-ms)
+    var(--pb-glass-motion-sheet-easing);
+}
+
+.pbg-scrim {
+  animation: d7-fade 220ms ease;
+}
+
+.pbg-pop {
+  animation: d7-pop var(--pb-glass-motion-sheet-duration-ms, 320ms) cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.pbg-overlay-close:focus-visible,
+.pbg-overlay-action:focus-visible {
+  outline: 2px solid var(--pb-glass-fg);
+  outline-offset: 2px;
+}
+
+/* Static under reduced motion: the final frame is the skeleton's resting look. */
+@media (prefers-reduced-motion: reduce) {
+  .pbg-skeleton,
+  .pbg-sheet-bottom,
+  .pbg-sheet-side,
+  .pbg-scrim,
+  .pbg-pop {
+    animation: none;
+  }
+}

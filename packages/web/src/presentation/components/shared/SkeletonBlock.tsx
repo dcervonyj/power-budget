@@ -1,51 +1,28 @@
-import React, { useEffect } from 'react';
-import { useTheme } from '../ThemeContext.js';
-
-const STYLE_ID = 'pb-skeleton-keyframes';
-
-function ensureKeyframes(): void {
-  if (document.getElementById(STYLE_ID)) return;
-  const style = document.createElement('style');
-  style.id = STYLE_ID;
-  style.textContent = `
-    @keyframes pb-shimmer {
-      0%   { background-position: -200% 0; }
-      100% { background-position:  200% 0; }
-    }
-  `;
-  document.head.appendChild(style);
-}
+import React from 'react';
+import '../../glass/overlays/overlays.css';
 
 export interface SkeletonBlockProps {
   width?: string | number;
   height?: string | number;
+  /** Corner radius in px; defaults to the chip radius token. */
   borderRadius?: number;
 }
 
+/** Glass placeholder with a soft shimmer; static under reduced motion. */
 export function SkeletonBlock({
   width = '100%',
   height = 20,
   borderRadius,
 }: SkeletonBlockProps): React.JSX.Element {
-  const theme = useTheme();
-
-  useEffect(() => {
-    ensureKeyframes();
-  }, []);
-
-  const bg = theme.color.surface.raised;
-  const shimmer = theme.color.surface.mid;
-
   return (
     <div
       aria-hidden="true"
+      className="pbg-skeleton"
       style={{
         width,
         height,
-        borderRadius: borderRadius ?? theme.radius.sm,
-        background: `linear-gradient(90deg, ${bg} 25%, ${shimmer} 50%, ${bg} 75%)`,
-        backgroundSize: '200% 100%',
-        animation: 'pb-shimmer 1.4s ease infinite',
+        borderRadius: borderRadius ?? 'var(--pb-glass-radius-tag)',
+        boxShadow: 'var(--pb-glass-clear-rim)',
       }}
     />
   );
