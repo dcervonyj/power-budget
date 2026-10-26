@@ -162,12 +162,41 @@ describe('ShellStore', () => {
     expect(store.sync).toEqual({ kind: 'none' });
   });
 
-  it('shows the connections without times when the accounts fail', async () => {
+  it('shows no sync chip when the accounts fail, instead of claiming the sync is stale', async () => {
     api.connectionsResult = Promise.resolve([connection('conn-1', 'active')]);
 
     await store.refresh();
 
-    expect(store.sync).toEqual({ kind: 'synced', lastSyncedAt: null });
+    expect(store.sync).toEqual({ kind: 'none' });
+  });
+
+  it('keeps the last sync chip when a later refresh fails', async () => {
+    api.connectionsResult = Promise.resolve([connection('conn-1', 'active')]);
+    api.accountsResult = Promise.resolve([account('acc-1', 'conn-1', '2026-10-22T11:00:00.000Z')]);
+    await store.refresh();
+    api.accountsResult = null;
+    api.toSortResult = null;
+
+    await store.refresh();
+
+    expect(store.sync).toEqual({
+      kind: 'synced',
+      lastSyncedAt: new Date('2026-10-22T11:00:00.000Z'),
+    });
+  });
+
+  it('drops an older answer that lands after a newer one', async () => {
+    const older = deferred<TransactionPageDto>();
+    api.toSortResult = older.promise;
+    const first = store.refresh();
+    api.toSortResult = Promise.resolve(page(1, false));
+    const second = store.refresh();
+    await second;
+
+    older.resolve(page(5, false));
+    await first;
+
+    expect(store.toSortCount).toBe(1);
   });
 
   it('has no partner in a household of one', async () => {
@@ -185,6 +214,7 @@ describe('ShellStore', () => {
     api.membersResult = Promise.resolve([]);
     api.toSortResult = Promise.resolve(page(2, false));
     api.connectionsResult = Promise.resolve([connection('conn-1', 'expired')]);
+    api.accountsResult = Promise.resolve([]);
     await store.load();
     expect(store.sync).toEqual({ kind: 'renew' });
 
@@ -223,18 +253,19 @@ describe('summariseSync', () => {
     ).toEqual({ kind: 'renew' });
   });
 
-  it('takes the newest sync of the live connections, ignoring manual and disconnected ones', () => {
+  it('shows the worst live connection, each as fresh as its newest account', () => {
     expect(
       summariseSync(
-        [connection('c1', 'active'), connection('c2', 'disconnected')],
+        [connection('c1', 'active'), connection('c2', 'active'), connection('c3', 'disconnected')],
         [
           account('a1', 'c1', '2026-10-22T09:00:00.000Z'),
           account('a2', 'c1', '2026-10-22T11:00:00.000Z'),
-          account('a3', 'c2', '2026-10-22T12:00:00.000Z'),
+          account('b1', 'c2', '2026-10-19T08:00:00.000Z'),
+          account('d1', 'c3', '2026-10-01T12:00:00.000Z'),
           account('cash', null, null),
         ],
       ),
-    ).toEqual({ kind: 'synced', lastSyncedAt: new Date('2026-10-22T11:00:00.000Z') });
+    ).toEqual({ kind: 'synced', lastSyncedAt: new Date('2026-10-19T08:00:00.000Z') });
   });
 
   it('has no time before the first sync', () => {
@@ -242,5 +273,14 @@ describe('summariseSync', () => {
       kind: 'synced',
       lastSyncedAt: null,
     });
+  });
+
+  it('lets a live connection that never synced outweigh a fresh one', () => {
+    expect(
+      summariseSync(
+        [connection('c1', 'active'), connection('c2', 'active')],
+        [account('a1', 'c1', '2026-10-22T11:00:00.000Z')],
+      ),
+    ).toEqual({ kind: 'synced', lastSyncedAt: null });
   });
 });
