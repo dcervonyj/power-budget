@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import type { LinkingOptions } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
@@ -63,9 +63,10 @@ function getDeviceLanguage(): string {
 
 function ThemedNavigation(): React.JSX.Element {
   const glass = useGlass();
+  const navigationTheme = useMemo(() => toNavigationTheme(glass), [glass]);
 
   return (
-    <NavigationContainer linking={linking} theme={toNavigationTheme(glass)}>
+    <NavigationContainer linking={linking} theme={navigationTheme}>
       <RootNavigator />
       <StatusBar style={toStatusBarStyle(glass)} />
     </NavigationContainer>

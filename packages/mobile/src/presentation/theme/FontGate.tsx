@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useFonts } from 'expo-font';
 import { GEIST_FONTS } from './fonts.js';
@@ -16,6 +16,12 @@ export interface FontGateProps {
 export function FontGate({ children }: FontGateProps): React.JSX.Element {
   const { glass, isLoaded } = useTheme();
   const [fontsLoaded, fontError] = useFonts(GEIST_FONTS);
+
+  useEffect(() => {
+    if (fontError !== null) {
+      console.warn('Failed to load Geist fonts', fontError);
+    }
+  }, [fontError]);
 
   if (!isLoaded || (!fontsLoaded && fontError === null)) {
     return (
