@@ -1,0 +1,4 @@
+{
+  "transaction-dialogs.map.previewOver": "After mapping: over by {amount}",
+  "transaction-dialogs.map.previewLeft": "After mapping: {amount} left of {plan}"
+}

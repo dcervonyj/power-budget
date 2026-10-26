@@ -81,25 +81,45 @@ function transaction(suggestedPlannedItemId: string | null) {
   });
 }
 
+let spentOnI1 = '20000';
+
+function dashboard() {
+  const money = (amountMinor: string) => ({ amountMinor, currency: 'EUR' });
+
+  return {
+    expenseLines: [
+      {
+        plannedItemId: 'i1',
+        planned: money('50000'),
+        actual: money(spentOnI1),
+        remaining: money('0'),
+      },
+    ],
+  };
+}
+
 describe('TransactionMapModal', () => {
   const onClose = vi.fn();
   const onMapped = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    spentOnI1 = '20000';
     mockPatch.mockResolvedValue({ status: 200, data: undefined, headers: {} });
     mockGet.mockImplementation((url: string) => {
       const data =
         url === '/plans?status=active'
           ? [plan]
-          : url === '/plans/plan-1/items'
-            ? [item('i1', 'c1'), item('i2', 'c2')]
-            : url === '/categories?includeArchived=true'
-              ? [
-                  { id: 'c1', name: 'Groceries' },
-                  { id: 'c2', name: 'Transport' },
-                ]
-              : [];
+          : url === '/plans/plan-1/dashboard'
+            ? dashboard()
+            : url === '/plans/plan-1/items'
+              ? [item('i1', 'c1'), item('i2', 'c2')]
+              : url === '/categories?includeArchived=true'
+                ? [
+                    { id: 'c1', name: 'Groceries' },
+                    { id: 'c2', name: 'Transport' },
+                  ]
+                : [];
 
       return Promise.resolve({ status: 200, data, headers: {} });
     });
@@ -192,5 +212,38 @@ describe('TransactionMapModal', () => {
 
     expect(screen.queryByText('Groceries')).toBeNull();
     expect(screen.getByText('Transport')).toBeDefined();
+  });
+
+  it('previews the category rod after the pick: what is left once the expense counts', async () => {
+    open(null, null);
+    fireEvent.click(await screen.findByText('Groceries'));
+
+    const preview = await screen.findByTestId('map-rod-preview');
+    expect(preview.textContent).toContain('Groceries');
+    expect(preview.textContent).toMatch(/After mapping: .*285\.00.* left of .*500\.00/);
+    expect(
+      screen.getByRole('img', { name: /Groceries: .*285\.00.* left of .*500\.00/ }),
+    ).toBeDefined();
+  });
+
+  it('previews an over-budget rod with its tag and the excess', async () => {
+    spentOnI1 = '49500';
+    open(null, null);
+    fireEvent.click(await screen.findByText('Groceries'));
+
+    const preview = await screen.findByTestId('map-rod-preview');
+    expect(preview.textContent).toMatch(/After mapping: over by .*10\.00/);
+    expect(preview.textContent).toContain('Over budget');
+  });
+
+  it('shows no preview when the picked item has no dashboard line', async () => {
+    open(null, null);
+    fireEvent.click(await screen.findByText('Transport'));
+
+    await screen.findByRole('radio', { checked: true });
+    await waitFor(() => {
+      expect(mockGet).toHaveBeenCalledWith('/plans/plan-1/dashboard');
+    });
+    expect(screen.queryByTestId('map-rod-preview')).toBeNull();
   });
 });

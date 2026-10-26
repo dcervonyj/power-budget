@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../ThemeContext.js';
@@ -82,5 +82,62 @@ describe('TransactionDetailModal', () => {
 
     expect(await screen.findByRole('searchbox')).toBeDefined();
     expect(screen.getAllByRole('dialog')).toHaveLength(2);
+  });
+
+  it('names the planned item of a mapped transaction and offers to change it', async () => {
+    mockGet.mockImplementation((url: string) => {
+      const plan = {
+        id: 'plan-1',
+        name: 'October',
+        type: 'personal',
+        ownerUserId: 'u1',
+        periodKind: 'monthly',
+        period: { start: '2026-10-01', end: '2026-10-31' },
+        baseCurrency: 'EUR',
+        archivedAt: null,
+        createdAt: '2026-10-01T00:00:00.000Z',
+        updatedAt: '2026-10-01T00:00:00.000Z',
+      };
+      const item = {
+        id: 'i1',
+        planId: 'plan-1',
+        categoryId: 'c1',
+        direction: 'expense',
+        amount: { amountMinor: '50000', currency: 'EUR' },
+        note: null,
+        createdAt: '2026-10-01T00:00:00.000Z',
+        updatedAt: '2026-10-01T00:00:00.000Z',
+      };
+      const data =
+        url === '/transactions/tx-1'
+          ? { transaction, mapping: { plannedItemId: 'i1', by: 'manual' }, transfer: null }
+          : url === '/plans?status=active'
+            ? [plan]
+            : url === '/plans/plan-1/items'
+              ? [item]
+              : url === '/categories?includeArchived=true'
+                ? [{ id: 'c1', name: 'Groceries' }]
+                : [];
+
+      return Promise.resolve({ status: 200, data, headers: {} });
+    });
+    render(<TransactionDetailModal transactionId="tx-1" isOpen onClose={vi.fn()} />, { wrapper });
+
+    expect(await screen.findByText('Groceries')).toBeDefined();
+    expect(await screen.findByText('October')).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Change mapping' })).toBeDefined();
+    expect(screen.queryByText('Not mapped')).toBeNull();
+  });
+
+  it('labels the notes field and shows a failed load as an alert', async () => {
+    render(<TransactionDetailModal transactionId="tx-1" isOpen onClose={vi.fn()} />, { wrapper });
+
+    expect((await screen.findByLabelText('Notes')).tagName).toBe('TEXTAREA');
+
+    mockGet.mockRejectedValue(new Error('500'));
+    cleanup();
+    render(<TransactionDetailModal transactionId="tx-2" isOpen onClose={vi.fn()} />, { wrapper });
+
+    expect((await screen.findByRole('alert')).textContent).toBe('Failed to load transaction');
   });
 });

@@ -1,7 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { useTheme } from './ThemeContext.js';
-import { Modal } from './Modal.js';
+import { Button } from './Button.js';
+import { Sheet } from '../glass/overlays/Sheet.js';
+import {
+  ALERT_TEXT,
+  DIALOG_COLUMN,
+  FIELD_CONTROL,
+  FIELD_LABEL,
+  MUTED_TEXT,
+  optionStyle,
+} from './transactionDialogStyles.js';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
 import { apiClient, bulkTransactionActions, plansApi } from '../../AppProviders.js';
 import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
@@ -19,7 +27,6 @@ export function MappingModal({
   onClose,
   onSuccess,
 }: MappingModalProps): React.JSX.Element | null {
-  const theme = useTheme();
   const intl = useIntl();
 
   const [plans, setPlans] = useState<PlanDto[]>([]);
@@ -102,40 +109,36 @@ export function MappingModal({
     { id: 'mapping.title', defaultMessage: 'Map {count} transactions' },
     { count },
   );
+  const footer = (
+    <>
+      <Button variant="secondary" onClick={onClose}>
+        {intl.formatMessage({ id: 'common.cancel', defaultMessage: 'Cancel' })}
+      </Button>
+      <Button
+        variant="primary"
+        disabled={submitting}
+        onClick={() => {
+          void handleConfirm();
+        }}
+      >
+        {intl.formatMessage({ id: 'mapping.confirm', defaultMessage: 'Map ({count})' }, { count })}
+      </Button>
+    </>
+  );
 
   return (
-    <Modal
-      title={title}
-      isOpen={isOpen}
-      onClose={onClose}
-      footerButtons={[
-        {
-          label: intl.formatMessage({ id: 'common.cancel', defaultMessage: 'Cancel' }),
-          variant: 'secondary',
-          onClick: onClose,
-        },
-        {
-          label: intl.formatMessage(
-            { id: 'mapping.confirm', defaultMessage: 'Map ({count})' },
-            { count },
-          ),
-          variant: 'primary',
-          onClick: () => void handleConfirm(),
-        },
-      ]}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.lg }}>
-        {error !== null && <p style={{ color: theme.color.status.danger, margin: 0 }}>{error}</p>}
+    <Sheet title={title} isOpen={isOpen} onClose={onClose} footer={footer}>
+      <div style={{ ...DIALOG_COLUMN, gap: 'var(--pb-glass-space-lg)' }}>
+        {error !== null && (
+          <p role="alert" style={ALERT_TEXT}>
+            {error}
+          </p>
+        )}
 
         <div>
           <label
             htmlFor="mapping-plan-select"
-            style={{
-              display: 'block',
-              marginBottom: theme.space.xs,
-              color: theme.color.text.secondary,
-              fontSize: theme.fontSize.sm,
-            }}
+            style={{ ...FIELD_LABEL, marginBottom: 'var(--pb-glass-space-xs)' }}
           >
             <FormattedMessage id="mapping.planLabel" defaultMessage="Plan" />
           </label>
@@ -146,15 +149,8 @@ export function MappingModal({
               setSelectedPlanId(e.target.value || null);
             }}
             disabled={plansLoading || submitting}
-            style={{
-              width: '100%',
-              backgroundColor: theme.color.surface.raised,
-              color: theme.color.text.primary,
-              border: `1px solid ${theme.color.border.strong}`,
-              borderRadius: theme.radius.md,
-              padding: `${theme.space.sm}px ${theme.space.md}px`,
-              fontSize: theme.fontSize.md,
-            }}
+            className="pbg-ctl"
+            style={FIELD_CONTROL}
           >
             {plansLoading && (
               <option value="">
@@ -179,48 +175,36 @@ export function MappingModal({
 
         {selectedPlanId !== null && (
           <div>
-            <p
-              style={{
-                margin: `0 0 ${theme.space.sm}px 0`,
-                color: theme.color.text.secondary,
-                fontSize: theme.fontSize.sm,
-              }}
-            >
+            <p style={{ ...FIELD_LABEL, marginBottom: 'var(--pb-glass-space-sm)' }}>
               <FormattedMessage id="mapping.itemLabel" defaultMessage="Planned item" />
             </p>
 
             {itemsLoading && (
-              <p style={{ color: theme.color.text.secondary }}>
+              <p style={MUTED_TEXT}>
                 <FormattedMessage id="common.loading" defaultMessage="Loading..." />
               </p>
             )}
 
             {!itemsLoading && items.length === 0 && (
-              <p style={{ color: theme.color.text.secondary }}>
+              <p style={MUTED_TEXT}>
                 <FormattedMessage id="mapping.noItems" defaultMessage="No planned items" />
               </p>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--pb-glass-space-xs)',
+                padding: 2,
+              }}
+            >
               {items.map((item) => (
                 <label
                   key={item.id}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.space.sm,
-                    cursor: 'pointer',
-                    padding: `${theme.space.sm}px ${theme.space.md}px`,
-                    borderRadius: theme.radius.md,
-                    backgroundColor:
-                      selectedItemId === item.id
-                        ? `${theme.color.accent.default}22`
-                        : 'transparent',
-                    border: `1px solid ${
-                      selectedItemId === item.id
-                        ? theme.color.accent.default
-                        : theme.color.border.subtle
-                    }`,
+                    ...optionStyle(selectedItemId === item.id),
+                    justifyContent: 'flex-start',
                   }}
                 >
                   <input
@@ -232,8 +216,9 @@ export function MappingModal({
                       setSelectedItemId(item.id);
                     }}
                     disabled={submitting}
+                    style={{ width: 20, height: 20, accentColor: 'var(--pb-glass-fg)' }}
                   />
-                  <span style={{ flex: 1, color: theme.color.text.primary }}>
+                  <span style={{ flex: 1 }}>
                     {categoryNames.get(item.categoryId) ?? item.categoryId}
                   </span>
                 </label>
@@ -242,6 +227,6 @@ export function MappingModal({
           </div>
         )}
       </div>
-    </Modal>
+    </Sheet>
   );
 }
