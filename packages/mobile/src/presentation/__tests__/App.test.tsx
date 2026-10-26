@@ -19,6 +19,11 @@ jest.mock('expo-status-bar', () => ({ StatusBar: (): null => null }));
 jest.mock('../components/BiometricGate.js', () => ({
   BiometricGate: ({ children }: { children: React.ReactNode }): React.ReactNode => children,
 }));
+const mockLoad = jest.fn(() => Promise.resolve());
+
+jest.mock('../../infrastructure/index.js', () => ({
+  tokenStore: { load: (): Promise<void> => mockLoad() },
+}));
 jest.mock('../navigation/RootNavigator.js', () => ({
   RootNavigator: (): React.JSX.Element => <MockText>root navigator</MockText>,
 }));
@@ -49,5 +54,14 @@ describe('App', () => {
     await render(<App />);
 
     await waitFor(() => expect(screen.getByText('root navigator')).toBeTruthy());
+  });
+
+  it('loads the stored tokens before rendering the navigator', async () => {
+    mockFontsLoaded = true;
+    mockLoad.mockClear();
+    await render(<App />);
+
+    await waitFor(() => expect(screen.getByText('root navigator')).toBeTruthy());
+    expect(mockLoad).toHaveBeenCalledTimes(1);
   });
 });
