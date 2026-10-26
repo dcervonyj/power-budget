@@ -40,6 +40,7 @@ describe('worker topology against real Redis + Postgres', () => {
       expect(cronNames).toEqual([
         'bank-sync-schedule',
         'fx-daily-ingest',
+        'household-purge',
         'outbox-relay',
         'period-close',
         'reconnect-reminders',
