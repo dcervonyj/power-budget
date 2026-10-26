@@ -44,6 +44,14 @@ describe('applyMappingSuggestion', () => {
     expect(result).toBeNull();
   });
 
+  it('matches a prior ASCII merchant spelling against a Polish-diacritic transaction', () => {
+    const result = applyMappingSuggestion(makeTx('Żabka', 'Zakupy'), [
+      makeMapping('Zabka', 'Groceries', '2024-01-01T00:00:00Z', 'item-1'),
+    ]);
+
+    expect(result).toBe(id('item-1'));
+  });
+
   it('returns null when no match found', () => {
     const result = applyMappingSuggestion(makeTx('Starbucks', 'Coffee'), [
       makeMapping('McDonalds', 'Fast food', '2024-01-01T00:00:00Z', 'item-1'),
