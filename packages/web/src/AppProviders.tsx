@@ -5,6 +5,7 @@ import { CategoriesApi, HouseholdsApi, PlansApi } from '@power-budget/shared-app
 import { LocalStorageTokenStore } from './infrastructure/tokens/LocalStorageTokenStore.js';
 import { ReactRouterNavigationAdapter } from './infrastructure/navigation/ReactRouterNavigationAdapter.js';
 import { createApiClient } from './infrastructure/api/ApiClient.js';
+import { ThemeProvider } from './presentation/theme/ThemeProvider.js';
 import { SignOut } from './application/auth/SignOut.js';
 import { BulkTransactionActions } from './application/transactions/BulkTransactionActions.js';
 
@@ -113,8 +114,10 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>
       <IntlProvider locale={locale} messages={messages} defaultLocale="en">
-        <NavigationWirer />
-        {children}
+        <ThemeProvider>
+          <NavigationWirer />
+          {children}
+        </ThemeProvider>
       </IntlProvider>
     </LocaleContext.Provider>
   );
