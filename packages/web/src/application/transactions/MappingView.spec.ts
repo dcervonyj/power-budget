@@ -10,7 +10,7 @@ const base: Transaction = {
   description: 'x',
   merchant: null,
   source: 'manual',
-  status: 'posted',
+  status: 'booked',
   suggestedPlannedItemId: null,
   isTransfer: false,
   ignored: false,

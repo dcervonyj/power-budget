@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { HouseholdId, TransactionId } from '@power-budget/core';
 import { DrizzleTransactionRepository } from '../DrizzleTransactionRepository.js';
+import { NO_BANK_DETAILS } from '../../../domain/transactions/entities.js';
 
 describe('DrizzleTransactionRepository', () => {
   it('returns null when findById gets no rows', async () => {
@@ -47,6 +48,9 @@ describe('DrizzleTransactionRepository', () => {
       description: 'Test',
       merchant: null,
       source: 'bank_sync',
+      sourceKind: null,
+      status: 'booked',
+      bank: NO_BANK_DETAILS,
     });
 
     expect(result).toEqual({ id: 'existing-id', created: false });

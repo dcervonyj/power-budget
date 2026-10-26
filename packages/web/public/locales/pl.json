@@ -263,7 +263,7 @@
   "component.transactionRow.ignored": "Zignorowana",
   "component.transactionRow.remap": "Zmień",
   "transaction.status.pending": "Oczekująca",
-  "transaction.status.posted": "Zaksięgowana",
+  "transaction.status.booked": "Zaksięgowana",
   "transaction.status.cancelled": "Anulowana",
   "screen.transactionMap.title": "Przypisz transakcję",
   "screen.transactionMap.action": "Przypisz",

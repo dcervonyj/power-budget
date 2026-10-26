@@ -41,7 +41,8 @@ export class TransactionDto {
 
   @ApiProperty({
     enum: [...TRANSACTION_STATUSES],
-    description: 'Booking status: `pending`, `posted` (booked by the bank) or `cancelled`',
+    description:
+      'Row lifecycle: `live` (live signal only), `pending`, `booked` (booked by the bank), `cancelled`, `expired` (provisional, never booked) or `manual`. `cancelled` and `expired` rows count in no total',
   })
   status!: string;
 

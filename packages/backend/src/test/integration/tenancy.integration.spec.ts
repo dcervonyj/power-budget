@@ -4,6 +4,7 @@ import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
+import { IsoDate, IsoDateTime } from '@power-budget/core';
 import type {
   BankAccountId,
   BankConnectionId,
@@ -26,6 +27,7 @@ import {
   PlannedItemNotFoundError,
   TransactionNotFoundError,
 } from '../../domain/transactions/errors.js';
+import { NO_BANK_DETAILS } from '../../domain/transactions/entities.js';
 import { getPool, resetState, startContainers, stopContainers } from './setup.js';
 import { createTestApp, TEST_JWT_SECRET } from './app.js';
 
@@ -35,6 +37,8 @@ interface Tenant {
   readonly connectionId: BankConnectionId;
   readonly accountId: BankAccountId;
   readonly txId: TransactionId;
+  readonly liveTxId: TransactionId;
+  readonly liveSignalId: string;
   readonly plannedItemId: PlannedItemId;
 }
 
@@ -61,6 +65,8 @@ async function seedTenant(label: string, description: string): Promise<Tenant> {
     connectionId: randomUUID() as BankConnectionId,
     accountId: randomUUID() as BankAccountId,
     txId: randomUUID() as TransactionId,
+    liveTxId: randomUUID() as TransactionId,
+    liveSignalId: randomUUID(),
     plannedItemId: randomUUID() as PlannedItemId,
   };
   const planId = randomUUID();
@@ -101,6 +107,17 @@ async function seedTenant(label: string, description: string): Promise<Tenant> {
     `INSERT INTO planned_items (id, plan_id, household_id, category_id, direction, amount_minor, currency)
      VALUES ($1, $2, $3, $4, 'expense', 5000, 'PLN')`,
     [t.plannedItemId, planId, t.householdId, randomUUID()],
+  );
+  // SYNC-001: a provisional (live) row and the live signal it came from.
+  await q.query(
+    `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, description, status)
+     VALUES ($1, $2, $3, '2026-10-02', -500, 'PLN', 'live', 'live')`,
+    [t.liveTxId, t.householdId, t.accountId],
+  );
+  await q.query(
+    `INSERT INTO live_signals (id, household_id, owner_user_id, source, dedupe_key, payload_enc, transaction_id)
+     VALUES ($1, $2, $3, 'pko_email', $4, 'enc', $5)`,
+    [t.liveSignalId, t.householdId, t.userId, `pkoe:${t.liveSignalId}`, t.liveTxId],
   );
 
   return t;
@@ -149,6 +166,7 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       try {
         for (const table of [
           'transactions',
+          'live_signals',
           'bank_connections',
           'bank_accounts',
           'plans',
@@ -173,7 +191,7 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       const seen = await asTenant(A, () =>
         appPool.query<{ id: string }>('SELECT id FROM transactions'),
       );
-      expect(seen.rows.map((r) => r.id)).toEqual([A.txId]);
+      expect(seen.rows.map((r) => r.id).sort()).toEqual([A.txId, A.liveTxId].sort());
 
       // Same (single) pooled connection, no scope: the transaction-local setting is gone.
       const after = await appPool.query('SELECT id FROM transactions');
@@ -187,7 +205,7 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
         ),
       );
 
-      expect(ids.map((r) => r.id)).toEqual([A.txId]);
+      expect(ids.map((r) => r.id).sort()).toEqual([A.txId, A.liveTxId].sort());
     });
 
     it('rejects writing a row into another household even with a forged household_id', async () => {
@@ -215,11 +233,67 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       expect(await count('transaction_mappings')).toBe(0);
     });
 
+    it('rejects a transaction whose account or suggestion belongs to another household (SYNC-001)', async () => {
+      const insert = (account: string, suggested: string | null): Promise<unknown> =>
+        asTenant(A, () =>
+          appPool.query(
+            `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, suggested_planned_item_id)
+             VALUES ($1, $2, $3, '2026-10-02', 1, 'PLN', $4)`,
+            [randomUUID(), A.householdId, account, suggested],
+          ),
+        );
+
+      await expect(insert(B.accountId, null)).rejects.toMatchObject({ code: '42501' });
+      await expect(insert(A.accountId, B.plannedItemId)).rejects.toMatchObject({ code: '42501' });
+      await expect(
+        asTenant(A, () =>
+          appPool.query('UPDATE transactions SET suggested_planned_item_id = $1 WHERE id = $2', [
+            B.plannedItemId,
+            A.txId,
+          ]),
+        ),
+      ).rejects.toMatchObject({ code: '42501' });
+      await expect(insert(A.accountId, A.plannedItemId)).resolves.toBeDefined();
+    });
+
+    it('scopes live_signals to the household, its members and its transactions (SYNC-001)', async () => {
+      const insert = (household: string, owner: string, tx: string | null): Promise<unknown> =>
+        asTenant(A, () =>
+          appPool.query(
+            `INSERT INTO live_signals (id, household_id, owner_user_id, source, dedupe_key, payload_enc, transaction_id)
+             VALUES ($1, $2, $3, 'wise_webhook', $4, 'enc', $5)`,
+            [randomUUID(), household, owner, `wise:${randomUUID()}`, tx],
+          ),
+        );
+
+      const seen = await asTenant(A, () =>
+        appPool.query<{ id: string }>('SELECT id FROM live_signals'),
+      );
+      expect(seen.rows.map((r) => r.id)).toEqual([A.liveSignalId]);
+      await expect(insert(B.householdId, B.userId, null)).rejects.toMatchObject({ code: '42501' });
+      await expect(insert(A.householdId, B.userId, null)).rejects.toMatchObject({ code: '42501' });
+      await expect(insert(A.householdId, A.userId, B.liveTxId)).rejects.toMatchObject({
+        code: '42501',
+      });
+      const updated = await asTenant(A, () =>
+        appPool.query("UPDATE live_signals SET state = 'ignored' WHERE id = $1", [B.liveSignalId]),
+      );
+      const deleted = await asTenant(A, () =>
+        appPool.query('DELETE FROM live_signals WHERE id = $1', [B.liveSignalId]),
+      );
+      expect(updated.rowCount).toBe(0);
+      expect(deleted.rowCount).toBe(0);
+      expect(
+        await count(`live_signals WHERE id = $1 AND state = 'received'`, [B.liveSignalId]),
+      ).toBe(1);
+      await expect(insert(A.householdId, A.userId, A.liveTxId)).resolves.toBeDefined();
+    });
+
     it('lets system scope (worker) see every household', async () => {
       const all = await runInDbScope({ kind: 'system', reason: 'test' }, () =>
         appPool.query('SELECT id FROM transactions'),
       );
-      expect(all.rows).toHaveLength(2);
+      expect(all.rows).toHaveLength(4);
     });
 
     it('keeps audit_log append-only for the app role', async () => {
@@ -284,6 +358,66 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       );
 
       expect(await count(`transactions WHERE notes = 'pwned'`)).toBe(0);
+    });
+
+    it('patch refuses a suggested planned item from household B (SYNC-001)', async () => {
+      const repo = new DrizzleTransactionRepository(appDb);
+
+      await expect(
+        asTenant(A, () =>
+          repo.patch(
+            A.txId,
+            { suggestedPlannedItemId: B.plannedItemId },
+            { householdId: A.householdId },
+          ),
+        ),
+      ).rejects.toThrow(PlannedItemNotFoundError);
+      await asTenant(A, () =>
+        repo.patch(B.txId, { autoMapped: true }, { householdId: B.householdId }),
+      );
+
+      expect(await count('transactions WHERE suggested_planned_item_id IS NOT NULL')).toBe(0);
+      expect(await count('transactions WHERE auto_mapped')).toBe(0);
+    });
+
+    it('upgradeInPlace and listProvisional never reach household B, even with forged ids (SYNC-001)', async () => {
+      const repo = new DrizzleTransactionRepository(appDb);
+      const upgrade = {
+        id: B.liveTxId,
+        accountId: B.accountId,
+        status: 'booked' as const,
+        externalId: 'eb:pwned',
+        occurredOn: IsoDate.of('2026-10-02'),
+        amount: { amountMinor: -1n, currency: 'PLN' as const },
+        description: 'pwned',
+        sourceKind: 'enable_banking' as const,
+        bank: NO_BANK_DETAILS,
+        upgradedAt: IsoDateTime.of('2026-10-03T00:00:00.000Z'),
+      };
+      const window = { start: IsoDate.of('2026-10-01'), end: IsoDate.of('2026-10-31') };
+
+      const own = await asTenant(A, () =>
+        repo.listProvisional({ accountId: A.accountId, window }, { householdId: A.householdId }),
+      );
+      const foreign = await asTenant(A, () =>
+        repo.listProvisional({ accountId: B.accountId, window }, { householdId: A.householdId }),
+      );
+      const forged = await asTenant(A, () =>
+        repo.listProvisional({ accountId: B.accountId, window }, { householdId: B.householdId }),
+      );
+      const upgraded = await asTenant(A, () =>
+        repo.upgradeInPlace(upgrade, { householdId: A.householdId }),
+      );
+      const forgedUpgrade = await asTenant(A, () =>
+        repo.upgradeInPlace(upgrade, { householdId: B.householdId }),
+      );
+
+      expect(own.map((tx) => tx.id)).toEqual([A.liveTxId]);
+      expect(foreign).toEqual([]);
+      expect(forged).toEqual([]);
+      expect(upgraded).toBeNull();
+      expect(forgedUpgrade).toBeNull();
+      expect(await count(`transactions WHERE id = $1 AND status = 'live'`, [B.liveTxId])).toBe(1);
     });
 
     it('findOwnedAccount rejects a foreign account (manual transaction check)', async () => {
@@ -416,7 +550,12 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       const own = await app.inject({ method: 'GET', url: `/transactions/${A.txId}`, headers });
 
       expect(list.statusCode).toBe(200);
-      expect(list.json<{ items: { id: string }[] }>().items.map((t) => t.id)).toEqual([A.txId]);
+      expect(
+        list
+          .json<{ items: { id: string }[] }>()
+          .items.map((t) => t.id)
+          .sort(),
+      ).toEqual([A.txId, A.liveTxId].sort());
       expect(own.statusCode).toBe(200);
     });
 

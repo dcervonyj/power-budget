@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { and, eq, gte, inArray, lte, or } from 'drizzle-orm';
+import { and, eq, gte, inArray, lte, notInArray, or } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   BankAccountId,
@@ -18,7 +18,10 @@ import type {
 } from '../../domain/plans/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import { currencyOf, isoDateOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
-import { TRANSACTION_STATUSES } from '../../domain/transactions/entities.js';
+import {
+  TRANSACTION_STATUSES,
+  UNCOUNTED_TRANSACTION_STATUSES,
+} from '../../domain/transactions/entities.js';
 import * as schema from '../../../drizzle/schema.js';
 
 type TransactionRow = typeof schema.transactions.$inferSelect;
@@ -38,6 +41,8 @@ export class DrizzlePlanActivityReader implements PlanActivityReader {
       eq(schema.transactions.householdId, query.householdId),
       gte(schema.transactions.occurredOn, query.period.start),
       lte(schema.transactions.occurredOn, query.period.end),
+      // cancelled and expired rows are kept for audit only (plan-banking.md §1.7).
+      notInArray(schema.transactions.status, [...UNCOUNTED_TRANSACTION_STATUSES]),
     );
     const periodTxIds = this.db
       .select({ id: schema.transactions.id })

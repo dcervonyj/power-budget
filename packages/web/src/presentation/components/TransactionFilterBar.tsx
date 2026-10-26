@@ -185,8 +185,8 @@ export function TransactionFilterBar({
           <option value="pending">
             {intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' })}
           </option>
-          <option value="posted">
-            {intl.formatMessage({ id: 'transaction.status.posted', defaultMessage: 'Booked' })}
+          <option value="booked">
+            {intl.formatMessage({ id: 'transaction.status.booked', defaultMessage: 'Booked' })}
           </option>
           <option value="cancelled">
             {intl.formatMessage({
@@ -294,7 +294,7 @@ export function toMappingFilter(value: string | null): TransactionFilters['statu
 export function toBooking(value: string | null): TransactionFilters['booking'] {
   switch (value) {
     case 'pending':
-    case 'posted':
+    case 'booked':
     case 'cancelled':
       return value;
     default:

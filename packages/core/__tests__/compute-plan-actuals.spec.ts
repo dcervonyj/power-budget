@@ -53,7 +53,7 @@ function makeTx(
     accountId: id('acc-1'),
     externalId: null,
     source: 'bank',
-    status: 'posted',
+    status: 'booked',
     amount: { amountMinor, currency: currency as 'PLN' },
     description: 'Test',
     merchantName: null,
@@ -427,15 +427,27 @@ describe('computePlanActuals', () => {
       expect(result.unplannedExpenses.amountMinor).toBe(0n);
     });
 
-    it('excludes ignored and cancelled transactions from the unplanned totals', () => {
+    it('excludes ignored, cancelled and expired transactions from the unplanned totals', () => {
       const result = actuals({
         transactions: [
           makeTx('tx-ignored', -5000n, 'PLN', { ignored: true }),
           makeTx('tx-cancelled', -6000n, 'PLN', { status: 'cancelled' }),
+          makeTx('tx-expired', -8000n, 'PLN', { status: 'expired' }),
           makeTx('tx-real', -700n),
         ],
       });
       expect(result.unplannedExpenses.amountMinor).toBe(700n);
+    });
+
+    it('counts live, pending and manual transactions (plan-banking.md §1.7)', () => {
+      const result = actuals({
+        transactions: [
+          makeTx('tx-live', -1n, 'PLN', { status: 'live' }),
+          makeTx('tx-pending', -10n, 'PLN', { status: 'pending' }),
+          makeTx('tx-manual', -100n, 'PLN', { status: 'manual' }),
+        ],
+      });
+      expect(result.unplannedExpenses.amountMinor).toBe(111n);
     });
 
     it('counts only transactions booked inside the period, bounds inclusive', () => {
