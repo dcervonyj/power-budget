@@ -1,4 +1,4 @@
-import { makeAutoObservable, runInAction } from 'mobx';
+import { makeAutoObservable } from 'mobx';
 import { readApiError } from '@power-budget/shared-app';
 import {
   FX_RATE_UNAVAILABLE,
@@ -6,6 +6,7 @@ import {
   type HouseholdDashboardResponseDto,
 } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
+import { clientSession } from '../auth/ClientSession.js';
 
 /** 503 fx_rate_unavailable (CLN-012) is `fx_unavailable`. */
 export type HouseholdCategoryError = 'not_found' | 'fx_unavailable' | 'failed';
@@ -20,11 +21,15 @@ export class HouseholdCategoryStore {
   loading = false;
   error: HouseholdCategoryError | null = null;
 
+  /** Bumped when the session ends, so a late answer for the previous user is dropped. */
+  private session = 0;
+
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable<HouseholdCategoryStore, 'session'>(this, { session: false });
   }
 
   async fetchCategory(householdId: string, planId: string, categoryId: string): Promise<void> {
+    const session = this.session;
     this.loading = true;
     this.error = null;
     this.category = null;
@@ -33,19 +38,38 @@ export class HouseholdCategoryStore {
         `/households/${householdId}/dashboard?planId=${encodeURIComponent(planId)}`,
       );
       const found = res.data.categories.find((c) => c.categoryId === categoryId);
-      runInAction(() => {
-        this.category = found ?? null;
-        this.error = found === undefined ? 'not_found' : null;
-        this.loading = false;
-      });
+      this.applyCategory(session, found ?? null);
     } catch (err) {
       const error = readApiError(err).code === FX_RATE_UNAVAILABLE ? 'fx_unavailable' : 'failed';
-      runInAction(() => {
-        this.error = error;
-        this.loading = false;
-      });
+      this.applyFailed(session, error);
     }
+  }
+
+  /** Sign-out or session end: the previous user's category goes. */
+  resetSession(): void {
+    this.session += 1;
+    this.category = null;
+    this.loading = false;
+    this.error = null;
+  }
+
+  private applyCategory(session: number, category: HouseholdDashboardCategoryDto | null): void {
+    if (session !== this.session) {
+      return;
+    }
+    this.category = category;
+    this.error = category === null ? 'not_found' : null;
+    this.loading = false;
+  }
+
+  private applyFailed(session: number, error: HouseholdCategoryError): void {
+    if (session !== this.session) {
+      return;
+    }
+    this.error = error;
+    this.loading = false;
   }
 }
 
 export const householdCategoryStore = new HouseholdCategoryStore();
+clientSession.register(householdCategoryStore);

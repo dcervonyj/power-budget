@@ -5,6 +5,7 @@ import type {
 } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 import { HouseholdCategoryStore } from './HouseholdCategoryStore.js';
+import { deferred } from '../../test/deferred.js';
 
 vi.mock('../../AppProviders.js', () => ({
   apiClient: {
@@ -112,5 +113,36 @@ describe('HouseholdCategoryStore', () => {
 
     expect(store.loading).toBe(false);
     expect(store.category).toEqual(groceries);
+  });
+
+  it('forgets the category when the session ends', async () => {
+    mockGet.mockResolvedValueOnce(dashboard([groceries]));
+    await store.fetchCategory('hh-1', 'plan-1', 'cat-1');
+
+    store.resetSession();
+
+    expect(store.category).toBeNull();
+    expect(store.error).toBeNull();
+    expect(store.loading).toBe(false);
+  });
+
+  it('drops an answer or failure that arrives after the session ended', async () => {
+    const answer = deferred<ReturnType<typeof dashboard>>();
+    mockGet.mockReturnValueOnce(answer.promise);
+    const fetching = store.fetchCategory('hh-1', 'plan-1', 'cat-1');
+    store.resetSession();
+    answer.resolve(dashboard([groceries]));
+    await fetching;
+
+    const failure = deferred<ReturnType<typeof dashboard>>();
+    mockGet.mockReturnValueOnce(failure.promise);
+    const failing = store.fetchCategory('hh-1', 'plan-1', 'cat-1');
+    store.resetSession();
+    failure.reject(new Error('offline'));
+    await failing;
+
+    expect(store.category).toBeNull();
+    expect(store.error).toBeNull();
+    expect(store.loading).toBe(false);
   });
 });
