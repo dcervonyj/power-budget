@@ -30,8 +30,13 @@ const EMPTY_DRAFT: PlanDraftItem = {
   currency: '',
 };
 
-/** Spent per planned item in the plan currency; empty when the dashboard cannot be read. */
-type SpentByItem = ReadonlyMap<string, bigint>;
+interface ItemSpent {
+  readonly amountMinor: bigint;
+  readonly currency: string;
+}
+
+/** Spent per planned item as the dashboard reported it; null when it cannot be read. */
+type SpentByItem = ReadonlyMap<string, ItemSpent>;
 
 export function PlanEditorScreen(): React.JSX.Element {
   const intl = useIntl();
@@ -41,6 +46,8 @@ export function PlanEditorScreen(): React.JSX.Element {
   const [items, setItems] = useState<PlannedItemDto[]>([]);
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [spent, setSpent] = useState<SpentByItem | null>(null);
+  // Currency of the totals: the last supported base currency, so a half-typed code never reaches Intl.
+  const [totalsCurrency, setTotalsCurrency] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -64,6 +71,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         loadSpent(id),
       ]);
       setPlan(loadedPlan);
+      setTotalsCurrency(loadedPlan.baseCurrency);
       setItems(loadedItems);
       setCategories(loadedCategories);
       setSpent(loadedSpent);
@@ -98,7 +106,9 @@ export function PlanEditorScreen(): React.JSX.Element {
       const body: UpdatePlanDto = isSupportedCurrency(plan.baseCurrency)
         ? { name: plan.name, baseCurrency: plan.baseCurrency }
         : { name: plan.name };
-      setPlan(await plansApi.update(plan.id, body));
+      const saved = await plansApi.update(plan.id, body);
+      setPlan(saved);
+      setTotalsCurrency(saved.baseCurrency);
     } catch {
       setSaveError(
         intl.formatMessage({
@@ -241,13 +251,13 @@ export function PlanEditorScreen(): React.JSX.Element {
     );
   }
 
-  const rows = items.map((item) => toRowModel(item, categories, plan, spent));
+  const rows = items.map((item) => toRowModel(item, categories, spent));
 
   return (
     <>
       <PlanEditorView
         plan={plan}
-        totals={computePlanTotals(items, plan.baseCurrency)}
+        totals={computePlanTotals(items, totalsCurrency)}
         income={rows.filter((row) => row.direction === 'income')}
         limits={rows.filter((row) => row.direction === 'expense')}
         draft={draftItem}
@@ -261,6 +271,9 @@ export function PlanEditorScreen(): React.JSX.Element {
         }}
         onBaseCurrencyChange={(baseCurrency) => {
           setPlan({ ...plan, baseCurrency });
+          if (isSupportedCurrency(baseCurrency)) {
+            setTotalsCurrency(baseCurrency);
+          }
         }}
         onPeriodKindChange={handlePeriodChange}
         onCustomDatesChange={(dates) => {
@@ -306,7 +319,10 @@ async function loadSpent(planId: string): Promise<SpentByItem | null> {
     const dashboard = await plansApi.dashboard(planId);
 
     return new Map(
-      dashboard.expenseLines.map((line) => [line.plannedItemId, BigInt(line.actual.amountMinor)]),
+      dashboard.expenseLines.map((line) => [
+        line.plannedItemId,
+        { amountMinor: BigInt(line.actual.amountMinor), currency: line.actual.currency },
+      ]),
     );
   } catch {
     return null;
@@ -316,10 +332,10 @@ async function loadSpent(planId: string): Promise<SpentByItem | null> {
 function toRowModel(
   item: PlannedItemDto,
   categories: readonly CategoryDto[],
-  plan: PlanDto,
   spent: SpentByItem | null,
 ): PlanItemRowModel {
-  const known = item.direction === 'expense' && item.amount.currency === plan.baseCurrency;
+  const line = item.direction === 'expense' ? spent?.get(item.id) : undefined;
+  const known = line !== undefined && line.currency === item.amount.currency;
 
   return {
     id: item.id,
@@ -328,6 +344,6 @@ function toRowModel(
     amountMinor: item.amount.amountMinor,
     currency: item.amount.currency,
     amountInput: toAmountInput(item),
-    spentMinor: known && spent !== null ? (spent.get(item.id) ?? 0n) : null,
+    spentMinor: known ? line.amountMinor : null,
   };
 }
