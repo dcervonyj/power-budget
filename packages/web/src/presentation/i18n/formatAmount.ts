@@ -16,7 +16,12 @@ export function formatSignedAmount(money: MoneyAmount, locale: string): string {
   return formatAmount(money, locale);
 }
 
-/** An ISO date (YYYY-MM-DD) in the locale's short date format. */
+/** An ISO date (YYYY-MM-DD) in the locale's short date format; an unreadable value stays raw. */
 export function formatIsoDate(isoDate: string, locale: string): string {
-  return formatDate(new Date(`${isoDate}T00:00:00Z`), toSupportedLocale(locale));
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) {
+    return isoDate;
+  }
+
+  return formatDate(date, toSupportedLocale(locale));
 }

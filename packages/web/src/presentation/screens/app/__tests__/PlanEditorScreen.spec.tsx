@@ -119,9 +119,36 @@ describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
     expect(within(totals).getByText('Planned')).toBeInTheDocument();
     expect(within(totals).getByText('Left to plan')).toBeInTheDocument();
     // Salary 10 000, groceries 1 500 and rent 3 000 in PLN; the EUR item is not summed.
-    expect(totals).toHaveTextContent('10');
+    expect(totals.textContent.replace(/\s/g, ' ')).toBe(
+      'Incomezł 10,000.00Plannedzł 4,500.00Left to planzł 5,500.00Within income1 item in another currency is not counted',
+    );
     expect(totals).toHaveTextContent('Within income');
     expect(totals).toHaveTextContent('1 item in another currency is not counted');
+  });
+
+  it('keeps the editor alive while the base currency is cleared or half typed', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    const currency = await screen.findByLabelText('Base currency');
+
+    fireEvent.change(currency, { target: { value: '' } });
+    fireEvent.change(currency, { target: { value: 'E' } });
+
+    expect(screen.getByRole('region', { name: 'Plan totals' })).toHaveTextContent('10,000.00');
+  });
+
+  it('keeps the editor alive while a custom period date is cleared', async () => {
+    vi.mocked(plansApi.get).mockResolvedValue({ ...PLAN, periodKind: 'custom' });
+    vi.mocked(plansApi.update).mockResolvedValue({
+      ...PLAN,
+      periodKind: 'custom',
+      period: { start: '', end: PLAN.period.end },
+    });
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    const start = await screen.findByLabelText(/start/i);
+
+    fireEvent.change(start, { target: { value: '' } });
+
+    expect(await screen.findByRole('heading', { name: 'Plan Editor' })).toBeInTheDocument();
   });
 
   it('splits income from category limits and shows a category row with its spent amount', async () => {
