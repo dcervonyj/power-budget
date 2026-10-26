@@ -33,6 +33,82 @@ describe('PlanCloning', () => {
     });
   });
 
+  describe('computeClonePeriod — monthly month-end anchors', () => {
+    function roll(firstStart: string, count: number): string[] {
+      const starts: string[] = [];
+      let period = PlanPeriods.resolve('monthly', firstStart as IsoDate);
+      for (let i = 0; i < count; i += 1) {
+        starts.push(period.start);
+        period = PlanCloning.computeClonePeriod(makePlan({ period }));
+      }
+
+      return starts;
+    }
+
+    it('rolls a 31st anchor through a non-leap year and keeps the anchor', () => {
+      expect(roll('2025-01-31', 12)).toEqual([
+        '2025-01-31',
+        '2025-02-28',
+        '2025-03-31',
+        '2025-04-30',
+        '2025-05-31',
+        '2025-06-30',
+        '2025-07-31',
+        '2025-08-31',
+        '2025-09-30',
+        '2025-10-31',
+        '2025-11-30',
+        '2025-12-31',
+      ]);
+    });
+
+    it('rolls a 31st anchor through a leap year (2028-02-29)', () => {
+      expect(roll('2028-01-31', 4)).toEqual([
+        '2028-01-31',
+        '2028-02-29',
+        '2028-03-31',
+        '2028-04-30',
+      ]);
+    });
+
+    it('rolls a 30th anchor through a leap and a non-leap February', () => {
+      expect(roll('2028-01-30', 4)).toEqual([
+        '2028-01-30',
+        '2028-02-29',
+        '2028-03-30',
+        '2028-04-30',
+      ]);
+      expect(roll('2025-01-30', 3)).toEqual(['2025-01-30', '2025-02-28', '2025-03-30']);
+    });
+
+    it('rolls a 29th anchor through a leap and a non-leap February', () => {
+      expect(roll('2028-01-29', 3)).toEqual(['2028-01-29', '2028-02-29', '2028-03-29']);
+      expect(roll('2025-01-29', 3)).toEqual(['2025-01-29', '2025-02-28', '2025-03-29']);
+    });
+
+    it('does not turn a 28th anchor into a month-end anchor', () => {
+      expect(roll('2025-01-28', 4)).toEqual([
+        '2025-01-28',
+        '2025-02-28',
+        '2025-03-28',
+        '2025-04-28',
+      ]);
+    });
+
+    it('ends a 31 Jan period on 27 Feb and a 31 Mar period on 29 Apr', () => {
+      const jan = PlanPeriods.resolve('monthly', '2025-01-31' as IsoDate);
+      expect(jan.end).toBe('2025-02-27');
+      const mar = PlanPeriods.resolve('monthly', '2025-03-31' as IsoDate);
+      expect(mar.end).toBe('2025-04-29');
+    });
+
+    it('keeps contiguous periods without gaps or overlaps', () => {
+      const jan = PlanPeriods.resolve('monthly', '2025-01-31' as IsoDate);
+      const feb = PlanCloning.computeClonePeriod(makePlan({ period: jan }));
+      expect(feb).toEqual({ start: '2025-02-28', end: '2025-03-30' });
+    });
+  });
+
   describe('computeClonePeriod — weekly', () => {
     it('returns next 7-day period', () => {
       const plan = makePlan({
