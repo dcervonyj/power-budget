@@ -1,16 +1,32 @@
 import React, { useEffect } from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { Link, useParams } from 'react-router-dom';
-import { useTheme } from '../../components/ThemeContext.js';
 import { PlanDashboardView } from '../../components/plan-dashboard/PlanDashboardView.js';
 import { planDashboardStore } from '../../../application/dashboard/DashboardStore.js';
+import { appShellStore } from '../../../application/shell/appShellStore.js';
+import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
+import { OVERVIEW_CONTAINER_STYLE } from '../../components/plan-dashboard/overviewStyles.js';
 
 const POLL_INTERVAL_MS = 30_000;
 
-/** `/plans/:id/dashboard`: one plan's dashboard, refreshed every 30 s. */
+const LINK_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  minHeight: 44,
+  padding: '0 var(--pb-glass-space-md)',
+  borderRadius: 'var(--pb-glass-radius-chip)',
+  background: 'var(--pb-glass-clear)',
+  boxShadow: 'var(--pb-glass-clear-rim)',
+  color: 'var(--pb-glass-fg)',
+  fontSize: 'var(--pb-glass-type-small-web)',
+  fontWeight: 'var(--pb-glass-type-label-weight)',
+  textDecoration: 'none',
+};
+
+/** `/plans/:id/dashboard`: the same Overview for one plan, refreshed every 30 s. */
 export const PlanDashboardScreen = observer(function PlanDashboardScreen(): React.JSX.Element {
-  const theme = useTheme();
+  const intl = useIntl();
   const { id = '' } = useParams<{ id: string }>();
 
   useEffect(() => {
@@ -28,26 +44,21 @@ export const PlanDashboardScreen = observer(function PlanDashboardScreen(): Reac
   }, [id]);
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.space.md,
-        padding: theme.space.lg,
-        maxWidth: 880,
-        margin: '0 auto',
-      }}
-    >
-      <nav style={{ display: 'flex', gap: theme.space.lg, fontSize: theme.fontSize.sm }}>
-        <Link to="/plans" style={{ color: theme.color.accent.default }}>
+    <div style={OVERVIEW_CONTAINER_STYLE}>
+      <nav
+        aria-label={intl.formatMessage({ id: 'overview.planLinks.label', defaultMessage: 'Plan' })}
+        style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--pb-glass-space-sm)' }}
+      >
+        <Link to={ROUTE_PATHS.plans} style={LINK_STYLE}>
           <FormattedMessage id="planDashboard.backToPlans" defaultMessage="All plans" />
         </Link>
-        <Link to={`/plans/${id}`} style={{ color: theme.color.accent.default }}>
+        <Link to={`${ROUTE_PATHS.plans}/${id}`} style={LINK_STYLE}>
           <FormattedMessage id="planDashboard.editPlan" defaultMessage="Edit plan" />
         </Link>
       </nav>
       <PlanDashboardView
         store={planDashboardStore}
+        toSortCount={appShellStore.toSortCount}
         onRetry={() => {
           void planDashboardStore.load(id);
         }}

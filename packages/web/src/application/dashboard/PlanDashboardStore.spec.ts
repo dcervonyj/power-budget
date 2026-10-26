@@ -6,6 +6,9 @@ import {
 } from './PlanDashboardStore.js';
 import {
   CATEGORIES,
+  D7_CATEGORIES,
+  D7_DASHBOARD,
+  D7_PLAN,
   DASHBOARD,
   EMPTY_PAGE,
   ITEMS,
@@ -186,5 +189,45 @@ describe('PlanDashboardStore', () => {
     expect(store.loading).toBe(false);
     expect(store.unplannedExpenses.items).toEqual([]);
     expect(store.unplannedIncome.items).toEqual([]);
+  });
+
+  it('computes safe to spend, pace and forecast from the loaded dashboard', async () => {
+    expect(store.overview).toBeNull();
+    plans.get.mockResolvedValue(D7_PLAN);
+    plans.dashboard.mockResolvedValue(D7_DASHBOARD);
+    categories.list.mockResolvedValue(D7_CATEGORIES);
+
+    await store.load('plan-d7');
+
+    const overview = store.overview;
+    expect(overview?.spent).toEqual(plnMoney(703000n));
+    expect(overview?.left).toEqual(plnMoney(477000n));
+    expect(overview?.timing).toEqual({
+      kind: 'current',
+      today: '2026-10-22',
+      day: 22,
+      totalDays: 31,
+      safeToSpend: { perDay: plnMoney(47700n), daysLeft: 10, isOver: false },
+      pace: {
+        kind: 'under',
+        monthLeftFraction: 1 - 22 / 31,
+        elapsedFraction: 22 / 31,
+        leftPercent: 40,
+        monthLeftPercent: 29,
+      },
+      forecast: { total: plnMoney(990600n), versusPlan: plnMoney(189400n) },
+    });
+    expect([...(overview?.categoryForecasts ?? new Map()).entries()]).toEqual([
+      ['d7-eating-out', plnMoney(79300n)],
+    ]);
+  });
+
+  it('forgets the overview with the session', async () => {
+    await store.load('plan-1');
+    expect(store.overview).not.toBeNull();
+
+    store.resetSession();
+
+    expect(store.overview).toBeNull();
   });
 });

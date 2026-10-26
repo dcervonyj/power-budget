@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
 import { FULL_STACK } from './support/stack.js';
 import {
   BackendApi,
@@ -51,12 +51,16 @@ test.describe('plan journey', () => {
       .toEqual([[category.id, 'expense', { amountMinor: '25050', currency: plan.baseCurrency }]]);
 
     await page.goto('/dashboard');
-    await expect(page.getByText('New Plan')).toBeVisible();
-    await expect(page.getByText('Expenses')).toBeVisible();
+    // DSN-020: the D7 Overview titles the expense panel "Planned vs spent".
+    await expect(page.getByRole('heading', { name: 'New Plan' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Planned vs spent' })).toBeVisible();
     await expect(page.getByText(category.name, { exact: true })).toBeVisible();
   });
 
-  test('the dashboard lists a new planned item with its amount', async ({ page, request }) => {
+  test('the dashboard lists a new planned item with its amount', async ({
+    page,
+    request,
+  }, testInfo) => {
     const api = new BackendApi(request);
     const tokens = await api.register(uniqueEmail('dashboard'));
     const category = await api.expenseCategory(tokens.accessToken);
@@ -79,5 +83,21 @@ test.describe('plan journey', () => {
     await signInWithTokens(page, tokens);
     await page.goto('/dashboard');
     await expect(page.getByText(category.name, { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Safe to spend today' })).toBeVisible();
+    await attachThemeShots(page, testInfo, 'overview');
   });
 });
+
+/** Full-page screenshots of the current page in both D7 themes, attached to the report. */
+async function attachThemeShots(page: Page, testInfo: TestInfo, name: string): Promise<void> {
+  for (const theme of ['dark', 'light'] as const) {
+    await page.evaluate((value) => {
+      document.documentElement.setAttribute('data-theme', value);
+      document.documentElement.style.colorScheme = value;
+    }, theme);
+    await testInfo.attach(`${name}-${theme}`, {
+      body: await page.screenshot({ fullPage: true, animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+  }
+}
