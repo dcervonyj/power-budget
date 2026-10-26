@@ -24,7 +24,13 @@ export const FILM_MS = MOTION.film.durationMs;
 export const TRAVEL_MS = MOTION.travel.durationMs;
 export const LENS_FLICKER_MS = MOTION.flicker.durationMs[1];
 export const BEAM_FLICKER_MS = MOTION.flicker.durationMs[0];
-export const TWINKLE_MS: readonly number[] = [2800, 3400, 3100];
+const [TWINKLE_A_MS, TWINKLE_B_MS] = MOTION.twinkle.durationMs;
+/** The three sparks twinkle at the two token durations and their midpoint. */
+export const TWINKLE_MS: readonly number[] = [
+  TWINKLE_A_MS,
+  TWINKLE_B_MS,
+  (TWINKLE_A_MS + TWINKLE_B_MS) / 2,
+];
 export const TWINKLE_DELAYS_MS: readonly number[] = [400, 1300, 2100];
 
 export interface CoreMetrics {
