@@ -196,15 +196,15 @@ describe('configureHttpSecurity (HTTP)', () => {
 });
 
 describe('resolveTrustProxy', () => {
-  it('defaults to one trusted hop', () => {
-    expect(resolveTrustProxy(undefined)).toBe(1);
-    expect(resolveTrustProxy('  ')).toBe(1);
+  it('defaults to trusting private-range proxies', () => {
+    expect(resolveTrustProxy(undefined)).toBe('loopback,linklocal,uniquelocal');
+    expect(resolveTrustProxy('  ')).toBe('loopback,linklocal,uniquelocal');
   });
 
-  it('parses booleans, hop counts and proxy lists', () => {
+  it('parses booleans, legacy hop counts and proxy lists', () => {
     expect(resolveTrustProxy('false')).toBe(false);
     expect(resolveTrustProxy('true')).toBe(true);
-    expect(resolveTrustProxy('2')).toBe(2);
+    expect(resolveTrustProxy('2')).toBe('loopback,linklocal,uniquelocal');
     expect(resolveTrustProxy('10.0.0.0/8,127.0.0.1')).toBe('10.0.0.0/8,127.0.0.1');
   });
 
