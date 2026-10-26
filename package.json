@@ -42,5 +42,34 @@
     "*.{json,md}": [
       "prettier --write"
     ]
+  },
+  "pnpm": {
+    "overrides": {
+      "undici@<7": "^6.29.1",
+      "undici@>=7": "^7.30.1",
+      "brace-expansion@<2": "^1.1.21",
+      "brace-expansion@>=2 <3": "^2.1.7",
+      "brace-expansion@>=4": "^5.0.12",
+      "@xmldom/xmldom@<0.9": "^0.8.15",
+      "@xmldom/xmldom@>=0.9": "^0.9.12",
+      "js-yaml@<5": "^4.3.2",
+      "js-yaml@>=5": "^5.4.1",
+      "fast-uri": "^3.1.9",
+      "joi": "^17.13.8",
+      "postcss": "^8.5.23",
+      "postcss-selector-parser": "^7.1.6",
+      "nanoid@<4": "^3.3.18",
+      "svgo": "^4.1.0",
+      "browserslist": "^4.28.7",
+      "fastify": "^5.12.7",
+      "source-map-js": "^1.2.2",
+      "compression": "^1.8.2",
+      "follow-redirects": "^1.16.1",
+      "ws@<8": "^7.5.11",
+      "ws@>=8": "^8.21.0",
+      "shell-quote": "^1.9.0",
+      "esbuild@>=0.27 <0.28.1": "^0.28.1",
+      "baseline-browser-mapping": "^2.11.0"
+    }
   }
 }
