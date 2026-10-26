@@ -3,19 +3,21 @@ import { Inject } from '@nestjs/common';
 import { desc, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { BankConnectionId, SyncRunId } from '@power-budget/core';
-import type { SyncRunRepository } from '../../domain/bank/ports.js';
+import type { SyncRunRepository, SyncRunStartOptions } from '../../domain/bank/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
 
 export class DrizzleSyncRunRepository implements SyncRunRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async start(connectionId: BankConnectionId): Promise<SyncRunId> {
+  async start(connectionId: BankConnectionId, options: SyncRunStartOptions): Promise<SyncRunId> {
     const id = randomUUID() as SyncRunId;
     await this.db.insert(schema.syncRuns).values({
       id,
       connectionId,
       status: 'running',
+      trigger: options.trigger,
+      attended: options.attended,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
@@ -31,6 +33,7 @@ export class DrizzleSyncRunRepository implements SyncRunRepository {
       .set({
         status: result.ok ? 'success' : 'failed',
         lastSuccessfulAt: result.ok ? new Date() : null,
+        fetched: result.fetched,
         errorMessage: result.error ?? null,
         updatedAt: new Date(),
       })

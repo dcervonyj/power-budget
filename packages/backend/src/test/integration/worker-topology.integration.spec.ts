@@ -72,7 +72,12 @@ describe('worker topology against real Redis + Postgres', () => {
     try {
       const syncQueue = new BullMQBankSyncQueue(queue);
       const scheduledAt = new Date('2026-10-21T08:00:00.000Z');
-      const target = { connectionId: CONNECTION_ID, householdId: HOUSEHOLD_ID };
+      const target = {
+        connectionId: CONNECTION_ID,
+        householdId: HOUSEHOLD_ID,
+        trigger: 'manual' as const,
+        attended: true,
+      };
 
       await syncQueue.enqueue({ ...target, scheduledAt });
       await syncQueue.enqueue({ ...target, scheduledAt });

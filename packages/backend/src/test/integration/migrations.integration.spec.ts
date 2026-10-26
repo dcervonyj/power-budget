@@ -201,6 +201,52 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     }
   });
 
+  it('0016 enforces identification_hash uniqueness per household (BNK-003)', async () => {
+    const pool = await createDatabase(`bnk003_${SUFFIX}`);
+    await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
+    const ids = {
+      user: '01900000-0000-7000-8000-000000000201',
+      household: '01900000-0000-7000-8000-000000000202',
+      otherHousehold: '01900000-0000-7000-8000-000000000203',
+    };
+    const client = await pool.connect();
+    const insertAccount = async (
+      id: string,
+      household: string,
+      hash: string | null,
+    ): Promise<void> => {
+      await client.query(
+        `INSERT INTO bank_accounts (id, household_id, owner_user_id, kind, name, currency, identification_hash)
+         VALUES ($1, $2, $3, 'manual', 'A', 'PLN', $4)`,
+        [id, household, ids.user, hash],
+      );
+    };
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.rls_bypass', 'on', true)");
+      await client.query(`INSERT INTO users (id, email) VALUES ($1, 'u@example.com')`, [ids.user]);
+      for (const household of [ids.household, ids.otherHousehold]) {
+        await client.query(
+          `INSERT INTO households (id, name, base_currency) VALUES ($1, 'h', 'PLN')`,
+          [household],
+        );
+      }
+      await insertAccount('01900000-0000-7000-8000-000000000211', ids.household, 'hash-1');
+      // The same hash in another household, and accounts without a hash, are allowed.
+      await insertAccount('01900000-0000-7000-8000-000000000212', ids.otherHousehold, 'hash-1');
+      await insertAccount('01900000-0000-7000-8000-000000000213', ids.household, null);
+      await insertAccount('01900000-0000-7000-8000-000000000214', ids.household, null);
+      await client.query('SAVEPOINT dup');
+      await expect(
+        insertAccount('01900000-0000-7000-8000-000000000215', ids.household, 'hash-1'),
+      ).rejects.toMatchObject({ code: '23505' });
+      await client.query('ROLLBACK TO SAVEPOINT dup');
+      await client.query('ROLLBACK');
+    } finally {
+      client.release();
+    }
+  });
+
   it('enables and forces row level security on every tenant data table (CLN-005)', async () => {
     const pool = await createDatabase(`rls_${SUFFIX}`);
     await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
@@ -216,6 +262,7 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
       'audit_log',
       'bank_accounts',
       'bank_connections',
+      'bank_fetch_ledger',
       'categories',
       'category_privacy',
       'household_exports',

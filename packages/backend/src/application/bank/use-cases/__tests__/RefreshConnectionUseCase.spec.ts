@@ -61,6 +61,8 @@ describe('RefreshConnectionUseCase', () => {
     expect(syncQueue.enqueue).toHaveBeenCalledWith({
       connectionId: CONNECTION_ID,
       householdId: HOUSEHOLD_ID,
+      trigger: 'manual',
+      attended: true,
     });
   });
 
