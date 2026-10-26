@@ -17,7 +17,10 @@ import {
   TotpLockedError,
   TotpRequiredError,
 } from '../../../domain/auth/errors.js';
-import { BankConnectionInvalidStateError } from '../../../domain/bank/errors.js';
+import {
+  BankConnectionInvalidStateError,
+  BankRateLimitedError,
+} from '../../../domain/bank/errors.js';
 import {
   BankAccountNotFoundError,
   PlannedItemNotFoundError,
@@ -201,6 +204,26 @@ describe('SentryExceptionFilter', () => {
 
     expect(status).toHaveBeenCalledWith(429);
     expect(headers).toHaveBeenCalledWith({ 'Retry-After': '120' });
+  });
+
+  it('answers a provider rate limit with 429 and an HTTP-date Retry-After (CLN-033)', () => {
+    filter.catch(new BankRateLimitedError(new Date('2026-10-26T13:30:00Z')), host);
+
+    expect(status).toHaveBeenCalledWith(429);
+    expect(headers).toHaveBeenCalledWith({ 'Retry-After': 'Mon, 26 Oct 2026 13:30:00 GMT' });
+    expect(send).toHaveBeenCalledWith({
+      statusCode: 429,
+      code: 'bank_rate_limited',
+      message: 'The bank provider is busy, try again later',
+    });
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('sends no Retry-After when the provider gave no time', () => {
+    filter.catch(new BankRateLimitedError(null), host);
+
+    expect(status).toHaveBeenCalledWith(429);
+    expect(headers).toHaveBeenCalledWith({});
   });
 
   it('reports unknown errors to Sentry and answers 500', () => {
