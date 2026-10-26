@@ -101,7 +101,6 @@ export const sessions = pgTable(
   },
   (t) => [
     index('sessions_user_idx').on(t.userId),
-    index('sessions_token_hash_idx').on(t.refreshTokenHash),
     uniqueIndex('sessions_token_hash_unique').on(t.refreshTokenHash),
   ],
 );
@@ -147,7 +146,6 @@ export const householdInvites = pgTable(
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
   },
   (t) => [
-    index('household_invites_token_idx').on(t.tokenHash),
     uniqueIndex('household_invites_token_unique').on(t.tokenHash),
     // At most one open (not accepted, not revoked) invite per household.
     uniqueIndex('household_invites_one_open_unique')
@@ -304,7 +302,6 @@ export const transactions = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index('transactions_household_date_idx').on(t.householdId, t.occurredOn),
     index('transactions_household_date_id_idx').on(t.householdId, t.occurredOn.desc(), t.id.desc()),
     index('transactions_account_date_idx').on(t.accountId, t.occurredOn),
     index('transactions_account_status_date_idx').on(t.accountId, t.status, t.occurredOn),
@@ -372,10 +369,9 @@ export const transfers = pgTable(
     markedAt: timestamp('marked_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index('transfers_tx_a_idx').on(t.txAId),
-    index('transfers_tx_b_idx').on(t.txBId),
     uniqueIndex('transfers_tx_a_unique').on(t.txAId),
     uniqueIndex('transfers_tx_b_unique').on(t.txBId),
+    index('transfers_household_idx').on(t.householdId),
   ],
 );
 
@@ -582,6 +578,7 @@ export const auditLog = pgTable(
   },
   (t) => [
     index('audit_log_household_at_idx').on(t.householdId, t.at),
+    index('audit_log_household_id_idx').on(t.householdId, t.id),
     index('audit_log_subject_idx').on(t.subjectType, t.subjectId, t.at),
   ],
 );
