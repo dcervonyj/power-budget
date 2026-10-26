@@ -272,8 +272,8 @@ jobs:
         working-directory: packages/mobile
 
       - name: Playwright visual project
-        run: pnpm exec playwright test --project=visual
-        working-directory: packages/mobile/e2e-web
+        run: pnpm exec playwright test --config e2e-web --project=visual
+        working-directory: packages/mobile
 
       - name: Upload visual diffs
         if: failure()
