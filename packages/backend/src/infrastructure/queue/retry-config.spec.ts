@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { customBackoffStrategy, RETRY_DELAYS_MS, MAX_ATTEMPTS } from './retry-config';
+import {
+  bullmqBackoffStrategy,
+  customBackoffStrategy,
+  DEFAULT_JOB_OPTIONS,
+  RETRY_DELAYS_MS,
+  MAX_ATTEMPTS,
+} from './retry-config';
 
 describe('customBackoffStrategy', () => {
   it('returns 30s for first attempt', () => {
@@ -35,5 +41,20 @@ describe('customBackoffStrategy', () => {
     for (let i = 1; i < RETRY_DELAYS_MS.length; i++) {
       expect(RETRY_DELAYS_MS[i]!).toBeGreaterThan(RETRY_DELAYS_MS[i - 1]!);
     }
+  });
+});
+
+describe('bullmqBackoffStrategy', () => {
+  it('maps the 1-based failed attempt onto the delay table', () => {
+    expect(bullmqBackoffStrategy(1)).toBe(30_000);
+    expect(bullmqBackoffStrategy(2)).toBe(120_000);
+    expect(bullmqBackoffStrategy(5)).toBe(21_600_000);
+  });
+});
+
+describe('DEFAULT_JOB_OPTIONS', () => {
+  it('bounds failed and completed jobs so Redis cannot fill up', () => {
+    expect(DEFAULT_JOB_OPTIONS.removeOnFail).toEqual({ count: 200, age: 7 * 24 * 3600 });
+    expect(DEFAULT_JOB_OPTIONS.removeOnComplete).toEqual({ count: 100, age: 24 * 3600 });
   });
 });

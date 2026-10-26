@@ -11,6 +11,7 @@ import type {
 } from '../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import { QUEUE_BANK_SYNC } from '../queue/queue.constants.js';
+import { bullmqBackoffStrategy } from '../queue/retry-config.js';
 
 export interface BankSyncJobPayload {
   readonly connectionId: BankConnectionId;
@@ -21,11 +22,22 @@ export interface BankSyncJobPayload {
   readonly since?: string; // ISO date string
 }
 
-@Processor(QUEUE_BANK_SYNC, { concurrency: 2 })
+@Processor(QUEUE_BANK_SYNC, {
+  concurrency: 2,
+  settings: { backoffStrategy: bullmqBackoffStrategy },
+})
 export class BankSyncProcessor extends WorkerHost {
   private readonly logger = new Logger(BankSyncProcessor.name);
   private legacyPayloadLogged = false;
   private static readonly RECONNECT_REMINDER_DAYS = 7;
+  /** First sync of a connection looks this far back. */
+  static readonly INITIAL_LOOKBACK_DAYS = 90;
+  /**
+   * Incremental syncs re-fetch this many days before the last successful run, so
+   * transactions the bank booked late (pending to booked, value-date lag) are still
+   * picked up; ingest is idempotent, so the overlap only costs a few duplicates to skip.
+   */
+  static readonly OVERLAP_DAYS = 3;
 
   constructor(
     private readonly connectionRepo: BankConnectionRepository,
@@ -47,8 +59,9 @@ export class BankSyncProcessor extends WorkerHost {
       return;
     }
 
-    const syncRunId = await this.syncRunRepo.start(connectionId, runOptions);
+    // Read the watermark before start(): start() inserts this run, which must not shadow it.
     const sinceDt = since ? new Date(since) : await this.getDefaultSince(connectionId);
+    const syncRunId = await this.syncRunRepo.start(connectionId, runOptions);
     let totalFetched = 0;
 
     try {
@@ -105,12 +118,12 @@ export class BankSyncProcessor extends WorkerHost {
 
   private async getDefaultSince(connectionId: BankConnectionId): Promise<Date> {
     const lastSuccess = await this.syncRunRepo.lastSuccessfulAt(connectionId);
+    const dayMs = 24 * 3600 * 1000;
     if (lastSuccess !== null) {
-      return lastSuccess;
+      return new Date(lastSuccess.getTime() - BankSyncProcessor.OVERLAP_DAYS * dayMs);
     }
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    return ninetyDaysAgo;
+
+    return new Date(Date.now() - BankSyncProcessor.INITIAL_LOOKBACK_DAYS * dayMs);
   }
 
   private checkExpiryReminder(connection: { expiresAt: Date | null }): void {
