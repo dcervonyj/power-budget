@@ -2,7 +2,12 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react-native';
 import { IntlProvider } from 'react-intl';
 import type { PlanDashboardResponseDto, PlanDto } from '@power-budget/shared-app/contract';
+import { ThemeProvider } from '../../../theme/index.js';
 import { DashboardScreen } from '../DashboardScreen.js';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 const mockPlansList = jest.fn();
 const mockDashboard = jest.fn();
@@ -70,16 +75,19 @@ describe('DashboardScreen', () => {
 
   it('renders a real plan dashboard response without crashing', async () => {
     await render(
-      <IntlProvider locale="en">
-        <DashboardScreen />
-      </IntlProvider>,
+      <ThemeProvider>
+        <IntlProvider locale="en">
+          <DashboardScreen />
+        </IntlProvider>
+      </ThemeProvider>,
     );
 
     await waitFor(() => expect(screen.getByText('Salary')).toBeTruthy());
     expect(screen.getByText('Food')).toBeTruthy();
     expect(screen.getByText('October')).toBeTruthy();
-    expect(screen.getByText('1234.50 PLN')).toBeTruthy();
-    expect(screen.getByText('3723.50 PLN')).toBeTruthy();
-    expect(screen.getByText('42.00 PLN')).toBeTruthy();
+    // MoneyText now shows locale-formatted AmountText parts (was "1234.50 PLN").
+    expect(screen.getAllByText(/1,234\.50/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/3,723\.50/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/42\.00/).length).toBeGreaterThan(0);
   });
 });
