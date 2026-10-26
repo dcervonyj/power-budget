@@ -11,6 +11,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "vitest run && jest",
+    "build:gallery": "EXPO_PUBLIC_GALLERY=1 expo export --platform web --output-dir dist-gallery",
+    "test:export": "node --test e2e-web/production-export.test.mjs",
+    "test:visual": "bash e2e-web/visual/run-in-docker.sh",
+    "test:visual:update": "bash e2e-web/visual/run-in-docker.sh --update-snapshots",
     "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-mobile-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]' && node src/infrastructure/locale/ExtractedMessageFilter.mjs /tmp/power-budget-mobile-message-ids.json assets/locales/en assets/locales/en.json"
   },
   "dependencies": {
