@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react-native';
 import { registerRootComponent } from 'expo';
-import { App } from './src/presentation/App.js';
 
 Sentry.init({
   dsn: process.env['EXPO_PUBLIC_SENTRY_DSN'],
@@ -17,5 +16,10 @@ if (process.env.EXPO_PUBLIC_GALLERY === '1') {
 
   registerGallery();
 } else {
+  // Required here, not imported at the top: in gallery mode the app graph must not be evaluated,
+  // or a Skia import in it runs before CanvasKit is loaded (see src/gallery/main.tsx).
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { App } = require('./src/presentation/App.js');
+
   registerRootComponent(App);
 }
