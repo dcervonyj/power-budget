@@ -32,7 +32,7 @@ module.exports = [
   // without type-aware rules via the block below.
   {
     files: ['**/*.ts', '**/*.tsx'],
-    ignores: ['**/src/test/integration/**', '**/__tests__/**', '**/vite.config.ts', '**/vitest.config.ts', '**/e2e/**', '**/playwright.config.ts'],
+    ignores: ['**/src/test/integration/**', '**/__tests__/**', '**/vite.config.ts', '**/vitest.config.ts', '**/e2e/**', '**/e2e-web/**', '**/playwright.config.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -95,7 +95,7 @@ module.exports = [
   // ─── Playwright e2e tests: non-type-aware linting only ───────────────────
   // e2e files are not part of the main tsconfig; type-aware rules are disabled.
   {
-    files: ['**/e2e/**/*.ts', '**/playwright.config.ts'],
+    files: ['**/e2e/**/*.ts', '**/e2e-web/**/*.ts', '**/playwright.config.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {

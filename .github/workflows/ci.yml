@@ -232,3 +232,53 @@ jobs:
           name: visual-web-results
           path: packages/web/test-results/
           if-no-files-found: ignore
+
+  visual-mobile:
+    # DSN-031: screenshot + axe checks of the mobile gallery (expo export --platform web, no
+    # backend), plus the check that the production export contains no gallery. Same pinned
+    # Playwright image as visual-web and `pnpm test:visual` in packages/mobile. Bump the tag with
+    # @playwright/test.
+    name: Visual (mobile gallery)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the mobile app's dependencies
+        run: pnpm turbo run build --filter=@power-budget/mobile^...
+
+      - name: Build the gallery
+        run: pnpm run build:gallery
+        working-directory: packages/mobile
+
+      - name: Production export has no gallery
+        run: pnpm run test:export
+        working-directory: packages/mobile
+
+      - name: Playwright visual project
+        run: pnpm exec playwright test --config e2e-web --project=visual
+        working-directory: packages/mobile
+
+      - name: Upload visual diffs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: visual-mobile-results
+          path: packages/mobile/test-results/
+          if-no-files-found: ignore
