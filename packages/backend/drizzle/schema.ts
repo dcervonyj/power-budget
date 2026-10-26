@@ -170,7 +170,16 @@ export const bankConnections = pgTable(
     externalConsentRef: varchar('external_consent_ref', { length: 255 }),
     encryptedConsent: text('encrypted_consent'),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
+    // BNK-003: active | expired | revoked | disconnected plus the bank v2 states
+    // pending_authorization | expiring | reauth_required | failed. expiresAt is the consent valid_until.
     status: varchar('status', { length: 20 }).notNull().default('active'),
+    providerSessionId: varchar('provider_session_id', { length: 255 }),
+    aspspName: varchar('aspsp_name', { length: 100 }),
+    aspspCountry: char('aspsp_country', { length: 2 }),
+    psuType: varchar('psu_type', { length: 20 }),
+    lastStatusCheckAt: timestamp('last_status_check_at', { withTimezone: true }),
+    lastErrorCode: varchar('last_error_code', { length: 100 }),
+    reauthRequiredAt: timestamp('reauth_required_at', { withTimezone: true }),
     disconnectedAt: timestamp('disconnected_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -202,12 +211,27 @@ export const bankAccounts = pgTable(
       .notNull()
       .default(sql`0`),
     lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+    // BNK-003 (bank v2). identificationHash is the stable per-household key (NULL for rows that
+    // predate it and for manual accounts); providerAccountUid changes with every session.
+    identificationHash: varchar('identification_hash', { length: 128 }),
+    providerAccountUid: varchar('provider_account_uid', { length: 255 }),
+    secondaryConnectionId: uuid('secondary_connection_id').references(() => bankConnections.id),
+    lastBookedSyncAt: timestamp('last_booked_sync_at', { withTimezone: true }),
+    lastAttendedSyncAt: timestamp('last_attended_sync_at', { withTimezone: true }),
+    lastLiveSignalAt: timestamp('last_live_signal_at', { withTimezone: true }),
+    balanceAsOf: timestamp('balance_as_of', { withTimezone: true }),
+    balanceType: varchar('balance_type', { length: 20 }),
+    cooldownUntil: timestamp('cooldown_until', { withTimezone: true }),
+    wiseBalanceId: varchar('wise_balance_id', { length: 100 }),
+    cardHints: jsonb('card_hints'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('bank_accounts_connection_idx').on(t.connectionId),
     index('bank_accounts_household_owner_idx').on(t.householdId, t.ownerUserId),
+    // Kept until BNK-004 supplies identification hashes to upsertAll (its conflict target).
     uniqueIndex('bank_accounts_external_unique').on(t.connectionId, t.externalId),
+    uniqueIndex('bank_accounts_identification_hash_unique').on(t.householdId, t.identificationHash),
     check(
       'bank_accounts_kind_check',
       sql`(kind = 'bank' AND connection_id IS NOT NULL AND external_id IS NOT NULL) OR (kind = 'manual' AND connection_id IS NULL)`,
@@ -540,12 +564,52 @@ export const syncRuns = pgTable(
     status: varchar('status', { length: 20 }).notNull().default('running'),
     lastSuccessfulAt: timestamp('last_successful_at', { withTimezone: true }),
     errorMessage: text('error_message'),
+    // BNK-003: trigger is scheduled | manual | live_signal | reserve; counts are per run.
+    trigger: varchar('trigger', { length: 20 }).notNull().default('manual'),
+    attended: boolean('attended').notNull().default(false),
+    fetched: integer('fetched').notNull().default(0),
+    inserted: integer('inserted').notNull().default(0),
+    upgraded: integer('upgraded').notNull().default(0),
+    cancelled: integer('cancelled').notNull().default(0),
+    errorCode: varchar('error_code', { length: 100 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('sync_runs_connection_idx').on(t.connectionId),
     index('sync_runs_status_idx').on(t.status),
+  ],
+);
+
+// ─── Bank fetch ledger (BNK-003, plan-banking 1.8) ───────────────────────────
+
+export const bankFetchLedger = pgTable(
+  'bank_fetch_ledger',
+  {
+    id: uuid('id').primaryKey(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => bankAccounts.id),
+    connectionId: uuid('connection_id')
+      .notNull()
+      .references(() => bankConnections.id),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    callKind: varchar('call_kind', { length: 20 }).notNull(),
+    attended: boolean('attended').notNull().default(false),
+    httpStatus: integer('http_status'),
+    errorCode: varchar('error_code', { length: 100 }),
+    syncRunId: uuid('sync_run_id').references(() => syncRuns.id),
+  },
+  (t) => [
+    index('bank_fetch_ledger_account_at_idx').on(t.accountId, t.at),
+    index('bank_fetch_ledger_household_idx').on(t.householdId),
+    check(
+      'bank_fetch_ledger_call_kind_check',
+      sql`call_kind IN ('transactions', 'balances', 'details')`,
+    ),
   ],
 );
 
