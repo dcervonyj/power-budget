@@ -128,10 +128,13 @@ export class SettingsStore {
               if (res.data.status === 'failed') {
                 clearInterval(timer);
                 reject(new Error('Export failed'));
-              } else if (res.data.status === 'ready' || res.data.url) {
+              } else if (typeof res.data.url === 'string' && res.data.url !== '') {
                 clearInterval(timer);
                 this.exportUrl = res.data.url;
                 resolve();
+              } else if (res.data.status === 'ready') {
+                clearInterval(timer);
+                reject(new Error('Export ready without a download url'));
               } else if (attempts >= maxAttempts) {
                 clearInterval(timer);
                 reject(new Error('Export timed out'));
