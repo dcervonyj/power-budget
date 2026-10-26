@@ -66,6 +66,20 @@ export interface FetchBalancesInput {
   readonly psu: PsuContext | null;
 }
 
+/**
+ * The bank catalogue of a country, kept for a while so that listing banks does not spend
+ * the provider's quota on every request (CLN-033, audit BE-BUGS-17).
+ */
+export interface BankCatalogCache {
+  /** The entries stored for `country`, or null when there are none or they expired. */
+  get(country: CountryCode): Promise<BankCatalogEntry[] | null>;
+  set(
+    country: CountryCode,
+    entries: readonly BankCatalogEntry[],
+    ttlSeconds: number,
+  ): Promise<void>;
+}
+
 export interface BankConnectionRepository {
   create(conn: NewBankConnection): Promise<BankConnection>;
   findById(id: BankConnectionId, scope: HouseholdScope): Promise<BankConnection | null>;

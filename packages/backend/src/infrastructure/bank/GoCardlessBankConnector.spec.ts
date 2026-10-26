@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { EncryptedString } from '@power-budget/core';
 import type { Encryption } from '../../domain/auth/ports.js';
 import { GoCardlessBankConnector } from './GoCardlessBankConnector.js';
+import { BankRateLimitedError } from '../../domain/bank/errors.js';
 
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
@@ -432,92 +433,68 @@ describe('GoCardlessBankConnector', () => {
     });
   });
 
-  // 6. 429 retry logic ────────────────────────────────────────────────────────
-  describe('429 retry logic', () => {
-    it('retries after Retry-After delay and succeeds on the next attempt', async () => {
-      const institutions = [{ id: 'BANK_1', name: 'Bank 1', countries: ['PL'], logo: null }];
+  // 6. 429: a typed error, no sleep and no retry (CLN-033) ───────────────────
+  describe('429 rate limit', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
 
-      let fetchCallCount = 0;
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockImplementation((url: string) => {
-          fetchCallCount++;
-
-          const isTokenEndpoint = url.includes('/token/new/');
-
-          // Token endpoint always succeeds
-          if (isTokenEndpoint) {
-            return Promise.resolve({
-              ok: true,
-              status: 200,
-              headers: { get: () => 'application/json' },
-              json: () => Promise.resolve(makeTokenResponse()),
-              text: () => Promise.resolve(JSON.stringify(makeTokenResponse())),
-            });
-          }
-
-          // First institutions call → 429 with Retry-After: 0
-          if (fetchCallCount === 2) {
-            return Promise.resolve({
-              ok: false,
-              status: 429,
-              headers: {
-                get: (name: string) => (name === 'Retry-After' ? '0' : null),
-              },
-              json: () => Promise.resolve({}),
-              text: () => Promise.resolve('rate limited'),
-            });
-          }
-
-          // Second institutions call → success
+    /** Token call succeeds, every later call answers 429 with `retryAfter` (null: no header). */
+    function stubRateLimited(retryAfter: string | null) {
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/token/new/')) {
           return Promise.resolve({
             ok: true,
             status: 200,
             headers: { get: () => 'application/json' },
-            json: () => Promise.resolve(institutions),
-            text: () => Promise.resolve(JSON.stringify(institutions)),
+            json: () => Promise.resolve(makeTokenResponse()),
+            text: () => Promise.resolve(''),
           });
-        }),
-      );
+        }
 
-      const connector = makeConnector();
-      const result = await connector.listSupportedBanks('PL');
+        return Promise.resolve({
+          ok: false,
+          status: 429,
+          headers: { get: (name: string) => (name === 'Retry-After' ? retryAfter : null) },
+          json: () => Promise.resolve({}),
+          text: () => Promise.resolve('rate limited'),
+        });
+      });
+      vi.stubGlobal('fetch', fetchMock);
 
-      // token (1) + 429 (2) + success (3)
-      expect(fetchCallCount).toBe(3);
-      expect(result).toHaveLength(1);
-      expect(result[0]?.bankId).toBe('BANK_1');
+      return fetchMock;
+    }
+
+    it('throws BankRateLimitedError with an HTTP-date Retry-After, after one call', async () => {
+      const fetchMock = stubRateLimited('Mon, 26 Oct 2026 13:30:00 GMT');
+
+      const result = makeConnector().listSupportedBanks('PL');
+
+      await expect(result).rejects.toBeInstanceOf(BankRateLimitedError);
+      await expect(result).rejects.toMatchObject({
+        code: 'rate_limited',
+        retryAfter: new Date('2026-10-26T13:30:00Z'),
+      });
+      // token + one institutions call: no retry loop.
+      expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    it('throws after exhausting all retries on repeated 429s', async () => {
-      vi.stubGlobal(
-        'fetch',
-        vi.fn().mockImplementation((url: string) => {
-          const isTokenEndpoint = url.includes('/token/new/');
+    it('reads a delta-seconds Retry-After from now', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-10-26T12:00:00Z'));
+      stubRateLimited('120');
 
-          if (isTokenEndpoint) {
-            return Promise.resolve({
-              ok: true,
-              status: 200,
-              headers: { get: () => 'application/json' },
-              json: () => Promise.resolve(makeTokenResponse()),
-              text: () => Promise.resolve(''),
-            });
-          }
+      await expect(makeConnector().listSupportedBanks('PL')).rejects.toMatchObject({
+        retryAfter: new Date('2026-10-26T12:02:00Z'),
+      });
+    });
 
-          return Promise.resolve({
-            ok: false,
-            status: 429,
-            headers: { get: (name: string) => (name === 'Retry-After' ? '0' : null) },
-            json: () => Promise.resolve({}),
-            text: () => Promise.resolve('rate limited'),
-          });
-        }),
-      );
+    it('has no retry time when the provider gives none', async () => {
+      stubRateLimited(null);
 
-      const connector = makeConnector();
-
-      await expect(connector.listSupportedBanks('PL')).rejects.toThrow('rate limited');
+      await expect(makeConnector().listSupportedBanks('PL')).rejects.toMatchObject({
+        retryAfter: null,
+      });
     });
   });
 });

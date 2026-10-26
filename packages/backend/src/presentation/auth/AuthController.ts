@@ -33,7 +33,7 @@ import { LogoutUseCase } from '../../application/auth/use-cases/LogoutUseCase.js
 // an emailVerified check.
 //
 // ThrottlerGuard (per IP and per account, see throttling.ts) guards every
-// endpoint that checks a credential (CLN-004 / audit H4).
+// endpoint that checks a credential (CLN-004 / audit H4), and registration (CLN-033).
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
@@ -49,10 +49,13 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  // Per IP: argon2 hashing and the 409 email probe must not be free (CLN-033).
+  @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Register a new user' })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({ status: 201, description: 'User registered successfully', type: AuthTokensDto })
-  @ApiResponse({ status: 409, description: 'Email already in use' })
+  @ApiResponse({ status: 409, description: 'Email already in use (code email_already_registered)' })
+  @ApiResponse({ status: 429, description: 'Too many attempts' })
   async register(@Body() dto: RegisterDto): Promise<AuthTokensDto> {
     const result = await this.registerUser.execute({
       email: dto.email,

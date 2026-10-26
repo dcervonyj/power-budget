@@ -14,6 +14,7 @@ import { WiseBankConnector } from './WiseBankConnector.js';
 import { StubSyncRunRepository } from './StubSyncRunRepository.js';
 import { DrizzleSyncRunRepository } from './DrizzleSyncRunRepository.js';
 import { BullMQBankSyncQueue } from './BullMQBankSyncQueue.js';
+import { RedisBankCatalogCache } from './RedisBankCatalogCache.js';
 
 /**
  * Bank adapters shared by the API and the worker: repositories, the connector
@@ -29,6 +30,7 @@ import { BullMQBankSyncQueue } from './BullMQBankSyncQueue.js';
     StubSyncRunRepository,
     DrizzleSyncRunRepository,
     BullMQBankSyncQueue,
+    RedisBankCatalogCache,
     {
       provide: InMemoryBankConnectorRegistry,
       inject: [ConfigService, EnvKekEncryption],
@@ -60,6 +62,7 @@ import { BullMQBankSyncQueue } from './BullMQBankSyncQueue.js';
     StubSyncRunRepository,
     DrizzleSyncRunRepository,
     BullMQBankSyncQueue,
+    RedisBankCatalogCache,
     InMemoryBankConnectorRegistry,
   ],
 })

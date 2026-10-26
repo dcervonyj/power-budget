@@ -7,6 +7,7 @@ import { NotificationsModule } from '../notifications/NotificationsModule.js';
 import { DrizzleUserRepository } from './DrizzleUserRepository.js';
 import { DrizzleUserProfileRepository } from './DrizzleUserProfileRepository.js';
 import { DrizzleHouseholdRepository } from './DrizzleHouseholdRepository.js';
+import { DrizzleUserRegistrationRepository } from './DrizzleUserRegistrationRepository.js';
 import { DrizzleHouseholdExportRepository } from './DrizzleHouseholdExportRepository.js';
 import { BullMQHouseholdExportQueue } from './BullMQHouseholdExportQueue.js';
 import { Argon2PasswordHashing } from './Argon2PasswordHashing.js';
@@ -27,6 +28,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleUserRepository,
     DrizzleUserProfileRepository,
     DrizzleHouseholdRepository,
+    DrizzleUserRegistrationRepository,
     DrizzleHouseholdExportRepository,
     BullMQHouseholdExportQueue,
     DrizzleTotpSecretRepository,
@@ -65,6 +67,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     REDIS_CLIENT,
     DrizzleUserRepository,
     DrizzleHouseholdRepository,
+    DrizzleUserRegistrationRepository,
     DrizzleHouseholdExportRepository,
     BullMQHouseholdExportQueue,
     DrizzleTotpSecretRepository,
