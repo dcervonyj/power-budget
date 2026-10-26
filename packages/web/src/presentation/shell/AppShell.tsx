@@ -1,0 +1,89 @@
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { observer } from 'mobx-react-lite';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { signOut } from '../../AppProviders.js';
+import { appShellStore } from '../../application/shell/appShellStore.js';
+import type { ShellSync } from '../../application/shell/ShellStore.js';
+import { deriveSyncChipState } from '../glass/atoms/syncChipState.js';
+import { useLocaleChoice } from '../components/LocaleSwitcher.js';
+import { useTheme } from '../theme/ThemeProvider.js';
+import { AppShellView, type ShellSyncChip } from './AppShellView.js';
+import { ShellLoading } from './ShellLoading.js';
+import { activeNavItem } from './shellNav.js';
+
+/**
+ * Layout route of the signed-in app (DSN-017): loads the shell data once, refreshes the to-sort
+ * count and the sync chip on every navigation, and renders the current screen in `main`.
+ */
+export const AppShell = observer(function AppShell(): React.JSX.Element {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { preference, setPreference } = useTheme();
+  const { locale, changeLocale } = useLocaleChoice();
+  const [signingOut, setSigningOut] = useState(false);
+  const loadedRef = useRef(false);
+
+  // The first render loads everything; each navigation after it refreshes the parts that change.
+  useEffect(() => {
+    if (loadedRef.current) {
+      void appShellStore.refresh();
+
+      return;
+    }
+    loadedRef.current = true;
+    void appShellStore.load();
+  }, [location.pathname, location.search]);
+
+  async function handleSignOut(): Promise<void> {
+    setSigningOut(true);
+    // CLN-034: revokes the refresh token, clears the tokens and resets every session store.
+    await signOut.execute();
+    navigate('/login', { replace: true });
+  }
+
+  function openBanks(): void {
+    navigate('/bank-connections');
+  }
+
+  return (
+    <AppShellView
+      active={activeNavItem(location.pathname, location.search)}
+      toSortCount={appShellStore.toSortCount}
+      syncChips={syncChipsOf(appShellStore.sync, openBanks)}
+      account={{
+        me: appShellStore.me,
+        partner: appShellStore.partner,
+        themePreference: preference,
+        onThemeChange: setPreference,
+        locale,
+        onLocaleChange: changeLocale,
+        onSignOut: () => {
+          void handleSignOut();
+        },
+        signingOut,
+      }}
+    >
+      <Suspense fallback={<ShellLoading />}>
+        <Outlet />
+      </Suspense>
+    </AppShellView>
+  );
+});
+
+/** The viewer's own sync only: a partner's connections are not readable by the API. */
+function syncChipsOf(sync: ShellSync, openBanks: () => void): ShellSyncChip[] {
+  switch (sync.kind) {
+    case 'none':
+      return [];
+    case 'renew':
+      return [{ key: 'own', state: { kind: 'renew' }, viewer: 'owner', onPress: openBanks }];
+    case 'synced':
+      return [
+        {
+          key: 'own',
+          state: deriveSyncChipState(sync.lastSyncedAt, new Date()),
+          viewer: 'owner',
+        },
+      ];
+  }
+}
