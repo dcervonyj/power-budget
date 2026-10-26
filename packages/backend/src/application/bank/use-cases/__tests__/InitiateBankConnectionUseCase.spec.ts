@@ -39,6 +39,7 @@ function makeTotp(verifiedAt: Date | null = new Date()): TotpSecret {
     enrolledAt: new Date(),
     verifiedAt,
     lastUsedTimeStep: null,
+    pendingEncryptedSecret: null,
   };
 }
 

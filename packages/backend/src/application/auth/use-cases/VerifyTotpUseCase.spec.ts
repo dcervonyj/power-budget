@@ -16,14 +16,14 @@ describe('VerifyTotpUseCase', () => {
     useCase = new VerifyTotpUseCase(totp);
   });
 
-  it('verifies the code for the user', async () => {
+  it('confirms the code for the user', async () => {
     await useCase.execute({ userId: TEST_USER_ID, code: '123456' });
 
-    expect(totp.verify).toHaveBeenCalledWith(TEST_USER_ID, '123456');
+    expect(totp.confirm).toHaveBeenCalledWith(TEST_USER_ID, '123456');
   });
 
   it('propagates a rejected code', async () => {
-    totp.verify.mockRejectedValue(new TotpInvalidError());
+    totp.confirm.mockRejectedValue(new TotpInvalidError());
 
     await expect(useCase.execute({ userId: TEST_USER_ID, code: '000000' })).rejects.toThrow(
       TotpInvalidError,

@@ -34,6 +34,7 @@ export class DrizzleTotpSecretRepository implements TotpSecretRepository {
         enrolledAt: secret.enrolledAt,
         verifiedAt: secret.verifiedAt,
         lastUsedTimeStep: secret.lastUsedTimeStep,
+        pendingEncryptedSecret: secret.pendingEncryptedSecret,
       })
       .onConflictDoUpdate({
         target: schema.totpSecrets.userId,
@@ -42,8 +43,44 @@ export class DrizzleTotpSecretRepository implements TotpSecretRepository {
           enrolledAt: secret.enrolledAt,
           verifiedAt: secret.verifiedAt,
           lastUsedTimeStep: secret.lastUsedTimeStep,
+          pendingEncryptedSecret: secret.pendingEncryptedSecret,
         },
       });
+  }
+
+  async savePending(userId: UserId, encryptedSecret: EncryptedString): Promise<void> {
+    await this.db
+      .update(schema.totpSecrets)
+      .set({ pendingEncryptedSecret: encryptedSecret })
+      .where(eq(schema.totpSecrets.userId, userId));
+  }
+
+  async promotePending(
+    userId: UserId,
+    pendingSecret: EncryptedString,
+    timeStep: number,
+    verifiedAt: Date,
+  ): Promise<boolean> {
+    // One conditional UPDATE: the swap is atomic, and of two concurrent
+    // confirmations (or a confirmation racing a restart) only one wins.
+    const rows = await this.db
+      .update(schema.totpSecrets)
+      .set({
+        encryptedSecret: sql`${schema.totpSecrets.pendingEncryptedSecret}`,
+        pendingEncryptedSecret: null,
+        enrolledAt: verifiedAt,
+        verifiedAt,
+        lastUsedTimeStep: timeStep,
+      })
+      .where(
+        and(
+          eq(schema.totpSecrets.userId, userId),
+          eq(schema.totpSecrets.pendingEncryptedSecret, pendingSecret),
+        ),
+      )
+      .returning({ userId: schema.totpSecrets.userId });
+
+    return rows.length === 1;
   }
 
   async claimTimeStep(userId: UserId, timeStep: number, verifiedAt: Date): Promise<boolean> {
@@ -81,5 +118,6 @@ function toEntity(row: TotpSecretRow): TotpSecret {
     enrolledAt: row.enrolledAt,
     verifiedAt: row.verifiedAt ?? null,
     lastUsedTimeStep: row.lastUsedTimeStep ?? null,
+    pendingEncryptedSecret: row.pendingEncryptedSecret as EncryptedString | null,
   };
 }

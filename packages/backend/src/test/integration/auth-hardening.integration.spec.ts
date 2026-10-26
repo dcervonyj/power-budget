@@ -190,6 +190,66 @@ describe('HTTP auth hardening (real app)', () => {
     });
   });
 
+  describe('TOTP replacement keeps 2FA on (BE-BUGS-01)', () => {
+    it('an abandoned replacement still demands a code from the current secret', async () => {
+      const user = await registerWithTotp('abandon@example.com');
+      const replacement = await enrol(user.accessToken);
+
+      const withoutCode = await login('abandon@example.com', PASSWORD);
+      const withNewCode = await login('abandon@example.com', PASSWORD, {
+        totp: totpCode(replacement.secret, 1),
+      });
+      const withOldCode = await login('abandon@example.com', PASSWORD, {
+        totp: totpCode(user.secret, 1),
+      });
+
+      expect(withoutCode.statusCode).toBe(403);
+      expect(withoutCode.json()).toMatchObject({ code: 'requires_totp' });
+      expect(withNewCode.statusCode).toBe(401);
+      expect(withOldCode.statusCode).toBe(201);
+    });
+
+    it('a confirmed replacement switches secrets and the old secret stops working', async () => {
+      const user = await registerWithTotp('replace@example.com');
+      const replacement = await enrol(user.accessToken);
+
+      const confirmed = await verifyTotp(user.accessToken, totpCode(replacement.secret));
+      const withOldCode = await login('replace@example.com', PASSWORD, {
+        totp: totpCode(user.secret, 1),
+      });
+      const withNewCode = await login('replace@example.com', PASSWORD, {
+        totp: totpCode(replacement.secret, 1),
+      });
+
+      expect(confirmed.statusCode).toBe(204);
+      expect(withOldCode.statusCode).toBe(401);
+      expect(withNewCode.statusCode).toBe(201);
+      const row = await getPool().query<{ pending_encrypted_secret: string | null }>(
+        'SELECT pending_encrypted_secret FROM totp_secrets WHERE user_id = $1',
+        [user.userId],
+      );
+      expect(row.rows[0]?.pending_encrypted_secret).toBeNull();
+    });
+
+    it('restarting a replacement keeps the current secret and drops the earlier pending one', async () => {
+      const user = await registerWithTotp('restart@example.com');
+      const first = await enrol(user.accessToken);
+      const second = await enrol(user.accessToken);
+
+      const withoutCode = await login('restart@example.com', PASSWORD);
+      const withFirst = await verifyTotp(user.accessToken, totpCode(first.secret));
+      const withOldCode = await login('restart@example.com', PASSWORD, {
+        totp: totpCode(user.secret, 1),
+      });
+      const confirmed = await verifyTotp(user.accessToken, totpCode(second.secret, 1));
+
+      expect(withoutCode.statusCode).toBe(403);
+      expect(withFirst.statusCode).toBe(401);
+      expect(withOldCode.statusCode).toBe(201);
+      expect(confirmed.statusCode).toBe(204);
+    });
+  });
+
   describe('TOTP replay protection (audit M9)', () => {
     it('rejects a code that was already accepted', async () => {
       const user = await register('replay@example.com');

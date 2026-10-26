@@ -116,7 +116,9 @@ export class AuthController {
     summary: 'Start TOTP enrolment for the current user',
     description:
       'First enrolment needs no step-up. Replacing an enabled TOTP needs a recent ' +
-      'POST /auth/totp/verify. TOTP is enabled once the first code is verified.',
+      'POST /auth/totp/verify. TOTP is enabled once the first code is verified. ' +
+      'A replacement stays pending, and the current secret stays in force, until its ' +
+      'first code is verified.',
   })
   @ApiResponse({
     status: 201,
@@ -139,8 +141,8 @@ export class AuthController {
   @ApiOperation({
     summary: 'Verify a TOTP code',
     description:
-      'Activates a pending enrolment and opens the 5-minute step-up window. ' +
-      'A code is accepted only once.',
+      'Activates a pending enrolment (a code of a pending replacement swaps it in) ' +
+      'and opens the 5-minute step-up window. A code is accepted only once.',
   })
   @ApiBody({ type: VerifyTotpDto })
   @ApiResponse({ status: 204, description: 'TOTP verified' })
