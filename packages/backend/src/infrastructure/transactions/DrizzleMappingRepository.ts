@@ -18,6 +18,7 @@ import {
   TransactionNotFoundError,
 } from '../../domain/transactions/errors.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
+import { SUPPORTED_CURRENCY_CODES } from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
 
 /** The pool-bound database or a transaction on it. */
@@ -148,6 +149,8 @@ export class DrizzleMappingRepository implements MappingRepository {
         and(
           inArray(schema.transactions.id, transactionIds),
           eq(schema.transactions.householdId, scope.householdId),
+          // An unsupported-currency row (CLN-039) cannot be mapped to a plan item.
+          inArray(schema.transactions.currency, [...SUPPORTED_CURRENCY_CODES]),
         ),
       );
 

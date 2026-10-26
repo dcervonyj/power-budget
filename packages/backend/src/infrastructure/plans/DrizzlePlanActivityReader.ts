@@ -3,7 +3,6 @@ import { and, eq, gte, inArray, lte, notInArray, or } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   BankAccountId,
-  CURRENCIES,
   HouseholdId,
   PlannedItemId,
   TransactionId,
@@ -18,14 +17,18 @@ import type {
   PlanActivityReader,
 } from '../../domain/plans/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
-import { currencyOf, isoDateOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
+import {
+  currencyOf,
+  isoDateOf,
+  isoDateTimeOf,
+  oneOf,
+  SUPPORTED_CURRENCY_CODES,
+} from '../database/row-values.js';
 import {
   TRANSACTION_STATUSES,
   UNCOUNTED_TRANSACTION_STATUSES,
 } from '../../domain/transactions/entities.js';
 import * as schema from '../../../drizzle/schema.js';
-
-const SUPPORTED_CURRENCY_CODES = Object.keys(CURRENCIES);
 
 type TransactionRow = typeof schema.transactions.$inferSelect;
 type MappingRow = typeof schema.transactionMappings.$inferSelect;

@@ -56,7 +56,12 @@ import { mappingSourceOf } from '../../domain/transactions/mapping-source.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import { decodeTransactionCursor, encodeTransactionCursor } from './transactionCursor.js';
 import { containsPattern } from '../database/likePattern.js';
-import { currencyOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
+import {
+  currencyOf,
+  isoDateTimeOf,
+  oneOf,
+  SUPPORTED_CURRENCY_CODES,
+} from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
 import { TransactionRowMapper } from './TransactionRowMapper.js';
 
@@ -166,7 +171,11 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .select()
       .from(schema.transactions)
       .where(
-        and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
+        and(
+          eq(schema.transactions.id, id),
+          eq(schema.transactions.householdId, scope.householdId),
+          this.supportedCurrency(),
+        ),
       )
       .limit(1);
 
@@ -183,7 +192,11 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .from(schema.transactions)
       .innerJoin(schema.bankAccounts, this.ownedAccountJoin(ownerUserId))
       .where(
-        and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
+        and(
+          eq(schema.transactions.id, id),
+          eq(schema.transactions.householdId, scope.householdId),
+          this.supportedCurrency(),
+        ),
       )
       .limit(1);
     const row = rows[0];
@@ -359,6 +372,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
           inArray(t.status, [...PROVISIONAL_TRANSACTION_STATUSES]),
           gte(t.occurredOn, query.window.start),
           lte(t.occurredOn, query.window.end),
+          this.supportedCurrency(),
         ),
       )
       .orderBy(asc(t.occurredOn), asc(t.id));
@@ -433,6 +447,14 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     }
   }
 
+  /**
+   * A row in a currency the app does not support (stored ignored by ingest, CLN-039) cannot be
+   * mapped to the domain entity, so entity reads leave it out instead of throwing.
+   */
+  private supportedCurrency(): SQL {
+    return inArray(schema.transactions.currency, [...SUPPORTED_CURRENCY_CODES]);
+  }
+
   private ownedAccountJoin(ownerUserId: UserId): SQL | undefined {
     return and(
       eq(schema.bankAccounts.id, schema.transactions.accountId),
@@ -443,7 +465,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
 
   private listConditions(query: TransactionQuery, scope: HouseholdScope): SQL[] {
     const t = schema.transactions;
-    const conditions: SQL[] = [eq(t.householdId, scope.householdId)];
+    const conditions: SQL[] = [eq(t.householdId, scope.householdId), this.supportedCurrency()];
 
     if (query.accountId) {
       conditions.push(eq(t.accountId, query.accountId));
