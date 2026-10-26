@@ -308,6 +308,7 @@ describe('Integration: auth infrastructure adapters', () => {
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
+          pendingEncryptedSecret: null,
         });
 
         const found = await totpSecrets.findByUser(userId);
@@ -336,6 +337,7 @@ describe('Integration: auth infrastructure adapters', () => {
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
+          pendingEncryptedSecret: null,
         });
 
         const verifiedAt = new Date();
@@ -345,6 +347,7 @@ describe('Integration: auth infrastructure adapters', () => {
           enrolledAt: new Date(),
           verifiedAt,
           lastUsedTimeStep: null,
+          pendingEncryptedSecret: null,
         });
 
         const found = await totpSecrets.findByUser(userId);
@@ -370,6 +373,7 @@ describe('Integration: auth infrastructure adapters', () => {
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
+          pendingEncryptedSecret: null,
         });
         const verifiedAt = new Date('2026-10-21T10:00:00.000Z');
 
@@ -382,6 +386,71 @@ describe('Integration: auth infrastructure adapters', () => {
         expect(found!.lastUsedTimeStep).toBe(101);
         // verifiedAt is set by the first claim and kept afterwards.
         expect(found!.verifiedAt).toEqual(verifiedAt);
+      });
+    });
+
+    it('keeps the active secret while a replacement is pending and swaps it in atomically', async () => {
+      await withRollbackTransaction(getPool(), async (db: DB) => {
+        const users = new DrizzleUserRepository(db);
+        const totpSecrets = new DrizzleTotpSecretRepository(db);
+        const userId = makeUserId() as UserId;
+        await users.create({
+          id: userId,
+          email: `pending-${userId}@example.com`,
+          displayName: 'Pending',
+          defaultLocale: 'en',
+        });
+        const enabledAt = new Date('2026-10-20T10:00:00.000Z');
+        await totpSecrets.save({
+          userId,
+          encryptedSecret: 'active-secret' as EncryptedString,
+          enrolledAt: enabledAt,
+          verifiedAt: enabledAt,
+          lastUsedTimeStep: 200,
+          pendingEncryptedSecret: null,
+        });
+
+        await totpSecrets.savePending(userId, 'first-pending' as EncryptedString);
+        await totpSecrets.savePending(userId, 'second-pending' as EncryptedString);
+        const pending = await totpSecrets.findByUser(userId);
+        const swappedAt = new Date('2026-10-26T10:00:00.000Z');
+        const staleSwap = await totpSecrets.promotePending(
+          userId,
+          'first-pending' as EncryptedString,
+          150,
+          swappedAt,
+        );
+        const swap = await totpSecrets.promotePending(
+          userId,
+          'second-pending' as EncryptedString,
+          150,
+          swappedAt,
+        );
+        const repeatedSwap = await totpSecrets.promotePending(
+          userId,
+          'second-pending' as EncryptedString,
+          151,
+          new Date(),
+        );
+        const swapped = await totpSecrets.findByUser(userId);
+
+        expect(pending).toEqual({
+          userId,
+          encryptedSecret: 'active-secret',
+          enrolledAt: enabledAt,
+          verifiedAt: enabledAt,
+          lastUsedTimeStep: 200,
+          pendingEncryptedSecret: 'second-pending',
+        });
+        expect([staleSwap, swap, repeatedSwap]).toEqual([false, true, false]);
+        expect(swapped).toEqual({
+          userId,
+          encryptedSecret: 'second-pending',
+          enrolledAt: swappedAt,
+          verifiedAt: swappedAt,
+          lastUsedTimeStep: 150,
+          pendingEncryptedSecret: null,
+        });
       });
     });
 
@@ -412,6 +481,7 @@ describe('Integration: auth infrastructure adapters', () => {
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
+          pendingEncryptedSecret: null,
         });
 
         await totpSecrets.delete(userId);

@@ -127,6 +127,13 @@
       "when": 1793046045666,
       "tag": "0017_sync-001_transactions_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793047687419,
+      "tag": "0018_cln-032_totp_pending_secret",
+      "breakpoints": true
     }
   ]
 }

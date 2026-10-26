@@ -29,6 +29,7 @@ function makeSecret(verifiedAt: Date | null): TotpSecret {
     enrolledAt: new Date(),
     verifiedAt,
     lastUsedTimeStep: null,
+    pendingEncryptedSecret: null,
   };
 }
 

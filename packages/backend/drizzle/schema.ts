@@ -115,6 +115,9 @@ export const totpSecrets = pgTable('totp_secrets', {
   verifiedAt: timestamp('verified_at', { withTimezone: true }),
   // Last accepted TOTP time step (CLN-004, audit M9): a code is accepted once.
   lastUsedTimeStep: bigint('last_used_time_step', { mode: 'number' }),
+  // A replacement secret waiting for its first valid code (CLN-032, BE-BUGS-01);
+  // the active secret above stays in force until then.
+  pendingEncryptedSecret: text('pending_encrypted_secret'),
 });
 
 export const magicLinkTokens = pgTable('magic_link_tokens', {

@@ -97,8 +97,29 @@ export interface RefreshTokenStore {
 
 export interface TotpSecretRepository {
   findByUser(userId: UserId): Promise<TotpSecret | null>;
-  /** Upsert of a (re-)enrolment: replaces the secret and resets verifiedAt and lastUsedTimeStep. */
+  /**
+   * Upsert of a first (re-)enrolment: replaces the active secret and resets
+   * verifiedAt, lastUsedTimeStep and pendingEncryptedSecret. Never used to
+   * replace an enabled TOTP (that is savePending).
+   */
   save(secret: TotpSecret): Promise<void>;
+  /**
+   * Stores `encryptedSecret` as the pending replacement of an enabled TOTP,
+   * overwriting an earlier pending one. The active secret is not touched.
+   */
+  savePending(userId: UserId, encryptedSecret: EncryptedString): Promise<void>;
+  /**
+   * Atomically makes the pending secret the active one, if it still equals
+   * `pendingSecret`: records `timeStep` as used, sets verifiedAt and
+   * enrolledAt, and clears the pending secret. Returns false when the pending
+   * secret was already promoted or replaced (for example by a concurrent request).
+   */
+  promotePending(
+    userId: UserId,
+    pendingSecret: EncryptedString,
+    timeStep: number,
+    verifiedAt: Date,
+  ): Promise<boolean>;
   /**
    * Atomically records `timeStep` as used (and sets verifiedAt if still null).
    * Returns false when a step >= `timeStep` was already used, so a code can
