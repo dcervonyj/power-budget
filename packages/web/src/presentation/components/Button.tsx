@@ -1,7 +1,7 @@
 import React from 'react';
 import type { ButtonVariant } from '@power-budget/shared-app';
 import { FormattedMessage } from 'react-intl';
-import { useTheme } from './ThemeContext.js';
+import '../glass/controls/controls.css';
 
 export interface ButtonProps {
   readonly variant?: ButtonVariant;
@@ -12,6 +12,23 @@ export interface ButtonProps {
   readonly children: React.ReactNode;
 }
 
+const DANGER_ICON = (
+  <svg
+    aria-hidden="true"
+    width="16"
+    height="16"
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.6"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M8 2 1.5 13.5h13L8 2Z" />
+    <path d="M8 6.5v3M8 11.6v.01" />
+  </svg>
+);
+
 export function Button({
   variant = 'primary',
   loading = false,
@@ -20,41 +37,48 @@ export function Button({
   type = 'button',
   children,
 }: ButtonProps): React.JSX.Element {
-  const theme = useTheme();
   const isDisabled = disabled || loading;
-
-  const bg =
-    variant === 'primary'
-      ? theme.color.accent.default
-      : variant === 'danger'
-        ? theme.color.status.danger
-        : 'transparent';
-
-  const color = variant === 'primary' ? theme.color.accent.onAccent : theme.color.text.primary;
-
-  const border = variant === 'secondary' ? `1px solid ${theme.color.border.strong}` : 'none';
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={isDisabled}
-      style={{
-        backgroundColor: bg,
-        color,
-        border,
-        borderRadius: theme.radius.md,
-        padding: `${theme.space.sm}px ${theme.space.lg}px`,
-        fontSize: theme.fontSize.md,
-        fontWeight: theme.fontWeight.medium,
-        cursor: isDisabled ? 'not-allowed' : 'pointer',
-        opacity: isDisabled ? 0.5 : 1,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: theme.space.sm,
-      }}
+      className="pbg-ctl"
+      style={{ ...variantStyle(variant), ...BASE_STYLE }}
     >
+      {variant === 'danger' && DANGER_ICON}
       {loading ? <FormattedMessage id="button.loading" defaultMessage="…" /> : children}
     </button>
   );
+}
+
+const BASE_STYLE: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 'var(--pb-glass-space-xs)',
+  minHeight: 44,
+  padding: '0 var(--pb-glass-space-lg)',
+  border: 'none',
+  borderRadius: 'var(--pb-glass-radius-control)',
+  fontSize: 'var(--pb-glass-type-label-web)',
+  fontWeight: 'var(--pb-glass-type-label-weight)',
+  cursor: 'pointer',
+};
+
+function variantStyle(variant: ButtonVariant): React.CSSProperties {
+  if (variant === 'primary') {
+    return {
+      background: 'var(--pb-glass-light-solid)',
+      color: 'var(--pb-glass-accent-ink)',
+      boxShadow: 'inset 0 0 0 1px var(--pb-glass-light-edge)',
+    };
+  }
+
+  return {
+    background: 'var(--pb-glass-clear)',
+    boxShadow: 'var(--pb-glass-clear-rim)',
+    color: variant === 'danger' ? 'var(--pb-glass-over)' : 'var(--pb-glass-fg)',
+  };
 }
