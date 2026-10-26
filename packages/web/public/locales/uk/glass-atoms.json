@@ -1,0 +1,15 @@
+{
+  "glass-atoms.sync.live": "Наживо",
+  "glass-atoms.sync.updating": "Оновлення…",
+  "glass-atoms.sync.renew.owner": "Поновіть доступ до банку",
+  "glass-atoms.sync.renew.partner": "Доступ партнера до банку потрібно поновити",
+  "glass-atoms.sync.stale.owner": "Дані банку застарілі",
+  "glass-atoms.sync.stale.partner": "Дані банку партнера застарілі",
+  "glass-atoms.sync.cooldown": "Оновлення буде доступне через {minutes, plural, one {# хвилину} few {# хвилини} many {# хвилин} other {# хвилини}}",
+  "glass-atoms.sync.bankAge.owner.minutes": "Ваш банк: оновлено {count, plural, one {# хвилину} few {# хвилини} many {# хвилин} other {# хвилини}} тому",
+  "glass-atoms.sync.bankAge.partner.minutes": "Банк партнера: оновлено {count, plural, one {# хвилину} few {# хвилини} many {# хвилин} other {# хвилини}} тому",
+  "glass-atoms.sync.bankAge.owner.hours": "Ваш банк: оновлено {count, plural, one {# годину} few {# години} many {# годин} other {# години}} тому",
+  "glass-atoms.sync.bankAge.partner.hours": "Банк партнера: оновлено {count, plural, one {# годину} few {# години} many {# годин} other {# години}} тому",
+  "glass-atoms.sync.bankAge.owner.days": "Ваш банк: оновлено {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} тому",
+  "glass-atoms.sync.bankAge.partner.days": "Банк партнера: оновлено {count, plural, one {# день} few {# дні} many {# днів} other {# дня}} тому"
+}
