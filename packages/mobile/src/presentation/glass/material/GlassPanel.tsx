@@ -5,6 +5,7 @@ import Animated from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import type { GlassDepth, GlassMaterial } from '@power-budget/shared-app';
 import { useGlass } from '../../theme/index.js';
+import { useBlurTarget } from './GlassBlurTarget.js';
 import { DecorLayer, Film, Specular, Sweep } from './GlassDecor.js';
 import type { Size, SweepSlot } from './GlassDecor.js';
 import { materialFill, materialShadows } from './materialStyle.js';
@@ -67,8 +68,8 @@ export function GlassPanel({
       }}
       style={[
         { borderRadius: cornerRadius, boxShadow: shadows.outer === '' ? undefined : shadows.outer },
+        rise === undefined ? null : riseStyle,
         style,
-        riseStyle,
       ]}
     >
       <DecorLayer name="backdrop">
@@ -104,15 +105,17 @@ function Backdrop({
 }): React.JSX.Element {
   const glass = useGlass();
   const fill = materialFill(glass.colors, material, depth);
+  const blurTarget = useBlurTarget();
 
   return (
     <>
-      {material !== 'clear' && supportsBlur() ? (
+      {material !== 'clear' && canBlur(blurTarget) ? (
         <BlurView
           testID="glass-blur"
           intensity={glass.blur.rnIntensity}
           tint={glass.colors.name === 'dark' ? 'dark' : 'light'}
-          experimentalBlurMethod="dimezisBlurView"
+          blurTarget={blurTarget ?? undefined}
+          blurMethod={Platform.OS === 'android' ? 'dimezisBlurView' : undefined}
           style={StyleSheet.absoluteFill}
         />
       ) : null}
@@ -121,7 +124,14 @@ function Backdrop({
   );
 }
 
-/** Android below API 31 has no usable blur: the tint alone carries the material there. */
-function supportsBlur(): boolean {
-  return Platform.OS !== 'android' || Number(Platform.Version) >= ANDROID_BLUR_MIN_API;
+/**
+ * iOS and web blur directly. Android needs API 31+ and a surrounding `GlassBlurTarget`; without
+ * them the tint alone carries the material (no native blur, no warnings).
+ */
+function canBlur(blurTarget: ReturnType<typeof useBlurTarget>): boolean {
+  if (Platform.OS !== 'android') {
+    return true;
+  }
+
+  return Number(Platform.Version) >= ANDROID_BLUR_MIN_API && blurTarget !== null;
 }

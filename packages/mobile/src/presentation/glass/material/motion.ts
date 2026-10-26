@@ -11,7 +11,6 @@ import {
 } from 'react-native-reanimated';
 import type { AnimatedStyle, SharedValue } from 'react-native-reanimated';
 import type { ViewStyle } from 'react-native';
-import type { GlassRnTheme } from '@power-budget/design-tokens/glass';
 import { useGlass } from '../../theme/ThemeProvider.js';
 import { useLoopsEnabled, useReducedMotion } from '../../theme/useMotion.js';
 import { parseCubicBezier } from './cssParse.js';
@@ -108,6 +107,7 @@ export function usePassProgress(
 export function useRiseStyle(index: number | undefined): AnimatedStyle<ViewStyle> {
   const glass = useGlass();
   const reduced = useReducedMotion();
+  const { staggerMs, durationMs, easing: easingCss } = glass.motion.rise;
   const animated = index !== undefined && !reduced;
   const progress = useSharedValue(animated ? 0 : 1);
 
@@ -119,12 +119,15 @@ export function useRiseStyle(index: number | undefined): AnimatedStyle<ViewStyle
       return undefined;
     }
     progress.value = 0;
-    progress.value = withDelay(riseDelayMs(glass, index), withTiming(1, riseConfig(glass)));
+    progress.value = withDelay(
+      staggerMs * Math.max(0, Math.floor(index ?? 0)),
+      withTiming(1, { duration: durationMs, easing: bezier(easingCss) }),
+    );
 
     return () => {
       cancelAnimation(progress);
     };
-  }, [animated, index, glass, progress]);
+  }, [animated, index, staggerMs, durationMs, easingCss, progress]);
 
   return useAnimatedStyle(() => ({
     opacity: progress.value,
@@ -139,12 +142,4 @@ export function bezier(css: string): ReturnType<typeof Easing.bezier> {
   const [x1, y1, x2, y2] = parseCubicBezier(css);
 
   return Easing.bezier(x1, y1, x2, y2);
-}
-
-function riseDelayMs(glass: GlassRnTheme, index: number | undefined): number {
-  return glass.motion.rise.staggerMs * Math.max(0, Math.floor(index ?? 0));
-}
-
-function riseConfig(glass: GlassRnTheme): { duration: number; easing: ReturnType<typeof bezier> } {
-  return { duration: glass.motion.rise.durationMs, easing: bezier(glass.motion.rise.easing) };
 }

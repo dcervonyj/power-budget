@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import * as Reanimated from 'react-native-reanimated';
 import { ThemeProvider } from '../../../theme/index.js';
@@ -100,14 +100,14 @@ describe('GlassPanel', () => {
     expect(screen.queryByTestId('glass-blur', { includeHiddenElements: true })).toBeNull();
   });
 
-  it('keeps the panel at rest with a rise index (no animation under the mocks)', async () => {
+  it('lets the caller style win when there is no rise', async () => {
     await renderThemed(
-      <GlassPanel rise={2}>
-        <Text>rising</Text>
+      <GlassPanel style={{ opacity: 0.5 }}>
+        <Text>x</Text>
       </GlassPanel>,
     );
 
-    expect(screen.getByText('rising')).toBeTruthy();
+    expect(StyleSheet.flatten(screen.getByTestId('glass-panel').props.style).opacity).toBe(0.5);
   });
 });
 
@@ -144,6 +144,34 @@ describe('motion', () => {
   afterEach(() => {
     mockMotionOff = false;
     jest.restoreAllMocks();
+  });
+
+  it('staggers the rise by index with the token duration', async () => {
+    const delay = jest.spyOn(Reanimated, 'withDelay');
+    const timing = jest.spyOn(Reanimated, 'withTiming');
+    await renderThemed(
+      <GlassPanel rise={2}>
+        <Text>x</Text>
+      </GlassPanel>,
+    );
+
+    expect(delay).toHaveBeenCalledWith(160, 1);
+    expect(timing).toHaveBeenCalledWith(1, expect.objectContaining({ duration: 620 }));
+  });
+
+  it('rests at full opacity and scale under reduced motion', async () => {
+    mockMotionOff = true;
+    const delay = jest.spyOn(Reanimated, 'withDelay');
+    await renderThemed(
+      <GlassPanel rise={2}>
+        <Text>x</Text>
+      </GlassPanel>,
+    );
+    const style = StyleSheet.flatten(screen.getByTestId('glass-panel').props.style);
+
+    expect(delay).not.toHaveBeenCalled();
+    expect(style.opacity).toBe(1);
+    expect(style.transform).toEqual([{ translateY: 0 }, { scale: 1 }]);
   });
 
   it('starts the idle loops and the rise when motion is allowed', async () => {
