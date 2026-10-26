@@ -29,6 +29,7 @@ import { TotpAuthenticator } from '../../application/auth/services/TotpAuthentic
 import { LoginPolicy } from '../../application/auth/services/LoginPolicy.js';
 import { buildThrottlerOptions } from './throttling.js';
 import { RedisTotpStepUpStore } from '../../infrastructure/auth/RedisTotpStepUpStore.js';
+import { RedisFailedAttemptCounter } from '../../infrastructure/auth/RedisFailedAttemptCounter.js';
 import { RegisterUserUseCase } from '../../application/auth/use-cases/RegisterUserUseCase.js';
 import { LoginWithPasswordUseCase } from '../../application/auth/use-cases/LoginWithPasswordUseCase.js';
 import { RequestMagicLinkUseCase } from '../../application/auth/use-cases/RequestMagicLinkUseCase.js';
@@ -92,13 +93,15 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
         DrizzleHouseholdRepository,
         JwtAccessTokenIssuerAdapter,
         RedisRefreshTokenStore,
+        RedisFailedAttemptCounter,
       ],
       useFactory: (
         totp: TotpAuthenticator,
         householdRepo: DrizzleHouseholdRepository,
         jwtIssuer: JwtAccessTokenIssuerAdapter,
         refreshTokenStore: RedisRefreshTokenStore,
-      ) => new LoginPolicy(totp, householdRepo, jwtIssuer, refreshTokenStore),
+        attemptCounter: RedisFailedAttemptCounter,
+      ) => new LoginPolicy(totp, householdRepo, jwtIssuer, refreshTokenStore, attemptCounter),
     },
     AppConfigAdapter,
     {
@@ -151,9 +154,12 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
     },
     {
       provide: ConsumeMagicLinkUseCase,
-      inject: [DrizzleMagicLinkTokenRepository, LoginPolicy],
-      useFactory: (magicLinkTokenRepo: DrizzleMagicLinkTokenRepository, loginPolicy: LoginPolicy) =>
-        new ConsumeMagicLinkUseCase(magicLinkTokenRepo, loginPolicy),
+      inject: [DrizzleMagicLinkTokenRepository, LoginPolicy, RedisFailedAttemptCounter],
+      useFactory: (
+        magicLinkTokenRepo: DrizzleMagicLinkTokenRepository,
+        loginPolicy: LoginPolicy,
+        attemptCounter: RedisFailedAttemptCounter,
+      ) => new ConsumeMagicLinkUseCase(magicLinkTokenRepo, loginPolicy, attemptCounter),
     },
     {
       provide: EnableTotpUseCase,

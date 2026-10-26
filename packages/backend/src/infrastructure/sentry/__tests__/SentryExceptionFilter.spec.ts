@@ -14,6 +14,7 @@ import { SentryExceptionFilter, resolveError } from '../SentryExceptionFilter.js
 import {
   InvalidCredentialsError,
   TotpEnrollmentRequiredError,
+  TotpLockedError,
   TotpRequiredError,
 } from '../../../domain/auth/errors.js';
 import { BankConnectionInvalidStateError } from '../../../domain/bank/errors.js';
@@ -31,6 +32,17 @@ describe('resolveError', () => {
     expect(resolveError(new InvalidCredentialsError())).toEqual({
       status: 401,
       body: { statusCode: 401, code: 'invalid_credentials', message: 'Invalid credentials' },
+    });
+  });
+
+  it('maps a second-factor lockout to 429 too_many_requests', () => {
+    expect(resolveError(new TotpLockedError(120))).toEqual({
+      status: 429,
+      body: {
+        statusCode: 429,
+        code: 'too_many_requests',
+        message: 'Too many attempts, try again later',
+      },
     });
   });
 
@@ -161,6 +173,7 @@ describe('SentryExceptionFilter', () => {
   const reply = mock<FastifyReply>();
   const status = reply.status;
   const send = reply.send;
+  const headers = reply.headers;
   const httpHost = mock<HttpArgumentsHost>();
   const host = mock<ArgumentsHost>();
   const filter = new SentryExceptionFilter();
@@ -168,6 +181,7 @@ describe('SentryExceptionFilter', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     status.mockReturnValue(reply);
+    headers.mockReturnValue(reply);
     httpHost.getResponse.mockReturnValue(reply);
     host.switchToHttp.mockReturnValue(httpHost);
     vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
@@ -178,7 +192,15 @@ describe('SentryExceptionFilter', () => {
 
     expect(status).toHaveBeenCalledWith(400);
     expect(send).toHaveBeenCalledWith({ statusCode: 400, code: 'bad_request', message: 'bad' });
+    expect(headers).toHaveBeenCalledWith({});
     expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
+  it('sends Retry-After with a second-factor lockout', () => {
+    filter.catch(new TotpLockedError(120), host);
+
+    expect(status).toHaveBeenCalledWith(429);
+    expect(headers).toHaveBeenCalledWith({ 'Retry-After': '120' });
   });
 
   it('reports unknown errors to Sentry and answers 500', () => {

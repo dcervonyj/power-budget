@@ -9,7 +9,8 @@ import { RedisThrottlerStorage } from '../../infrastructure/auth/RedisThrottlerS
  * - `ip`: per client IP (Fastify `request.ip`, which honours TRUST_PROXY);
  * - `account`: per target account, i.e. the body `email` (login, magic-link
  *   request) or the authenticated user (TOTP verify). Skipped when neither
- *   exists (magic-link consume is covered by `ip` and the 256-bit token).
+ *   exists (magic-link consume: `ip` here, plus the per-user TOTP attempt
+ *   limit in LoginPolicy and the link burn in ConsumeMagicLinkUseCase, CLN-031).
  * Counters live in Redis, so they hold across restarts and API instances.
  */
 export const IP_THROTTLER = 'ip';
