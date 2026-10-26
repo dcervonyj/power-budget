@@ -17,7 +17,17 @@ export const ROUTE_PATHS = {
   bankConnections: '/bank-connections',
   addBankConnection: '/bank-connections/new',
   categories: '/categories',
+  household: '/household',
+  /** The household invite email links here (CLN-006). */
+  acceptInvite: '/invite/accept',
+  bankConsentCallback: '/bank/consent/callback',
   settings: '/settings',
+  settingsProfile: '/settings/profile',
+  settingsAppearance: '/settings/appearance',
+  settingsLocale: '/settings/locale',
+  settingsCurrency: '/settings/currency',
+  settingsData: '/settings/data',
+  audit: '/audit',
 } as const;
 
 /** Screens a session-end redirect must not come back to: the user is signing in there. */
