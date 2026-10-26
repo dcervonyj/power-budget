@@ -1,0 +1,15 @@
+{
+  "glass-atoms.sync.live": "Na żywo",
+  "glass-atoms.sync.updating": "Aktualizowanie…",
+  "glass-atoms.sync.renew.owner": "Odnów dostęp do banku",
+  "glass-atoms.sync.renew.partner": "Dostęp partnera do banku wymaga odnowienia",
+  "glass-atoms.sync.stale.owner": "Dane z banku są nieaktualne",
+  "glass-atoms.sync.stale.partner": "Dane z banku partnera są nieaktualne",
+  "glass-atoms.sync.cooldown": "Odświeżenie będzie możliwe za {minutes, plural, one {# minutę} few {# minuty} many {# minut} other {# minuty}}",
+  "glass-atoms.sync.bankAge.owner.minutes": "Twój bank: zaktualizowano {count, plural, one {# minutę} few {# minuty} many {# minut} other {# minuty}} temu",
+  "glass-atoms.sync.bankAge.partner.minutes": "Bank partnera: zaktualizowano {count, plural, one {# minutę} few {# minuty} many {# minut} other {# minuty}} temu",
+  "glass-atoms.sync.bankAge.owner.hours": "Twój bank: zaktualizowano {count, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}} temu",
+  "glass-atoms.sync.bankAge.partner.hours": "Bank partnera: zaktualizowano {count, plural, one {# godzinę} few {# godziny} many {# godzin} other {# godziny}} temu",
+  "glass-atoms.sync.bankAge.owner.days": "Twój bank: zaktualizowano {count, plural, one {# dzień} few {# dni} many {# dni} other {# dnia}} temu",
+  "glass-atoms.sync.bankAge.partner.days": "Bank partnera: zaktualizowano {count, plural, one {# dzień} few {# dni} many {# dni} other {# dnia}} temu"
+}

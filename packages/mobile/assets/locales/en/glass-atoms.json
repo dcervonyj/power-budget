@@ -1,0 +1,15 @@
+{
+  "glass-atoms.sync.live": "Live",
+  "glass-atoms.sync.updating": "Updating…",
+  "glass-atoms.sync.renew.owner": "Renew bank access",
+  "glass-atoms.sync.renew.partner": "Partner's bank access needs renewing",
+  "glass-atoms.sync.stale.owner": "Bank data is out of date",
+  "glass-atoms.sync.stale.partner": "Partner's bank data is out of date",
+  "glass-atoms.sync.cooldown": "Refresh available in {minutes, plural, one {# minute} other {# minutes}}",
+  "glass-atoms.sync.bankAge.owner.minutes": "Your bank updated {count, plural, one {# minute} other {# minutes}} ago",
+  "glass-atoms.sync.bankAge.partner.minutes": "Partner's bank updated {count, plural, one {# minute} other {# minutes}} ago",
+  "glass-atoms.sync.bankAge.owner.hours": "Your bank updated {count, plural, one {# hour} other {# hours}} ago",
+  "glass-atoms.sync.bankAge.partner.hours": "Partner's bank updated {count, plural, one {# hour} other {# hours}} ago",
+  "glass-atoms.sync.bankAge.owner.days": "Your bank updated {count, plural, one {# day} other {# days}} ago",
+  "glass-atoms.sync.bankAge.partner.days": "Partner's bank updated {count, plural, one {# day} other {# days}} ago"
+}
