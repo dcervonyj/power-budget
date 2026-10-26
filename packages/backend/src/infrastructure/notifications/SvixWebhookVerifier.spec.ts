@@ -6,7 +6,7 @@ const KEY = Buffer.from('svix-verifier-unit-test-key');
 const SECRET = `whsec_${KEY.toString('base64')}`;
 const NOW_MS = 1_760_000_000_000;
 const TS = String(NOW_MS / 1000);
-const BODY = '{"type":"email.bounced","email":"a@example.com"}';
+const BODY = '{"type":"email.bounced","data":{"to":["a@example.com"]}}';
 
 function sign(id: string, ts: string, body: string): string {
   return `v1,${createHmac('sha256', KEY).update(`${id}.${ts}.${body}`).digest('base64')}`;

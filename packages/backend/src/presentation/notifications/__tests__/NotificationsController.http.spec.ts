@@ -9,7 +9,11 @@ import { createHttpTestApp, type HttpTestApp } from '../../../test/http/createHt
 
 const SECRET_BYTES = Buffer.from('bounce-webhook-test-secret-32-bytes!');
 const WEBHOOK_SECRET = `whsec_${SECRET_BYTES.toString('base64')}`;
-const PAYLOAD = JSON.stringify({ type: 'email.bounced', email: 'victim@example.com' });
+const PAYLOAD = JSON.stringify({
+  type: 'email.bounced',
+  created_at: '2026-10-26T10:00:00.000Z',
+  data: { email_id: 'em_1', to: ['victim@example.com'], subject: 'Invite' },
+});
 
 function sign(id: string, timestamp: string, body: string, key: Buffer = SECRET_BYTES): string {
   const digest = createHmac('sha256', key).update(`${id}.${timestamp}.${body}`).digest('base64');
@@ -74,7 +78,10 @@ describe('POST /notifications/bounce (HTTP)', () => {
 
   it('rejects a valid signature replayed with a tampered body', async () => {
     const ts = nowSeconds();
-    const tampered = JSON.stringify({ type: 'email.bounced', email: 'someone-else@example.com' });
+    const tampered = JSON.stringify({
+      type: 'email.bounced',
+      data: { to: ['someone-else@example.com'] },
+    });
     const res = await post(
       { 'svix-id': 'msg_1', 'svix-timestamp': ts, 'svix-signature': sign('msg_1', ts, PAYLOAD) },
       tampered,
