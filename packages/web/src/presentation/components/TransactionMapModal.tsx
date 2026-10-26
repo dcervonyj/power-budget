@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { formatMoney, parseMinorUnits } from '@power-budget/core';
 import { readApiError } from '@power-budget/shared-app';
@@ -64,7 +64,6 @@ export function TransactionMapModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<CategoryRodPreview | null>(null);
-  const dashboards = useRef(new Map<string, Promise<PlanDashboardResponseDto>>());
 
   useEffect(() => {
     if (!isOpen) {
@@ -107,10 +106,10 @@ export function TransactionMapModal({
       return;
     }
     let cancelled = false;
-    const planId = picked.item.planId;
-    const cached = dashboards.current.get(planId) ?? plansApi.dashboard(planId);
-    dashboards.current.set(planId, cached);
-    void cached
+    // Never reuse an older dashboard: a mapping change moves the plan's actuals.
+    setPreview(null);
+    void plansApi
+      .dashboard(picked.item.planId)
       .then((dashboard) => rodAfterMapping(dashboard, picked, transaction, currentPlannedItemId))
       .catch(() => null)
       .then((rod) => {
@@ -188,7 +187,7 @@ function rodAfterMapping(
   currentPlannedItemId: string | null,
 ): CategoryRodPreview | null {
   const line = dashboard.expenseLines.find((l) => l.plannedItemId === picked.item.id);
-  if (line === undefined) {
+  if (line === undefined || !countsInDashboard(dashboard, transaction)) {
     return null;
   }
   const spent = parseMinorUnits(line.actual.amountMinor);
@@ -201,6 +200,16 @@ function rodAfterMapping(
     { amountMinor: spent - alreadyCounted, currency: line.actual.currency },
     transaction.amount,
   );
+}
+
+/** The dashboard leaves out ignored, transfer and cancelled payments and those outside the period. */
+function countsInDashboard(dashboard: PlanDashboardResponseDto, transaction: Transaction): boolean {
+  const live = transaction.status !== 'cancelled' && transaction.status !== 'expired';
+  const inPeriod =
+    transaction.occurredOn >= dashboard.period.start &&
+    transaction.occurredOn <= dashboard.period.end;
+
+  return live && inPeriod && !transaction.ignored && !transaction.isTransfer;
 }
 
 export interface TransactionMapViewProps {
