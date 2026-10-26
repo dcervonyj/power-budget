@@ -157,6 +157,12 @@ export interface Transaction extends TransactionSuggestionFields {
   readonly createdAt: IsoDateTime;
 }
 
+/** An amount with the currency code as the bank sent it. */
+export interface ReceivedAmount {
+  readonly amountMinor: bigint;
+  readonly currency: string;
+}
+
 /** `direction` is a generated column: the sign of the amount. */
 export interface NewTransaction {
   readonly id: TransactionId;
@@ -164,13 +170,16 @@ export interface NewTransaction {
   readonly accountId: BankAccountId;
   readonly externalId: string | null;
   readonly occurredOn: IsoDate;
-  readonly amount: Money;
+  /** The amount as received: the currency may be one the app does not support (see `ignored`). */
+  readonly amount: ReceivedAmount;
   readonly description: string;
   readonly merchant: string | null;
   readonly source: TransactionSource;
   readonly sourceKind: TransactionSourceKind | null;
   readonly status: TransactionStatus;
   readonly bank: BankTransactionDetails;
+  /** True for rows the app cannot count, e.g. an unsupported currency; reversible via the patch. */
+  readonly ignored: boolean;
 }
 
 /** The statuses a provisional row can be upgraded to (plan-banking.md §1.7). */
@@ -305,4 +314,6 @@ export interface IngestHashInput {
   readonly amountMinor: bigint;
   readonly currency: string;
   readonly normalisedDescription: string;
+  /** Position among identical rows of one fetch; 0 (default) is the first. */
+  readonly ordinal?: number;
 }

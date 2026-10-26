@@ -31,6 +31,10 @@ describe('DrizzleTransactionRepository', () => {
   it('returns null when upsertByExternalId finds existing row', async () => {
     const existing = [{ id: 'existing-id' }];
     const mockDb = {
+      insert: vi.fn().mockReturnThis(),
+      values: vi.fn().mockReturnThis(),
+      onConflictDoNothing: vi.fn().mockReturnThis(),
+      returning: vi.fn().mockResolvedValue([]),
       select: vi.fn().mockReturnThis(),
       from: vi.fn().mockReturnThis(),
       where: vi.fn().mockReturnThis(),
@@ -51,6 +55,7 @@ describe('DrizzleTransactionRepository', () => {
       sourceKind: null,
       status: 'booked',
       bank: NO_BANK_DETAILS,
+      ignored: false,
     });
 
     expect(result).toEqual({ id: 'existing-id', created: false });

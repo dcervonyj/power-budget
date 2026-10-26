@@ -55,6 +55,22 @@ describe('IdempotentIngest', () => {
     });
   });
 
+  describe('ordinal (CLN-039)', () => {
+    it('keeps the existing key for ordinal 0 and none', () => {
+      const key = IdempotentIngest.computeHashKey(BASE_INPUT);
+
+      expect(IdempotentIngest.computeHashKey({ ...BASE_INPUT, ordinal: 0 })).toBe(key);
+    });
+
+    it('gives each later identical row its own key', () => {
+      const keys = [0, 1, 2].map((ordinal) =>
+        IdempotentIngest.computeHashKey({ ...BASE_INPUT, ordinal }),
+      );
+
+      expect(new Set(keys).size).toBe(3);
+    });
+  });
+
   describe('resolveExternalId', () => {
     it('returns externalId when provided', () => {
       expect(IdempotentIngest.resolveExternalId('ext-123', BASE_INPUT)).toBe('ext-123');

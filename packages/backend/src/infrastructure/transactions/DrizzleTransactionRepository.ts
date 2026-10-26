@@ -90,30 +90,28 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   async upsertByExternalId(
     input: NewTransaction,
   ): Promise<{ id: TransactionId; created: boolean }> {
-    const existing = input.externalId
-      ? await this.db
-          .select({ id: schema.transactions.id })
-          .from(schema.transactions)
-          .where(
-            and(
-              eq(schema.transactions.householdId, input.householdId),
-              eq(schema.transactions.accountId, input.accountId),
-              eq(schema.transactions.externalId, input.externalId),
-            ),
-          )
-          .limit(1)
-      : [];
-
-    if (existing.length > 0 && existing[0]) {
-      return { id: existing[0].id as TransactionId, created: false };
-    }
-
-    const rows = await this.db
+    const inserted = await this.db
       .insert(schema.transactions)
       .values(this.rows.toInsert(input))
+      .onConflictDoNothing()
       .returning({ id: schema.transactions.id });
+    if (inserted[0]) {
+      return { id: inserted[0].id as TransactionId, created: true };
+    }
 
-    return { id: rows[0]!.id as TransactionId, created: true };
+    const existing = await this.db
+      .select({ id: schema.transactions.id })
+      .from(schema.transactions)
+      .where(
+        and(
+          eq(schema.transactions.householdId, input.householdId),
+          eq(schema.transactions.accountId, input.accountId),
+          eq(schema.transactions.externalId, input.externalId ?? ''),
+        ),
+      )
+      .limit(1);
+
+    return { id: existing[0]!.id as TransactionId, created: false };
   }
 
   async insertManual(input: NewManualTransaction): Promise<Transaction> {
@@ -133,6 +131,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
           sourceKind: 'manual',
           status: 'manual',
           bank: NO_BANK_DETAILS,
+          ignored: false,
         }),
         notes: input.notes,
       })
