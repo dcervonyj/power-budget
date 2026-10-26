@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Node 25+ hides jsdom's localStorage; the store reads it when the module loads.
 vi.hoisted(() => {
@@ -209,6 +209,30 @@ describe('SettingsStore.exportData', () => {
     expect(mockGet).toHaveBeenCalledTimes(1);
     expect(store.exportUrl).toBe('/export.csv');
     expect(store.exportError).toBeNull();
+  });
+
+  it('stops polling and reports an error when the status request fails', async () => {
+    mockGet.mockRejectedValueOnce(new Error('network down'));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportError).toBe('export_failed');
+    expect(store.isExporting).toBe(false);
+  });
+
+  it('reports an error when the export is ready without a download url', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'ready' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportUrl).toBeNull();
+    expect(store.exportError).toBe('export_failed');
   });
 
   it('keeps polling while export is pending', async () => {
