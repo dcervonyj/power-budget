@@ -1,0 +1,13 @@
+{
+  "tx.list.monthLeft": "Залишилось {amount}, місяць: {month}",
+  "tx.list.loading": "Завантаження транзакцій",
+  "tx.list.retry": "Спробувати ще раз",
+  "tx.filter.label": "Показати транзакції",
+  "tx.filter.toSort": "До сортування",
+  "tx.filter.more": "Більше фільтрів",
+  "tx.bulk.toolbar": "Дії для вибраних транзакцій",
+  "tx.row.change.aria": "Змінити категорію: {title}",
+  "tx.sorting.title": "Сортування",
+  "tx.sorting.aria": "Відсортовано {sorted} з {total}",
+  "tx.sorting.summary": "Відсортовано: {sorted} · до сортування: {toSort}"
+}

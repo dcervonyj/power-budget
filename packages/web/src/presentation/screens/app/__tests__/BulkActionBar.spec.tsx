@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { BulkActionBar } from '../../../components/BulkActionBar.js';
@@ -150,13 +150,30 @@ describe('BulkActionBar', () => {
     expect(onActionComplete).not.toHaveBeenCalled();
   });
 
-  it('wraps on narrow widths instead of overflowing horizontally', () => {
+  it('is a labelled toolbar that reports the count and offers every bulk action', () => {
     render(<BulkActionBar selectedIds={selectedIds} onMapAll={onMapAll} onClear={onClear} />, {
       wrapper,
     });
 
-    const bar = screen.getByText(/3 selected/).parentElement;
-    expect(bar?.style.flexWrap).toBe('wrap');
-    expect(bar?.style.maxWidth).toBe('100%');
+    const bar = screen.getByRole('toolbar', { name: 'Actions for the selected transactions' });
+    expect(bar.getAttribute('data-selected-count')).toBe('3');
+    expect(within(bar).getByText(/3 selected/)).toBeDefined();
+    expect(within(bar).getAllByRole('button')).toHaveLength(4);
+  });
+
+  it('marks the running action busy and disables the buttons meanwhile', async () => {
+    mockPost.mockReturnValueOnce(new Promise(() => undefined));
+    render(<BulkActionBar selectedIds={selectedIds} onMapAll={onMapAll} onClear={onClear} />, {
+      wrapper,
+    });
+
+    fireEvent.click(screen.getByText(/Ignore/i));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Ignore/i }).getAttribute('aria-busy')).toBe(
+        'true',
+      );
+    });
+    expect(screen.getByRole('button', { name: /Ignore/i })).toHaveProperty('disabled', true);
   });
 });
