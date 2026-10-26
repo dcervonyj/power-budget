@@ -79,6 +79,25 @@ module.exports = [
     },
   },
 
+  // ─── Mobile screens: no hand-typed HTTP responses ──────────────────────
+  // A local response type (anything not a contract *Dto) passed to `apiClient.get<T>(...)` hides a contract mismatch
+  // from tsc (CLN-036). Screens call the typed `*Api` classes from shared-app instead.
+  {
+    files: ['packages/mobile/src/presentation/**/*.{ts,tsx}'],
+    ignores: ['packages/mobile/src/presentation/**/__tests__/**'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.property.name=/^(get|post|put|patch|delete)$/][typeArguments]:not([typeArguments.params.0.typeName.name=/Dto$/])",
+          message:
+            'Type an HTTP response with a generated contract *Dto from shared-app/contract (or call a typed *Api class), never a local type.',
+        },
+      ],
+    },
+  },
+
   // ─── Integration tests + __tests__ dirs: non-type-aware linting only ───────
   // These files may import packages not in the main tsconfig (e.g. @testcontainers,
   // eslint RuleTester fixtures); type-aware rules are disabled for them.
