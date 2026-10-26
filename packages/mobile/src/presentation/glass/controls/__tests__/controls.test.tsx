@@ -1,5 +1,5 @@
 import React from 'react';
-import { screen, userEvent } from '@testing-library/react-native';
+import { fireEvent, screen, userEvent } from '@testing-library/react-native';
 import { CountBadge } from '../CountBadge.js';
 import { FilterChips } from '../FilterChips.js';
 import { IconButton } from '../IconButton.js';
@@ -84,7 +84,7 @@ describe('Stepper', () => {
     await user.press(screen.getByRole('button', { name: 'Fewer' }));
 
     expect(onChange).toHaveBeenCalledWith(2);
-    expect(screen.getByRole('adjustable', { name: 'Days' })).toBeTruthy();
+    expect(screen.getByLabelText('Days')).toBeTruthy();
   });
 
   it('disables both buttons when disabled', async () => {
@@ -188,5 +188,65 @@ describe('Keypad', () => {
     await userEvent.setup().press(screen.getByRole('button', { name: 'Save' }));
 
     expect(onSubmit).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores every press when disabled', async () => {
+    const onChange = jest.fn();
+    const onSubmit = jest.fn();
+    await renderWithProviders(
+      <Keypad
+        value="5"
+        disabled
+        onChange={onChange}
+        onSubmit={onSubmit}
+        submitLabel="Save"
+        backspaceLabel="Delete"
+      />,
+    );
+    const user = userEvent.setup();
+    await user.press(screen.getByRole('button', { name: '7' }));
+    await user.press(screen.getByRole('button', { name: 'Save' }));
+
+    expect(screen.getByRole('button', { name: '7' })).toBeDisabled();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe('Stepper accessibility actions', () => {
+  async function renderStepper(onChange: jest.Mock, disabled = false): Promise<void> {
+    await renderWithProviders(
+      <Stepper
+        value={3}
+        min={3}
+        max={5}
+        label="Days"
+        decrementLabel="Fewer"
+        incrementLabel="More"
+        disabled={disabled}
+        onChange={onChange}
+      />,
+    );
+  }
+
+  it('increments and clamps through screen-reader actions', async () => {
+    const onChange = jest.fn();
+    await renderStepper(onChange);
+    const control = screen.getByLabelText('Days');
+    await fireEvent(control, 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+    await fireEvent(control, 'accessibilityAction', { nativeEvent: { actionName: 'decrement' } });
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith(4);
+  });
+
+  it('does nothing when disabled', async () => {
+    const onChange = jest.fn();
+    await renderStepper(onChange, true);
+    await fireEvent(screen.getByLabelText('Days'), 'accessibilityAction', {
+      nativeEvent: { actionName: 'increment' },
+    });
+
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
