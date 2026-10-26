@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 import { biometricUnlockService } from '../../infrastructure/index.js';
 import { BiometricPromptOverlay } from './BiometricPromptOverlay.js';
 import { BiometricOptInPrompt } from './BiometricOptInPrompt.js';
@@ -108,6 +109,5 @@ export function BiometricGate({ children }: Props): React.JSX.Element {
 
 /** Read the raw preference value from SecureStore to distinguish null (unset) from false. */
 async function getRawPref(): Promise<string | null> {
-  const { default: SecureStore } = await import('expo-secure-store');
   return SecureStore.getItemAsync('pb_biometric_enabled');
 }
