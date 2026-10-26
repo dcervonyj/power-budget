@@ -176,3 +176,56 @@ describe('SettingsStore profile (UserProfileDto)', () => {
     expect(mockPatch).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('SettingsStore.exportData', () => {
+  let store: SettingsStore;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.useFakeTimers();
+    store = new SettingsStore();
+    mockPost.mockResolvedValueOnce({ status: 202, data: undefined, headers: {} });
+  });
+
+  it('stops polling and reports an error when export fails', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'failed' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportError).toBe('export_failed');
+    expect(store.isExporting).toBe(false);
+  });
+
+  it('stops polling when export is ready', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'ready', url: '/export.csv' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportUrl).toBe('/export.csv');
+    expect(store.exportError).toBeNull();
+  });
+
+  it('keeps polling while export is pending', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'pending' }));
+    mockGet.mockResolvedValueOnce(ok({ status: 'ready', url: '/export.csv' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(store.exportUrl).toBe('/export.csv');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+});
