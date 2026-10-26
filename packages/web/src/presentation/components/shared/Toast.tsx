@@ -35,7 +35,6 @@ export function Toast({ message, onDismiss }: ToastProps): React.JSX.Element | n
   return (
     <div
       role="status"
-      className="pbg-pop"
       style={{
         position: 'fixed',
         left: '50%',
@@ -45,31 +44,33 @@ export function Toast({ message, onDismiss }: ToastProps): React.JSX.Element | n
         zIndex: 1100,
       }}
     >
-      <GlassPanel
-        material="frosted"
-        depth={1}
-        radius="var(--pb-glass-radius-chip)"
-        contentStyle={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--pb-glass-space-sm)',
-          padding:
-            'var(--pb-glass-space-xs) var(--pb-glass-space-xs) var(--pb-glass-space-xs) var(--pb-glass-space-md)',
-          color: 'var(--pb-glass-fg)',
-          fontSize: 'var(--pb-glass-type-body-web)',
-        }}
-      >
-        <span>{message}</span>
-        <IconButton
-          label={intl.formatMessage({
-            id: 'component.shared.toast.dismiss',
-            defaultMessage: 'Dismiss',
-          })}
-          onClick={onDismiss}
+      <div className="pbg-pop">
+        <GlassPanel
+          material="frosted"
+          depth={1}
+          radius="var(--pb-glass-radius-chip)"
+          contentStyle={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--pb-glass-space-sm)',
+            padding:
+              'var(--pb-glass-space-xs) var(--pb-glass-space-xs) var(--pb-glass-space-xs) var(--pb-glass-space-md)',
+            color: 'var(--pb-glass-fg)',
+            fontSize: 'var(--pb-glass-type-body-web)',
+          }}
         >
-          <Icon name="close" size={18} />
-        </IconButton>
-      </GlassPanel>
+          <span>{message}</span>
+          <IconButton
+            label={intl.formatMessage({
+              id: 'component.shared.toast.dismiss',
+              defaultMessage: 'Dismiss',
+            })}
+            onClick={onDismiss}
+          >
+            <Icon name="close" size={18} />
+          </IconButton>
+        </GlassPanel>
+      </div>
     </div>
   );
 }
