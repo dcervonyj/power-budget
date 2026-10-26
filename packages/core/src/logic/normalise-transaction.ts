@@ -54,7 +54,7 @@ function toPrefixPattern(source: string): RegExp {
 }
 
 const COUNTERPARTY_MARKER =
-  /\b(?:odbiorca|nadawca|recipient|sender|beneficiary|transfer (?:to|from)|received from|sent to|from|przelew(?: blik)? (?:do|od)|(?:przelew )?(?:blik )?na telefon)\b[\s:-]*(.+)$/i;
+  /\b(?:odbiorca|nadawca|recipient|sender|beneficiary|transfer (?:to|from)|received from|sent to|from|przelew(?: blik)? (?:do|od)|(?:przelew )?(?:blik )?na telefon)\b/i;
 
 /** Folded city names that trail card descriptors. */
 const CITIES: readonly string[] = [
@@ -171,13 +171,14 @@ function extractCounterparty(description: string, descriptorClass: DescriptorCla
     return null;
   }
 
-  const matched = description.match(COUNTERPARTY_MARKER);
+  const matched = COUNTERPARTY_MARKER.exec(description);
 
-  if (matched === null || matched[1] === undefined) {
+  if (matched === null) {
     return null;
   }
 
-  const counterparty = stripTrailingMetadata(matched[1]);
+  const rest = description.slice(matched.index + matched[0].length).replace(/^[\s:-]+/, '');
+  const counterparty = stripTrailingMetadata(rest);
 
   return counterparty.length === 0 ? null : counterparty;
 }
@@ -229,7 +230,7 @@ function stripTrailingMetadata(value: string): string {
     .replace(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/g, '')
     .replace(/\b\d{2}:\d{2}(?::\d{2})?\b/g, '')
     .replace(/(?:\*{2,}|x{2,}|\.{3})\s?\d{4}\b/gi, '')
-    .replace(/\b(?:ref(?:erence)?|id|nr)\b[\s:#]*(?=[a-z0-9-]*\d)[a-z0-9-]{6,}/gi, '')
+    .replace(/\b(?:ref(?:erence)?|id|nr)\b[\s:#]*(?=[a-z0-9-]{0,63}\d)[a-z0-9-]{6,64}/gi, '')
     .replace(/\b(?:terminal|term)\b[\s:#]*\d[\w-]*/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
