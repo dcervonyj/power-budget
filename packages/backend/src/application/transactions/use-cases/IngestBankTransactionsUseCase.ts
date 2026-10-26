@@ -6,16 +6,10 @@ import type {
   MappingSuggestionPort,
 } from '../../../domain/transactions/ports.js';
 import type { NewTransaction, TransactionMapping } from '../../../domain/transactions/entities.js';
+import type { RawTransaction } from '../../../domain/bank/entities.js';
 import { IdempotentIngest } from '../../../domain/transactions/idempotent-ingest.js';
 
-export interface RawTransaction {
-  readonly externalId: string | null;
-  readonly occurredOn: string;
-  readonly amountMinor: bigint;
-  readonly currency: string;
-  readonly description: string;
-  readonly merchant: string | null;
-}
+export type { RawTransaction };
 
 export interface IngestBankTransactionsInput {
   readonly accountId: BankAccountId;
@@ -33,7 +27,30 @@ export class IngestBankTransactionsUseCase {
 
   async execute(input: IngestBankTransactionsInput): Promise<void> {
     for (const raw of input.rawTransactions) {
-      await this.ingestOne(raw, input.accountId, input.householdId);
+      if (this.isIngestedStatus(raw)) {
+        await this.ingestOne(raw, input.accountId, input.householdId);
+      }
+    }
+  }
+
+  /**
+   * Only booked rows are stored for now. Pending, cancelled, scheduled and other rows need
+   * the pending/booked reconciliation of SYNC-006 (plan-banking.md §1.7); until then they are
+   * skipped, as before the v2 port, when connectors returned booked rows only.
+   */
+  private isIngestedStatus(raw: RawTransaction): boolean {
+    switch (raw.status) {
+      case 'booked':
+        return true;
+      case 'pending':
+      case 'cancelled':
+      case 'scheduled':
+      case 'other':
+        return false;
+      default: {
+        const unreachable: never = raw.status;
+        throw new Error(`Unknown bank transaction status ${String(unreachable)}`);
+      }
     }
   }
 
@@ -42,13 +59,18 @@ export class IngestBankTransactionsUseCase {
     accountId: BankAccountId,
     householdId: HouseholdId,
   ): Promise<void> {
+    const occurredOn = this.economicDate(raw);
+    if (occurredOn === null) {
+      return;
+    }
+
     const id = TransactionId.of(this.generateId());
-    const externalId = IdempotentIngest.resolveExternalId(raw.externalId, {
+    const externalId = IdempotentIngest.resolveExternalId(raw.entryReference, {
       accountId,
-      occurredOn: raw.occurredOn as IsoDate,
+      occurredOn,
       amountMinor: raw.amountMinor,
       currency: raw.currency,
-      normalisedDescription: IdempotentIngest.normaliseDescription(raw.description),
+      normalisedDescription: IdempotentIngest.normaliseDescription(raw.remittance),
     });
 
     const newTx: NewTransaction = {
@@ -56,10 +78,10 @@ export class IngestBankTransactionsUseCase {
       householdId,
       accountId,
       externalId,
-      occurredOn: raw.occurredOn as IsoDate,
+      occurredOn,
       amount: { amountMinor: raw.amountMinor, currency: raw.currency as CurrencyCode },
-      description: raw.description,
-      merchant: raw.merchant,
+      description: raw.remittance,
+      merchant: raw.counterpartyName,
       source: 'bank_sync',
     };
 
@@ -86,5 +108,10 @@ export class IngestBankTransactionsUseCase {
 
   private async fetchRecentMappings(): Promise<TransactionMapping[]> {
     return [];
+  }
+
+  /** The economic date (plan-banking.md §1.10): the transaction date, else booking, else value. */
+  private economicDate(raw: RawTransaction): IsoDate | null {
+    return raw.transactionDate ?? raw.bookingDate ?? raw.valueDate;
   }
 }

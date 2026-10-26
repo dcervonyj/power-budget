@@ -179,9 +179,11 @@ describe('WiseBankConnector', () => {
       mockFetchOnce(profiles, statement);
 
       const result = await connector.fetchTransactions({
-        accountExternalId: '99-USD',
+        account: { externalId: '99-USD' },
         consent: FAKE_ENCRYPTED,
-        since: new Date('2024-01-01T00:00:00Z'),
+        dateFrom: new Date('2024-01-01T00:00:00Z'),
+        strategy: 'default',
+        psu: null,
       });
 
       const fetchMock = vi.mocked(globalThis.fetch);
@@ -193,22 +195,40 @@ describe('WiseBankConnector', () => {
 
       expect(result).toEqual([
         {
-          externalId: 'REF-001',
           accountExternalId: '99-USD',
-          occurredOn: '2024-01-15',
+          status: 'booked',
+          entryReference: 'REF-001',
+          bookingDate: '2024-01-15',
+          valueDate: null,
+          transactionDate: null,
           amountMinor: -2599n,
           currency: 'USD',
-          description: 'Netflix',
-          merchant: null,
+          direction: 'debit',
+          originalAmount: null,
+          counterpartyName: null,
+          counterpartyIban: null,
+          remittance: 'Netflix',
+          mcc: null,
+          bankTxCode: null,
+          balanceAfter: null,
         },
         {
-          externalId: 'REF-002',
           accountExternalId: '99-USD',
-          occurredOn: '2024-01-16',
+          status: 'booked',
+          entryReference: 'REF-002',
+          bookingDate: '2024-01-16',
+          valueDate: null,
+          transactionDate: null,
           amountMinor: 10000n,
           currency: 'USD',
-          description: 'Salary payment',
-          merchant: null,
+          direction: 'credit',
+          originalAmount: null,
+          counterpartyName: null,
+          counterpartyIban: null,
+          remittance: 'Salary payment',
+          mcc: null,
+          bankTxCode: null,
+          balanceAfter: null,
         },
       ]);
     });
@@ -230,24 +250,103 @@ describe('WiseBankConnector', () => {
       mockFetchOnce(profiles, statement);
 
       const result = await connector.fetchTransactions({
-        accountExternalId: '99-EUR',
+        account: { externalId: '99-EUR' },
         consent: FAKE_ENCRYPTED,
-        since: new Date('2024-01-01T00:00:00Z'),
+        dateFrom: new Date('2024-01-01T00:00:00Z'),
+        strategy: 'default',
+        psu: null,
       });
 
-      expect(result[0]?.description).toBe('Freelance invoice');
+      expect(result[0]?.remittance).toBe('Freelance invoice');
     });
 
     it('returns empty array when no personal profile exists', async () => {
       mockFetchOnce([{ id: 222, type: 'business' }]);
 
       const result = await connector.fetchTransactions({
-        accountExternalId: '99-USD',
+        account: { externalId: '99-USD' },
         consent: FAKE_ENCRYPTED,
-        since: new Date('2024-01-01T00:00:00Z'),
+        dateFrom: new Date('2024-01-01T00:00:00Z'),
+        strategy: 'default',
+        psu: null,
       });
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('fetchBalances', () => {
+    it('returns the available balance of the requested currency in minor units', async () => {
+      const profiles = [{ id: 111, type: 'personal' }];
+      const accounts = [
+        {
+          id: 99,
+          balances: [
+            { currency: 'PLN', amount: { value: 500.1, currency: 'PLN' } },
+            { currency: 'EUR', amount: { value: 12.34, currency: 'EUR' } },
+          ],
+        },
+      ];
+      mockFetchOnce(profiles, accounts);
+
+      const result = await connector.fetchBalances({
+        account: { externalId: '99-EUR' },
+        consent: FAKE_ENCRYPTED,
+        psu: null,
+      });
+
+      expect(result).toEqual([
+        {
+          accountExternalId: '99-EUR',
+          amount: { amountMinor: 1234n, currency: 'EUR' },
+          balanceType: 'ITAV',
+          referenceDate: null,
+        },
+      ]);
+    });
+
+    it('returns an empty list when the currency balance does not exist', async () => {
+      mockFetchOnce([{ id: 111, type: 'personal' }], [{ id: 99, balances: [] }]);
+
+      const result = await connector.fetchBalances({
+        account: { externalId: '99-USD' },
+        consent: FAKE_ENCRYPTED,
+        psu: null,
+      });
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getConsentStatus', () => {
+    it('reports an accepted token as active with no end date', async () => {
+      mockFetchOnce([{ id: 111, type: 'personal' }]);
+
+      await expect(connector.getConsentStatus(FAKE_ENCRYPTED)).resolves.toEqual({
+        status: 'active',
+        validUntil: null,
+      });
+    });
+
+    it('reports a rejected token as revoked', async () => {
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValue({ ok: false, status: 401, statusText: 'Unauthorized' });
+
+      await expect(connector.getConsentStatus(FAKE_ENCRYPTED)).resolves.toEqual({
+        status: 'revoked',
+        validUntil: null,
+      });
+    });
+
+    it('throws on any other failure', async () => {
+      globalThis.fetch = vi
+        .fn()
+        .mockResolvedValue({ ok: false, status: 503, statusText: 'Unavailable' });
+
+      await expect(connector.getConsentStatus(FAKE_ENCRYPTED)).rejects.toThrow(
+        'Wise API error: 503',
+      );
     });
   });
 

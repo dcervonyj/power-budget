@@ -26,6 +26,28 @@ function makeTokenResponse(overrides?: Partial<Record<string, unknown>>) {
   };
 }
 
+const CONSENT = 'enc:{"requisitionId":"req-1","accounts":["acct-1"]}' as EncryptedString;
+
+/** Stubs fetch: the first call answers the token request, every later one `body`. */
+function stubFetch(body: unknown) {
+  let callCount = 0;
+  const fetchMock = vi.fn().mockImplementation(() => {
+    callCount++;
+    const payload = callCount === 1 ? makeTokenResponse() : body;
+
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: () => Promise.resolve(payload),
+      text: () => Promise.resolve(JSON.stringify(payload)),
+    });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+
+  return fetchMock;
+}
+
 // ── Connector factory ─────────────────────────────────────────────────────────
 
 function makeConnector(encryption?: Encryption) {
@@ -226,32 +248,151 @@ describe('GoCardlessBankConnector', () => {
       const consent = 'enc:{"requisitionId":"req-1","accounts":["acct-1"]}' as EncryptedString;
       const connector = makeConnector();
       const result = await connector.fetchTransactions({
-        accountExternalId: 'acct-1',
+        account: { externalId: 'acct-1' },
         consent,
-        since: new Date('2024-03-01'),
+        dateFrom: new Date('2024-03-01'),
+        strategy: 'default',
+        psu: null,
       });
 
       expect(result).toHaveLength(2);
 
       expect(result[0]).toEqual({
-        externalId: 'tx-001',
         accountExternalId: 'acct-1',
-        occurredOn: '2024-03-15',
+        status: 'booked',
+        entryReference: 'tx-001',
+        bookingDate: '2024-03-15',
+        valueDate: null,
+        transactionDate: null,
         amountMinor: -4250n,
         currency: 'PLN',
-        description: 'BIEDRONKA 1234',
-        merchant: 'Biedronka',
+        direction: 'debit',
+        originalAmount: null,
+        counterpartyName: 'Biedronka',
+        counterpartyIban: null,
+        remittance: 'BIEDRONKA 1234',
+        mcc: null,
+        bankTxCode: null,
+        balanceAfter: null,
       });
 
       expect(result[1]).toEqual({
-        externalId: null,
         accountExternalId: 'acct-1',
-        occurredOn: '2024-03-14',
+        status: 'booked',
+        entryReference: null,
+        bookingDate: '2024-03-14',
+        valueDate: '2024-03-13',
+        transactionDate: null,
         amountMinor: 100000n,
         currency: 'PLN',
-        description: 'Salary March',
-        merchant: null,
+        direction: 'credit',
+        originalAmount: null,
+        counterpartyName: null,
+        counterpartyIban: null,
+        remittance: 'Salary March',
+        mcc: null,
+        bankTxCode: null,
+        balanceAfter: null,
       });
+    });
+
+    it('falls back to the fetch start date when a row has no booking or value date', async () => {
+      stubFetch({
+        transactions: {
+          booked: [{ transactionAmount: { amount: '-1.05', currency: 'PLN' } }],
+          pending: [],
+        },
+      });
+
+      const result = await makeConnector().fetchTransactions({
+        account: { externalId: 'acct-1' },
+        consent: CONSENT,
+        dateFrom: new Date('2024-03-01'),
+        strategy: 'default',
+        psu: null,
+      });
+
+      expect(result[0]?.bookingDate).toBe('2024-03-01');
+      expect(result[0]?.amountMinor).toBe(-105n);
+    });
+
+    it('asks for the whole history without date_from on the longest strategy', async () => {
+      const fetchMock = stubFetch({ transactions: { booked: [], pending: [] } });
+
+      await makeConnector().fetchTransactions({
+        account: { externalId: 'acct-1' },
+        consent: CONSENT,
+        dateFrom: new Date('2024-03-01'),
+        strategy: 'longest',
+        psu: null,
+      });
+
+      expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
+        'https://test.gocardless.test/api/v2/accounts/acct-1/transactions/',
+      );
+    });
+  });
+
+  describe('fetchBalances', () => {
+    it('parses the decimal balance amounts into minor units', async () => {
+      stubFetch({
+        balances: [
+          {
+            balanceAmount: { amount: '1234.56', currency: 'PLN' },
+            balanceType: 'closingBooked',
+            referenceDate: '2024-03-15',
+          },
+          { balanceAmount: { amount: '-0.10', currency: 'PLN' }, balanceType: 'interimAvailable' },
+        ],
+      });
+
+      const result = await makeConnector().fetchBalances({
+        account: { externalId: 'acct-1' },
+        consent: CONSENT,
+        psu: null,
+      });
+
+      expect(result).toEqual([
+        {
+          accountExternalId: 'acct-1',
+          amount: { amountMinor: 123456n, currency: 'PLN' },
+          balanceType: 'closingBooked',
+          referenceDate: '2024-03-15',
+        },
+        {
+          accountExternalId: 'acct-1',
+          amount: { amountMinor: -10n, currency: 'PLN' },
+          balanceType: 'interimAvailable',
+          referenceDate: null,
+        },
+      ]);
+    });
+  });
+
+  describe('getConsentStatus', () => {
+    it.each([
+      ['LN', 'active'],
+      ['EX', 'expired'],
+      ['RJ', 'failed'],
+      ['SU', 'failed'],
+      ['GA', 'pending_authorization'],
+    ])('maps requisition status %s to %s', async (gcStatus, status) => {
+      const fetchMock = stubFetch({ id: 'req-1', link: '', status: gcStatus, accounts: [] });
+
+      const result = await makeConnector().getConsentStatus(CONSENT);
+
+      expect(result).toEqual({ status, validUntil: null });
+      expect(String(fetchMock.mock.calls[1]?.[0])).toBe(
+        'https://test.gocardless.test/api/v2/requisitions/req-1/',
+      );
+    });
+
+    it('throws on an unknown requisition status', async () => {
+      stubFetch({ id: 'req-1', link: '', status: 'ZZ', accounts: [] });
+
+      await expect(makeConnector().getConsentStatus(CONSENT)).rejects.toThrow(
+        'Unknown GoCardless requisition status ZZ',
+      );
     });
   });
 
