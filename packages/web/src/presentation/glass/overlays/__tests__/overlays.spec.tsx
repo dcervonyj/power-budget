@@ -117,6 +117,67 @@ describe('Modal and Drawer', () => {
   });
 });
 
+describe('Modal focus', () => {
+  it('wraps Tab and Shift+Tab, restores focus, and survives a re-render with a new onClose', () => {
+    function Harness({ open, tick }: { open: boolean; tick: number }): React.JSX.Element {
+      return withIntl(
+        <>
+          <button type="button">opener</button>
+          <Modal title={`M${String(tick)}`} isOpen={open} onClose={() => undefined}>
+            <button type="button">inside</button>
+          </Modal>
+        </>,
+      );
+    }
+    const { rerender } = render(<Harness open={false} tick={0} />);
+    screen.getByText('opener').focus();
+    rerender(<Harness open tick={0} />);
+    const close = screen.getByLabelText('Close');
+    const inside = screen.getByText('inside');
+    expect(document.activeElement).toBe(close);
+
+    inside.focus();
+    rerender(<Harness open tick={1} />);
+    expect(document.activeElement).toBe(inside);
+
+    fireEvent.keyDown(inside, { key: 'Tab' });
+    expect(document.activeElement).toBe(close);
+    fireEvent.keyDown(close, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(inside);
+
+    rerender(<Harness open={false} tick={1} />);
+    expect(document.activeElement).toBe(screen.getByText('opener'));
+  });
+
+  it('closes only the topmost of stacked overlays on Esc', () => {
+    const outer = vi.fn();
+    const inner = vi.fn();
+    function Stack({ innerOpen }: { innerOpen: boolean }): React.JSX.Element {
+      return withIntl(
+        <Modal title="outer" isOpen onClose={outer}>
+          <Modal title="inner" isOpen={innerOpen} onClose={inner}>
+            x
+          </Modal>
+        </Modal>,
+      );
+    }
+    const { rerender } = render(<Stack innerOpen={false} />);
+    rerender(<Stack innerOpen />);
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(inner).toHaveBeenCalledOnce();
+    expect(outer).not.toHaveBeenCalled();
+  });
+
+  it('portals to body and labels an untitled drawer without an empty heading', () => {
+    render(withIntl(<Drawer isOpen onClose={vi.fn()} children="x" />));
+
+    expect(screen.getByRole('dialog').parentElement?.parentElement).toBe(document.body);
+    expect(screen.queryByRole('heading')).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Close' })).toBeInTheDocument();
+  });
+});
+
 describe('Toast', () => {
   it('shows the message and dismisses on button and after the timeout', () => {
     vi.useFakeTimers();
@@ -165,7 +226,7 @@ describe('states', () => {
   it('SkeletonList announces loading and hides its blocks', () => {
     const { container } = render(withIntl(<SkeletonList rows={2} />));
 
-    expect(screen.getByRole('status', { name: 'Loading...' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Loading...')).toBeInTheDocument();
     expect(container.querySelectorAll('[aria-hidden="true"].pbg-skeleton')).toHaveLength(2);
   });
 });

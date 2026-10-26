@@ -12,7 +12,7 @@ export function SkeletonList({ rows = 3, rowHeight = 56 }: SkeletonListProps): R
 
   return (
     <div
-      role="status"
+      role="group"
       aria-busy="true"
       aria-label={intl.formatMessage({
         id: 'component.shared.loading',

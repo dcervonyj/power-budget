@@ -1,4 +1,5 @@
 import React, { useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useIntl } from 'react-intl';
 import { IconButton } from '../controls/IconButton.js';
 import { Icon } from '../atoms/Icon.js';
@@ -44,6 +45,7 @@ export function OverlayFrame({
   const panelRef = useRef<HTMLDivElement>(null);
   useDialogBehavior(panelRef, { active: true, onClose });
 
+  const closeLabel = intl.formatMessage({ id: 'common.close', defaultMessage: 'Close' });
   const isCenter = placement === 'center';
   const motionClass = {
     center: 'pbg-pop',
@@ -51,7 +53,9 @@ export function OverlayFrame({
     bottom: 'pbg-sheet-bottom',
   }[placement];
 
-  return (
+  // Portalled to body: the frosted panel's backdrop-filter would otherwise become the containing
+  // block of nested `position: fixed` overlays and clip them.
+  return createPortal(
     <div
       className="pbg-scrim"
       onClick={onClose}
@@ -71,6 +75,7 @@ export function OverlayFrame({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title === undefined ? undefined : titleId}
+        aria-label={title === undefined ? closeLabel : undefined}
         tabIndex={-1}
         className={motionClass}
         onClick={stopPropagation}
@@ -106,21 +111,22 @@ export function OverlayFrame({
               marginBottom: 'var(--pb-glass-space-md)',
             }}
           >
-            <h2
-              id={titleId}
-              style={{
-                margin: 0,
-                fontSize: 'var(--pb-glass-type-heading-web)',
-                fontWeight: 600,
-                color: 'var(--pb-glass-fg)',
-              }}
-            >
-              {title}
-            </h2>
-            <IconButton
-              label={intl.formatMessage({ id: 'common.close', defaultMessage: 'Close' })}
-              onClick={onClose}
-            >
+            {title === undefined ? (
+              <span />
+            ) : (
+              <h2
+                id={titleId}
+                style={{
+                  margin: 0,
+                  fontSize: 'var(--pb-glass-type-heading-web)',
+                  fontWeight: 600,
+                  color: 'var(--pb-glass-fg)',
+                }}
+              >
+                {title}
+              </h2>
+            )}
+            <IconButton label={closeLabel} onClick={onClose}>
               <Icon name="close" size={20} />
             </IconButton>
           </div>
@@ -140,7 +146,8 @@ export function OverlayFrame({
           )}
         </GlassPanel>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

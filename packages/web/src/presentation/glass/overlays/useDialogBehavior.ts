@@ -1,7 +1,10 @@
-import { useEffect, type RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Open overlays, oldest first; only the last one reacts to Esc and Tab. */
+const overlayStack: object[] = [];
 
 export interface DialogBehaviorOptions {
   readonly active: boolean;
@@ -16,16 +19,26 @@ export function useDialogBehavior(
   containerRef: RefObject<HTMLElement | null>,
   { active, onClose }: DialogBehaviorOptions,
 ): void {
+  // Callers pass inline arrows; keeping the latest in a ref stops a parent re-render from
+  // re-running the effect (which would move focus back to the opener and then to Close).
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!active) {
       return undefined;
     }
+    const token = {};
+    overlayStack.push(token);
     const previous = document.activeElement;
     focusInto(containerRef.current);
 
     function handleKeyDown(event: KeyboardEvent): void {
+      if (overlayStack[overlayStack.length - 1] !== token) {
+        return;
+      }
       if (event.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
 
         return;
       }
@@ -37,11 +50,12 @@ export function useDialogBehavior(
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
+      overlayStack.splice(overlayStack.indexOf(token), 1);
       if (previous instanceof HTMLElement) {
         previous.focus();
       }
     };
-  }, [active, onClose, containerRef]);
+  }, [active, containerRef]);
 }
 
 function focusableIn(container: HTMLElement): HTMLElement[] {
