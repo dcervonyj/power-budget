@@ -201,7 +201,7 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     }
   });
 
-  it('0015 enforces identification_hash uniqueness per household (BNK-003)', async () => {
+  it('0016 enforces identification_hash uniqueness per household (BNK-003)', async () => {
     const pool = await createDatabase(`bnk003_${SUFFIX}`);
     await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
     const ids = {
