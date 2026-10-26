@@ -84,6 +84,19 @@ export class PlanDashboardStore {
     }
   }
 
+  /**
+   * Sign-out or session end: the shown dashboard goes; a late answer is dropped
+   * because it no longer matches `planId`.
+   */
+  resetSession(): void {
+    this.planId = null;
+    this.dashboard = null;
+    this.loading = false;
+    this.error = null;
+    this.unplannedExpenses = EMPTY_LIST;
+    this.unplannedIncome = EMPTY_LIST;
+  }
+
   async loadMoreUnplanned(direction: LineDirection): Promise<void> {
     const list = this.unplannedOf(direction);
     // A failed page is read again; otherwise only while there is a next page.

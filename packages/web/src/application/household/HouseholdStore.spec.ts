@@ -7,6 +7,7 @@ import type {
 } from '@power-budget/shared-app/contract';
 import { HouseholdStore } from './HouseholdStore.js';
 import { PLAN, apiError } from '../../test/dashboardFixtures.js';
+import { deferred } from '../../test/deferred.js';
 
 vi.mock('../../AppProviders.js', () => ({ householdsApi: {}, plansApi: {} }));
 
@@ -186,5 +187,83 @@ describe('HouseholdStore', () => {
 
     expect(store.loadFailed).toBe(true);
     expect(store.loading).toBe(false);
+  });
+
+  it('forgets the user and the household when the session ends', async () => {
+    await store.load('user-ann', 'hh-1');
+
+    store.resetSession();
+
+    expect(store.userId).toBe('');
+    expect(store.householdId).toBe('');
+    expect(store.members).toEqual([]);
+    expect(store.invites).toEqual([]);
+    expect(store.householdPlans).toEqual([]);
+    expect(store.selectedPlanId).toBeNull();
+    expect(store.categories).toEqual([]);
+    expect(store.loaded).toBe(false);
+    expect(store.loading).toBe(false);
+    expect(store.loadFailed).toBe(false);
+    expect(store.aggregatesLoading).toBe(false);
+    expect(store.aggregatesError).toBeNull();
+    expect(store.inviteBusy).toBe(false);
+    expect(store.isOwner).toBe(false);
+  });
+
+  it('drops a load that answers after the session ended', async () => {
+    const members = deferred<HouseholdMemberResponseDto[]>();
+    api.members.mockReturnValueOnce(members.promise);
+    const loading = store.load('user-ann', 'hh-1');
+
+    store.resetSession();
+    members.resolve([OWNER]);
+    await loading;
+
+    expect(store.members).toEqual([]);
+    expect(store.loaded).toBe(false);
+    expect(api.invites).not.toHaveBeenCalled();
+    expect(api.dashboard).not.toHaveBeenCalled();
+  });
+
+  it('drops invites, totals and a failure that answer after the session ended', async () => {
+    const invites = deferred<HouseholdInviteResponseDto[]>();
+    api.invites.mockReturnValueOnce(invites.promise);
+    const loading = store.load('user-ann', 'hh-1');
+    await vi.waitFor(() => expect(api.invites).toHaveBeenCalledOnce());
+    store.resetSession();
+    invites.resolve([INVITE]);
+    await loading;
+    expect(store.invites).toEqual([]);
+
+    const totals = deferred<HouseholdDashboardResponseDto>();
+    api.dashboard.mockReturnValueOnce(totals.promise);
+    const reloading = store.load('user-ann', 'hh-1');
+    await vi.waitFor(() => expect(api.dashboard).toHaveBeenCalledOnce());
+    store.resetSession();
+    totals.resolve(AGGREGATES);
+    await reloading;
+    expect(store.categories).toEqual([]);
+
+    const failed = deferred<HouseholdMemberResponseDto[]>();
+    api.members.mockReturnValueOnce(failed.promise);
+    const failing = store.load('user-ann', 'hh-1');
+    store.resetSession();
+    failed.reject(apiError(500));
+    await failing;
+    expect(store.loadFailed).toBe(false);
+  });
+
+  it('drops an invite answer that arrives after the session ended', async () => {
+    const sent = deferred<HouseholdInviteResponseDto>();
+    api.invite.mockReturnValueOnce(sent.promise);
+    const sending = store.sendInvite('bob@example.com');
+
+    store.resetSession();
+    sent.resolve(INVITE);
+    await sending;
+
+    expect(store.invites).toEqual([]);
+    expect(store.inviteNotice).toBeNull();
+    expect(store.inviteBusy).toBe(false);
   });
 });

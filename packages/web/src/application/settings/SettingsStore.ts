@@ -7,8 +7,10 @@ import type {
   VerifyTotpDto,
 } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
+import { clientSession } from '../auth/ClientSession.js';
 
 const BASE_CURRENCY_KEY = 'pb_base_currency';
+const DEFAULT_BASE_CURRENCY = 'EUR';
 const INTERESTING_CURRENCIES_KEY = 'pb_interesting_currencies';
 
 export type SaveError = 'save_failed' | 'unsupported_currency';
@@ -36,7 +38,7 @@ export class SettingsStore {
   timezone: string = '';
 
   /** Cached so screens have a currency before the profile loads. */
-  baseCurrency: string = localStorage.getItem(BASE_CURRENCY_KEY) ?? 'EUR';
+  baseCurrency: string = localStorage.getItem(BASE_CURRENCY_KEY) ?? DEFAULT_BASE_CURRENCY;
   interestingCurrencies: string[] = readInterestingCurrencies();
 
   isSaving: boolean = false;
@@ -51,8 +53,11 @@ export class SettingsStore {
 
   profileLoaded: boolean = false;
 
+  /** Bumped when the session ends, so a late profile of the previous user is dropped. */
+  private session = 0;
+
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable<SettingsStore, 'session'>(this, { session: false });
   }
 
   setDisplayName(value: string): void {
@@ -81,15 +86,14 @@ export class SettingsStore {
   }
 
   async loadProfile(): Promise<void> {
+    const session = this.session;
     try {
       const res = await apiClient.get<UserProfileDto>('/users/me');
-      this.applyProfile(res.data);
+      this.applyProfile(session, res.data);
     } catch {
       // The screens keep their defaults when the profile is not available.
     } finally {
-      runInAction(() => {
-        this.profileLoaded = true;
-      });
+      this.markProfileLoaded(session);
     }
   }
 
@@ -111,6 +115,7 @@ export class SettingsStore {
   }
 
   async exportData(): Promise<void> {
+    const session = this.session;
     this.isExporting = true;
     this.exportUrl = null;
     this.exportError = null;
@@ -130,7 +135,7 @@ export class SettingsStore {
                 reject(new Error('Export failed'));
               } else if (typeof res.data.url === 'string' && res.data.url !== '') {
                 clearInterval(timer);
-                this.exportUrl = res.data.url;
+                this.applyExportUrl(session, res.data.url);
                 resolve();
               } else if (res.data.status === 'ready') {
                 clearInterval(timer);
@@ -147,9 +152,9 @@ export class SettingsStore {
         }, 2000);
       });
     } catch {
-      this.exportError = 'export_failed';
+      this.applyExportFailed(session);
     } finally {
-      this.isExporting = false;
+      this.applyExportDone(session);
     }
   }
 
@@ -180,12 +185,36 @@ export class SettingsStore {
     }
   }
 
+  /**
+   * Sign-out or session end: the profile, the currency preferences and every
+   * in-progress state go back to their defaults, so the next user loads their own.
+   */
+  resetSession(): void {
+    this.session += 1;
+    this.userId = '';
+    this.displayName = '';
+    this.email = '';
+    this.householdId = '';
+    this.timezone = '';
+    this.baseCurrency = DEFAULT_BASE_CURRENCY;
+    this.interestingCurrencies = [];
+    this.isSaving = false;
+    this.saveError = null;
+    this.isExporting = false;
+    this.exportUrl = null;
+    this.exportError = null;
+    this.isDeleting = false;
+    this.deleteError = null;
+    this.profileLoaded = false;
+  }
+
   private async patchProfile(body: UpdateUserProfileDto): Promise<void> {
+    const session = this.session;
     this.isSaving = true;
     this.saveError = null;
     try {
       const res = await apiClient.patch<UserProfileDto>('/users/me', body);
-      this.applyProfile(res.data);
+      this.applyProfile(session, res.data);
     } catch {
       runInAction(() => {
         this.saveError = 'save_failed';
@@ -197,7 +226,35 @@ export class SettingsStore {
     }
   }
 
-  private applyProfile(profile: UserProfileDto): void {
+  /** The export link is for the household of the session that asked for it. */
+  private applyExportUrl(session: number, url: string): void {
+    if (session === this.session) {
+      this.exportUrl = url;
+    }
+  }
+
+  private applyExportFailed(session: number): void {
+    if (session === this.session) {
+      this.exportError = 'export_failed';
+    }
+  }
+
+  private applyExportDone(session: number): void {
+    if (session === this.session) {
+      this.isExporting = false;
+    }
+  }
+
+  private markProfileLoaded(session: number): void {
+    if (session === this.session) {
+      this.profileLoaded = true;
+    }
+  }
+
+  private applyProfile(session: number, profile: UserProfileDto): void {
+    if (session !== this.session) {
+      return;
+    }
     this.userId = profile.id;
     this.email = profile.email;
     this.displayName = profile.displayName;
@@ -231,3 +288,4 @@ function deleteErrorCode(err: unknown): DeleteError {
 }
 
 export const settingsStore = new SettingsStore();
+clientSession.register(settingsStore);

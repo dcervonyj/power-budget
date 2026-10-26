@@ -18,6 +18,7 @@ vi.mock('../../AppProviders.js', () => ({
 import type { UserProfileDto } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
 import { SettingsStore } from './SettingsStore.js';
+import { deferred } from '../../test/deferred.js';
 
 const mockGet = vi.mocked(apiClient.get);
 const mockPost = vi.mocked(apiClient.post);
@@ -247,6 +248,100 @@ describe('SettingsStore.exportData', () => {
 
     expect(mockGet).toHaveBeenCalledTimes(2);
     expect(store.exportUrl).toBe('/export.csv');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+});
+
+describe('SettingsStore.resetSession', () => {
+  let store: SettingsStore;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    store = new SettingsStore();
+  });
+
+  it("forgets the user's profile, currencies and progress", async () => {
+    mockGet.mockResolvedValueOnce(ok(profile));
+    await store.loadProfile();
+    store.toggleInterestingCurrency('USD');
+    store.exportUrl = '/export.csv';
+    store.saveError = 'save_failed';
+    store.deleteError = 'requires_totp';
+
+    store.resetSession();
+
+    expect(store.userId).toBe('');
+    expect(store.displayName).toBe('');
+    expect(store.email).toBe('');
+    expect(store.householdId).toBe('');
+    expect(store.timezone).toBe('');
+    expect(store.baseCurrency).toBe('EUR');
+    expect(store.interestingCurrencies).toEqual([]);
+    expect(store.profileLoaded).toBe(false);
+    expect(store.isSaving).toBe(false);
+    expect(store.saveError).toBeNull();
+    expect(store.isExporting).toBe(false);
+    expect(store.exportUrl).toBeNull();
+    expect(store.exportError).toBeNull();
+    expect(store.isDeleting).toBe(false);
+    expect(store.deleteError).toBeNull();
+  });
+
+  it('drops a profile that arrives after the session ended', async () => {
+    const answer = deferred<ReturnType<typeof ok<UserProfileDto>>>();
+    mockGet.mockReturnValueOnce(answer.promise);
+    const loading = store.loadProfile();
+
+    store.resetSession();
+    answer.resolve(ok(profile));
+    await loading;
+
+    expect(store.userId).toBe('');
+    expect(store.profileLoaded).toBe(false);
+  });
+
+  it('drops a saved profile that arrives after the session ended', async () => {
+    const answer = deferred<ReturnType<typeof ok<UserProfileDto>>>();
+    mockPatch.mockReturnValueOnce(answer.promise);
+    store.setDisplayName('Ana');
+    const saving = store.saveProfile();
+
+    store.resetSession();
+    answer.resolve(ok(profile));
+    await saving;
+
+    expect(store.userId).toBe('');
+    expect(store.displayName).toBe('');
+  });
+
+  it('drops an export link that arrives after the session ended', async () => {
+    vi.useFakeTimers();
+    mockPost.mockResolvedValueOnce(ok({}));
+    mockGet.mockResolvedValueOnce(ok({ status: 'ready', url: '/anna-export.csv' }));
+    const exporting = store.exportData();
+
+    store.resetSession();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(store.exportUrl).toBeNull();
+    expect(store.isExporting).toBe(false);
+  });
+
+  it('drops an export failure that arrives after the session ended', async () => {
+    vi.useFakeTimers();
+    mockPost.mockResolvedValueOnce(ok({}));
+    mockGet.mockResolvedValueOnce(ok({ status: 'failed' }));
+    const exporting = store.exportData();
+
+    store.resetSession();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(store.exportError).toBeNull();
   });
 
   afterEach(() => {

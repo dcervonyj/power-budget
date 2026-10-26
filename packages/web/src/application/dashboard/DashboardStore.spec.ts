@@ -3,6 +3,7 @@ import type { PlanDto } from '@power-budget/shared-app/contract';
 import { DashboardStore, selectDefaultPlan } from './DashboardStore.js';
 import { PlanDashboardStore } from './PlanDashboardStore.js';
 import { PLAN } from '../../test/dashboardFixtures.js';
+import { deferred } from '../../test/deferred.js';
 
 vi.mock('../../AppProviders.js', () => ({ plansApi: {}, categoriesApi: {} }));
 
@@ -71,6 +72,39 @@ describe('DashboardStore', () => {
     expect(store.plansError).toBe(true);
     expect(store.plansLoaded).toBe(false);
     expect(store.loading).toBe(false);
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('forgets the plans and the selection when the session ends', async () => {
+    await store.open();
+
+    store.resetSession();
+
+    expect(store.activePlans).toEqual([]);
+    expect(store.selectedPlanId).toBeNull();
+    expect(store.plansLoaded).toBe(false);
+    expect(store.plansError).toBe(false);
+    expect(store.loading).toBe(false);
+  });
+
+  it('drops a plan list or failure that arrives after the session ended', async () => {
+    const plans = deferred<PlanDto[]>();
+    list.mockReturnValueOnce(plans.promise);
+    const opening = store.open();
+    store.resetSession();
+    plans.resolve([personal]);
+    await opening;
+
+    const failed = deferred<PlanDto[]>();
+    list.mockReturnValueOnce(failed.promise);
+    const failing = store.open();
+    store.resetSession();
+    failed.reject(new Error('down'));
+    await failing;
+
+    expect(store.activePlans).toEqual([]);
+    expect(store.selectedPlanId).toBeNull();
+    expect(store.plansError).toBe(false);
     expect(load).not.toHaveBeenCalled();
   });
 });

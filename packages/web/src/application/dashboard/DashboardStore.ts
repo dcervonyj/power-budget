@@ -2,6 +2,7 @@ import { makeAutoObservable } from 'mobx';
 import type { PlansApi } from '@power-budget/shared-app';
 import type { PlanDto } from '@power-budget/shared-app/contract';
 import { categoriesApi, plansApi } from '../../AppProviders.js';
+import { clientSession } from '../auth/ClientSession.js';
 import { PlanDashboardStore } from './PlanDashboardStore.js';
 
 export type DashboardPlans = Pick<PlansApi, 'list'>;
@@ -25,21 +26,28 @@ export class DashboardStore {
 
   readonly planDashboard: PlanDashboardStore;
   private readonly plans: DashboardPlans;
+  /** Bumped when the session ends, so a late answer for the previous user is dropped. */
+  private session = 0;
 
   constructor(plans: DashboardPlans, planDashboard: PlanDashboardStore) {
     this.plans = plans;
     this.planDashboard = planDashboard;
-    makeAutoObservable<DashboardStore, 'plans'>(this, { plans: false, planDashboard: false });
+    makeAutoObservable<DashboardStore, 'plans' | 'session'>(this, {
+      plans: false,
+      planDashboard: false,
+      session: false,
+    });
   }
 
   /** Reads the active plans and opens the selected one (or the default plan). */
   async open(): Promise<void> {
+    const session = this.session;
     this.loading = true;
     this.plansError = false;
     try {
-      this.applyPlans(await this.plans.list());
+      this.applyPlans(session, await this.plans.list());
     } catch {
-      this.applyPlansFailed();
+      this.applyPlansFailed(session);
     }
   }
 
@@ -55,7 +63,20 @@ export class DashboardStore {
     }
   }
 
-  private applyPlans(plans: PlanDto[]): void {
+  /** Sign-out or session end: nothing of the previous user's plans stays. */
+  resetSession(): void {
+    this.session += 1;
+    this.activePlans = [];
+    this.selectedPlanId = null;
+    this.loading = false;
+    this.plansLoaded = false;
+    this.plansError = false;
+  }
+
+  private applyPlans(session: number, plans: PlanDto[]): void {
+    if (session !== this.session) {
+      return;
+    }
     this.activePlans = plans;
     this.plansLoaded = true;
     this.loading = false;
@@ -65,7 +86,10 @@ export class DashboardStore {
     }
   }
 
-  private applyPlansFailed(): void {
+  private applyPlansFailed(session: number): void {
+    if (session !== this.session) {
+      return;
+    }
     this.plansError = true;
     this.loading = false;
   }
@@ -87,3 +111,5 @@ function isPersonalMonthly(plan: PlanDto): boolean {
 
 export const planDashboardStore = new PlanDashboardStore(plansApi, categoriesApi);
 export const dashboardStore = new DashboardStore(plansApi, planDashboardStore);
+clientSession.register(planDashboardStore);
+clientSession.register(dashboardStore);
