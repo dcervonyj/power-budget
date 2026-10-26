@@ -1,0 +1,19 @@
+{
+  "plan.list.period": "{start} – {end}",
+  "plan.editor.totals.label": "Итоги плана",
+  "plan.editor.totals.income": "Доход",
+  "plan.editor.totals.planned": "Запланировано",
+  "plan.editor.totals.left": "Осталось запланировать",
+  "plan.editor.totals.overIncome": "Сверх дохода",
+  "plan.editor.totals.withinIncome": "В пределах дохода",
+  "plan.editor.totals.excluded": "{count, plural, one {# позиция в другой валюте не учтена} few {# позиции в других валютах не учтены} many {# позиций в других валютах не учтено} other {# позиции в других валютах не учтены}}",
+  "plan.editor.details.title": "Детали плана",
+  "plan.editor.income.title": "Доход",
+  "plan.editor.income.empty": "Доход ещё не запланирован",
+  "plan.editor.limits.title": "Лимиты категорий",
+  "plan.editor.limits.empty": "Лимитов категорий пока нет",
+  "plan.editor.limit.label": "Лимит: {category}",
+  "plan.editor.limit.decrease": "Уменьшить лимит: {category}",
+  "plan.editor.limit.increase": "Увеличить лимит: {category}",
+  "plan.editor.addItem.title": "Добавить позицию"
+}

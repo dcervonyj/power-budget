@@ -1,0 +1,19 @@
+{
+  "plan.list.period": "{start} – {end}",
+  "plan.editor.totals.label": "Підсумки плану",
+  "plan.editor.totals.income": "Дохід",
+  "plan.editor.totals.planned": "Заплановано",
+  "plan.editor.totals.left": "Залишилось запланувати",
+  "plan.editor.totals.overIncome": "Понад дохід",
+  "plan.editor.totals.withinIncome": "У межах доходу",
+  "plan.editor.totals.excluded": "{count, plural, one {# позицію в іншій валюті не враховано} few {# позиції в інших валютах не враховано} many {# позицій в інших валютах не враховано} other {# позиції в інших валютах не враховано}}",
+  "plan.editor.details.title": "Деталі плану",
+  "plan.editor.income.title": "Дохід",
+  "plan.editor.income.empty": "Дохід ще не заплановано",
+  "plan.editor.limits.title": "Ліміти категорій",
+  "plan.editor.limits.empty": "Лімітів категорій ще немає",
+  "plan.editor.limit.label": "Ліміт: {category}",
+  "plan.editor.limit.decrease": "Зменшити ліміт: {category}",
+  "plan.editor.limit.increase": "Збільшити ліміт: {category}",
+  "plan.editor.addItem.title": "Додати позицію"
+}

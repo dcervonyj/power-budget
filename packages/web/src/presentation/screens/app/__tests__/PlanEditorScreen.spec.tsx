@@ -1,10 +1,16 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { categoriesApi, plansApi } from '../../../../AppProviders.js';
 import { PlanEditorScreen } from '../PlanEditorScreen.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
-import { CATEGORIES, PLAN, RENT_ITEM } from '../../../../test/dashboardFixtures.js';
+import {
+  CATEGORIES,
+  DASHBOARD,
+  ITEMS,
+  PLAN,
+  RENT_ITEM,
+} from '../../../../test/dashboardFixtures.js';
 
 vi.mock('../../../../AppProviders.js', () => ({
   plansApi: {
@@ -14,6 +20,7 @@ vi.mock('../../../../AppProviders.js', () => ({
     updateItem: vi.fn(),
     deleteItem: vi.fn(),
     update: vi.fn(),
+    dashboard: vi.fn(),
   },
   categoriesApi: { list: vi.fn() },
 }));
@@ -27,6 +34,7 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
     vi.mocked(plansApi.get).mockResolvedValue(PLAN);
     vi.mocked(plansApi.listItems).mockResolvedValue([RENT_ITEM]);
     vi.mocked(categoriesApi.list).mockResolvedValue(CATEGORIES);
+    vi.mocked(plansApi.dashboard).mockRejectedValue(new Error('no dashboard'));
   });
 
   it('shows a stored item in normal units, not minor units', async () => {
@@ -90,5 +98,84 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
         currency: 'PLN',
       });
     });
+  });
+});
+
+describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(plansApi.get).mockResolvedValue(PLAN);
+    vi.mocked(plansApi.listItems).mockResolvedValue(ITEMS);
+    vi.mocked(categoriesApi.list).mockResolvedValue(CATEGORIES);
+    vi.mocked(plansApi.dashboard).mockResolvedValue(DASHBOARD);
+  });
+
+  it('shows the totals tiles in the plan currency and leaves other currencies out', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+
+    const totals = await screen.findByRole('region', { name: 'Plan totals' });
+
+    expect(within(totals).getByText('Income')).toBeInTheDocument();
+    expect(within(totals).getByText('Planned')).toBeInTheDocument();
+    expect(within(totals).getByText('Left to plan')).toBeInTheDocument();
+    // Salary 10 000, groceries 1 500 and rent 3 000 in PLN; the EUR item is not summed.
+    expect(totals).toHaveTextContent('10');
+    expect(totals).toHaveTextContent('Within income');
+    expect(totals).toHaveTextContent('1 item in another currency is not counted');
+  });
+
+  it('splits income from category limits and shows a category row with its spent amount', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+
+    expect(await screen.findByRole('heading', { name: 'Income' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Category limits' })).toBeInTheDocument();
+    expect(screen.getAllByTestId('category-row').length).toBeGreaterThan(0);
+  });
+
+  it('moves a limit by one step with the stepper and sends exact minor units', async () => {
+    vi.mocked(plansApi.updateItem).mockResolvedValue({
+      ...RENT_ITEM,
+      amount: { amountMinor: '301000', currency: 'PLN' },
+    });
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Increase the Rent limit' }));
+
+    await waitFor(() => {
+      expect(plansApi.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
+        amountMinor: '301000',
+        currency: 'PLN',
+      });
+    });
+  });
+
+  it('keeps keyboard entry for a limit when the stepper is there', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+
+    const stepper = await screen.findByRole('spinbutton', { name: 'Rent limit' });
+    fireEvent.keyDown(stepper, { key: 'ArrowDown' });
+
+    await waitFor(() => {
+      expect(plansApi.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
+        amountMinor: '299000',
+        currency: 'PLN',
+      });
+    });
+  });
+
+  it('still lists the items when the dashboard cannot be read', async () => {
+    vi.mocked(plansApi.dashboard).mockRejectedValue(new Error('down'));
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+
+    expect(await screen.findAllByLabelText('Amount')).not.toHaveLength(0);
+    expect(screen.queryAllByTestId('category-row')).toHaveLength(0);
+  });
+
+  it('does not render the what-if panel or the goal tube', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    await screen.findByRole('region', { name: 'Plan totals' });
+
+    expect(screen.queryByText(/what.?if/i)).toBeNull();
+    expect(screen.queryByTestId('tube')).toBeNull();
   });
 });
