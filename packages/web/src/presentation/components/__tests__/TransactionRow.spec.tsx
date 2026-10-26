@@ -7,6 +7,7 @@ import { ThemeProvider } from '../ThemeContext.js';
 import { TransactionRow } from '../TransactionRow.js';
 import { TransactionMapper } from '../../../infrastructure/api/TransactionMapper.js';
 import type { MappingView } from '../../../application/transactions/MappingView.js';
+import type { TransactionStatus } from '../../../domain/transactions/Transaction.js';
 
 vi.mock('../MoneyView.js', () => ({
   MoneyView: ({ amount }: { amount: { amountMinor: bigint; currency: string } }) => (
@@ -20,7 +21,7 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
   </IntlProvider>
 );
 
-function tx(status: 'pending' | 'posted' | 'cancelled' = 'posted') {
+function tx(status: TransactionStatus = 'booked') {
   return TransactionMapper.fromListItem({
     id: 'tx-1',
     accountId: 'acc-1',
@@ -52,7 +53,7 @@ function mapped(by: 'manual' | 'rule' | 'ai', planArchived = false): MappingView
   };
 }
 
-function renderRow(mapping: MappingView, status: 'pending' | 'posted' | 'cancelled' = 'posted') {
+function renderRow(mapping: MappingView, status: TransactionStatus = 'booked') {
   const onClick = vi.fn();
   const onMap = vi.fn();
   render(
@@ -120,6 +121,22 @@ describe('TransactionRow', () => {
   it('shows pending and cancelled, but nothing for a booked row', () => {
     renderRow({ kind: 'unmapped', suggested: false }, 'pending');
     expect(screen.getByText('Pending')).toBeDefined();
+  });
+
+  it.each([
+    ['live', 'Pending'],
+    ['expired', 'Cancelled'],
+  ] as const)('labels a %s row as %s', (status, label) => {
+    renderRow({ kind: 'unmapped', suggested: false }, status);
+
+    expect(screen.getByText(label)).toBeDefined();
+  });
+
+  it.each(['booked', 'manual'] as const)('shows no status chip for a %s row', (status) => {
+    renderRow({ kind: 'unmapped', suggested: false }, status);
+
+    expect(screen.queryByText('Pending')).toBeNull();
+    expect(screen.queryByText('Cancelled')).toBeNull();
   });
 
   it('opens the map modal from the Map button and the detail from the row', () => {

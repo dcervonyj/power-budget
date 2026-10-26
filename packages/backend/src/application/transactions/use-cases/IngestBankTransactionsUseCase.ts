@@ -1,12 +1,16 @@
-import type { BankAccountId, HouseholdId, CurrencyCode, IsoDate } from '@power-budget/core';
-import { TransactionId } from '@power-budget/core';
+import type { BankAccountId, HouseholdId, CurrencyCode, IsoDate, Money } from '@power-budget/core';
+import { TransactionId, isSupportedCurrency } from '@power-budget/core';
 import type {
   TransactionRepository,
   MappingRepository,
   MappingSuggestionPort,
 } from '../../../domain/transactions/ports.js';
-import type { NewTransaction, TransactionMapping } from '../../../domain/transactions/entities.js';
-import type { RawTransaction } from '../../../domain/bank/entities.js';
+import type {
+  BankTransactionDetails,
+  NewTransaction,
+  TransactionMapping,
+} from '../../../domain/transactions/entities.js';
+import type { RawAmount, RawTransaction } from '../../../domain/bank/entities.js';
 import { IdempotentIngest } from '../../../domain/transactions/idempotent-ingest.js';
 
 export type { RawTransaction };
@@ -83,6 +87,10 @@ export class IngestBankTransactionsUseCase {
       description: raw.remittance,
       merchant: raw.counterpartyName,
       source: 'bank_sync',
+      // Set per connector by ingest v2 (SYNC-006); NULL like the rows that predate SYNC-001.
+      sourceKind: null,
+      status: 'booked',
+      bank: this.bankDetailsOf(raw),
     };
 
     const { id: txId, created } = await this.transactionRepo.upsertByExternalId(newTx);
@@ -104,6 +112,31 @@ export class IngestBankTransactionsUseCase {
         { householdId },
       );
     }
+  }
+
+  /** The bank fields as received; the counterparty IBAN hash and fingerprint come with SYNC-006. */
+  private bankDetailsOf(raw: RawTransaction): BankTransactionDetails {
+    return {
+      bookingDate: raw.bookingDate,
+      valueDate: raw.valueDate,
+      transactionAt: null,
+      counterpartyName: raw.counterpartyName,
+      counterpartyIbanHash: null,
+      remittance: raw.remittance === '' ? null : raw.remittance,
+      mcc: raw.mcc,
+      bankTxCode: raw.bankTxCode,
+      entryReference: raw.entryReference,
+      fingerprint: null,
+      originalAmount: this.moneyOf(raw.originalAmount),
+    };
+  }
+
+  private moneyOf(amount: RawAmount | null): Money | null {
+    if (amount === null || !isSupportedCurrency(amount.currency)) {
+      return null;
+    }
+
+    return { amountMinor: amount.amountMinor, currency: amount.currency };
   }
 
   private async fetchRecentMappings(): Promise<TransactionMapping[]> {

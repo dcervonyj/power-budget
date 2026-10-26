@@ -40,6 +40,8 @@ An existing volume does not re-run init scripts: either `pnpm dev:db:reset`, or 
 
 Migration `0008_rls_tenancy` (journal idx 8) replaces the never-applied `0003_rls_policies.sql` (deleted). It enables **and forces** RLS on the tenant data tables: `transactions`, `transaction_mappings` (tenant derived from the transaction; the planned item must be in the same household), `transfers`, `bank_connections`, `bank_accounts`, `sync_runs` (via the connection), `plans`, `planned_items`, `planned_item_versions`, `categories` (NULL-household seed rows readable by all), `category_privacy`, `leftover_snapshots`, `household_exports`, `audit_log` (SELECT/INSERT policies only: append-only).
 
+Later migrations add `bank_fetch_ledger` (0016, BNK-003) and `live_signals` (0017, SYNC-001) with the same forced policy. Their `WITH CHECK`, and the `transactions` policy since 0017, also require every referenced row (account, connection, sync run, suggested planned item or category, live-signal owner and transaction) to belong to the same household, because foreign keys ignore RLS. 0017 backfills `transactions.status` (`posted` → `booked`, manual rows → `manual`) with the bypass described below.
+
 Identity, membership and outbox tables (`users`, `sessions`, `auth_methods`, `totp_secrets`, `magic_link_tokens`, `households`, `household_users`, `household_invites`, `notifications_outbox`) are read before a household is known and are scoped in the repositories only.
 
 Global, non-tenant tables (no RLS, no `household_id`): `currencies` and `fx_rates` (shared ECB/NBP reference data, written by the worker FX cron, read by `GET /fx-rates`). Currency preferences live on `users` and are user-scoped. The notification outbox claim (`SELECT ... FOR UPDATE SKIP LOCKED` in `DrizzleNotificationRepository`) runs in the worker's system scope on a table without RLS, so it works unchanged under the app role. The weekly digest and period-close jobs read tenant tables in the worker's system scope.
@@ -63,4 +65,4 @@ FORCE also binds the owner/migrator role. A future migration that backfills tena
 1. Merge, let the container apply migration 0008 as the owner (`MIGRATION_DATABASE_URL`).
 2. Re-run `pnpm --filter @power-budget/backend db:roles` with `MIGRATION_DATABASE_URL`, `APP_DB_USER`, `APP_DB_PASSWORD` (adds the audit_log REVOKE; idempotent).
 3. Make sure Render's `DATABASE_URL` is the app role, not the owner. With the owner URL the app still works (FORCE binds it too), but it can run DDL. A superuser or `BYPASSRLS` URL would silently skip every policy.
-4. Check: `SELECT relname FROM pg_class WHERE relforcerowsecurity;` lists the 14 tables above.
+4. Check: `SELECT relname FROM pg_class WHERE relforcerowsecurity;` lists the 14 tables above, plus `bank_fetch_ledger` and `live_signals` since 0016 and 0017.

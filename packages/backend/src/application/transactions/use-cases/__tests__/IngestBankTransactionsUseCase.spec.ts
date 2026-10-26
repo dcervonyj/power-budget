@@ -53,7 +53,7 @@ const fakeTx = {
   description: 'Coffee shop',
   merchant: 'Starbucks',
   source: 'bank_sync',
-  status: 'posted',
+  status: 'booked',
   notes: null,
   ignored: false,
   suggestedPlannedItemId: null,
@@ -132,7 +132,42 @@ describe('IngestBankTransactionsUseCase', () => {
       description: 'Coffee shop',
       merchant: 'Starbucks',
       source: 'bank_sync',
+      sourceKind: null,
+      status: 'booked',
+      bank: {
+        bookingDate: '2024-01-15',
+        valueDate: null,
+        transactionAt: null,
+        counterpartyName: 'Starbucks',
+        counterpartyIbanHash: null,
+        remittance: 'Coffee shop',
+        mcc: null,
+        bankTxCode: null,
+        entryReference: 'ext-1',
+        fingerprint: null,
+        originalAmount: null,
+      },
     });
+  });
+
+  it('stores the FX instructed amount, MCC and bank code with the booked row', async () => {
+    txRepo.upsertByExternalId.mockResolvedValue({ id: txId, created: false });
+    const fxCardPayment = makeRawTx({
+      amountMinor: -4321n,
+      direction: 'debit',
+      originalAmount: { amountMinor: -1000n, currency: 'EUR' },
+      mcc: '5812',
+      bankTxCode: 'PMNT-CCRD-POSD',
+      remittance: '',
+    });
+
+    await useCase.execute({ accountId, rawTransactions: [fxCardPayment], householdId });
+
+    const stored = vi.mocked(txRepo.upsertByExternalId).mock.calls[0]![0];
+    expect(stored.bank.originalAmount).toEqual({ amountMinor: -1000n, currency: 'EUR' });
+    expect(stored.bank.mcc).toBe('5812');
+    expect(stored.bank.bankTxCode).toBe('PMNT-CCRD-POSD');
+    expect(stored.bank.remittance).toBeNull();
   });
 
   it('uses the transaction date as the economic date when the bank sends one', async () => {

@@ -1,4 +1,5 @@
 import type { Transaction, Transfer } from '../domain/transactions/entities.js';
+import { isCountedTransactionStatus } from '../domain/transactions/entities.js';
 import type { TransactionId } from '../domain/transactions/ids.js';
 import type { FxRateTable } from '../domain/currency/entities.js';
 import type { CurrencyCode } from '../domain/shared/currency.js';
@@ -48,7 +49,7 @@ export function transferredTransactionIds(transfers: readonly Transfer[]): Set<T
 
 /**
  * The transactions that count towards actuals: booked inside the period, not
- * ignored, not cancelled and not a leg of an active transfer.
+ * ignored, not cancelled or expired and not a leg of an active transfer.
  */
 export function countedTransactions(
   transactions: readonly Transaction[],
@@ -60,7 +61,7 @@ export function countedTransactions(
   return transactions.filter(
     (tx) =>
       !tx.ignored &&
-      tx.status !== 'cancelled' &&
+      isCountedTransactionStatus(tx.status) &&
       !transferred.has(tx.id) &&
       DateRange.contains(period, tx.bookedAt),
   );

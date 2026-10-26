@@ -42,14 +42,17 @@ export function TransactionRow({
 
   function statusChipLabel(status: Transaction['status']): string | null {
     switch (status) {
+      case 'live':
       case 'pending':
         return intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' });
       case 'cancelled':
+      case 'expired':
         return intl.formatMessage({
           id: 'transaction.status.cancelled',
           defaultMessage: 'Cancelled',
         });
-      case 'posted':
+      case 'booked':
+      case 'manual':
         return null;
     }
   }

@@ -49,7 +49,7 @@ function row(id: string, overrides: Partial<TransactionListItemDto>): Transactio
     description: id,
     merchant: null,
     source: 'manual',
-    status: 'posted',
+    status: 'booked',
     ignored: false,
     notes: null,
     suggestedPlannedItemId: null,
