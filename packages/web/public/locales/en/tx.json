@@ -1,0 +1,13 @@
+{
+  "tx.list.monthLeft": "{amount} left in {month}",
+  "tx.list.loading": "Loading transactions",
+  "tx.list.retry": "Try again",
+  "tx.filter.label": "Show transactions",
+  "tx.filter.toSort": "To sort",
+  "tx.filter.more": "More filters",
+  "tx.bulk.toolbar": "Actions for the selected transactions",
+  "tx.row.change.aria": "Change the category of {title}",
+  "tx.sorting.title": "Sorting",
+  "tx.sorting.aria": "{sorted} of {total} sorted",
+  "tx.sorting.summary": "{sorted} sorted · {toSort} to sort"
+}

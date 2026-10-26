@@ -1,0 +1,13 @@
+{
+  "tx.list.monthLeft": "Осталось {amount}, месяц: {month}",
+  "tx.list.loading": "Загрузка транзакций",
+  "tx.list.retry": "Повторить",
+  "tx.filter.label": "Показать транзакции",
+  "tx.filter.toSort": "К сортировке",
+  "tx.filter.more": "Больше фильтров",
+  "tx.bulk.toolbar": "Действия для выбранных транзакций",
+  "tx.row.change.aria": "Изменить категорию: {title}",
+  "tx.sorting.title": "Сортировка",
+  "tx.sorting.aria": "Отсортировано {sorted} из {total}",
+  "tx.sorting.summary": "Отсортировано: {sorted} · к сортировке: {toSort}"
+}
