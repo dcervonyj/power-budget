@@ -73,6 +73,11 @@ describe('normaliseTransaction realistic PKO / Wise forms', () => {
     ['Card payment to Blikle', 'blikle', 'card'],
     ['Card payment to Feelunique', 'feelunique', 'card'],
     ['Card payment to Allegro', 'allegro', 'allegro'],
+    ['Allegro', 'allegro', 'allegro'],
+    ['ALLEGRO.PL', 'allegro', 'allegro'],
+    ['ALLEGRO.PL 12345 POZNAN', 'allegro', 'allegro'],
+    ['PAYU 98765 WARSZAWA', 'payu', 'payu'],
+    ['PAYU *Zabka 98765 WARSZAWA', 'zabka', 'payu'],
     ['PAYU *Allegro order 123', 'allegro order', 'payu'],
     ['Card payment to Termos Shop', 'termos shop', 'card'],
     ['Card payment to Ideaprint', 'ideaprint', 'card'],
@@ -91,7 +96,12 @@ describe('normaliseTransaction realistic PKO / Wise forms', () => {
     ['Przelew od: Anna Nowak', 'transfer', 'Anna Nowak'],
     ['Nadawca: Piotr Żak', 'transfer', 'Piotr Żak'],
     ['Transfer from Maria Lis', 'transfer', 'Maria Lis'],
-    ['Przelew do: Jan Kowalski opłata za czynsz', 'transfer', 'Jan Kowalski opłata za czynsz'],
+    ['Przelew do: Jan Kowalski opłata za czynsz', 'transfer', 'Jan Kowalski'],
+    ['Odbiorca: Jan Kowalski, czynsz październik', 'transfer', 'Jan Kowalski'],
+    ['Przelew do: Jan Kowalski tytułem czynsz', 'transfer', 'Jan Kowalski'],
+    ['Received from Anna Nowak', 'transfer', 'Anna Nowak'],
+    ['Sent to Anna Nowak', 'transfer', 'Anna Nowak'],
+    ['Beneficiary: Anna Nowak', 'transfer', 'Anna Nowak'],
   ])('%s -> %s, counterparty %s', (input, descriptorClass, counterparty) => {
     const result = normaliseTransaction(input);
 
