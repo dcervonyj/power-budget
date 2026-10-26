@@ -3,6 +3,7 @@ import type { BankConnectionRepository, BankSyncQueuePort } from '../../../domai
 import {
   BankConnectionNotFoundError,
   BankConnectionForbiddenError,
+  BankConnectionInvalidStateError,
 } from '../../../domain/bank/errors.js';
 
 export interface RefreshConnectionInput {
@@ -31,6 +32,12 @@ export class RefreshConnectionUseCase {
     if (connection.userId !== input.userId) {
       throw new BankConnectionForbiddenError();
     }
+    // A disconnected, expired or not yet consented connection must not sync (BE-BUGS-08).
+    if (connection.status !== 'active' || connection.encryptedConsent === null) {
+      throw new BankConnectionInvalidStateError(
+        `Cannot refresh a connection with status: ${connection.status}`,
+      );
+    }
 
     const { jobId } = await this.syncQueue.enqueue({
       connectionId: input.connectionId,
@@ -38,6 +45,7 @@ export class RefreshConnectionUseCase {
       trigger: 'manual',
       attended: true,
     });
+
     return { jobId };
   }
 }

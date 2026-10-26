@@ -2996,6 +2996,13 @@ export interface operations {
         };
         content?: never;
       };
+      /** @description Another connection to this bank is already active (bank_connection_invalid_state) */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
     };
   };
   BankController_refreshConnection: {
@@ -3035,6 +3042,13 @@ export interface operations {
       };
       /** @description Connection not found */
       404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Connection is not active with a consent (bank_connection_invalid_state) */
+      409: {
         headers: {
           [name: string]: unknown;
         };

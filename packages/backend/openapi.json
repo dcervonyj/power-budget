@@ -1282,6 +1282,9 @@
           },
           "404": {
             "description": "Consent not found"
+          },
+          "409": {
+            "description": "Another connection to this bank is already active (bank_connection_invalid_state)"
           }
         },
         "security": [
@@ -1324,6 +1327,9 @@
           },
           "404": {
             "description": "Connection not found"
+          },
+          "409": {
+            "description": "Connection is not active with a consent (bank_connection_invalid_state)"
           }
         },
         "security": [

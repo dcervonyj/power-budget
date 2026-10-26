@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
+import { BankConnectionId, HouseholdId, UserId, type EncryptedString } from '@power-budget/core';
 import type { BankConnectionRepository, BankSyncQueuePort } from '../../../../domain/bank/ports.js';
 import type { BankConnection } from '../../../../domain/bank/entities.js';
 import { RefreshConnectionUseCase } from '../RefreshConnectionUseCase.js';
 import {
   BankConnectionNotFoundError,
   BankConnectionForbiddenError,
+  BankConnectionInvalidStateError,
 } from '../../../../domain/bank/errors.js';
 
 // Moved from the mock-only __tests__/tenancy.spec.ts (CLN-017): the household scoping
@@ -17,7 +18,10 @@ const OTHER_USER_ID = UserId.of('01900000-0000-7000-8000-000000000099');
 const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 const CONNECTION_ID = BankConnectionId.of('01900000-0000-7000-8000-000000000003');
 
-function makeConnection(userId: UserId): BankConnection {
+// EncryptedString is a type-only brand with no constructor; the encryption port mints it in prod.
+const CONSENT = 'enc:consent' as EncryptedString;
+
+function makeConnection(userId: UserId, overrides: Partial<BankConnection> = {}): BankConnection {
   return {
     id: CONNECTION_ID,
     householdId: HOUSEHOLD_ID,
@@ -25,11 +29,12 @@ function makeConnection(userId: UserId): BankConnection {
     provider: 'gocardless',
     bankId: 'PKO_PLPKOPPLPW',
     externalConsentRef: null,
-    encryptedConsent: null,
+    encryptedConsent: CONSENT,
     expiresAt: null,
     status: 'active',
     disconnectedAt: null,
     createdAt: new Date('2026-01-01T00:00:00Z'),
+    ...overrides,
   };
 }
 
@@ -81,6 +86,22 @@ describe('RefreshConnectionUseCase', () => {
     await expect(
       useCase.execute({ connectionId: CONNECTION_ID, householdId: HOUSEHOLD_ID, userId: USER_ID }),
     ).rejects.toThrow(BankConnectionForbiddenError);
+    expect(syncQueue.enqueue).not.toHaveBeenCalled();
+  });
+
+  // CLN-038 (BE-BUGS-08): only an active connection with a consent may sync.
+  it.each<[string, Partial<BankConnection>]>([
+    ['disconnected', { status: 'disconnected', encryptedConsent: null }],
+    ['disconnected with a consent left over', { status: 'disconnected' }],
+    ['pending', { status: 'pending', encryptedConsent: null }],
+    ['expired', { status: 'expired' }],
+    ['active without a consent', { encryptedConsent: null }],
+  ])('throws BankConnectionInvalidStateError for a %s connection', async (_label, overrides) => {
+    connectionRepo.findById.mockResolvedValue(makeConnection(USER_ID, overrides));
+
+    await expect(
+      useCase.execute({ connectionId: CONNECTION_ID, householdId: HOUSEHOLD_ID, userId: USER_ID }),
+    ).rejects.toThrow(BankConnectionInvalidStateError);
     expect(syncQueue.enqueue).not.toHaveBeenCalled();
   });
 });
