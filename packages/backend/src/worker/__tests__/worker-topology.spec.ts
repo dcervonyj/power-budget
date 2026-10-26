@@ -119,6 +119,7 @@ describe('worker topology', () => {
       [
         'bank-sync-schedule',
         'fx-daily-ingest',
+        'household-purge',
         'outbox-relay',
         'period-close',
         'reconnect-reminders',

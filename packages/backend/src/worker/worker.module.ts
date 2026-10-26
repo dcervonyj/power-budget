@@ -6,6 +6,7 @@ import { WorkerDbScopeModule } from '../infrastructure/database/WorkerDbScopeMod
 import { BankWorkerModule } from '../infrastructure/bank/BankWorkerModule.js';
 import { PlansWorkerModule } from '../infrastructure/plans/PlansWorkerModule.js';
 import { NotificationsWorkerModule } from '../infrastructure/notifications/NotificationsWorkerModule.js';
+import { AuthWorkerModule } from '../infrastructure/auth/AuthWorkerModule.js';
 import { FxWorkerModule } from '../infrastructure/fx/FxWorkerModule.js';
 
 /**
@@ -27,6 +28,7 @@ import { FxWorkerModule } from '../infrastructure/fx/FxWorkerModule.js';
     PlansWorkerModule,
     NotificationsWorkerModule,
     FxWorkerModule,
+    AuthWorkerModule,
   ],
 })
 export class WorkerModule {}
