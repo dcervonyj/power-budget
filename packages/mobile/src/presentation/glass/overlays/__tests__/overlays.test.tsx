@@ -14,8 +14,16 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+let mockReduced = true;
+const mockWithTiming = jest.fn((value: number): number => value);
+
+jest.mock('react-native-reanimated', () => ({
+  ...jest.requireActual('react-native-reanimated'),
+  withTiming: (value: number, config: unknown): number => mockWithTiming(value, config),
+}));
+
 jest.mock('../../../theme/useMotion.js', () => ({
-  useReducedMotion: (): boolean => true,
+  useReducedMotion: (): boolean => mockReduced,
   useLoopsEnabled: (): boolean => false,
   useAppActive: (): boolean => true,
 }));
@@ -44,6 +52,10 @@ async function dragHeader(deltaY: number, elapsedMs: number): Promise<void> {
 }
 
 describe('Sheet', () => {
+  beforeEach(() => {
+    mockReduced = true;
+  });
+
   it('renders the title as a header and the content when open', async () => {
     await renderThemed(
       <Sheet isOpen onClose={jest.fn()} title="Edit category">
@@ -112,9 +124,9 @@ describe('Sheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('springs back when the gesture is terminated and ignores a second close while leaving', async () => {
+  it('springs the drag offset back to 0 when the gesture is terminated', async () => {
     const onClose = jest.fn();
-    const view = await renderThemed(
+    await renderThemed(
       <Sheet isOpen title="Edit category" onClose={onClose}>
         <Text>sheet body</Text>
       </Sheet>,
@@ -122,9 +134,22 @@ describe('Sheet', () => {
     const header = screen.getByTestId('sheet-header');
     await fireEvent(header, 'responderGrant', { nativeEvent: { pageY: 100 }, timeStamp: 0 });
     await fireEvent(header, 'responderMove', { nativeEvent: { pageY: 160 }, timeStamp: 10 });
+    mockWithTiming.mockClear();
     await fireEvent(header, 'responderTerminate');
 
+    expect(mockWithTiming).toHaveBeenCalledTimes(1);
+    expect(mockWithTiming).toHaveBeenCalledWith(0, { duration: 220 });
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('ignores close requests while the sheet is sliding out', async () => {
+    mockReduced = false;
+    const onClose = jest.fn();
+    const view = await renderThemed(
+      <Sheet isOpen title="Edit category" onClose={onClose}>
+        <Text>sheet body</Text>
+      </Sheet>,
+    );
     await view.rerender(
       <ThemeProvider>
         <IntlProvider locale="en" defaultLocale="en">
@@ -134,11 +159,10 @@ describe('Sheet', () => {
         </IntlProvider>
       </ThemeProvider>,
     );
-    const close = screen.queryByRole('button', { name: 'Close' });
-    if (close !== null) {
-      await userEvent.setup().press(close);
-    }
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Close' }));
+    await fireEvent(screen.getByTestId('sheet-header'), 'requestClose');
 
+    expect(screen.getByText('sheet body')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
   });
 
