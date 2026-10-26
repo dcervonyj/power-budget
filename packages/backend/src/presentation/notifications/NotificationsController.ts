@@ -53,7 +53,7 @@ export class NotificationsController {
     @Headers('svix-id') svixId: string | undefined,
     @Headers('svix-timestamp') svixTimestamp: string | undefined,
     @Headers('svix-signature') svixSignature: string | undefined,
-    @Body() body: BounceWebhookBody,
+    @Body() body: BounceWebhookBody | null | undefined,
   ): Promise<WebhookAcceptedDto> {
     const signed = this.webhookVerifier.verify(req.rawBody, {
       id: svixId,
@@ -62,6 +62,10 @@ export class NotificationsController {
     });
     if (!signed) {
       throw new UnauthorizedException('Invalid webhook signature');
+    }
+    // A signed JSON `null` carries no address; accept it without recording anything.
+    if (body === null || body === undefined) {
+      return { ok: true };
     }
 
     await this.recordEmailBounce.execute({ type: body.type, recipients: body.data?.to });
