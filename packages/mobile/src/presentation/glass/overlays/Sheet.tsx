@@ -105,6 +105,8 @@ export function Sheet({
   const progress = useSharedValue(0);
   const drag = useSharedValue(0);
   const target = isOpen && mounted ? 1 : 0;
+  // While the sheet slides out, a second tap must not call onClose again.
+  const requestClose = isOpen ? onClose : ignore;
 
   useEffect(() => {
     cancelAnimation(progress);
@@ -139,11 +141,11 @@ export function Sheet({
       transparent
       animationType="none"
       statusBarTranslucent
-      onRequestClose={onClose}
+      onRequestClose={requestClose}
       {...dialogName(title)}
     >
       <SheetContent
-        onClose={onClose}
+        onClose={requestClose}
         title={title}
         footer={footer}
         animatedStyle={animatedStyle}
@@ -202,15 +204,17 @@ function SheetContent({
     drag.value = clampDrag(event.nativeEvent.pageY - dragStart.current.y);
   }
 
+  function resetDrag(): void {
+    drag.value = withTiming(0, { duration: glass.motion.press.durationMs });
+  }
+
   function endDrag(event: GestureResponderEvent): void {
     const deltaY = event.nativeEvent.pageY - dragStart.current.y;
     const elapsed = event.timeStamp - dragStart.current.at;
     if (shouldCloseOnDrag(deltaY, elapsed)) {
       onClose();
-
-      return;
     }
-    drag.value = withTiming(0, { duration: glass.motion.press.durationMs });
+    resetDrag();
   }
 
   return (
@@ -232,6 +236,7 @@ function SheetContent({
             onResponderGrant={startDrag}
             onResponderMove={moveDrag}
             onResponderRelease={endDrag}
+            onResponderTerminate={resetDrag}
           >
             <View
               style={styles.grabber}
@@ -263,6 +268,8 @@ function SheetContent({
 function dialogName(title: string | undefined): Record<string, string | undefined> {
   return { 'aria-label': title };
 }
+
+function ignore(): void {}
 
 function returnTrue(): boolean {
   return true;
