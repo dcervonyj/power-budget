@@ -14,6 +14,13 @@ import {
 import type { SupportedLocale } from '../infrastructure/locale/index.js';
 import type { RootStackParamList } from './navigation/types.js';
 import { BiometricGate } from './components/BiometricGate.js';
+import {
+  FontGate,
+  ThemeProvider,
+  toNavigationTheme,
+  toStatusBarStyle,
+  useGlass,
+} from './theme/index.js';
 
 const resolver = new LocaleResolver();
 
@@ -54,6 +61,17 @@ function getDeviceLanguage(): string {
   return getLocales()[0]?.languageCode ?? 'en';
 }
 
+function ThemedNavigation(): React.JSX.Element {
+  const glass = useGlass();
+
+  return (
+    <NavigationContainer linking={linking} theme={toNavigationTheme(glass)}>
+      <RootNavigator />
+      <StatusBar style={toStatusBarStyle(glass)} />
+    </NavigationContainer>
+  );
+}
+
 export function App(): React.JSX.Element {
   const [locale, setLocale] = useState<SupportedLocale>(() =>
     resolver.resolve(getDeviceLanguage()),
@@ -71,13 +89,14 @@ export function App(): React.JSX.Element {
   }, []);
 
   return (
-    <IntlProvider locale={locale} messages={messages} defaultLocale="en">
-      <BiometricGate>
-        <NavigationContainer linking={linking}>
-          <RootNavigator />
-          <StatusBar style="auto" />
-        </NavigationContainer>
-      </BiometricGate>
-    </IntlProvider>
+    <ThemeProvider>
+      <FontGate>
+        <IntlProvider locale={locale} messages={messages} defaultLocale="en">
+          <BiometricGate>
+            <ThemedNavigation />
+          </BiometricGate>
+        </IntlProvider>
+      </FontGate>
+    </ThemeProvider>
   );
 }
