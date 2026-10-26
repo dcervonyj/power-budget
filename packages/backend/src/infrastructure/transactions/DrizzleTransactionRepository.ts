@@ -1,15 +1,25 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, or } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gte,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  or,
+  sql,
+} from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type {
   BankAccountId,
   CategoryId,
-  CurrencyCode,
-  HouseholdId,
-  IsoDate,
-  IsoDateTime,
   PlanId,
   PlannedItemId,
   TransactionId,
@@ -17,25 +27,38 @@ import type {
   UserId,
 } from '@power-budget/core';
 import type { HouseholdScope, TransactionRepository } from '../../domain/transactions/ports.js';
-import { MAPPING_ORIGINS, TRANSACTION_STATUSES } from '../../domain/transactions/entities.js';
+import {
+  MAPPING_ORIGINS,
+  NO_BANK_DETAILS,
+  PROVISIONAL_TRANSACTION_STATUSES,
+} from '../../domain/transactions/entities.js';
 import type {
   NewManualTransaction,
   NewTransaction,
   OwnedAccountRef,
   Page,
+  ProvisionalQuery,
+  ProvisionalTransactionStatus,
   Transaction,
   TransactionListItem,
   TransactionListMapping,
+  TransactionPatch,
   TransactionQuery,
   TransactionTransferLink,
+  TransactionUpgrade,
+  UpgradeTargetStatus,
 } from '../../domain/transactions/entities.js';
+import {
+  CategoryNotFoundError,
+  PlannedItemNotFoundError,
+} from '../../domain/transactions/errors.js';
 import { mappingSourceOf } from '../../domain/transactions/mapping-source.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import { decodeTransactionCursor, encodeTransactionCursor } from './transactionCursor.js';
 import { containsPattern } from '../database/likePattern.js';
 import { currencyOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
-import type { TransactionSource } from '../../domain/transactions/entities.js';
+import { TransactionRowMapper } from './TransactionRowMapper.js';
 
 /** A transfer seen from either side: the row is its `tx_a` or its `tx_b`. */
 const transferAsA = alias(schema.transfers, 'transfer_as_a');
@@ -60,6 +83,8 @@ interface ListRow {
 
 @Injectable()
 export class DrizzleTransactionRepository implements TransactionRepository {
+  private readonly rows = new TransactionRowMapper();
+
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
   async upsertByExternalId(
@@ -85,21 +110,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
 
     const rows = await this.db
       .insert(schema.transactions)
-      .values({
-        id: input.id,
-        householdId: input.householdId,
-        accountId: input.accountId,
-        externalId: input.externalId ?? null,
-        occurredOn: input.occurredOn,
-        amountMinor: input.amount.amountMinor,
-        currency: input.amount.currency,
-        description: input.description,
-        merchant: input.merchant ?? null,
-        source: input.source,
-        status: input.status ?? 'posted',
-        ignored: false,
-        notes: null,
-      })
+      .values(this.rows.toInsert(input))
       .returning({ id: schema.transactions.id });
 
     return { id: rows[0]!.id as TransactionId, created: true };
@@ -109,23 +120,25 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     const rows = await this.db
       .insert(schema.transactions)
       .values({
-        id: input.id,
-        householdId: input.householdId,
-        accountId: input.accountId,
-        externalId: null,
-        occurredOn: input.occurredOn,
-        amountMinor: input.amount.amountMinor,
-        currency: input.amount.currency,
-        description: input.description,
-        merchant: input.merchant ?? null,
-        source: 'manual',
-        status: 'posted',
-        ignored: false,
-        notes: input.notes ?? null,
+        ...this.rows.toInsert({
+          id: input.id,
+          householdId: input.householdId,
+          accountId: input.accountId,
+          externalId: null,
+          occurredOn: input.occurredOn,
+          amount: input.amount,
+          description: input.description,
+          merchant: input.merchant,
+          source: 'manual',
+          sourceKind: 'manual',
+          status: 'manual',
+          bank: NO_BANK_DETAILS,
+        }),
+        notes: input.notes,
       })
       .returning();
 
-    return this.toEntity(rows[0]!);
+    return this.rows.toEntity(rows[0]!);
   }
 
   async findOwnedAccount(
@@ -158,7 +171,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       )
       .limit(1);
 
-    return rows[0] ? this.toEntity(rows[0]) : null;
+    return rows[0] ? this.rows.toEntity(rows[0]) : null;
   }
 
   async findOwnedById(
@@ -176,7 +189,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .limit(1);
     const row = rows[0];
 
-    return row ? this.toEntity(row.tx) : null;
+    return row ? this.rows.toEntity(row.tx) : null;
   }
 
   async findOwnedIds(
@@ -265,29 +278,93 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     };
   }
 
-  async patch(
-    id: TransactionId,
-    patch: Partial<Pick<Transaction, 'notes' | 'ignored' | 'suggestedPlannedItemId'>>,
-    scope: HouseholdScope,
-  ): Promise<void> {
-    const updates: Record<string, unknown> = {};
-    if (patch.notes !== undefined) {
-      updates['notes'] = patch.notes;
-    }
-    if (patch.ignored !== undefined) {
-      updates['ignored'] = patch.ignored;
-    }
-
-    if (Object.keys(updates).length === 0) {
+  async patch(id: TransactionId, patch: TransactionPatch, scope: HouseholdScope): Promise<void> {
+    const columns = this.rows.patchColumns(patch);
+    if (Object.keys(columns).length === 0) {
       return;
+    }
+    if (patch.suggestedPlannedItemId) {
+      await this.assertPlannedItemInScope(patch.suggestedPlannedItemId, scope);
+    }
+    if (patch.suggestedCategoryId) {
+      await this.assertCategoryInScope(patch.suggestedCategoryId, scope);
     }
 
     await this.db
       .update(schema.transactions)
-      .set(updates)
+      .set(columns)
       .where(
         and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
       );
+  }
+
+  async upgradeInPlace(
+    upgrade: TransactionUpgrade,
+    scope: HouseholdScope,
+  ): Promise<Transaction | null> {
+    const t = schema.transactions;
+    const rows = await this.db
+      .update(t)
+      .set({
+        status: upgrade.status,
+        externalId: upgrade.externalId,
+        occurredOn: upgrade.occurredOn,
+        amountMinor: upgrade.amount.amountMinor,
+        currency: upgrade.amount.currency,
+        description: upgrade.description,
+        sourceKind: upgrade.sourceKind,
+        ...this.rows.bankColumns(upgrade.bank),
+        // SET expressions see the row before the update: the snapshot is the provisional row.
+        reconciliation: sql`jsonb_build_object(
+          'upgrades',
+          coalesce(${t.reconciliation} -> 'upgrades', '[]'::jsonb) || jsonb_build_array(
+            jsonb_build_object(
+              'upgradedAt', ${upgrade.upgradedAt}::text,
+              'from', jsonb_build_object(
+                'status', ${t.status},
+                'externalId', ${t.externalId},
+                'occurredOn', ${t.occurredOn},
+                'amountMinor', ${t.amountMinor}::text,
+                'currency', ${t.currency},
+                'description', ${t.description},
+                'sourceKind', ${t.sourceKind},
+                'fingerprint', ${t.fingerprint}
+              )
+            )
+          )
+        )`,
+      })
+      .where(
+        and(
+          eq(t.id, upgrade.id),
+          eq(t.householdId, scope.householdId),
+          eq(t.accountId, upgrade.accountId),
+          inArray(t.status, [...this.upgradableFrom(upgrade.status)]),
+        ),
+      )
+      .returning();
+    const row = rows[0];
+
+    return row ? this.rows.toEntity(row) : null;
+  }
+
+  async listProvisional(query: ProvisionalQuery, scope: HouseholdScope): Promise<Transaction[]> {
+    const t = schema.transactions;
+    const rows = await this.db
+      .select()
+      .from(t)
+      .where(
+        and(
+          eq(t.householdId, scope.householdId),
+          eq(t.accountId, query.accountId),
+          inArray(t.status, [...PROVISIONAL_TRANSACTION_STATUSES]),
+          gte(t.occurredOn, query.window.start),
+          lte(t.occurredOn, query.window.end),
+        ),
+      )
+      .orderBy(asc(t.occurredOn), asc(t.id));
+
+    return rows.map((row) => this.rows.toEntity(row));
   }
 
   async setIgnored(
@@ -308,6 +385,53 @@ export class DrizzleTransactionRepository implements TransactionRepository {
           eq(schema.transactions.householdId, scope.householdId),
         ),
       );
+  }
+
+  /** live → pending | booked, pending → booked (plan-banking.md §1.7). */
+  private upgradableFrom(target: UpgradeTargetStatus): readonly ProvisionalTransactionStatus[] {
+    switch (target) {
+      case 'pending':
+        return ['live'];
+      case 'booked':
+        return PROVISIONAL_TRANSACTION_STATUSES;
+      default: {
+        const unreachable: never = target;
+        throw new Error(`Unknown upgrade target ${String(unreachable)}`);
+      }
+    }
+  }
+
+  private async assertPlannedItemInScope(id: PlannedItemId, scope: HouseholdScope): Promise<void> {
+    const rows = await this.db
+      .select({ id: schema.plannedItems.id })
+      .from(schema.plannedItems)
+      .where(
+        and(eq(schema.plannedItems.id, id), eq(schema.plannedItems.householdId, scope.householdId)),
+      )
+      .limit(1);
+    if (rows.length === 0) {
+      throw new PlannedItemNotFoundError();
+    }
+  }
+
+  /** Household categories and the shared seed catalogue (NULL household). */
+  private async assertCategoryInScope(id: CategoryId, scope: HouseholdScope): Promise<void> {
+    const rows = await this.db
+      .select({ id: schema.categories.id })
+      .from(schema.categories)
+      .where(
+        and(
+          eq(schema.categories.id, id),
+          or(
+            isNull(schema.categories.householdId),
+            eq(schema.categories.householdId, scope.householdId),
+          ),
+        ),
+      )
+      .limit(1);
+    if (rows.length === 0) {
+      throw new CategoryNotFoundError();
+    }
   }
 
   private ownedAccountJoin(ownerUserId: UserId): SQL | undefined {
@@ -377,7 +501,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   }
 
   private toListItem(row: ListRow): TransactionListItem {
-    const transaction = this.toEntity(row.tx);
+    const transaction = this.rows.toEntity(row.tx);
     const mapping = this.toListMapping(row);
 
     return {
@@ -431,27 +555,5 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     }
 
     return null;
-  }
-
-  private toEntity(row: schema.SelectTransaction): Transaction {
-    return {
-      id: row.id as TransactionId,
-      householdId: row.householdId as HouseholdId,
-      accountId: row.accountId as BankAccountId,
-      externalId: row.externalId ?? null,
-      occurredOn: row.occurredOn as IsoDate,
-      amount: {
-        amountMinor: row.amountMinor,
-        currency: row.currency as CurrencyCode,
-      },
-      description: row.description,
-      merchant: row.merchant ?? null,
-      source: row.source as TransactionSource,
-      status: oneOf(TRANSACTION_STATUSES, row.status, 'transaction status'),
-      ignored: row.ignored,
-      notes: row.notes ?? null,
-      suggestedPlannedItemId: null,
-      createdAt: row.createdAt.toISOString() as IsoDateTime,
-    };
   }
 }

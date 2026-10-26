@@ -26,6 +26,13 @@ export class PlannedItemNotFoundError extends Error {
   }
 }
 
+export class CategoryNotFoundError extends Error {
+  constructor() {
+    super('CATEGORY_NOT_FOUND');
+    this.name = 'CategoryNotFoundError';
+  }
+}
+
 export class BankAccountNotFoundError extends Error {
   constructor() {
     super('BANK_ACCOUNT_NOT_FOUND');

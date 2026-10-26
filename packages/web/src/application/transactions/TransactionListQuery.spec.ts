@@ -28,7 +28,7 @@ function dto(
     description: 'x',
     merchant: null,
     source,
-    status: 'posted',
+    status: 'booked',
     ignored: false,
     notes: null,
     suggestedPlannedItemId: null,

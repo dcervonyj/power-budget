@@ -99,7 +99,7 @@ export class ListTransactionsQueryDto {
   @ApiPropertyOptional({
     type: String,
     enum: [...TRANSACTION_STATUSES],
-    description: 'Booking status filter (`posted` is booked)',
+    description: 'Row lifecycle filter (`booked` is booked by the bank)',
   })
   @IsOptional()
   @IsIn([...TRANSACTION_STATUSES])

@@ -15,6 +15,9 @@ import type {
   TransactionMapping,
   Transfer,
   TransactionQuery,
+  TransactionPatch,
+  TransactionUpgrade,
+  ProvisionalQuery,
   Page,
 } from './entities.js';
 
@@ -47,11 +50,21 @@ export interface TransactionRepository {
   ): Promise<TransactionId[]>;
   /** One query: each row carries its mapping (with plan and category names) and transfer. */
   list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>>;
-  patch(
-    id: TransactionId,
-    patch: Partial<Pick<Transaction, 'notes' | 'ignored' | 'suggestedPlannedItemId'>>,
-    scope: HouseholdScope,
-  ): Promise<void>;
+  /**
+   * Changes only the given fields. Throws PlannedItemNotFoundError / CategoryNotFoundError
+   * when a suggested planned item or category is not in `scope`.
+   */
+  patch(id: TransactionId, patch: TransactionPatch, scope: HouseholdScope): Promise<void>;
+  /**
+   * Upgrades a provisional row in place (plan-banking.md §1.7): status, external id, date,
+   * amount, description and bank fields change; id, mapping, transfer link, suggestion and
+   * notes stay; the previous state is appended to `reconciliation`. Returns null when the row
+   * is not in `scope`, not on `upgrade.accountId`, or not provisional (`live` may become
+   * `pending` or `booked`, `pending` only `booked`).
+   */
+  upgradeInPlace(upgrade: TransactionUpgrade, scope: HouseholdScope): Promise<Transaction | null>;
+  /** The `live` and `pending` rows of an account in a date window, oldest first. */
+  listProvisional(query: ProvisionalQuery, scope: HouseholdScope): Promise<Transaction[]>;
   /** One statement for the batch: sets `ignored` on every id in `scope`. */
   setIgnored(ids: readonly TransactionId[], ignored: boolean, scope: HouseholdScope): Promise<void>;
 }

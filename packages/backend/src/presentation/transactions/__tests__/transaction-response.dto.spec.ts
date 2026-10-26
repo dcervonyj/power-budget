@@ -10,6 +10,7 @@ import {
   TransactionId,
   TransferId,
 } from '@power-budget/core';
+import { NO_BANK_DETAILS } from '../../../domain/transactions/entities.js';
 import type { Transaction } from '../../../domain/transactions/entities.js';
 import { toTransactionPageDto } from '../dto/transaction-response.dto.js';
 
@@ -23,10 +24,18 @@ const tx: Transaction = {
   description: 'Bakery',
   merchant: null,
   source: 'manual',
+  sourceKind: 'manual',
   status: 'pending',
+  direction: 'debit',
+  bank: NO_BANK_DETAILS,
+  reconciliation: null,
   ignored: false,
   notes: null,
   suggestedPlannedItemId: null,
+  suggestedCategoryId: null,
+  suggestionConfidence: null,
+  suggestionSource: null,
+  autoMapped: false,
   createdAt: IsoDateTime.of('2026-10-21T10:00:00.000Z'),
 };
 
@@ -51,7 +60,7 @@ describe('toTransactionPageDto', () => {
           transfer: null,
         },
         {
-          transaction: { ...tx, status: 'posted' },
+          transaction: { ...tx, status: 'booked' },
           mapping: null,
           mappingSource: 'none',
           transfer: {
@@ -84,7 +93,7 @@ describe('toTransactionPageDto', () => {
       },
     });
     expect(page.items[1]).toMatchObject({
-      status: 'posted',
+      status: 'booked',
       mapping: null,
       mappingSource: 'none',
       transfer: {

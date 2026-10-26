@@ -58,7 +58,7 @@ function makeTx(
     accountId: id('acc-1'),
     externalId: null,
     source: 'bank',
-    status: 'posted',
+    status: 'booked',
     amount: { amountMinor, currency },
     description: 'Test',
     merchantName: null,

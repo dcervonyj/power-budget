@@ -2942,8 +2942,8 @@
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "posted", "cancelled"],
-            "description": "Booking status: `pending`, `posted` (booked by the bank) or `cancelled`"
+            "enum": ["live", "pending", "booked", "cancelled", "expired", "manual"],
+            "description": "Row lifecycle: `live` (live signal only), `pending`, `booked` (booked by the bank), `cancelled`, `expired` (provisional, never booked) or `manual`. `cancelled` and `expired` rows count in no total"
           },
           "ignored": {
             "type": "boolean"
@@ -3054,8 +3054,8 @@
           },
           "status": {
             "type": "string",
-            "enum": ["pending", "posted", "cancelled"],
-            "description": "Booking status: `pending`, `posted` (booked by the bank) or `cancelled`"
+            "enum": ["live", "pending", "booked", "cancelled", "expired", "manual"],
+            "description": "Row lifecycle: `live` (live signal only), `pending`, `booked` (booked by the bank), `cancelled`, `expired` (provisional, never booked) or `manual`. `cancelled` and `expired` rows count in no total"
           },
           "ignored": {
             "type": "boolean"

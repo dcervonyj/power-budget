@@ -72,7 +72,7 @@ function tx(id: string, amountMinor: bigint, currency: 'PLN' | 'EUR' | 'USD' = '
     accountId: 'acc-1' as BankAccountId,
     externalId: null,
     source: 'bank',
-    status: 'posted',
+    status: 'booked',
     amount: { amountMinor, currency },
     description: id,
     merchantName: null,

@@ -252,26 +252,81 @@ export const transactions = pgTable(
       .notNull()
       .references(() => bankAccounts.id),
     externalId: varchar('external_id', { length: 255 }),
+    // The economic date: the transaction date when the bank sends one, else the booking date.
     occurredOn: date('occurred_on').notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
     description: text('description').notNull().default(''),
     merchant: varchar('merchant', { length: 255 }),
     source: varchar('source', { length: 20 }).notNull().default('bank_sync'),
-    // CLN-023: booking state; 'posted' is the bank's booked state.
-    status: varchar('status', { length: 20 }).notNull().default('posted'),
+    // SYNC-001 row lifecycle (plan-banking.md §1.7): live | pending | booked | cancelled |
+    // expired | manual. cancelled and expired rows are kept for audit, excluded from totals.
+    status: varchar('status', { length: 20 }).notNull().default('booked'),
     ignored: boolean('ignored').notNull().default(false),
     notes: text('notes'),
+    // SYNC-001 bank v2 fields (plan-banking.md §1.10).
+    bookingDate: date('booking_date'),
+    valueDate: date('value_date'),
+    transactionAt: timestamp('transaction_at', { withTimezone: true }),
+    // Always the sign of the amount (EB credit_debit_indicator signs the amount).
+    direction: varchar('direction', { length: 10 })
+      .notNull()
+      .generatedAlwaysAs(sql`CASE WHEN amount_minor < 0 THEN 'debit' ELSE 'credit' END`),
+    counterpartyName: varchar('counterparty_name', { length: 255 }),
+    counterpartyIbanHash: varchar('counterparty_iban_hash', { length: 128 }),
+    remittance: text('remittance'),
+    mcc: varchar('mcc', { length: 10 }),
+    bankTxCode: varchar('bank_tx_code', { length: 100 }),
+    entryReference: varchar('entry_reference', { length: 255 }),
+    fingerprint: varchar('fingerprint', { length: 128 }),
+    // NULL for bank rows that predate SYNC-001.
+    sourceKind: varchar('source_kind', { length: 20 }),
+    originalAmountMinor: bigint('original_amount_minor', { mode: 'bigint' }),
+    originalCurrency: char('original_currency', { length: 3 }),
+    // Provisional snapshots kept when a live/pending row is upgraded in place.
+    reconciliation: jsonb('reconciliation'),
+    suggestedPlannedItemId: uuid('suggested_planned_item_id').references(() => plannedItems.id, {
+      onDelete: 'set null',
+    }),
+    suggestedCategoryId: uuid('suggested_category_id').references(() => categories.id, {
+      onDelete: 'set null',
+    }),
+    suggestionConfidence: numeric('suggestion_confidence', {
+      precision: 4,
+      scale: 3,
+      mode: 'number',
+    }),
+    suggestionSource: varchar('suggestion_source', { length: 20 }),
+    autoMapped: boolean('auto_mapped').notNull().default(false),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index('transactions_household_date_idx').on(t.householdId, t.occurredOn),
     index('transactions_household_date_id_idx').on(t.householdId, t.occurredOn.desc(), t.id.desc()),
     index('transactions_account_date_idx').on(t.accountId, t.occurredOn),
+    index('transactions_account_status_date_idx').on(t.accountId, t.status, t.occurredOn),
+    index('transactions_account_fingerprint_idx').on(t.accountId, t.fingerprint),
     uniqueIndex('transactions_external_unique')
       .on(t.accountId, t.externalId)
       .where(sql`external_id IS NOT NULL`),
-    check('transactions_status_check', sql`status IN ('pending', 'posted', 'cancelled')`),
+    check(
+      'transactions_status_check',
+      sql`status IN ('live', 'pending', 'booked', 'cancelled', 'expired', 'manual')`,
+    ),
+    check('transactions_direction_check', sql`direction IN ('credit', 'debit')`),
+    check(
+      'transactions_source_kind_check',
+      sql`source_kind IN ('enable_banking', 'wise_webhook', 'pko_email', 'iko_push', 'manual')`,
+    ),
+    check(
+      'transactions_suggestion_source_check',
+      sql`suggestion_source IN ('transfer_rule', 'planned_hint', 'merchant_rule', 'llm')`,
+    ),
+    check('transactions_suggestion_confidence_check', sql`suggestion_confidence BETWEEN 0 AND 1`),
+    check(
+      'transactions_original_amount_check',
+      sql`(original_amount_minor IS NULL) = (original_currency IS NULL)`,
+    ),
   ],
 );
 
@@ -609,6 +664,41 @@ export const bankFetchLedger = pgTable(
     check(
       'bank_fetch_ledger_call_kind_check',
       sql`call_kind IN ('transactions', 'balances', 'details')`,
+    ),
+  ],
+);
+
+// ─── Live signals inbox (SYNC-001, plan-banking 1.10) ────────────────────────
+
+export const liveSignals = pgTable(
+  'live_signals',
+  {
+    id: uuid('id').primaryKey(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id),
+    ownerUserId: uuid('owner_user_id')
+      .notNull()
+      .references(() => users.id),
+    source: varchar('source', { length: 20 }).notNull(),
+    // wise:{profile}:{reference} or pkoe:{sha256(Message-ID)}: one row per delivered signal.
+    dedupeKey: varchar('dedupe_key', { length: 255 }).notNull(),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    payloadEnc: text('payload_enc').notNull(),
+    parsed: jsonb('parsed'),
+    parserVersion: varchar('parser_version', { length: 50 }),
+    state: varchar('state', { length: 20 }).notNull().default('received'),
+    transactionId: uuid('transaction_id').references(() => transactions.id),
+    error: text('error'),
+  },
+  (t) => [
+    uniqueIndex('live_signals_dedupe_key_unique').on(t.dedupeKey),
+    index('live_signals_household_received_idx').on(t.householdId, t.receivedAt),
+    index('live_signals_state_received_idx').on(t.state, t.receivedAt),
+    check('live_signals_source_check', sql`source IN ('wise_webhook', 'pko_email', 'iko_push')`),
+    check(
+      'live_signals_state_check',
+      sql`state IN ('received', 'parsed', 'unparsed', 'applied', 'ignored')`,
     ),
   ],
 );

@@ -3,7 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { applyRoles } from '../../../drizzle/roles.mjs';
 import { startContainers, stopContainers } from './setup.js';
@@ -195,7 +195,8 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
       );
       await verify.query('COMMIT');
       expect(account.rows).toEqual([{ owner_user_id: ids.user, kind: 'bank' }]);
-      expect(tx.rows).toEqual([{ status: 'posted' }]);
+      // 0014 wrote 'posted'; 0017 (SYNC-001) renamed the booked state to 'booked'.
+      expect(tx.rows).toEqual([{ status: 'booked' }]);
     } finally {
       verify.release();
     }
@@ -247,6 +248,131 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     }
   });
 
+  it('0017 backfills transaction status, direction and source kind under FORCE RLS (SYNC-001)', async () => {
+    const pool = await createDatabase(`sync001_${SUFFIX}`);
+    const before = fullJournal().entries.find((e) => e.tag.startsWith('0017_'))!.idx - 1;
+    await migrate(drizzle(pool), { migrationsFolder: folderUpTo(before) });
+    const ids = {
+      user: '01900000-0000-7000-8000-000000000301',
+      household: '01900000-0000-7000-8000-000000000302',
+      connection: '01900000-0000-7000-8000-000000000303',
+      account: '01900000-0000-7000-8000-000000000304',
+      cash: '01900000-0000-7000-8000-000000000305',
+      posted: '01900000-0000-7000-8000-000000000311',
+      pending: '01900000-0000-7000-8000-000000000312',
+      cancelled: '01900000-0000-7000-8000-000000000313',
+      manual: '01900000-0000-7000-8000-000000000314',
+    };
+    const client = await pool.connect();
+    const insertTx = async (
+      id: string,
+      account: string,
+      amount: number,
+      source: string,
+      status: string,
+    ): Promise<void> => {
+      await client.query(
+        `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, source, status)
+         VALUES ($1, $2, $3, '2026-10-01', $4, 'PLN', $5, $6)`,
+        [id, ids.household, account, amount, source, status],
+      );
+    };
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.rls_bypass', 'on', true)");
+      await client.query(`INSERT INTO users (id, email) VALUES ($1, 's@example.com')`, [ids.user]);
+      await client.query(
+        `INSERT INTO households (id, name, base_currency) VALUES ($1, 'h', 'PLN')`,
+        [ids.household],
+      );
+      await client.query(
+        `INSERT INTO bank_connections (id, household_id, user_id, provider, bank_id)
+         VALUES ($1, $2, $3, 'gocardless', 'TEST_BANK')`,
+        [ids.connection, ids.household, ids.user],
+      );
+      await client.query(
+        `INSERT INTO bank_accounts (id, household_id, owner_user_id, connection_id, external_id, name, currency)
+         VALUES ($1, $2, $3, $4, 'ext', 'Main', 'PLN')`,
+        [ids.account, ids.household, ids.user, ids.connection],
+      );
+      await client.query(
+        `INSERT INTO bank_accounts (id, household_id, owner_user_id, kind, name, currency)
+         VALUES ($1, $2, $3, 'manual', 'Cash', 'PLN')`,
+        [ids.cash, ids.household, ids.user],
+      );
+      await insertTx(ids.posted, ids.account, -100, 'bank_sync', 'posted');
+      await insertTx(ids.pending, ids.account, 250, 'bank_sync', 'pending');
+      await insertTx(ids.cancelled, ids.account, -300, 'bank_sync', 'cancelled');
+      await insertTx(ids.manual, ids.cash, -400, 'manual', 'posted');
+      await client.query('COMMIT');
+    } finally {
+      client.release();
+    }
+
+    await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
+
+    const verify = await pool.connect();
+    try {
+      await verify.query('BEGIN');
+      await verify.query("SELECT set_config('app.rls_bypass', 'on', true)");
+      const { rows } = await verify.query(
+        `SELECT id, status, direction, source_kind, auto_mapped FROM transactions ORDER BY id`,
+      );
+      expect(rows).toEqual([
+        {
+          id: ids.posted,
+          status: 'booked',
+          direction: 'debit',
+          source_kind: null,
+          auto_mapped: false,
+        },
+        {
+          id: ids.pending,
+          status: 'pending',
+          direction: 'credit',
+          source_kind: null,
+          auto_mapped: false,
+        },
+        {
+          id: ids.cancelled,
+          status: 'cancelled',
+          direction: 'debit',
+          source_kind: null,
+          auto_mapped: false,
+        },
+        {
+          id: ids.manual,
+          status: 'manual',
+          direction: 'debit',
+          source_kind: 'manual',
+          auto_mapped: false,
+        },
+      ]);
+      // The retired value is refused, and a new row defaults to booked.
+      await verify.query('SAVEPOINT retired');
+      await expect(
+        insertStatus(verify, '01900000-0000-7000-8000-000000000398', "'posted'"),
+      ).rejects.toMatchObject({ code: '23514' });
+      await verify.query('ROLLBACK TO SAVEPOINT retired');
+      await insertStatus(verify, '01900000-0000-7000-8000-000000000399', 'DEFAULT');
+      const fresh = await verify.query(
+        `SELECT status FROM transactions WHERE id = '01900000-0000-7000-8000-000000000399'`,
+      );
+      expect(fresh.rows).toEqual([{ status: 'booked' }]);
+      await verify.query('ROLLBACK');
+    } finally {
+      verify.release();
+    }
+
+    async function insertStatus(db: PoolClient, id: string, status: string): Promise<void> {
+      await db.query(
+        `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, status)
+         VALUES ($1, $2, $3, '2026-10-02', 1, 'PLN', ${status})`,
+        [id, ids.household, ids.account],
+      );
+    }
+  });
+
   it('enables and forces row level security on every tenant data table (CLN-005)', async () => {
     const pool = await createDatabase(`rls_${SUFFIX}`);
     await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
@@ -267,6 +393,7 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
       'category_privacy',
       'household_exports',
       'leftover_snapshots',
+      'live_signals',
       'planned_item_versions',
       'planned_items',
       'plans',
@@ -331,6 +458,16 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
       await owner.query('CREATE TABLE later_table (id int PRIMARY KEY)');
 
       await expect(app.query('INSERT INTO later_table VALUES (1)')).resolves.toBeDefined();
+    });
+
+    it('grants the app role DML on live_signals (SYNC-001)', async () => {
+      const { rows } = await owner.query(
+        `SELECT privilege_type FROM information_schema.role_table_grants
+          WHERE grantee = $1 AND table_name = 'live_signals' ORDER BY privilege_type`,
+        [APP],
+      );
+
+      expect(rows.map((r) => r.privilege_type)).toEqual(['DELETE', 'INSERT', 'SELECT', 'UPDATE']);
     });
 
     it('makes audit_log append-only for the app role', async () => {
