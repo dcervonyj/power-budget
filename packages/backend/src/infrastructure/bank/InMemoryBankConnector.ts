@@ -54,6 +54,8 @@ export class InMemoryBankConnector implements BankConnector {
 
   private readonly scripts = new Map<string, InMemoryBankAccountScript>();
   private consentStatus: BankConsentStatusReport = { status: 'active', validUntil: null };
+  /** Keeps consent refs unique when two consents start in the same millisecond. */
+  private consentSequence = 0;
 
   constructor(
     readonly provider: BankProvider = 'gocardless',
@@ -79,7 +81,8 @@ export class InMemoryBankConnector implements BankConnector {
     redirectUri: string;
     historyDays: number;
   }): Promise<{ consentUrl: string; externalConsentRef: string }> {
-    const ref = `inmem-ref-${input.bankId}-${this.clock.now().getTime()}`;
+    this.consentSequence += 1;
+    const ref = `inmem-ref-${input.bankId}-${this.clock.now().getTime()}-${this.consentSequence}`;
 
     return {
       consentUrl: `https://mock.gocardless.test/consent?ref=${ref}&redirect=${encodeURIComponent(input.redirectUri)}`,

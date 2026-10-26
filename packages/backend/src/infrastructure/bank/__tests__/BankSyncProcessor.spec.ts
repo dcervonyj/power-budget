@@ -185,6 +185,19 @@ describe('BankSyncProcessor', () => {
     expect(syncRunRepo.start).not.toHaveBeenCalled();
   });
 
+  // CLN-038 (BE-BUGS-08): a job queued before a disconnect must not use a leftover consent.
+  it.each(['disconnected', 'pending', 'expired', 'reconnect_required'] as const)(
+    'skips a %s connection even when a consent is left over',
+    async (status) => {
+      connectionRepo.findById.mockResolvedValue(makeConnection({ status }));
+
+      await processor.process(makeJob());
+
+      expect(syncRunRepo.start).not.toHaveBeenCalled();
+      expect(connector.listAccounts).not.toHaveBeenCalled();
+    },
+  );
+
   it('records failure and rethrows when connector throws', async () => {
     const error = new Error('Network error');
     connectionRepo.findById.mockResolvedValue(makeConnection());
