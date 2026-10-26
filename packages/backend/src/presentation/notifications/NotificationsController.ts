@@ -19,11 +19,12 @@ import { WebhookAcceptedDto } from './dto/webhook-response.dto.js';
  * Signed third-party payload: authenticity comes from the Svix signature, and
  * the provider may add fields at any time, so it is a plain type (the global
  * whitelist/forbidNonWhitelisted ValidationPipe skips non-class bodies) and
- * its fields are checked after the signature.
+ * its fields are checked after the signature. Resend puts the recipients of
+ * the bounced email in `data.to`.
  */
 export interface BounceWebhookBody {
-  readonly email?: unknown;
   readonly type?: unknown;
+  readonly data?: { readonly to?: unknown } | null;
 }
 
 @ApiTags('notifications')
@@ -63,7 +64,7 @@ export class NotificationsController {
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
-    await this.recordEmailBounce.execute({ type: body.type, email: body.email });
+    await this.recordEmailBounce.execute({ type: body.type, recipients: body.data?.to });
 
     return { ok: true };
   }
