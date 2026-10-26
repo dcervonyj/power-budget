@@ -1,5 +1,5 @@
-import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { AccessibilityInfo, Platform, Pressable, Text, View } from 'react-native';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { makeStyles, useGlass } from '../../theme/index.js';
 import { BODY_FONT, LABEL_FONT, TOUCH_TARGET } from '../controls/fonts.js';
@@ -45,6 +45,12 @@ export function ErrorBanner({ message, onRetry }: ErrorBannerProps): React.JSX.E
   const styles = useStyles();
   const glass = useGlass();
   const intl = useIntl();
+  // Live regions are Android and web only; VoiceOver needs an explicit announcement.
+  useEffect(() => {
+    if (Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(message);
+    }
+  }, [message]);
   const retryLabel = intl.formatMessage({ id: 'glass-overlays.retry', defaultMessage: 'Retry' });
 
   return (

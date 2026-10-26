@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { Text, View } from 'react-native';
+import { AccessibilityInfo, Platform, Text, View } from 'react-native';
 import { useIntl } from 'react-intl';
 import { makeStyles, useGlass } from '../../theme/index.js';
 import { IconButton } from '../controls/IconButton.js';
@@ -62,6 +62,12 @@ export function Toast({ message, onDismiss }: ToastProps): React.JSX.Element | n
       clearTimeout(timer);
     };
   }, [message, onDismiss]);
+
+  useEffect(() => {
+    if (message !== null && Platform.OS === 'ios') {
+      AccessibilityInfo.announceForAccessibility(message);
+    }
+  }, [message]);
 
   if (message === null) {
     return null;
