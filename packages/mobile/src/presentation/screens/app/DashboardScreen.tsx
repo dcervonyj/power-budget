@@ -12,34 +12,36 @@ import {
 import { FormattedMessage, useIntl } from 'react-intl';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import type { PlanDto } from '@power-budget/shared-app/contract';
-import { plansApi, apiClient } from '../../../infrastructure/index.js';
+import { plansApi, categoriesApi } from '../../../infrastructure/index.js';
+import {
+  DashboardView,
+  type DashboardRowView,
+} from '../../../infrastructure/dashboard/DashboardView.js';
+import { isOutgoing } from '../../../infrastructure/transactions/TransactionView.js';
 import { ProgressBar } from '../../components/ProgressBar.js';
 import { MoneyText } from '../../components/MoneyText.js';
 
 const t = rnDarkTheme;
 
-interface ActualsRow {
-  plannedItemId: string;
-  categoryId: string;
-  name: string;
-  direction: 'income' | 'expense';
-  plannedAmountMinor: number;
-  actualAmountMinor: number;
-  currency: string;
+async function loadCategoryNames(): Promise<ReadonlyMap<string, string>> {
+  try {
+    const categories = await categoriesApi.list({ includeArchived: true });
+
+    return new Map(categories.map((category) => [category.id, category.name]));
+  } catch {
+    return new Map();
+  }
 }
 
-interface PlanActualsView {
-  planId: string;
-  planName: string;
-  period: { start: string; end: string };
-  baseCurrency: string;
-  items: ActualsRow[];
-  unplannedCount: number;
-  unplannedAmountMinor: number;
-  totalIncomeActualMinor: number;
-  totalIncomePlannedMinor: number;
-  totalExpenseActualMinor: number;
-  totalExpensePlannedMinor: number;
+function bandColor(band: DashboardRowView['band']): string {
+  if (band === 'over') {
+    return t.colorStatusDanger;
+  }
+  if (band === 'warning') {
+    return t.colorStatusWarning;
+  }
+
+  return t.colorTextPrimary;
 }
 
 const POLL_INTERVAL_MS = 30_000;
@@ -48,7 +50,7 @@ export function DashboardScreen(): React.JSX.Element {
   const intl = useIntl();
   const [plans, setPlans] = useState<PlanDto[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-  const [actuals, setActuals] = useState<PlanActualsView | null>(null);
+  const [actuals, setActuals] = useState<DashboardView | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -57,8 +59,11 @@ export function DashboardScreen(): React.JSX.Element {
     async (planId: string, silent = false): Promise<void> => {
       if (!silent) setLoading(true);
       try {
-        const response = await apiClient.get<PlanActualsView>(`/plans/${planId}/dashboard`);
-        setActuals(response.data);
+        const [dashboard, categoryNames] = await Promise.all([
+          plansApi.dashboard(planId),
+          loadCategoryNames(),
+        ]);
+        setActuals(DashboardView.fromDto(dashboard, categoryNames));
       } catch {
         if (!silent) {
           Alert.alert(
@@ -138,10 +143,9 @@ export function DashboardScreen(): React.JSX.Element {
     );
   }
 
-  const incomeItems = actuals?.items.filter((r) => r.direction === 'income') ?? [];
-  const expenseItems = actuals?.items.filter((r) => r.direction === 'expense') ?? [];
-  const net = (actuals?.totalIncomeActualMinor ?? 0) - (actuals?.totalExpenseActualMinor ?? 0);
-  const baseCurrency = actuals?.baseCurrency ?? '';
+  const incomeItems = actuals?.incomeRows ?? [];
+  const expenseItems = actuals?.expenseRows ?? [];
+  const planName = plans.find((p) => p.id === selectedPlanId)?.name ?? '';
 
   return (
     <ScrollView
@@ -177,11 +181,11 @@ export function DashboardScreen(): React.JSX.Element {
       {/* Plan header */}
       {actuals && (
         <View style={styles.header}>
-          <Text style={styles.planName}>{actuals.planName}</Text>
+          <Text style={styles.planName}>{planName}</Text>
           <Text style={styles.planPeriod}>
             {intl.formatMessage(
               { id: 'screen.dashboard.period', defaultMessage: '{start} → {end}' },
-              { start: actuals.period.start, end: actuals.period.end },
+              { start: actuals.periodStart, end: actuals.periodEnd },
             )}
           </Text>
           <Text style={styles.planCurrency}>{actuals.baseCurrency}</Text>
@@ -208,17 +212,13 @@ export function DashboardScreen(): React.JSX.Element {
                   <Text style={styles.amountLabel}>
                     <FormattedMessage id="screen.dashboard.planned" defaultMessage="Planned" />
                   </Text>
-                  <MoneyText amountMinor={row.plannedAmountMinor} currency={row.currency} />
+                  <MoneyText amount={row.planned} />
                 </View>
                 <View style={styles.amountCol}>
                   <Text style={styles.amountLabel}>
                     <FormattedMessage id="screen.dashboard.actual" defaultMessage="Actual" />
                   </Text>
-                  <MoneyText
-                    amountMinor={row.actualAmountMinor}
-                    currency={row.currency}
-                    style={{ color: t.colorIncomeDefault }}
-                  />
+                  <MoneyText amount={row.actual} style={{ color: t.colorIncomeDefault }} />
                 </View>
               </View>
             </View>
@@ -237,37 +237,24 @@ export function DashboardScreen(): React.JSX.Element {
           </Text>
         ) : (
           expenseItems.map((row) => {
-            const ratio =
-              row.plannedAmountMinor > 0 ? row.actualAmountMinor / row.plannedAmountMinor : 0;
             return (
               <View key={row.plannedItemId} style={styles.row}>
                 <Text style={styles.rowName} numberOfLines={1}>
                   {row.name}
                 </Text>
-                <ProgressBar ratio={ratio} />
+                <ProgressBar ratio={row.ratio} />
                 <View style={styles.rowAmounts}>
                   <View style={styles.amountCol}>
                     <Text style={styles.amountLabel}>
                       <FormattedMessage id="screen.dashboard.planned" defaultMessage="Planned" />
                     </Text>
-                    <MoneyText amountMinor={row.plannedAmountMinor} currency={row.currency} />
+                    <MoneyText amount={row.planned} />
                   </View>
                   <View style={styles.amountCol}>
                     <Text style={styles.amountLabel}>
                       <FormattedMessage id="screen.dashboard.actual" defaultMessage="Actual" />
                     </Text>
-                    <MoneyText
-                      amountMinor={row.actualAmountMinor}
-                      currency={row.currency}
-                      style={{
-                        color:
-                          ratio > 1
-                            ? t.colorStatusDanger
-                            : ratio > 0.8
-                              ? t.colorStatusWarning
-                              : t.colorTextPrimary,
-                      }}
-                    />
+                    <MoneyText amount={row.actual} style={{ color: bandColor(row.band) }} />
                   </View>
                 </View>
               </View>
@@ -283,20 +270,7 @@ export function DashboardScreen(): React.JSX.Element {
             <FormattedMessage id="screen.dashboard.unplanned" defaultMessage="Unplanned" />
           </Text>
           <View style={styles.unplannedRow}>
-            <Text style={styles.unplannedCount}>
-              {intl.formatMessage(
-                {
-                  id: 'screen.dashboard.unplannedTransactions',
-                  defaultMessage: '{count} transactions',
-                },
-                { count: actuals.unplannedCount },
-              )}
-            </Text>
-            <MoneyText
-              amountMinor={actuals.unplannedAmountMinor}
-              currency={baseCurrency}
-              style={{ color: t.colorStatusWarning }}
-            />
+            <MoneyText amount={actuals.unplannedExpenses} style={{ color: t.colorStatusWarning }} />
           </View>
         </View>
       )}
@@ -308,11 +282,10 @@ export function DashboardScreen(): React.JSX.Element {
             <FormattedMessage id="screen.dashboard.bottomLine" defaultMessage="Net" />
           </Text>
           <MoneyText
-            amountMinor={net}
-            currency={baseCurrency}
+            amount={actuals.net}
             style={[
               styles.netAmount,
-              { color: net >= 0 ? t.colorStatusSuccess : t.colorStatusDanger },
+              { color: isOutgoing(actuals.net) ? t.colorStatusDanger : t.colorStatusSuccess },
             ]}
           />
         </View>
@@ -378,7 +351,6 @@ const styles = StyleSheet.create({
   amountLabel: { fontSize: t.fontSizeXs, color: t.colorTextMuted, marginBottom: 2 },
   emptySection: { color: t.colorTextMuted, fontSize: t.fontSizeSm },
   unplannedRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  unplannedCount: { fontSize: t.fontSizeSm, color: t.colorTextSecondary },
   netContainer: {
     backgroundColor: t.colorSurfaceRaised,
     borderRadius: t.radiusMd,
