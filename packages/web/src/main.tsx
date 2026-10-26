@@ -3,6 +3,10 @@ import * as Sentry from '@sentry/react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './presentation/App.js';
+import '@fontsource-variable/geist';
+// The package exports map only exposes JS, so the generated CSS is imported by path (built by turbo).
+import '../../design-tokens/dist/tokens.css';
+import '../../design-tokens/dist/glass.css';
 import { AppProviders } from './AppProviders.js';
 
 Sentry.init({

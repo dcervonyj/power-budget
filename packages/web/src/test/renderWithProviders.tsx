@@ -2,7 +2,6 @@ import React from 'react';
 import { render, type RenderResult } from '@testing-library/react';
 import { IntlProvider, ReactIntlErrorCode, type IntlConfig } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../presentation/components/ThemeContext.js';
 
 export interface RenderOptions {
@@ -27,7 +26,7 @@ export function renderWithProviders(
 ): RenderResult {
   return render(
     <IntlProvider locale={locale} messages={{}} onError={ignoreMissingTranslation}>
-      <ThemeProvider theme={darkTheme}>
+      <ThemeProvider>
         <MemoryRouter initialEntries={[url]}>
           <Routes>
             <Route path={path} element={element} />
