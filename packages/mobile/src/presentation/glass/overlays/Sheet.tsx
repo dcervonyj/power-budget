@@ -226,8 +226,8 @@ function SheetContent({
           depth={2}
           decor={{ specular: true }}
           radius={radius}
-          style={{ marginBottom: -radius }}
-          contentStyle={{ paddingBottom: radius + glass.space.lg }}
+          style={{ marginBottom: -radius, flexShrink: 1, minHeight: 0 }}
+          contentStyle={{ paddingBottom: radius + glass.space.lg, flexShrink: 1, minHeight: 0 }}
         >
           <View
             testID="sheet-header"

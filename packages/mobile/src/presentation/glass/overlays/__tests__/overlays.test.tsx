@@ -7,6 +7,7 @@ import { Modal } from '../../../components/Modal.js';
 import { EmptyState } from '../EmptyState.js';
 import { ErrorBanner } from '../ErrorBanner.js';
 import { Sheet } from '../Sheet.js';
+import { shouldCloseOnDrag } from '../sheetDrag.js';
 import { Skeleton } from '../Skeleton.js';
 import { TOAST_DISMISS_MS, ToastProvider, useToast } from '../Toast.js';
 
@@ -86,6 +87,32 @@ describe('Sheet', () => {
     await waitFor(() => {
       expect(screen.queryByText('sheet body')).toBeNull();
     });
+  });
+
+  it('renders nothing when first rendered closed', async () => {
+    await renderThemed(
+      <Sheet isOpen={false} title="Edit category" onClose={jest.fn()}>
+        <Text>sheet body</Text>
+      </Sheet>,
+    );
+
+    expect(screen.queryByText('sheet body')).toBeNull();
+  });
+
+  it('closes on a fast flick but not on a tiny or slow one', () => {
+    expect(shouldCloseOnDrag(40, 50)).toBe(true);
+    expect(shouldCloseOnDrag(5, 1)).toBe(false);
+    expect(shouldCloseOnDrag(40, 500)).toBe(false);
+  });
+
+  it('lets the panel shrink so a tall body scrolls inside the 90% cap', async () => {
+    await renderThemed(
+      <Sheet isOpen title="Edit category" onClose={jest.fn()}>
+        <Text>sheet body</Text>
+      </Sheet>,
+    );
+
+    expect(screen.getByTestId('glass-panel')).toHaveStyle({ flexShrink: 1, minHeight: 0 });
   });
 
   it('closes from the close button', async () => {
