@@ -147,6 +147,7 @@ describe('IngestBankTransactionsUseCase', () => {
         fingerprint: null,
         originalAmount: null,
       },
+      ignored: false,
     });
   });
 
@@ -213,5 +214,55 @@ describe('IngestBankTransactionsUseCase', () => {
 
     expect(txRepo.upsertByExternalId).toHaveBeenCalledOnce();
     expect(vi.mocked(txRepo.upsertByExternalId).mock.calls[0]![0].externalId).toBe('booked-1');
+  });
+
+  it('stores an unsupported-currency row ignored and does not read it back', async () => {
+    txRepo.upsertByExternalId.mockResolvedValue({ id: txId, created: true });
+
+    await useCase.execute({
+      accountId,
+      rawTransactions: [makeRawTx({ currency: 'HUF' })],
+      householdId,
+    });
+
+    const stored = vi.mocked(txRepo.upsertByExternalId).mock.calls[0]![0];
+    expect(stored.ignored).toBe(true);
+    expect(stored.amount).toEqual({ amountMinor: 1000n, currency: 'HUF' });
+    expect(txRepo.findById).not.toHaveBeenCalled();
+  });
+
+  it('stores a supported currency row counted, normalising the code', async () => {
+    txRepo.upsertByExternalId.mockResolvedValue({ id: txId, created: false });
+
+    await useCase.execute({
+      accountId,
+      rawTransactions: [makeRawTx({ currency: 'pln' })],
+      householdId,
+    });
+
+    const stored = vi.mocked(txRepo.upsertByExternalId).mock.calls[0]![0];
+    expect(stored.ignored).toBe(false);
+    expect(stored.amount.currency).toBe('PLN');
+  });
+
+  it('gives identical rows without an entry reference distinct keys, the first keeping the old one', async () => {
+    txRepo.upsertByExternalId.mockResolvedValue({ id: txId, created: false });
+    const twin = makeRawTx({ entryReference: null });
+
+    await useCase.execute({ accountId, rawTransactions: [twin, twin, twin], householdId });
+    await useCase.execute({ accountId, rawTransactions: [twin], householdId });
+
+    const keys = vi.mocked(txRepo.upsertByExternalId).mock.calls.map((call) => call[0].externalId);
+    expect(new Set(keys.slice(0, 3)).size).toBe(3);
+    expect(keys[3]).toBe(keys[0]);
+  });
+
+  it('never adds an ordinal to rows keyed by a bank entry reference', async () => {
+    txRepo.upsertByExternalId.mockResolvedValue({ id: txId, created: false });
+
+    await useCase.execute({ accountId, rawTransactions: [rawTx, rawTx], householdId });
+
+    const keys = vi.mocked(txRepo.upsertByExternalId).mock.calls.map((call) => call[0].externalId);
+    expect(keys).toEqual(['ext-1', 'ext-1']);
   });
 });

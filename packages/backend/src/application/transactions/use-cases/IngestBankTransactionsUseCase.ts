@@ -1,4 +1,4 @@
-import type { BankAccountId, HouseholdId, CurrencyCode, IsoDate, Money } from '@power-budget/core';
+import type { BankAccountId, HouseholdId, IsoDate, Money } from '@power-budget/core';
 import { TransactionId, isSupportedCurrency } from '@power-budget/core';
 import type {
   TransactionRepository,
@@ -7,6 +7,7 @@ import type {
 } from '../../../domain/transactions/ports.js';
 import type {
   BankTransactionDetails,
+  IngestHashInput,
   NewTransaction,
   TransactionMapping,
 } from '../../../domain/transactions/entities.js';
@@ -30,9 +31,10 @@ export class IngestBankTransactionsUseCase {
   ) {}
 
   async execute(input: IngestBankTransactionsInput): Promise<void> {
+    const seen = new Map<string, number>();
     for (const raw of input.rawTransactions) {
       if (this.isIngestedStatus(raw)) {
-        await this.ingestOne(raw, input.accountId, input.householdId);
+        await this.ingestOne(raw, input.accountId, input.householdId, seen);
       }
     }
   }
@@ -62,6 +64,7 @@ export class IngestBankTransactionsUseCase {
     raw: RawTransaction,
     accountId: BankAccountId,
     householdId: HouseholdId,
+    seen: Map<string, number>,
   ): Promise<void> {
     const occurredOn = this.economicDate(raw);
     if (occurredOn === null) {
@@ -69,13 +72,19 @@ export class IngestBankTransactionsUseCase {
     }
 
     const id = TransactionId.of(this.generateId());
-    const externalId = IdempotentIngest.resolveExternalId(raw.entryReference, {
+    const hashInput = {
       accountId,
       occurredOn,
       amountMinor: raw.amountMinor,
       currency: raw.currency,
       normalisedDescription: IdempotentIngest.normaliseDescription(raw.remittance),
+    };
+    const externalId = IdempotentIngest.resolveExternalId(raw.entryReference, {
+      ...hashInput,
+      ordinal: this.ordinalOf(raw, hashInput, seen),
     });
+    const currency = raw.currency.trim().toUpperCase();
+    const supported = isSupportedCurrency(currency);
 
     const newTx: NewTransaction = {
       id,
@@ -83,7 +92,8 @@ export class IngestBankTransactionsUseCase {
       accountId,
       externalId,
       occurredOn,
-      amount: { amountMinor: raw.amountMinor, currency: raw.currency as CurrencyCode },
+      // An unsupported currency is stored as received and ignored, so no reader counts it.
+      amount: { amountMinor: raw.amountMinor, currency },
       description: raw.remittance,
       merchant: raw.counterpartyName,
       source: 'bank_sync',
@@ -91,10 +101,11 @@ export class IngestBankTransactionsUseCase {
       sourceKind: null,
       status: 'booked',
       bank: this.bankDetailsOf(raw),
+      ignored: !supported,
     };
 
     const { id: txId, created } = await this.transactionRepo.upsertByExternalId(newTx);
-    if (!created) {
+    if (!created || !supported) {
       return;
     }
 
@@ -112,6 +123,26 @@ export class IngestBankTransactionsUseCase {
         { householdId },
       );
     }
+  }
+
+  /**
+   * The position of this row among identical rows (same account, day, amount and description)
+   * of the fetch. Rows with a bank entry reference are keyed by it and never get an ordinal.
+   */
+  private ordinalOf(
+    raw: RawTransaction,
+    hashInput: IngestHashInput,
+    seen: Map<string, number>,
+  ): number {
+    if (raw.entryReference !== null) {
+      return 0;
+    }
+
+    const base = IdempotentIngest.computeHashKey(hashInput);
+    const ordinal = seen.get(base) ?? 0;
+    seen.set(base, ordinal + 1);
+
+    return ordinal;
   }
 
   /** The bank fields as received; the counterparty IBAN hash and fingerprint come with SYNC-006. */
