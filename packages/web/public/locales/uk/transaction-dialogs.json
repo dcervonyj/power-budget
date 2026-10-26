@@ -1,0 +1,4 @@
+{
+  "transaction-dialogs.map.previewOver": "Після віднесення: перевищення на {amount}",
+  "transaction-dialogs.map.previewLeft": "Після віднесення: залишається {amount} із {plan}"
+}
