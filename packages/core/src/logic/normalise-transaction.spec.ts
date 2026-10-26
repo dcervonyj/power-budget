@@ -154,6 +154,8 @@ describe('normaliseTransaction performance', () => {
       const started = performance.now();
 
       normaliseTransaction(`${prefix}${' '.repeat(50000)}x`);
+      normaliseTransaction(`${prefix}${'\t'.repeat(50000)}x`);
+      normaliseTransaction(`${prefix}${'\u00a0\n'.repeat(25000)}x`);
 
       expect(performance.now() - started).toBeLessThan(500);
     },
