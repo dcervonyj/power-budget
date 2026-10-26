@@ -40,6 +40,8 @@ export type {
 } from './aggregate-by-category-with-privacy.js';
 export { applyMappingSuggestion } from './apply-mapping-suggestion.js';
 export type { PriorMapping } from './apply-mapping-suggestion.js';
+export { normaliseText, normaliseTransaction } from './normalise-transaction.js';
+export type { DescriptorClass, NormalisedTransaction } from './normalise-transaction.js';
 export { periodProgress } from './period-progress.js';
 export type { PeriodProgress, PeriodState } from './period-progress.js';
 export { dailyAllowance, linearForecast } from './forecast.js';
