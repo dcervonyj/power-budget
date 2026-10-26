@@ -156,7 +156,7 @@ export function LensLight(props: LensLightProps): React.JSX.Element {
   const settled = useSettle(fraction, reducedMotion);
   const bloomPulse = useLoop(loops, { durationMs: BLOOM_MS, reverse: true });
   const bloomOpacity = useDerivedValue(() => 0.7 + 0.3 * bloomPulse.value);
-  const bloomGlobal = useDerivedValue(() => coreMetrics(settled.value).opacity);
+  const bloomGlobal = useDerivedValue(() => 0.5 + 0.5 * Math.min(1, Math.max(0, settled.value)));
   const bloomAlpha = useDerivedValue(() => bloomOpacity.value * bloomGlobal.value);
 
   return (

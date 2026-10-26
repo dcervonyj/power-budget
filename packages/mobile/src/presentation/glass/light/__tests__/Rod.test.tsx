@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { screen } from '@testing-library/react-native';
+import { fireEvent, screen } from '@testing-library/react-native';
 import type { RodData } from '@power-budget/shared-app';
-import { Rod, RodLight } from '../Rod.js';
-import { glassLightRn, renderLight } from './lightTestUtils.js';
+import { Rod } from '../Rod.js';
+import { renderLight } from './lightTestUtils.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -19,12 +19,15 @@ const UNDER: RodData = {
   size: 'pace',
 };
 
-function lightOf(rod: RodData): React.JSX.Element {
-  return <RodLight glass={glassLightRn} rod={rod} index={0} width={300} height={14} />;
+async function renderLaidOut(rod: RodData): Promise<void> {
+  await renderLight(<Rod rod={rod} />);
+  await fireEvent(screen.getByTestId('rod-track'), 'layout', {
+    nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 14 } },
+  });
 }
 
 function count(name: string): number {
-  return screen.queryAllByTestId(`skia-${name}`).length;
+  return screen.queryAllByTestId(`skia-${name}`, { includeHiddenElements: true }).length;
 }
 
 describe('Rod', () => {
@@ -53,15 +56,15 @@ describe('Rod', () => {
     expect(screen.getByText('Przekroczony budżet')).toBeTruthy();
   });
 
-  it('draws the hatch and no beam when over', async () => {
-    await renderLight(lightOf({ ...UNDER, state: 'over', fraction: 0 }));
+  it('draws the hatch and no beam when over, even with money left in the data', async () => {
+    await renderLaidOut({ ...UNDER, state: 'over' });
 
     expect(count('Path')).toBe(1);
     expect(count('RoundedRect')).toBe(0);
   });
 
   it('shows the Paid tag with no light when paid', async () => {
-    await renderLight(<Rod rod={{ ...UNDER, state: 'paid', fraction: 0 }} />);
+    await renderLaidOut({ ...UNDER, state: 'paid' });
 
     expect(screen.getByText('Paid')).toBeTruthy();
     expect(count('RoundedRect')).toBe(0);
@@ -75,15 +78,22 @@ describe('Rod', () => {
   });
 
   it('draws the beam while under', async () => {
-    await renderLight(lightOf(UNDER));
+    await renderLaidOut(UNDER);
 
     expect(count('RoundedRect')).toBe(3);
+    expect(count('Path')).toBe(0);
   });
 
-  it('draws nothing when empty', async () => {
-    await renderLight(lightOf({ ...UNDER, state: 'empty', fraction: 0 }));
+  it('draws nothing when empty, even with a stale fraction', async () => {
+    await renderLaidOut({ ...UNDER, state: 'empty' });
 
     expect(count('RoundedRect')).toBe(0);
     expect(count('Path')).toBe(0);
+  });
+
+  it('draws no beam under at fraction 0', async () => {
+    await renderLaidOut({ ...UNDER, fraction: 0 });
+
+    expect(count('RoundedRect')).toBe(0);
   });
 });

@@ -35,8 +35,8 @@ describe('Lens', () => {
     await renderLight(<Lens lens={UNDER} />);
     const canvas = screen.getByTestId('lens-frame').children[0];
 
-    expect(canvas).toBeTruthy();
-    expect(screen.getByTestId('lens-frame')).toHaveProp('accessibilityLabel', UNDER.ariaLabel);
+    expect(canvas).toHaveProp('accessibilityElementsHidden', true);
+    expect(canvas).toHaveProp('importantForAccessibility', 'no-hide-descendants');
   });
 
   it('puts the number in the upper 42 percent only', async () => {

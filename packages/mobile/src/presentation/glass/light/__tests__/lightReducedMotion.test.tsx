@@ -1,10 +1,12 @@
 import React from 'react';
 import { AccessibilityInfo, AppState } from 'react-native';
+import { Canvas } from '@shopify/react-native-skia';
 import { screen } from '@testing-library/react-native';
 import type { LensData } from '@power-budget/shared-app';
 import { Lens } from '../Lens.js';
-import { Rod } from '../Rod.js';
-import { lightProviders, renderLight } from './lightTestUtils.js';
+import { RodLight } from '../Rod.js';
+import { TubeBeam } from '../Tube.js';
+import { glassLightRn, lightProviders, renderLight } from './lightTestUtils.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -13,6 +15,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 let mockReduced = false;
 const mockRepeat = jest.fn();
 const mockTiming = jest.fn();
+
+jest.mock('@shopify/react-native-skia', () => jest.requireActual('./skiaNamed.mock.js'));
 
 jest.mock('react-native-reanimated', () => {
   const base = jest.requireActual('react-native-reanimated');
@@ -61,14 +65,25 @@ describe('reduced motion and settle', () => {
     await renderLight(
       <>
         <Lens lens={LENS} />
-        <Rod rod={{ fraction: 0.5, state: 'under', size: 'category', ariaLabel: 'rod' }} />
+        <Canvas>
+          <RodLight
+            glass={glassLightRn}
+            rod={{ fraction: 0.5, state: 'under', size: 'category', ariaLabel: 'rod' }}
+            index={0}
+            width={300}
+            height={10}
+          />
+          <TubeBeam glass={glassLightRn} fraction={0.5} index={0} width={18} height={160} />
+        </Canvas>
       </>,
     );
 
     expect(mockRepeat).not.toHaveBeenCalled();
     expect(mockTiming).not.toHaveBeenCalled();
     expect(screen.getByText('477')).toBeTruthy();
-    expect(screen.getByRole('image', { name: 'rod' })).toBeTruthy();
+    expect(
+      screen.queryAllByTestId('skia-RoundedRect', { includeHiddenElements: true }).length,
+    ).toBeGreaterThan(0);
   });
 
   it('settles to a new fraction over 420 ms', async () => {
