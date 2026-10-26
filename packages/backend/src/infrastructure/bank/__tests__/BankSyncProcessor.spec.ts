@@ -199,17 +199,56 @@ describe('BankSyncProcessor', () => {
     });
   });
 
-  it('uses lastSuccessfulAt as the since date when available', async () => {
-    const lastSuccess = new Date('2024-01-01T00:00:00Z');
-    syncRunRepo.lastSuccessfulAt.mockResolvedValue(lastSuccess);
-    connectionRepo.findById.mockResolvedValue(makeConnection());
+  describe('default since', () => {
+    const DAY_MS = 24 * 3600 * 1000;
 
-    await processor.process(makeJob());
+    beforeEach(() => {
+      connectionRepo.findById.mockResolvedValue(makeConnection());
+      connector.listAccounts.mockResolvedValue([
+        { externalId: 'ext-acc-1', name: 'A', iban: null, currency: 'PLN', balanceMinor: 0n },
+      ]);
+      bankAccountRepo.listByConnection.mockResolvedValue([
+        { id: 'db-acc-1' as never, externalId: 'ext-acc-1' } as never,
+      ]);
+      connector.fetchTransactions.mockResolvedValue([]);
+    });
 
-    expect(connector.listAccounts).toHaveBeenCalled();
-    // since date comes from lastSuccessfulAt; verify fetchTransactions is called with that date
-    // (no accounts so fetchTransactions is not called here, but the flow runs correctly)
-    expect(syncRunRepo.finish).toHaveBeenCalledWith(SYNC_RUN_ID, { ok: true, fetched: 0 });
+    function fetchedFrom(): Date {
+      const call = connector.fetchTransactions.mock.calls[0];
+      if (call === undefined) {
+        throw new Error('fetchTransactions was not called');
+      }
+
+      return call[0].dateFrom;
+    }
+
+    it('resumes from the last success minus the overlap window', async () => {
+      const lastSuccess = new Date('2024-01-10T00:00:00Z');
+      syncRunRepo.lastSuccessfulAt.mockResolvedValue(lastSuccess);
+
+      await processor.process(makeJob());
+
+      expect(fetchedFrom()).toEqual(
+        new Date(lastSuccess.getTime() - BankSyncProcessor.OVERLAP_DAYS * DAY_MS),
+      );
+    });
+
+    it('looks 90 days back on the first sync', async () => {
+      const before = Date.now();
+
+      await processor.process(makeJob());
+
+      const expected = before - BankSyncProcessor.INITIAL_LOOKBACK_DAYS * DAY_MS;
+      expect(Math.abs(fetchedFrom().getTime() - expected)).toBeLessThan(5_000);
+    });
+
+    it('reads the watermark before start() inserts the new run', async () => {
+      await processor.process(makeJob());
+
+      const read = syncRunRepo.lastSuccessfulAt.mock.invocationCallOrder[0] ?? Infinity;
+      const started = syncRunRepo.start.mock.invocationCallOrder[0] ?? 0;
+      expect(read).toBeLessThan(started);
+    });
   });
 
   it('uses the since field from job data when provided', async () => {

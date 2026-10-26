@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Inject } from '@nestjs/common';
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { BankConnectionId, SyncRunId } from '@power-budget/core';
 import type { SyncRunRepository, SyncRunStartOptions } from '../../domain/bank/ports.js';
@@ -44,8 +44,10 @@ export class DrizzleSyncRunRepository implements SyncRunRepository {
     const rows = await this.db
       .select({ lastSuccessfulAt: schema.syncRuns.lastSuccessfulAt })
       .from(schema.syncRuns)
-      .where(eq(schema.syncRuns.connectionId, connectionId))
-      .orderBy(desc(schema.syncRuns.createdAt))
+      .where(
+        and(eq(schema.syncRuns.connectionId, connectionId), eq(schema.syncRuns.status, 'success')),
+      )
+      .orderBy(desc(schema.syncRuns.lastSuccessfulAt))
       .limit(1);
     return rows[0]?.lastSuccessfulAt ?? null;
   }
