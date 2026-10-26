@@ -54,7 +54,10 @@ function toPrefixPattern(source: string): RegExp {
 }
 
 const COUNTERPARTY_MARKER =
-  /\b(?:odbiorca|nadawca|recipient|sender|beneficiary|transfer (?:to|from)|received from|sent to|from|przelew(?: blik)? (?:do|od)|(?:przelew )?(?:blik )?na telefon)\b/i;
+  /\b(?:odbiorca|nadawca|recipient|sender|beneficiary|transfer (?:to|from)|received from|sent to|przelew(?: blik)? (?:do|od)|(?:przelew )?(?:blik )?na telefon)\b/i;
+
+const TITLE_MARKER =
+  /(?:,|(?<![\p{L}\d])(?:op[łl]ata za|tytu[łl](?:em)?|title|za)(?![\p{L}\d])).*$/iu;
 
 /** Folded city names that trail card descriptors. */
 const CITIES: readonly string[] = [
@@ -147,7 +150,11 @@ function classify(description: string): DescriptorClass {
     return 'atm';
   }
 
-  if (/\b(przelew (do|od)|odbiorca|nadawca|transfer (to|from)|recipient|sender)\b/.test(key)) {
+  if (
+    /\b(przelew (do|od)|odbiorca|nadawca|transfer (to|from)|received from|sent to|beneficiary|recipient|sender)\b/.test(
+      key,
+    )
+  ) {
     return 'transfer';
   }
 
@@ -178,7 +185,7 @@ function extractCounterparty(description: string, descriptorClass: DescriptorCla
   }
 
   const rest = description.slice(matched.index + matched[0].length).replace(/^[\s:-]+/, '');
-  const counterparty = stripTrailingMetadata(rest);
+  const counterparty = stripTrailingMetadata(cutAtTitle(rest));
 
   return counterparty.length === 0 ? null : counterparty;
 }
@@ -197,14 +204,27 @@ function extractMerchant(
   return merchant.length === 0 ? null : merchant;
 }
 
+function cutAtTitle(rest: string): string {
+  const name = rest.replace(TITLE_MARKER, '').trim();
+
+  return name.length === 0 ? rest : name;
+}
+
 function stripFirstPrefix(description: string): string {
   for (const prefix of MERCHANT_PREFIXES) {
     if (prefix.test(description)) {
-      return description.replace(prefix, '');
+      return keepPrefixWhenNothingFollows(description, description.replace(prefix, ''));
     }
   }
 
   return description;
+}
+
+/** "Allegro", "PAYU 98765 WARSZAWA": the processor is the merchant when only noise follows. */
+function keepPrefixWhenNothingFollows(description: string, rest: string): string {
+  const key = merchantKey(stripTrailingMetadata(rest));
+
+  return key === '' || CITIES.includes(key) ? description : rest;
 }
 
 function merchantKey(merchant: string): string {
@@ -214,7 +234,7 @@ function merchantKey(merchant: string): string {
     .replace(/\b[ck]\.?\d+\b/gi, '')
     .replace(/\b\d{3,}\b/g, '');
 
-  return stripTrailingLocation(normaliseText(withoutNoise));
+  return stripTrailingLocation(normaliseText(withoutNoise.replace(/\.pl\b/gi, '')));
 }
 
 function stripTrailingLocation(key: string): string {
