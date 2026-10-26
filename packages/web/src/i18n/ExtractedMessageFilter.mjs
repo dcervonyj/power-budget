@@ -27,10 +27,12 @@ export function excludeFeatureMessages(extractedMessages, featureMessageIds) {
 
 function writeLegacyMessages(extractedMessagesPath, featureDirectory, legacyMessagesPath) {
   const extractedMessages = JSON.parse(readFileSync(extractedMessagesPath, 'utf8'));
-  const legacyMessages = excludeFeatureMessages(
+  const extractedLegacyMessages = excludeFeatureMessages(
     extractedMessages,
     readFeatureMessageIds(featureDirectory),
   );
+  const existingLegacyMessages = JSON.parse(readFileSync(legacyMessagesPath, 'utf8'));
+  const legacyMessages = { ...existingLegacyMessages, ...extractedLegacyMessages };
 
   writeFileSync(legacyMessagesPath, `${JSON.stringify(legacyMessages, null, 2)}\n`);
 }
