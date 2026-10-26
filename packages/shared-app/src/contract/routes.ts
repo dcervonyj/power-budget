@@ -1,5 +1,6 @@
 export type AppRoute =
-  | { type: 'auth/login' }
+  /** `returnToCurrent`: the session ended here; come back to this screen after login. */
+  | { type: 'auth/login'; returnToCurrent?: boolean }
   | { type: 'auth/register' }
   | { type: 'auth/magic-link' }
   | { type: 'auth/totp-enrolment' }

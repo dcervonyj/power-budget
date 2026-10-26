@@ -1,6 +1,7 @@
 import axios, { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ApiClient } from '../ApiClient.js';
+import { ApiClient, type RefreshRaceTiming } from '../ApiClient.js';
+import { readApiError } from '../ApiError.js';
 import type { SecureTokenStore } from '../../tokens/SecureTokenStore.js';
 
 class InMemoryTokenStore implements SecureTokenStore {
@@ -34,11 +35,22 @@ interface SeenRequest {
   body: unknown;
 }
 
-type Route = (config: InternalAxiosRequestConfig) => { status: number; data: unknown };
+interface RouteResult {
+  status: number;
+  data: unknown;
+}
+
+type Route = (config: InternalAxiosRequestConfig) => RouteResult | Promise<RouteResult>;
+
+/** Status 0 stands for "no response" (offline, DNS, connection reset). */
+const NETWORK_ERROR = 0;
 
 const HANG_GUARD_MS = 1000;
 
 function respond(config: InternalAxiosRequestConfig, status: number, data: unknown) {
+  if (status === NETWORK_ERROR) {
+    return Promise.reject(new AxiosError('Network Error', 'ERR_NETWORK', config, null));
+  }
   const response = { data, status, statusText: String(status), headers: {}, config };
   if (status >= 400) {
     return Promise.reject(
@@ -47,6 +59,72 @@ function respond(config: InternalAxiosRequestConfig, status: number, data: unkno
   }
 
   return Promise.resolve(response);
+}
+
+/** Fast enough for the hang guard; the production default waits 3 s. */
+const RACE_TIMING: RefreshRaceTiming = { waitMs: 200, pollMs: 5 };
+
+interface RefreshLatency {
+  /** Time to answer 201 after the token was taken (Redis SET, household lookup, JWT). */
+  issueMs: number;
+  /** Time to answer 401 for a token that was already taken. */
+  rejectMs: number;
+}
+
+/**
+ * The backend's refresh semantics: a refresh token is single use (Redis GETDEL on
+ * arrival), each refresh rotates the pair, and only the latest access token is accepted.
+ */
+class RotatingRefreshServer {
+  private validAccess = 'access-0';
+  private readonly refreshTokens: Set<string>;
+  private issued = 0;
+
+  constructor(
+    refreshToken: string,
+    private readonly latency: RefreshLatency = { issueMs: 20, rejectMs: 20 },
+  ) {
+    this.refreshTokens = new Set([refreshToken]);
+  }
+
+  data(config: InternalAxiosRequestConfig): RouteResult {
+    if (config.headers.Authorization === `Bearer ${this.validAccess}`) {
+      return { status: 200, data: { ok: true } };
+    }
+
+    return { status: 401, data: { code: 'unauthorized' } };
+  }
+
+  async refresh(config: InternalAxiosRequestConfig): Promise<RouteResult> {
+    const body: unknown = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
+    const refreshToken = Reflect.get(Object(body), 'refreshToken');
+    if (typeof refreshToken !== 'string' || !this.refreshTokens.delete(refreshToken)) {
+      await delay(this.latency.rejectMs);
+
+      return { status: 401, data: { code: 'invalid_credentials' } };
+    }
+    await delay(this.latency.issueMs);
+    this.issued += 1;
+    this.validAccess = `access-${this.issued}`;
+    const rotated = `refresh-${this.issued}`;
+    this.refreshTokens.add(rotated);
+
+    return { status: 201, data: { accessToken: this.validAccess, refreshToken: rotated } };
+  }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function statusOf(result: PromiseSettledResult<{ status: number }>): number {
+  if (result.status === 'fulfilled') {
+    return result.value.status;
+  }
+
+  return readApiError(result.reason).status;
 }
 
 function withinGuard<T>(promise: Promise<T>): Promise<T> {
@@ -66,9 +144,14 @@ describe('ApiClient token refresh', () => {
   let unauthenticated: number;
 
   function createClient(): ApiClient {
-    return new ApiClient('http://api.test', store, () => {
-      unauthenticated += 1;
-    });
+    return new ApiClient(
+      'http://api.test',
+      store,
+      () => {
+        unauthenticated += 1;
+      },
+      RACE_TIMING,
+    );
   }
 
   beforeEach(() => {
@@ -76,7 +159,7 @@ describe('ApiClient token refresh', () => {
     routes = {};
     store = new InMemoryTokenStore();
     unauthenticated = 0;
-    const adapter: AxiosAdapter = (config) => {
+    const adapter: AxiosAdapter = async (config) => {
       const url = config.url ?? '';
       seen.push({
         url,
@@ -84,7 +167,7 @@ describe('ApiClient token refresh', () => {
         body: typeof config.data === 'string' ? JSON.parse(config.data) : config.data,
       });
       const route = routes[url];
-      const { status, data } = route ? route(config) : { status: 404, data: {} };
+      const { status, data } = route ? await route(config) : { status: 404, data: {} };
 
       return respond(config, status, data);
     };
@@ -203,6 +286,140 @@ describe('ApiClient token refresh', () => {
     expect(seen.map((r) => r.url)).toEqual(['/transactions', '/auth/refresh', '/transactions']);
     expect(store.cleared).toBe(1);
     expect(unauthenticated).toBe(1);
+  });
+
+  it('ends the session when /auth/refresh answers 400', async () => {
+    routes['/transactions'] = protectedRoute('never');
+    routes['/auth/refresh'] = () => ({ status: 400, data: { code: 'validation_failed' } });
+
+    const failure = await withinGuard(createClient().get('/transactions')).catch(
+      (error: unknown) => error,
+    );
+
+    expect(readApiError(failure).status).toBe(400);
+    expect(store.cleared).toBe(1);
+    expect(unauthenticated).toBe(1);
+  });
+
+  it('keeps the session when /auth/refresh answers 503 and rejects with a retryable error', async () => {
+    routes['/a'] = protectedRoute('new-access');
+    routes['/b'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = () => ({ status: 503, data: {} });
+    const client = createClient();
+
+    const results = await withinGuard(Promise.allSettled([client.get('/a'), client.get('/b')]));
+
+    expect(results.map(statusOf)).toEqual([503, 503]);
+    expect(seen.filter((r) => r.url === '/auth/refresh')).toHaveLength(1);
+    expect(store.access).toBe('old-access');
+    expect(store.refresh).toBe('old-refresh');
+    expect(store.cleared).toBe(0);
+    expect(unauthenticated).toBe(0);
+  });
+
+  it('refreshes again on the next 401 after a 503 from /auth/refresh', async () => {
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = () => ({ status: 503, data: {} });
+    const client = createClient();
+    await withinGuard(client.get('/transactions')).catch((error: unknown) => error);
+    routes['/auth/refresh'] = () => ({
+      status: 201,
+      data: { accessToken: 'new-access', refreshToken: 'new-refresh' },
+    });
+
+    const res = await withinGuard(client.get('/transactions'));
+
+    expect(res.data).toEqual({ ok: true });
+    expect(store.refresh).toBe('new-refresh');
+    expect(unauthenticated).toBe(0);
+  });
+
+  it('keeps the session when /auth/refresh fails with a network error', async () => {
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = () => ({ status: NETWORK_ERROR, data: null });
+
+    const failure = await withinGuard(createClient().get('/transactions')).catch(
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBeInstanceOf(AxiosError);
+    expect(readApiError(failure).status).toBe(0);
+    expect(store.access).toBe('old-access');
+    expect(store.refresh).toBe('old-refresh');
+    expect(store.cleared).toBe(0);
+    expect(unauthenticated).toBe(0);
+  });
+
+  it('retries with the stored token without refreshing when another tab refreshed meanwhile', async () => {
+    routes['/transactions'] = (config) => {
+      if (config.headers.Authorization === 'Bearer tab-a-access') {
+        return { status: 200, data: { ok: true } };
+      }
+      // Tab A refreshed while this request was in flight.
+      store.access = 'tab-a-access';
+      store.refresh = 'tab-a-refresh';
+
+      return { status: 401, data: { code: 'unauthorized' } };
+    };
+
+    const res = await withinGuard(createClient().get('/transactions'));
+
+    expect(res.data).toEqual({ ok: true });
+    expect(seen.map((r) => r.url)).toEqual(['/transactions', '/transactions']);
+    expect(unauthenticated).toBe(0);
+  });
+
+  it.each<[string, RefreshLatency]>([
+    ['the winner answers first', { issueMs: 20, rejectMs: 20 }],
+    ['the loser is rejected before the winner stored its pair', { issueMs: 60, rejectMs: 1 }],
+  ])('keeps both tabs signed in when they refresh with the same token (%s)', async (_, latency) => {
+    const server = new RotatingRefreshServer('old-refresh', latency);
+    routes['/data'] = (config) => server.data(config);
+    routes['/auth/refresh'] = (config) => server.refresh(config);
+    const loggedOut: string[] = [];
+    const tabA = new ApiClient('http://api.test', store, () => loggedOut.push('A'), RACE_TIMING);
+    const tabB = new ApiClient('http://api.test', store, () => loggedOut.push('B'), RACE_TIMING);
+
+    const results = await withinGuard(Promise.allSettled([tabA.get('/data'), tabB.get('/data')]));
+
+    expect(results.map(statusOf)).toEqual([200, 200]);
+    expect(seen.filter((r) => r.url === '/auth/refresh')).toHaveLength(2);
+    expect(loggedOut).toEqual([]);
+    expect(store.cleared).toBe(0);
+    expect(store.access).toBe('access-1');
+    expect(store.refresh).toBe('refresh-1');
+  });
+
+  it('ends the session when the refresh token is rejected and no other tab replaced it', async () => {
+    const server = new RotatingRefreshServer('someone-elses-refresh');
+    routes['/data'] = (config) => server.data(config);
+    routes['/auth/refresh'] = (config) => server.refresh(config);
+
+    const failure = await withinGuard(createClient().get('/data')).catch((error: unknown) => error);
+
+    expect(readApiError(failure).status).toBe(401);
+    expect(store.cleared).toBe(1);
+    expect(unauthenticated).toBe(1);
+  });
+
+  it('surfaces a failure to store the rotated pair as that error, without ending the session', async () => {
+    const storageFull = new Error('QuotaExceededError');
+    store.setTokens = async (): Promise<void> => {
+      throw storageFull;
+    };
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = () => ({
+      status: 201,
+      data: { accessToken: 'new-access', refreshToken: 'new-refresh' },
+    });
+
+    const failure = await withinGuard(createClient().get('/transactions')).catch(
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBe(storageFull);
+    expect(store.cleared).toBe(0);
+    expect(unauthenticated).toBe(0);
   });
 
   it('sends PATCH with a body', async () => {
