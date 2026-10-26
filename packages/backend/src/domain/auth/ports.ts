@@ -41,6 +41,29 @@ export interface HouseholdRepository {
   scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void>;
 }
 
+/** What one purge removed (CLN-022). */
+export interface HouseholdPurgeResult {
+  readonly householdId: HouseholdId;
+  /** Former members with no remaining household, whose account was deleted too. */
+  readonly deletedUserIds: readonly UserId[];
+}
+
+/** GDPR hard delete of households whose grace period has passed (runs in the worker only). */
+export interface HouseholdPurgeRepository {
+  /** Households whose `delete_scheduled_at` is at or before `now`, oldest first, minus `excludeIds`. */
+  findDueHouseholdIds(
+    now: Date,
+    limit: number,
+    excludeIds: readonly HouseholdId[],
+  ): Promise<HouseholdId[]>;
+  /**
+   * Deletes the household's data, memberships and the household in one transaction, then the
+   * accounts of former members left without a household. Returns null when the household is
+   * gone or no longer due (deletion cancelled meanwhile).
+   */
+  purge(householdId: HouseholdId, now: Date): Promise<HouseholdPurgeResult | null>;
+}
+
 export interface PasswordHashing {
   hash(plain: string): Promise<string>;
   verify(plain: string, hash: string): Promise<boolean>;
