@@ -12,9 +12,11 @@ export {
 
 import { ApiClient, PlansApi } from '@power-budget/shared-app';
 import { ExpoSecureStoreTokenStore } from './tokens/ExpoSecureStoreTokenStore.js';
+import { resolveApiBaseUrl } from './config/ApiBaseUrl.js';
 import { AuthService } from './auth/AuthService.js';
 
-const API_BASE_URL = 'http://localhost:3000';
+// Expo only inlines the literal `process.env.EXPO_PUBLIC_*` form.
+const API_BASE_URL = resolveApiBaseUrl(process.env.EXPO_PUBLIC_API_URL, __DEV__);
 
 export const tokenStore = new ExpoSecureStoreTokenStore();
 
