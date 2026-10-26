@@ -51,4 +51,26 @@ ALTER TABLE "bank_fetch_ledger" ENABLE ROW LEVEL SECURITY;--> statement-breakpoi
 ALTER TABLE "bank_fetch_ledger" FORCE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE POLICY tenant_isolation ON "bank_fetch_ledger"
   USING (app_rls_bypass() OR household_id = app_current_household_id())
-  WITH CHECK (app_rls_bypass() OR household_id = app_current_household_id());
+  WITH CHECK (
+    app_rls_bypass()
+    OR (
+      household_id = app_current_household_id()
+      -- Foreign keys ignore RLS: the referenced rows must belong to the same household.
+      AND EXISTS (
+        SELECT 1 FROM bank_accounts a
+        WHERE a.id = bank_fetch_ledger.account_id AND a.household_id = bank_fetch_ledger.household_id
+      )
+      AND EXISTS (
+        SELECT 1 FROM bank_connections c
+        WHERE c.id = bank_fetch_ledger.connection_id AND c.household_id = bank_fetch_ledger.household_id
+      )
+      AND (
+        bank_fetch_ledger.sync_run_id IS NULL
+        OR EXISTS (
+          SELECT 1 FROM sync_runs r
+          JOIN bank_connections rc ON rc.id = r.connection_id
+          WHERE r.id = bank_fetch_ledger.sync_run_id AND rc.household_id = bank_fetch_ledger.household_id
+        )
+      )
+    )
+  );

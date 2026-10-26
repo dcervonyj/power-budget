@@ -2683,6 +2683,7 @@ First real milestone: Enable Banking, sync, freshness. About 30 days of critical
   - account mapping by `identification_hash`;
   - transaction mapping: BOOK → booked, PDNG/HOLD → pending, CNCL/RJCT → cancelled, SCHD → ignored, OTHR → other; sign from `credit_debit_indicator`; amounts as decimal strings converted to bigint minor units, with no floats; `exchange_rate.instructed_amount` → `originalAmount`;
   - `disconnect` → `DELETE /sessions/{id}`.
+  - switch `DrizzleBankAccountRepository.upsertAll` to the `(household_id, identification_hash)` conflict target and drop `bank_accounts_external_unique` in a migration (BNK-003 kept it).
 - **Blocked by**: BNK-001, BNK-002, BNK-003
 - **Blocks**: BNK-005, SYNC-003, BNK-008, WISE-005, WISE-002, BNK-007
 - **Acceptance criteria**:
