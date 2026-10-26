@@ -7,6 +7,8 @@ import { ReactRouterNavigationAdapter } from './infrastructure/navigation/ReactR
 import { createApiClient } from './infrastructure/api/ApiClient.js';
 import { ThemeProvider } from './presentation/theme/ThemeProvider.js';
 import { SignOut } from './application/auth/SignOut.js';
+import { clientSession } from './application/auth/ClientSession.js';
+import { LocalStorageSessionData } from './infrastructure/session/LocalStorageSessionData.js';
 import { BulkTransactionActions } from './application/transactions/BulkTransactionActions.js';
 
 export interface AppProvidersProps {
@@ -75,14 +77,22 @@ export async function loadMessages(locale: SupportedLocale): Promise<Record<stri
 // Singleton infrastructure adapters — created once, wired at runtime.
 export const tokenStore = new LocalStorageTokenStore();
 export const navigationAdapter = new ReactRouterNavigationAdapter();
-export const apiClient = createApiClient(tokenStore, () => {
-  navigationAdapter.navigate({ type: 'auth/login' });
-});
-export const signOut = new SignOut(apiClient, tokenStore);
+clientSession.register(new LocalStorageSessionData());
+export const apiClient = createApiClient(tokenStore, endSession);
+export const signOut = new SignOut(apiClient, tokenStore, clientSession);
 export const bulkTransactionActions = new BulkTransactionActions(apiClient);
 export const plansApi = new PlansApi(apiClient);
 export const categoriesApi = new CategoriesApi(apiClient);
 export const householdsApi = new HouseholdsApi(apiClient);
+
+/**
+ * The API client gave up on the session (refresh failed, tokens already cleared):
+ * forget the user's data the same way sign-out does, then go to the login screen.
+ */
+export function endSession(): void {
+  clientSession.end();
+  navigationAdapter.navigate({ type: 'auth/login' });
+}
 
 /**
  * Inner component that has access to the router context and wires up the

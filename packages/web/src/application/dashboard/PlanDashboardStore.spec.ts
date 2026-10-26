@@ -171,4 +171,20 @@ describe('PlanDashboardStore', () => {
     expect(store.planId).toBe('plan-2');
     expect(plans.dashboard).toHaveBeenLastCalledWith('plan-2');
   });
+
+  it('forgets the shown dashboard when the session ends and drops its late answer', async () => {
+    await store.load('plan-1');
+    expect(store.dashboard).not.toBeNull();
+
+    const late = store.load('plan-1');
+    store.resetSession();
+    await late;
+
+    expect(store.planId).toBeNull();
+    expect(store.dashboard).toBeNull();
+    expect(store.error).toBeNull();
+    expect(store.loading).toBe(false);
+    expect(store.unplannedExpenses.items).toEqual([]);
+    expect(store.unplannedIncome.items).toEqual([]);
+  });
 });
