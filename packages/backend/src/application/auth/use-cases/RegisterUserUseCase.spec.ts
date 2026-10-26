@@ -1,19 +1,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import { UserId, HouseholdId } from '@power-budget/core';
 import type {
   UserRepository,
-  HouseholdRepository,
+  UserRegistrationRepository,
   PasswordHashing,
   JwtAccessTokenIssuer,
   RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
 import { RegisterUserUseCase } from './RegisterUserUseCase.js';
 import { EmailAlreadyRegisteredError } from '../../../domain/auth/errors.js';
-import type { User, Household, HouseholdMembership } from '../../../domain/auth/entities.js';
+import type { NewUserRegistration, User } from '../../../domain/auth/entities.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const TEST_HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
+const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 function makeUser(overrides: Partial<User> = {}): User {
   return {
@@ -30,29 +30,9 @@ function makeUser(overrides: Partial<User> = {}): User {
   };
 }
 
-function makeHousehold(overrides: Partial<Household> = {}): Household {
-  return {
-    id: TEST_HOUSEHOLD_ID,
-    name: "alice's household",
-    baseCurrency: 'PLN',
-    createdAt: new Date(),
-    ...overrides,
-  };
-}
-
-function makeMembership(overrides: Partial<HouseholdMembership> = {}): HouseholdMembership {
-  return {
-    householdId: TEST_HOUSEHOLD_ID,
-    userId: TEST_USER_ID,
-    role: 'owner',
-    joinedAt: new Date(),
-    ...overrides,
-  };
-}
-
 describe('RegisterUserUseCase', () => {
   let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
+  let registrationRepo: ReturnType<typeof mock<UserRegistrationRepository>>;
   let passwordHashing: ReturnType<typeof mock<PasswordHashing>>;
   let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
   let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
@@ -60,48 +40,86 @@ describe('RegisterUserUseCase', () => {
 
   beforeEach(() => {
     userRepo = mock<UserRepository>();
-    householdRepo = mock<HouseholdRepository>();
+    registrationRepo = mock<UserRegistrationRepository>();
     passwordHashing = mock<PasswordHashing>();
     jwtIssuer = mock<JwtAccessTokenIssuer>();
     refreshTokenStore = mock<RefreshTokenStore>();
     useCase = new RegisterUserUseCase(
       userRepo,
-      householdRepo,
+      registrationRepo,
       passwordHashing,
       jwtIssuer,
       refreshTokenStore,
     );
   });
 
-  it('registers a new user and returns tokens', async () => {
+  function registeredWith(): NewUserRegistration {
+    const registration = registrationRepo.register.mock.calls[0]?.[0];
+    if (registration === undefined) {
+      throw new Error('register was not called');
+    }
+
+    return registration;
+  }
+
+  it('writes user, household and membership in one registration and returns tokens', async () => {
     userRepo.findByEmail.mockResolvedValue(null);
     passwordHashing.hash.mockResolvedValue('hashed');
-    userRepo.create.mockResolvedValue(makeUser());
-    householdRepo.findByUserId.mockResolvedValue(null);
-    householdRepo.create.mockResolvedValue(makeHousehold());
-    householdRepo.addMember.mockResolvedValue(makeMembership());
+    registrationRepo.register.mockResolvedValue();
     jwtIssuer.issue.mockReturnValue('access-token');
     refreshTokenStore.issue.mockResolvedValue('refresh-token');
 
     const result = await useCase.execute({
       email: 'alice@example.com',
       password: 'password123',
+      locale: 'pl',
     });
 
-    expect(result.accessToken).toBe('access-token');
-    expect(result.refreshToken).toBe('refresh-token');
-    expect(result.userId).toBe(TEST_USER_ID);
+    expect(registrationRepo.register).toHaveBeenCalledOnce();
+    const { user, household } = registeredWith();
+    expect(UserId.isValid(user.id)).toBe(true);
+    expect(HouseholdId.isValid(household.id)).toBe(true);
+    expect(user).toEqual({
+      id: user.id,
+      email: 'alice@example.com',
+      displayName: 'alice',
+      defaultLocale: 'pl',
+      passwordHash: 'hashed',
+    });
+    expect(household).toEqual({
+      id: household.id,
+      name: "alice's household",
+      baseCurrency: 'PLN',
+    });
     expect(passwordHashing.hash).toHaveBeenCalledWith('password123');
-    expect(userRepo.create).toHaveBeenCalledOnce();
-    expect(householdRepo.create).toHaveBeenCalledOnce();
-    expect(householdRepo.addMember).toHaveBeenCalledOnce();
+    expect(jwtIssuer.issue).toHaveBeenCalledWith({ userId: user.id, householdId: household.id });
+    expect(refreshTokenStore.issue).toHaveBeenCalledWith(user.id, REFRESH_TOKEN_TTL_SECONDS);
+    expect(result).toEqual({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      userId: user.id,
+    });
   });
 
-  it('throws EmailAlreadyRegisteredError when email is taken', async () => {
+  it('throws EmailAlreadyRegisteredError when email is taken, before hashing', async () => {
     userRepo.findByEmail.mockResolvedValue(makeUser());
 
     await expect(
       useCase.execute({ email: 'alice@example.com', password: 'password123' }),
     ).rejects.toThrow(EmailAlreadyRegisteredError);
+    expect(passwordHashing.hash).not.toHaveBeenCalled();
+    expect(registrationRepo.register).not.toHaveBeenCalled();
+  });
+
+  it('issues no tokens when the registration write fails', async () => {
+    userRepo.findByEmail.mockResolvedValue(null);
+    passwordHashing.hash.mockResolvedValue('hashed');
+    registrationRepo.register.mockRejectedValue(new EmailAlreadyRegisteredError());
+
+    await expect(
+      useCase.execute({ email: 'alice@example.com', password: 'password123' }),
+    ).rejects.toThrow(EmailAlreadyRegisteredError);
+    expect(jwtIssuer.issue).not.toHaveBeenCalled();
+    expect(refreshTokenStore.issue).not.toHaveBeenCalled();
   });
 });

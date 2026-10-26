@@ -17,6 +17,8 @@ import type {
   BankId,
 } from '../../domain/bank/entities.js';
 import type { Encryption } from '../../domain/auth/ports.js';
+import { BankRateLimitedError } from '../../domain/bank/errors.js';
+import { parseRetryAfter } from './retry-after.js';
 import { uuidv7 } from 'uuidv7';
 
 // ── GoCardless API response shapes ───────────────────────────────────────────
@@ -332,53 +334,49 @@ export class GoCardlessBankConnector implements BankConnector {
     return this.rawRequest<T>(method, path, body, token);
   }
 
+  /**
+   * One attempt, never a sleep (CLN-033, audit BE-BUGS-17): a 429 throws BankRateLimitedError
+   * with the provider's `Retry-After` (delta-seconds or HTTP-date), so an HTTP request answers
+   * at once and a sync job backs off through its queue.
+   */
   private async rawRequest<T>(
     method: string,
     path: string,
     body?: unknown,
     authToken?: string,
   ): Promise<T> {
-    const MAX_RETRIES = 3;
-    let lastError: Error = new Error('GoCardless request failed');
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-
-      if (authToken !== undefined) {
-        headers['Authorization'] = `Bearer ${authToken}`;
-      }
-
-      const response = await globalThis.fetch(`${this.baseUrl}${path}`, {
-        method,
-        headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
-      });
-
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After');
-        const delayMs = retryAfter !== null ? parseFloat(retryAfter) * 1000 : 1000;
-        await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
-        lastError = new Error('GoCardless rate limited (429)');
-        continue;
-      }
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`GoCardless API error ${response.status}: ${text}`);
-      }
-
-      if (response.status === 204) {
-        return undefined as T;
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (contentType === null || !contentType.includes('application/json')) {
-        return undefined as T;
-      }
-
-      return response.json() as Promise<T>;
+    if (authToken !== undefined) {
+      headers['Authorization'] = `Bearer ${authToken}`;
     }
 
-    throw lastError;
+    const response = await globalThis.fetch(`${this.baseUrl}${path}`, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+
+    if (response.status === 429) {
+      throw new BankRateLimitedError(
+        parseRetryAfter(response.headers.get('Retry-After'), new Date()),
+      );
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`GoCardless API error ${response.status}: ${text}`);
+    }
+
+    if (response.status === 204) {
+      return undefined as T;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (contentType === null || !contentType.includes('application/json')) {
+      return undefined as T;
+    }
+
+    return response.json() as Promise<T>;
   }
 }

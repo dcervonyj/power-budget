@@ -11,6 +11,7 @@ import { TotpStepUpGuard } from './guards/TotpStepUpGuard.js';
 import { AppConfigAdapter } from './AppConfigAdapter.js';
 import { DrizzleUserRepository } from '../../infrastructure/auth/DrizzleUserRepository.js';
 import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHouseholdRepository.js';
+import { DrizzleUserRegistrationRepository } from '../../infrastructure/auth/DrizzleUserRegistrationRepository.js';
 import { DrizzleHouseholdExportRepository } from '../../infrastructure/auth/DrizzleHouseholdExportRepository.js';
 import { BullMQHouseholdExportQueue } from '../../infrastructure/auth/BullMQHouseholdExportQueue.js';
 import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
@@ -108,21 +109,21 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
       provide: RegisterUserUseCase,
       inject: [
         DrizzleUserRepository,
-        DrizzleHouseholdRepository,
+        DrizzleUserRegistrationRepository,
         Argon2PasswordHashing,
         JwtAccessTokenIssuerAdapter,
         RedisRefreshTokenStore,
       ],
       useFactory: (
         userRepo: DrizzleUserRepository,
-        householdRepo: DrizzleHouseholdRepository,
+        registrationRepo: DrizzleUserRegistrationRepository,
         passwordHashing: Argon2PasswordHashing,
         jwtIssuer: JwtAccessTokenIssuerAdapter,
         refreshTokenStore: RedisRefreshTokenStore,
       ) =>
         new RegisterUserUseCase(
           userRepo,
-          householdRepo,
+          registrationRepo,
           passwordHashing,
           jwtIssuer,
           refreshTokenStore,

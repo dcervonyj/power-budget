@@ -10,6 +10,7 @@ import { InMemoryBankConnectorRegistry } from '../../infrastructure/bank/InMemor
 import type { AuditLogger } from '../../domain/audit/ports.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { BullMQBankSyncQueue } from '../../infrastructure/bank/BullMQBankSyncQueue.js';
+import { RedisBankCatalogCache } from '../../infrastructure/bank/RedisBankCatalogCache.js';
 import { InitiateBankConnectionUseCase } from '../../application/bank/use-cases/InitiateBankConnectionUseCase.js';
 import { CompleteBankConsentUseCase } from '../../application/bank/use-cases/CompleteBankConsentUseCase.js';
 import { ListUserConnectionsUseCase } from '../../application/bank/use-cases/ListUserConnectionsUseCase.js';
@@ -79,8 +80,9 @@ import { AccountsController } from './AccountsController.js';
     },
     {
       provide: GetBankCatalogUseCase,
-      inject: [InMemoryBankConnectorRegistry],
-      useFactory: (reg: InMemoryBankConnectorRegistry) => new GetBankCatalogUseCase(reg),
+      inject: [InMemoryBankConnectorRegistry, RedisBankCatalogCache],
+      useFactory: (reg: InMemoryBankConnectorRegistry, cache: RedisBankCatalogCache) =>
+        new GetBankCatalogUseCase(reg, cache),
     },
     {
       provide: ListConnectionAccountsUseCase,

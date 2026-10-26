@@ -37,6 +37,12 @@ export interface NewHousehold {
   readonly baseCurrency: string;
 }
 
+/** A new account with its own household, of which the user is the owner (CLN-033). */
+export interface NewUserRegistration {
+  readonly user: NewUser;
+  readonly household: NewHousehold;
+}
+
 export interface HouseholdMembership {
   readonly householdId: HouseholdId;
   readonly userId: UserId;

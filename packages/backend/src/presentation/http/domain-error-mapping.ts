@@ -1,6 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
 import { TotpEnrollmentRequiredError, TotpLockedError } from '../../domain/auth/errors.js';
-import { BankConnectionInvalidStateError } from '../../domain/bank/errors.js';
+import { BankConnectionInvalidStateError, BankRateLimitedError } from '../../domain/bank/errors.js';
 
 export interface HttpErrorMapping {
   readonly status: HttpStatus;
@@ -176,16 +176,29 @@ export function mapDomainError(error: unknown): HttpErrorMapping | null {
   if (error instanceof BankConnectionInvalidStateError) {
     return mapping(HttpStatus.CONFLICT, 'bank_connection_invalid_state', error.message);
   }
+  if (error instanceof BankRateLimitedError) {
+    return mapping(
+      HttpStatus.TOO_MANY_REQUESTS,
+      'bank_rate_limited',
+      'The bank provider is busy, try again later',
+    );
+  }
 
   const code = MESSAGE_CODE.exec(error.message)?.[1];
 
   return code !== undefined ? (BY_MESSAGE_CODE[code] ?? null) : null;
 }
 
-/** Response headers a domain error adds: `Retry-After` for a second-factor lockout (CLN-031). */
+/**
+ * Response headers a domain error adds: `Retry-After` for a second-factor lockout (CLN-031,
+ * seconds) and for a provider rate limit (CLN-033, the provider's time as an HTTP-date).
+ */
 export function headersForDomainError(error: unknown): Readonly<Record<string, string>> {
   if (error instanceof TotpLockedError) {
     return { 'Retry-After': String(error.retryAfterSeconds) };
+  }
+  if (error instanceof BankRateLimitedError && error.retryAfter !== null) {
+    return { 'Retry-After': error.retryAfter.toUTCString() };
   }
 
   return {};
