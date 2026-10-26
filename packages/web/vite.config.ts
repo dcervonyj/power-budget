@@ -28,10 +28,13 @@ export default defineConfig(({ mode }) => {
   const sentryAuthToken = process.env['SENTRY_AUTH_TOKEN'];
   const productionHeaders = buildSecurityHeaders({ apiUrl, sentryDsn, dev: false });
 
+  // `vite build --mode gallery` (build:gallery) builds only gallery.html into dist-gallery,
+  // so the gallery never reaches the production dist.
+  const gallery = mode === 'gallery';
   const plugins: PluginOption[] = [react(), securityHeadersFile(productionHeaders)];
   // Source maps are built only to upload them to Sentry (CI), never referenced
   // from the bundle and deleted from dist afterwards, so they are not public.
-  if (sentryAuthToken) {
+  if (sentryAuthToken && !gallery) {
     plugins.push(
       sentryVitePlugin({
         authToken: sentryAuthToken,
@@ -45,7 +48,13 @@ export default defineConfig(({ mode }) => {
   return {
     plugins,
     build: {
-      sourcemap: sentryAuthToken ? 'hidden' : false,
+      sourcemap: sentryAuthToken && !gallery ? 'hidden' : false,
+      ...(gallery
+        ? {
+            outDir: 'dist-gallery',
+            rollupOptions: { input: path.resolve(__dirname, 'gallery.html') },
+          }
+        : {}),
     },
     resolve: {
       alias: {
