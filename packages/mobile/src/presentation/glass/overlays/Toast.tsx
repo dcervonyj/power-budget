@@ -99,19 +99,19 @@ const ToastContext = createContext<ToastApi | null>(null);
 
 /** Hosts one toast over `children`; a new message replaces the current one. */
 export function ToastProvider({ children }: { children: React.ReactNode }): React.JSX.Element {
-  const [message, setMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; id: number } | null>(null);
   const show = useCallback((next: string) => {
-    setMessage(next);
+    setNotice((current) => ({ text: next, id: current === null ? 0 : current.id + 1 }));
   }, []);
   const dismiss = useCallback(() => {
-    setMessage(null);
+    setNotice(null);
   }, []);
   const api = useMemo(() => ({ show }), [show]);
 
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <Toast message={message} onDismiss={dismiss} />
+      <Toast key={notice?.id} message={notice === null ? null : notice.text} onDismiss={dismiss} />
     </ToastContext.Provider>
   );
 }
