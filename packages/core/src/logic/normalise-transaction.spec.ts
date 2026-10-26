@@ -105,3 +105,16 @@ describe('normaliseTransaction extraction', () => {
     expect(normaliseTransaction('Card payment to Lidl ****1234 14:32').merchant).toBe('Lidl');
   });
 });
+
+describe('normaliseTransaction performance', () => {
+  it.each(['odbiorca', 'payu', 'ref', 'terminal', 'card payment to'])(
+    'handles a long whitespace run after %s in linear time',
+    (prefix) => {
+      const started = performance.now();
+
+      normaliseTransaction(`${prefix}${' '.repeat(50000)}x`);
+
+      expect(performance.now() - started).toBeLessThan(500);
+    },
+  );
+});

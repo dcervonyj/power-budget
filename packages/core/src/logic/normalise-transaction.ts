@@ -32,11 +32,11 @@ const DIACRITICS: Readonly<Record<string, string>> = {
 
 const MERCHANT_PREFIXES: readonly RegExp[] = [
   /^(?:card payment to|card purchase at|platnosc karta|transakcja karta)\s*/i,
-  /^(?:payu|przelewy24|p24)\s*[*:-]?\s*/i,
-  /^(?:blik(?: payment)?|platnosc blik)\s*[*:-]?\s*/i,
-  /^(?:allegro(?:\.pl)?)\s*[*:-]?\s*/i,
-  /^(?:wyplata gotowki|cash withdrawal)\s*(?:bankomat|atm)?\s*/i,
-  /^(?:oplata|prowizja|fee|charge)\s*[*:-]?\s*/i,
+  /^(?:payu|przelewy24|p24)[\s*:-]*/i,
+  /^(?:blik(?: payment)?|platnosc blik)[\s*:-]*/i,
+  /^(?:allegro(?:\.pl)?)[\s*:-]*/i,
+  /^(?:wyplata gotowki|cash withdrawal)(?:\s+(?:bankomat|atm))?\s*/i,
+  /^(?:oplata|prowizja|fee|charge)[\s*:-]*/i,
 ];
 
 /** Folded city names that trail card descriptors. */
@@ -80,7 +80,8 @@ export function normaliseText(value: string): string {
  * Normalises bank-provided transaction text without I/O or provider-specific state.
  * It accepts remittance strings, PKO notification titles, and Wise activity titles.
  */
-export function normaliseTransaction(description: string): NormalisedTransaction {
+export function normaliseTransaction(rawDescription: string): NormalisedTransaction {
+  const description = collapseWhitespace(rawDescription);
   const descriptorClass = classify(description);
   const counterparty = extractCounterparty(description, descriptorClass);
   const merchant = extractMerchant(description, descriptorClass, counterparty);
@@ -92,6 +93,14 @@ export function normaliseTransaction(description: string): NormalisedTransaction
     descriptorClass,
     descriptionKey: normaliseText(description),
   };
+}
+
+function collapseWhitespace(value: string): string {
+  return value.split(/\s+/).filter(isNotEmpty).join(' ');
+}
+
+function isNotEmpty(value: string): boolean {
+  return value.length > 0;
 }
 
 function replacePolishDiacritic(character: string): string {
@@ -142,7 +151,7 @@ function extractCounterparty(description: string, descriptorClass: DescriptorCla
   }
 
   const matched = description.match(
-    /(?:odbiorca|recipient|beneficiary|transfer to|przelew(?: blik)? do)\s*[:\-]?\s*(.+)$/i,
+    /(?:odbiorca|recipient|beneficiary|transfer to|przelew(?: blik)? do)[\s:-]*(.+)$/i,
   );
 
   if (matched === null || matched[1] === undefined) {
@@ -175,7 +184,7 @@ function stripPrefix(value: string, prefix: RegExp): string {
 
 function merchantKey(merchant: string): string {
   const withoutNoise = merchant
-    .replace(/\b(?:terminal|term|nr|no)\s*[:#]?\s*[a-z0-9-]+\b/gi, '')
+    .replace(/\b(?:terminal|term|nr|no)[\s:#]*[a-z0-9-]+\b/gi, '')
     .replace(/\b(?:z|t)\d{3,}\b/gi, '')
     .replace(/\b[ck]\.?\d+\b/gi, '')
     .replace(/\b\d{3,}\b/g, '');
@@ -196,8 +205,8 @@ function stripTrailingMetadata(value: string): string {
     .replace(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/g, '')
     .replace(/\b\d{2}:\d{2}(?::\d{2})?\b/g, '')
     .replace(/(?:\*{2,}|x{2,}|\.{3})\s?\d{4}\b/gi, '')
-    .replace(/\b(?:ref(?:erence)?|id|nr)\s*[:#]?\s*[a-z0-9-]{6,}\b/gi, '')
-    .replace(/\b(?:terminal|term)\s*[:#]?\s*[a-z0-9-]+\b/gi, '')
+    .replace(/\b(?:ref(?:erence)?|id|nr)[\s:#]*[a-z0-9-]{6,}\b/gi, '')
+    .replace(/\b(?:terminal|term)[\s:#]*[a-z0-9-]+\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
