@@ -3,15 +3,44 @@
 exports[`ErrorBanner > matches snapshot 1`] = `
 <div
   role="alert"
-  style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 8px 16px; border-radius: 10px; background-color: rgba(192, 72, 72, 0.133); border-left: 4px solid rgb(192, 72, 72); margin-bottom: 12px;"
+  style="display: flex; align-items: center; justify-content: space-between; gap: var(--pb-glass-space-sm); flex-wrap: wrap; padding: var(--pb-glass-space-xs) var(--pb-glass-space-md); border-radius: var(--pb-glass-radius-control); background: var(--pb-glass-over-tint); box-shadow: inset 0 0 0 1px var(--pb-glass-over); margin-bottom: var(--pb-glass-space-sm); color: var(--pb-glass-fg); font-size: var(--pb-glass-type-small-web, 14px);"
 >
   <span
-    style="font-size: 14px; color: rgb(230, 224, 216);"
+    style="display: inline-flex; align-items: center; gap: var(--pb-glass-space-xs);"
   >
-    Snapshot message
+    <span
+      style="display: inline-flex; color: var(--pb-glass-over);"
+    >
+      <svg
+        aria-hidden="true"
+        fill="none"
+        focusable="false"
+        height="18"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="1.75"
+        style="flex: 0 0 auto; display: block;"
+        viewBox="0 0 24 24"
+        width="18"
+      >
+        <path
+          d="M12 5l8 14H4z"
+        />
+      </svg>
+    </span>
+    <strong
+      style="color: var(--pb-glass-over);"
+    >
+      Error
+    </strong>
+    <span>
+      Snapshot message
+    </span>
   </span>
   <button
-    style="padding: 4px 12px; border-radius: 6px; border: 1px solid rgb(192, 72, 72); background-color: transparent; color: rgb(192, 72, 72); font-size: 14px; font-weight: 600; cursor: pointer; flex-shrink: 0;"
+    class="pbg-overlay-action"
+    style="padding: 6px 14px; border-radius: var(--pb-glass-radius-tag); border: medium; background: var(--pb-glass-clear); box-shadow: var(--pb-glass-clear-rim); color: var(--pb-glass-fg); font-family: inherit; font-size: inherit; font-weight: 600; cursor: pointer; flex-shrink: 0;"
     type="button"
   >
     Retry
