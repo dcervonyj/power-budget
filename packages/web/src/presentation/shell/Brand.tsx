@@ -1,6 +1,7 @@
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { Link } from 'react-router-dom';
+import { ROUTE_PATHS } from '../../infrastructure/navigation/routePaths.js';
 import './shell.css';
 
 const BRAND_STYLE: React.CSSProperties = {
@@ -34,7 +35,7 @@ export function Brand({ link = true }: BrandProps): React.JSX.Element {
   }
 
   return (
-    <Link to="/dashboard" className="pbs-focus" style={BRAND_STYLE}>
+    <Link to={ROUTE_PATHS.dashboard} className="pbs-focus" style={BRAND_STYLE}>
       {content}
     </Link>
   );

@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 import { FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { Link } from 'react-router-dom';
 import type { SupportedLocale } from '@power-budget/core';
+import { ROUTE_PATHS } from '../../infrastructure/navigation/routePaths.js';
 import type { ShellPerson } from '../../application/shell/ShellStore.js';
 import { AvatarPair } from '../glass/atoms/Avatar.js';
 import { Icon } from '../glass/atoms/Icon.js';
@@ -35,27 +36,27 @@ interface AccountLink {
 /** Everything that is not a main destination lives here (Q7). */
 const ACCOUNT_LINKS: readonly AccountLink[] = [
   {
-    to: '/categories',
+    to: ROUTE_PATHS.categories,
     icon: 'categories',
     label: { id: 'shell.account.categories', defaultMessage: 'Categories' },
   },
   {
-    to: '/household',
+    to: ROUTE_PATHS.household,
     icon: 'users',
     label: { id: 'shell.account.household', defaultMessage: 'Household' },
   },
   {
-    to: '/bank-connections',
+    to: ROUTE_PATHS.bankConnections,
     icon: 'bank',
     label: { id: 'shell.account.banks', defaultMessage: 'Banks' },
   },
   {
-    to: '/settings',
+    to: ROUTE_PATHS.settings,
     icon: 'settings',
     label: { id: 'shell.account.settings', defaultMessage: 'Settings' },
   },
   {
-    to: '/audit',
+    to: ROUTE_PATHS.audit,
     icon: 'clock',
     label: { id: 'shell.account.audit', defaultMessage: 'Audit log' },
   },

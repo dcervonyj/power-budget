@@ -2,6 +2,7 @@ import React, { Suspense, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from '../../AppProviders.js';
+import { ROUTE_PATHS } from '../../infrastructure/navigation/routePaths.js';
 import { appShellStore } from '../../application/shell/appShellStore.js';
 import type { ShellSync } from '../../application/shell/ShellStore.js';
 import { deriveSyncChipState } from '../glass/atoms/syncChipState.js';
@@ -28,11 +29,11 @@ export const AppShell = observer(function AppShell(): React.JSX.Element {
     setSigningOut(true);
     // CLN-034: revokes the refresh token, clears the tokens and resets every session store.
     await signOut.execute();
-    navigate('/login', { replace: true });
+    navigate(ROUTE_PATHS.login, { replace: true });
   }
 
   function openBanks(): void {
-    navigate('/bank-connections');
+    navigate(ROUTE_PATHS.bankConnections);
   }
 
   return (
