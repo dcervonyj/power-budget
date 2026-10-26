@@ -1,5 +1,7 @@
 module.exports = {
   preset: 'jest-expo',
+  // The first suite pays the cold babel transform (~20s on CI), which tripped the 5s default.
+  testTimeout: 30000,
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.tsx'],
   moduleNameMapper: {
     '^@power-budget/design-tokens/glass$': '<rootDir>/../design-tokens/src/glass/index.ts',
