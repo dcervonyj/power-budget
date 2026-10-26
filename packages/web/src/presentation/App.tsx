@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import { RequireAuth } from './guards/RequireAuth.js';
+import { ROUTE_PATHS } from '../infrastructure/navigation/routePaths.js';
 import { SettingsProfileTab } from './screens/settings/SettingsProfileTab.js';
 import { SettingsLocaleTab } from './screens/settings/SettingsLocaleTab.js';
 import { SettingsCurrencyTab } from './screens/settings/SettingsCurrencyTab.js';
@@ -92,28 +93,28 @@ export function App() {
     >
       <Routes>
         {/* Public auth routes */}
-        <Route path="/login" element={<LoginScreen />} />
-        <Route path="/register" element={<RegisterScreen />} />
-        <Route path="/auth/magic-link" element={<MagicLinkScreen />} />
+        <Route path={ROUTE_PATHS.login} element={<LoginScreen />} />
+        <Route path={ROUTE_PATHS.register} element={<RegisterScreen />} />
+        <Route path={ROUTE_PATHS.magicLink} element={<MagicLinkScreen />} />
 
         {/* Protected app routes */}
         <Route element={<RequireAuth />}>
-          <Route path="/auth/totp-enroll" element={<TotpEnrollmentScreen />} />
-          <Route path="/onboarding" element={<OnboardingScreen />} />
-          <Route path="/dashboard" element={<DashboardScreen />} />
+          <Route path={ROUTE_PATHS.totpEnroll} element={<TotpEnrollmentScreen />} />
+          <Route path={ROUTE_PATHS.onboarding} element={<OnboardingScreen />} />
+          <Route path={ROUTE_PATHS.dashboard} element={<DashboardScreen />} />
           {/* One route, so opening or closing a detail keeps the list (rows, toast). */}
-          <Route path="/transactions/:id?" element={<TransactionDetailScreen />} />
-          <Route path="/plans" element={<PlansListScreen />} />
-          <Route path="/plans/:id" element={<PlanEditorScreen />} />
-          <Route path="/plans/:id/dashboard" element={<PlanDashboardScreen />} />
-          <Route path="/bank-connections" element={<BankConnectionsScreen />} />
-          <Route path="/bank-connections/new" element={<AddBankConnectionScreen />} />
+          <Route path={ROUTE_PATHS.transactionDetail} element={<TransactionDetailScreen />} />
+          <Route path={ROUTE_PATHS.plans} element={<PlansListScreen />} />
+          <Route path={ROUTE_PATHS.planEditor} element={<PlanEditorScreen />} />
+          <Route path={ROUTE_PATHS.planDashboard} element={<PlanDashboardScreen />} />
+          <Route path={ROUTE_PATHS.bankConnections} element={<BankConnectionsScreen />} />
+          <Route path={ROUTE_PATHS.addBankConnection} element={<AddBankConnectionScreen />} />
           <Route path="/bank/consent/callback" element={<BankConsentCallbackScreen />} />
-          <Route path="/categories" element={<CategoriesScreen />} />
+          <Route path={ROUTE_PATHS.categories} element={<CategoriesScreen />} />
           <Route path="/household" element={<HouseholdScreen />} />
           {/* The household invite email links here (CLN-006). */}
           <Route path="/invite/accept" element={<AcceptInviteScreen />} />
-          <Route path="/settings" element={<SettingsScreen />}>
+          <Route path={ROUTE_PATHS.settings} element={<SettingsScreen />}>
             <Route index element={<Navigate to="profile" replace />} />
             <Route path="profile" element={<SettingsProfileTab />} />
             <Route path="locale" element={<SettingsLocaleTab />} />
@@ -124,8 +125,8 @@ export function App() {
         </Route>
 
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to={ROUTE_PATHS.dashboard} replace />} />
+        <Route path="*" element={<Navigate to={ROUTE_PATHS.dashboard} replace />} />
       </Routes>
     </Suspense>
   );

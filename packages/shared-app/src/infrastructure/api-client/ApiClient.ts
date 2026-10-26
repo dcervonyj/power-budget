@@ -6,6 +6,7 @@ import axios, {
 } from 'axios';
 import type { HttpClient, HttpRequest, HttpResponse } from './HttpClient.js';
 import type { SecureTokenStore } from '../tokens/SecureTokenStore.js';
+import { readApiError } from './ApiError.js';
 
 interface RefreshResponse {
   accessToken: string;
@@ -21,6 +22,7 @@ type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 const AUTH_PATH_PREFIX = '/auth/';
 const REFRESH_PATH = '/auth/refresh';
+const SESSION_REJECTED_STATUSES: readonly number[] = [400, 401];
 const ABSOLUTE_URL_ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/]+/i;
 
 export class ApiClient implements HttpClient {
@@ -91,7 +93,7 @@ export class ApiClient implements HttpClient {
   private attachAccessToken(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
     const token = this.tokenStore.getAccessToken();
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = bearer(token);
     }
 
     return config;
@@ -111,6 +113,12 @@ export class ApiClient implements HttpClient {
     if (originalRequest._retry) {
       await this.endSession();
       throw error;
+    }
+    // Another tab (they share the token store) may have refreshed while this
+    // request was in flight: its token is valid, and our refresh token is spent.
+    const storedToken = this.tokenStore.getAccessToken();
+    if (storedToken && originalRequest.headers.Authorization !== bearer(storedToken)) {
+      return this.retry(originalRequest, storedToken);
     }
     if (this.refreshInFlight) {
       const token = await this.waitForRefresh();
@@ -133,22 +141,54 @@ export class ApiClient implements HttpClient {
   private async refreshTokens(originalError: AxiosError): Promise<string> {
     this.refreshInFlight = true;
     try {
-      const refreshToken = this.tokenStore.getRefreshToken();
-      if (!refreshToken) {
-        throw originalError;
-      }
-      const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
-      await this.tokenStore.setTokens(data.accessToken, data.refreshToken);
-      this.settleQueue(null, data.accessToken);
+      const accessToken = await this.obtainAccessToken(originalError);
+      this.settleQueue(null, accessToken);
 
-      return data.accessToken;
+      return accessToken;
     } catch (refreshError) {
       this.settleQueue(refreshError, null);
-      await this.endSession();
       throw refreshError;
     } finally {
       this.refreshInFlight = false;
     }
+  }
+
+  private async obtainAccessToken(originalError: AxiosError): Promise<string> {
+    const refreshToken = this.tokenStore.getRefreshToken();
+    if (!refreshToken) {
+      await this.endSession();
+      throw originalError;
+    }
+    try {
+      const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
+      await this.tokenStore.setTokens(data.accessToken, data.refreshToken);
+
+      return data.accessToken;
+    } catch (refreshError) {
+      return this.recoverFromRefreshFailure(refreshError, refreshToken);
+    }
+  }
+
+  /**
+   * Only a 400/401 from /auth/refresh means the refresh token is dead. A 5xx or
+   * a network error (cold start, deploy, offline) says nothing about it, so the
+   * session stays and the caller gets the error to retry later (audit FE-BUGS-03).
+   */
+  private async recoverFromRefreshFailure(
+    refreshError: unknown,
+    usedRefreshToken: string,
+  ): Promise<string> {
+    if (!SESSION_REJECTED_STATUSES.includes(readApiError(refreshError).status)) {
+      throw refreshError;
+    }
+    // Refresh tokens are single use: when two tabs refresh with the same one, the
+    // slower tab is rejected after the faster one stored the rotated pair.
+    const storedAccessToken = this.tokenStore.getAccessToken();
+    if (storedAccessToken && this.tokenStore.getRefreshToken() !== usedRefreshToken) {
+      return storedAccessToken;
+    }
+    await this.endSession();
+    throw refreshError;
   }
 
   private waitForRefresh(): Promise<string> {
@@ -173,7 +213,7 @@ export class ApiClient implements HttpClient {
 
   private retry(originalRequest: RetryableConfig, token: string): Promise<AxiosResponse> {
     originalRequest._retry = true;
-    originalRequest.headers.Authorization = `Bearer ${token}`;
+    originalRequest.headers.Authorization = bearer(token);
 
     return this._axios(originalRequest);
   }
@@ -191,4 +231,8 @@ function isAuthRequest(url: string | undefined): boolean {
   const path = url.replace(ABSOLUTE_URL_ORIGIN, '');
 
   return path.startsWith(AUTH_PATH_PREFIX);
+}
+
+function bearer(token: string): string {
+  return `Bearer ${token}`;
 }
