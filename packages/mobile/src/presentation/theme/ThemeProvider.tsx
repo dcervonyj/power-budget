@@ -43,6 +43,9 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
           setPreferenceState(stored);
         }
       })
+      .catch((error: unknown) => {
+        console.warn('Failed to read theme preference', error);
+      })
       .finally(() => {
         if (!cancelled) {
           setIsLoaded(true);
@@ -66,7 +69,9 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
 
   const setPreference = useCallback((next: ThemePreference): void => {
     setPreferenceState(next);
-    void AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, next);
+    AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, next).catch((error: unknown) => {
+      console.warn('Failed to store theme preference', error);
+    });
   }, []);
 
   const value = useMemo<ThemeContextValue>(() => {

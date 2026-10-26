@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FontGate } from '../FontGate.js';
 import { ThemeProvider } from '../ThemeProvider.js';
@@ -12,9 +12,10 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('../fonts.js', () => ({ GEIST_FONTS: {} }));
 
 let mockFontsLoaded = false;
+let mockFontError: Error | null = null;
 
 jest.mock('expo-font', () => ({
-  useFonts: (): [boolean, Error | null] => [mockFontsLoaded, null],
+  useFonts: (): [boolean, Error | null] => [mockFontsLoaded, mockFontError],
 }));
 
 async function renderGate(): Promise<void> {
@@ -30,11 +31,15 @@ async function renderGate(): Promise<void> {
 describe('FontGate', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
+    mockFontError = null;
   });
 
   it('shows the themed loading view while fonts load', async () => {
     mockFontsLoaded = false;
     await renderGate();
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     expect(screen.getByTestId('font-gate-loading')).toBeTruthy();
     expect(screen.queryByText('app content')).toBeNull();
@@ -46,5 +51,16 @@ describe('FontGate', () => {
 
     await waitFor(() => expect(screen.getByText('app content')).toBeTruthy());
     expect(screen.queryByTestId('font-gate-loading')).toBeNull();
+  });
+
+  it('falls through to the app and logs when fonts fail to load', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    mockFontsLoaded = false;
+    mockFontError = new Error('font failure');
+    await renderGate();
+
+    await waitFor(() => expect(screen.getByText('app content')).toBeTruthy());
+    expect(warn).toHaveBeenCalledWith('Failed to load Geist fonts', mockFontError);
+    warn.mockRestore();
   });
 });

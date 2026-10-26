@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text as MockText } from 'react-native';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 import { App } from '../App.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -36,6 +36,9 @@ describe('App', () => {
   it('shows the themed loading view until Geist is loaded', async () => {
     mockFontsLoaded = false;
     await render(<App />);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     expect(screen.getByTestId('font-gate-loading')).toBeTruthy();
     expect(screen.queryByText('root navigator')).toBeNull();
