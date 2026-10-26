@@ -4,6 +4,10 @@ module.exports = {
   testTimeout: 30000,
   testMatch: ['<rootDir>/src/**/__tests__/**/*.test.tsx'],
   moduleNameMapper: {
+    // DSN-031: native-only modules have no jest runtime; glass components are tested on these mocks.
+    '^react-native-reanimated$': '<rootDir>/src/gallery/testing/reanimated.mock.js',
+    '^@shopify/react-native-skia$': '<rootDir>/src/gallery/testing/skia.mock.js',
+    '^expo-blur$': '<rootDir>/src/gallery/testing/blur.mock.js',
     '^@power-budget/design-tokens/glass$': '<rootDir>/../design-tokens/src/glass/index.ts',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
