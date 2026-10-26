@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { BankConnectionId, HouseholdId, UserId, EncryptedString } from '@power-budget/core';
@@ -27,7 +27,7 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
         provider: conn.provider,
         bankId: conn.bankId,
         externalConsentRef: conn.externalConsentRef,
-        status: 'active',
+        status: 'pending',
       })
       .returning();
     if (!row) {
@@ -65,7 +65,7 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
           eq(schema.bankConnections.userId, userId),
           eq(schema.bankConnections.bankId, bankId),
           eq(schema.bankConnections.provider, provider),
-          eq(schema.bankConnections.status, 'active'),
+          this.syncable(),
         ),
       )
       .limit(1);
@@ -104,16 +104,22 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
   async markDisconnected(id: BankConnectionId, at: Date, scope: HouseholdScope): Promise<void> {
     await this.db
       .update(schema.bankConnections)
-      .set({ status: 'disconnected', disconnectedAt: at })
+      .set({ status: 'disconnected', disconnectedAt: at, encryptedConsent: null, expiresAt: null })
       .where(this.inScope(id, scope));
   }
 
   async findActiveConnections(): Promise<BankConnection[]> {
-    const rows = await this.db
-      .select()
-      .from(schema.bankConnections)
-      .where(eq(schema.bankConnections.status, 'active'));
+    const rows = await this.db.select().from(schema.bankConnections).where(this.syncable());
+
     return rows.map((r) => this.toEntity(r));
+  }
+
+  /** `active` with a consent: a row without one never finished (or lost) its consent. */
+  private syncable(): SQL | undefined {
+    return and(
+      eq(schema.bankConnections.status, 'active'),
+      isNotNull(schema.bankConnections.encryptedConsent),
+    );
   }
 
   private inScope(id: BankConnectionId, scope: HouseholdScope): SQL | undefined {
