@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useId, useState } from 'react';
 import type { InputState } from '@power-budget/shared-app';
 import { FormattedMessage } from 'react-intl';
-import { useTheme } from './ThemeContext.js';
+import '../glass/controls/controls.css';
 
 export interface InputProps {
   readonly label?: string;
@@ -24,19 +24,18 @@ export function Input({
   state = 'default',
   id,
 }: InputProps): React.JSX.Element {
-  const theme = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const isPassword = type === 'password';
   const inputType = isPassword && showPassword ? 'text' : type;
-  const borderColor =
-    state === 'error' || error ? theme.color.status.danger : theme.color.border.subtle;
+  const invalid = state === 'error' || Boolean(error);
+  const errorId = useId();
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xs }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-xxs)' }}>
       {label && (
         <label
           htmlFor={id}
-          style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}
+          style={{ color: 'var(--pb-glass-dim)', fontSize: 'var(--pb-glass-type-small-web)' }}
         >
           {label}
         </label>
@@ -51,14 +50,21 @@ export function Input({
           }}
           placeholder={placeholder}
           disabled={state === 'disabled'}
+          aria-invalid={invalid}
+          aria-describedby={error ? errorId : undefined}
+          className="pbg-ctl pbg-ctl-field"
           style={{
             width: '100%',
-            backgroundColor: theme.color.surface.raised,
-            color: theme.color.text.primary,
-            border: `1px solid ${borderColor}`,
-            borderRadius: theme.radius.sm,
-            padding: `${theme.space.sm}px ${isPassword ? theme.space['4xl'] : theme.space.md}px ${theme.space.sm}px ${theme.space.md}px`,
-            fontSize: theme.fontSize.md,
+            minHeight: 44,
+            background: 'var(--pb-glass-fill)',
+            color: 'var(--pb-glass-fg)',
+            border: 'none',
+            boxShadow: invalid
+              ? 'inset 0 0 0 1.5px var(--pb-glass-over)'
+              : 'inset 0 0 0 1px var(--pb-glass-edge)',
+            borderRadius: 'var(--pb-glass-radius-control)',
+            padding: `0 ${isPassword ? 64 : 16}px 0 16px`,
+            fontSize: 'var(--pb-glass-type-body-web)',
             boxSizing: 'border-box',
           }}
         />
@@ -70,14 +76,14 @@ export function Input({
             }}
             style={{
               position: 'absolute',
-              right: theme.space.sm,
+              right: 'var(--pb-glass-space-sm)',
               top: '50%',
               transform: 'translateY(-50%)',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: theme.color.text.secondary,
-              fontSize: theme.fontSize.sm,
+              color: 'var(--pb-glass-dim)',
+              fontSize: 'var(--pb-glass-type-small-web)',
             }}
           >
             {showPassword ? (
@@ -89,7 +95,10 @@ export function Input({
         )}
       </div>
       {error && (
-        <span style={{ color: theme.color.status.danger, fontSize: theme.fontSize.xs }}>
+        <span
+          id={errorId}
+          style={{ color: 'var(--pb-glass-over)', fontSize: 'var(--pb-glass-type-small-web)' }}
+        >
           {error}
         </span>
       )}

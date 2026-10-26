@@ -1,0 +1,33 @@
+/* D7 glass controls: pseudo-states that inline styles cannot express. */
+.pbg-ctl {
+  font-family: inherit;
+  transition:
+    transform var(--pb-glass-motion-press-duration-ms, 220ms)
+      var(--pb-glass-motion-press-easing, ease),
+    background var(--pb-glass-motion-press-duration-ms, 220ms)
+      var(--pb-glass-motion-press-easing, ease),
+    box-shadow var(--pb-glass-motion-press-duration-ms, 220ms)
+      var(--pb-glass-motion-press-easing, ease),
+    opacity var(--pb-glass-motion-press-duration-ms, 220ms)
+      var(--pb-glass-motion-press-easing, ease);
+}
+
+.pbg-ctl:active:not(:disabled):not([aria-disabled='true']) {
+  transform: scale(0.96);
+}
+
+.pbg-ctl:focus-visible,
+.pbg-ctl-focus {
+  outline: 2px solid var(--pb-glass-fg);
+  outline-offset: 2px;
+}
+
+.pbg-ctl:disabled,
+.pbg-ctl[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pbg-ctl-field::placeholder {
+  color: var(--pb-glass-faint);
+}
