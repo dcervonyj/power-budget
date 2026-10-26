@@ -1,0 +1,12 @@
+{
+  "glass-light.daysLeft": "{days, plural, one {# dzień do końca} few {# dni do końca} many {# dni do końca} other {# dnia do końca}}",
+  "glass-light.lens.perDay": "{currency} dziennie",
+  "glass-light.lens.aria": "{amount} dziennie, {days, plural, one {# dzień do końca} few {# dni do końca} many {# dni do końca} other {# dnia do końca}}",
+  "glass-light.rod.aria.under": "{name}: zostało {left} z {plan}",
+  "glass-light.rod.aria.over": "{name}: przekroczono o {over}",
+  "glass-light.rod.aria.paid": "{name}: opłacone",
+  "glass-light.rod.aria.empty": "{name}: nic nie zostało z {plan}",
+  "glass-light.rod.tag.over": "Przekroczony budżet",
+  "glass-light.rod.tag.paid": "Opłacone",
+  "glass-light.tube.aria": "{name}: {saved} z {goal}"
+}
