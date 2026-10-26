@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "build:gallery": "vite build --mode gallery",
+    "preview:gallery": "vite preview --mode gallery --port 4174 --strictPort",
     "typecheck": "tsc --noEmit && tsc --noEmit -p e2e",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "vitest run",
@@ -15,6 +17,8 @@
     "clean": "rm -rf dist .turbo",
     "test:e2e": "playwright test",
     "test:e2e:smoke": "playwright test --grep smoke",
+    "test:visual": "bash e2e/visual/run-in-docker.sh",
+    "test:visual:update": "bash e2e/visual/run-in-docker.sh --update-snapshots",
     "test:e2e:stack": "TEST_ENV=e2e playwright test --project=chromium",
     "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-web-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]' && node src/i18n/ExtractedMessageFilter.mjs /tmp/power-budget-web-message-ids.json public/locales/en public/locales/en.json"
   },
