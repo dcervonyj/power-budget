@@ -1,15 +1,15 @@
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
-import { useTheme } from '../ThemeContext.js';
+import { Icon } from '../../glass/atoms/Icon.js';
+import '../../glass/overlays/overlays.css';
 
 export interface ErrorBannerProps {
   message: React.ReactNode;
   onRetry?: () => void;
 }
 
+/** Error notice: over colour, a warning icon and the word "Error", never colour alone. */
 export function ErrorBanner({ message, onRetry }: ErrorBannerProps): React.JSX.Element {
-  const theme = useTheme();
-
   return (
     <div
       role="alert"
@@ -17,35 +17,43 @@ export function ErrorBanner({ message, onRetry }: ErrorBannerProps): React.JSX.E
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: theme.space.md,
+        gap: 'var(--pb-glass-space-sm)',
         flexWrap: 'wrap',
-        padding: `${String(theme.space.sm)}px ${String(theme.space.lg)}px`,
-        borderRadius: theme.radius.md,
-        backgroundColor: theme.color.status.danger + '22',
-        borderLeft: `4px solid ${theme.color.status.danger}`,
-        marginBottom: theme.space.md,
+        padding: 'var(--pb-glass-space-xs) var(--pb-glass-space-md)',
+        borderRadius: 'var(--pb-glass-radius-control)',
+        background: 'var(--pb-glass-over-tint)',
+        boxShadow: 'inset 0 0 0 1px var(--pb-glass-over)',
+        marginBottom: 'var(--pb-glass-space-sm)',
+        color: 'var(--pb-glass-fg)',
+        fontSize: 'var(--pb-glass-type-small-web, 14px)',
       }}
     >
       <span
-        style={{
-          fontSize: theme.fontSize.sm,
-          color: theme.color.text.primary,
-        }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--pb-glass-space-xs)' }}
       >
-        {message}
+        <span style={{ display: 'inline-flex', color: 'var(--pb-glass-over)' }}>
+          <Icon name="triangle" size={18} />
+        </span>
+        <strong style={{ color: 'var(--pb-glass-over)' }}>
+          <FormattedMessage id="glass-overlays.error.label" defaultMessage="Error" />
+        </strong>
+        <span>{message}</span>
       </span>
       {onRetry !== undefined && (
         <button
           type="button"
           onClick={onRetry}
+          className="pbg-overlay-action"
           style={{
-            padding: `${String(theme.space.xs)}px ${String(theme.space.md)}px`,
-            borderRadius: theme.radius.sm,
-            border: `1px solid ${theme.color.status.danger}`,
-            backgroundColor: 'transparent',
-            color: theme.color.status.danger,
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.semibold,
+            padding: '6px 14px',
+            borderRadius: 'var(--pb-glass-radius-tag)',
+            border: 'none',
+            background: 'var(--pb-glass-clear)',
+            boxShadow: 'var(--pb-glass-clear-rim)',
+            color: 'var(--pb-glass-fg)',
+            fontFamily: 'inherit',
+            fontSize: 'inherit',
+            fontWeight: 600,
             cursor: 'pointer',
             flexShrink: 0,
           }}

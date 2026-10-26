@@ -1,5 +1,5 @@
 import React from 'react';
-import { useTheme } from '../ThemeContext.js';
+import { Button } from '../Button.js';
 
 export interface EmptyStateProps {
   icon?: string;
@@ -11,9 +11,8 @@ export interface EmptyStateProps {
   };
 }
 
+/** Centred empty state on clear glass: optional glyph, title, subtitle and one action. */
 export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps): React.JSX.Element {
-  const theme = useTheme();
-
   return (
     <div
       style={{
@@ -21,9 +20,12 @@ export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps): 
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: `${String(theme.space['2xl'])}px ${String(theme.space.lg)}px`,
-        gap: theme.space.md,
+        padding: 'var(--pb-glass-space-3xl) var(--pb-glass-space-md)',
+        gap: 'var(--pb-glass-space-sm)',
         textAlign: 'center',
+        borderRadius: 'var(--pb-glass-radius-tile)',
+        background: 'var(--pb-glass-clear)',
+        boxShadow: 'var(--pb-glass-clear-rim)',
       }}
     >
       {icon !== undefined && (
@@ -34,9 +36,9 @@ export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps): 
       <p
         style={{
           margin: 0,
-          fontSize: theme.fontSize.md,
-          fontWeight: theme.fontWeight.semibold,
-          color: theme.color.text.primary,
+          fontSize: 'var(--pb-glass-type-heading-web)',
+          fontWeight: 600,
+          color: 'var(--pb-glass-fg)',
         }}
       >
         {title}
@@ -45,31 +47,19 @@ export function EmptyState({ icon, title, subtitle, action }: EmptyStateProps): 
         <p
           style={{
             margin: 0,
-            fontSize: theme.fontSize.sm,
-            color: theme.color.text.secondary,
+            fontSize: 'var(--pb-glass-type-body-web)',
+            color: 'var(--pb-glass-dim)',
           }}
         >
           {subtitle}
         </p>
       )}
       {action !== undefined && (
-        <button
-          type="button"
-          onClick={action.onPress}
-          style={{
-            marginTop: theme.space.xs,
-            padding: `${String(theme.space.sm)}px ${String(theme.space.lg)}px`,
-            borderRadius: theme.radius.md,
-            border: 'none',
-            backgroundColor: theme.color.accent.default,
-            color: theme.color.accent.onAccent,
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.semibold,
-            cursor: 'pointer',
-          }}
-        >
-          {action.label}
-        </button>
+        <div style={{ marginTop: 'var(--pb-glass-space-xs)' }}>
+          <Button variant="primary" onClick={action.onPress}>
+            {action.label}
+          </Button>
+        </div>
       )}
     </div>
   );
