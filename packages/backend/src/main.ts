@@ -38,7 +38,7 @@ async function bootstrap() {
   assertBootEnv(process.env);
 
   // request.ip (the per-IP rate-limit key) comes from X-Forwarded-For only for
-  // the trusted proxy hops (TRUST_PROXY, default 1).
+  // the trusted proxy hops (TRUST_PROXY, default: private-range proxies).
   const adapter = new FastifyAdapter({ trustProxy: resolveTrustProxy(process.env['TRUST_PROXY']) });
   const nestApp: INestApplication = await NestFactory.create(AppModule, adapter, {
     // Webhook signature checks (Resend/Svix) need the exact request bytes.

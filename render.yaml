@@ -38,9 +38,9 @@ services:
       # Resend webhook signing secret (whsec_...). Unset = bounce webhook rejects everything.
       - key: RESEND_WEBHOOK_SECRET
         sync: false
-      # Proxy hops trusted for X-Forwarded-For (client IP for the auth rate limits).
+      # Proxies trusted for X-Forwarded-For (hop counts are unsupported by Fastify >= 5.12.2) (client IP for the auth rate limits).
       - key: TRUST_PROXY
-        value: '1'
+        value: 'loopback,linklocal,uniquelocal'
       # App runtime: least-privilege role (see docs/runbooks/db-roles-and-migrations.md)
       - key: DATABASE_URL
         sync: false
