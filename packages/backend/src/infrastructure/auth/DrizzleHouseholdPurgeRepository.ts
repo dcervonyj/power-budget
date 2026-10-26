@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, eq, inArray, isNotNull, lte } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, lte, notInArray } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdPurgeRepository, HouseholdPurgeResult } from '../../domain/auth/ports.js';
@@ -19,7 +19,11 @@ type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 export class DrizzleHouseholdPurgeRepository implements HouseholdPurgeRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: Database) {}
 
-  async findDueHouseholdIds(now: Date, limit: number): Promise<HouseholdId[]> {
+  async findDueHouseholdIds(
+    now: Date,
+    limit: number,
+    excludeIds: readonly HouseholdId[],
+  ): Promise<HouseholdId[]> {
     const rows = await this.db
       .select({ id: schema.households.id })
       .from(schema.households)
@@ -27,6 +31,7 @@ export class DrizzleHouseholdPurgeRepository implements HouseholdPurgeRepository
         and(
           isNotNull(schema.households.deleteScheduledAt),
           lte(schema.households.deleteScheduledAt, now),
+          excludeIds.length > 0 ? notInArray(schema.households.id, [...excludeIds]) : undefined,
         ),
       )
       .orderBy(asc(schema.households.deleteScheduledAt))

@@ -32,6 +32,10 @@ async function seedUser(label: string): Promise<UserId> {
     id,
   ]);
   await fixtures.query(
+    `INSERT INTO totp_secrets (user_id, encrypted_secret) VALUES ($1, 'ciphertext')`,
+    [id],
+  );
+  await fixtures.query(
     `INSERT INTO sessions (id, user_id, refresh_token_hash, expires_at)
      VALUES ($1, $2, $3, now() + interval '1 day')`,
     [randomUUID(), id, `hash-${id}`],
@@ -50,6 +54,9 @@ async function seedHousehold(
   const accountId = randomUUID();
   const txId = randomUUID();
   const planId = randomUUID();
+  const itemId = randomUUID();
+  const txBId = randomUUID();
+  const categoryId = randomUUID();
   const q = fixtures;
   await q.query(
     `INSERT INTO households (id, name, base_currency, delete_scheduled_at) VALUES ($1, 'H', 'PLN', $2)`,
@@ -97,7 +104,43 @@ async function seedHousehold(
   await q.query(
     `INSERT INTO planned_items (id, plan_id, household_id, category_id, direction, amount_minor, currency)
      VALUES ($1, $2, $3, $4, 'expense', 5000, 'PLN')`,
-    [randomUUID(), planId, householdId, randomUUID()],
+    [itemId, planId, householdId, categoryId],
+  );
+  await q.query(
+    `INSERT INTO planned_item_versions (id, planned_item_id, household_id, after, changed_by)
+     VALUES ($1, $2, $3, '{}', $4)`,
+    [randomUUID(), itemId, householdId, owner],
+  );
+  await q.query(
+    `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, description, source)
+     VALUES ($1, $2, $3, '2026-10-02', 1234, 'PLN', 'refund', 'manual')`,
+    [txBId, householdId, accountId],
+  );
+  await q.query(
+    `INSERT INTO transfers (id, household_id, tx_a_id, tx_b_id, marked_by) VALUES ($1, $2, $3, $4, $5)`,
+    [randomUUID(), householdId, txId, txBId, owner],
+  );
+  await q.query(`INSERT INTO categories (id, household_id, name) VALUES ($1, $2, 'Food')`, [
+    categoryId,
+    householdId,
+  ]);
+  await q.query(
+    `INSERT INTO category_privacy (category_id, household_id, updated_by) VALUES ($1, $2, $3)`,
+    [categoryId, householdId, owner],
+  );
+  await q.query(
+    `INSERT INTO leftover_snapshots (id, household_id, plan_id, period_end, amount_minor, currency)
+     VALUES ($1, $2, $3, '2026-10-31', 100, 'PLN')`,
+    [randomUUID(), householdId, planId],
+  );
+  await q.query(
+    `INSERT INTO household_exports (id, household_id, requested_by_user_id) VALUES ($1, $2, $3)`,
+    [randomUUID(), householdId, owner],
+  );
+  await q.query(
+    `INSERT INTO household_invites (id, household_id, email, token_hash, expires_at, invited_by_user_id)
+     VALUES ($1, $2, 'x@example.com', $3, now() + interval '1 day', $4)`,
+    [randomUUID(), householdId, `tok-${householdId}`, owner],
   );
   await q.query(
     `INSERT INTO notifications_outbox (id, household_id, recipient_user_id, kind, dedupe_key)
@@ -151,6 +194,17 @@ describe('Integration: household purge (CLN-022) as the least-privilege app role
     const due = await seedHousehold(owner, [partner], new Date(Date.now() - DAY_MS));
     // The partner also belongs to a second household: their account must survive.
     const other = await seedHousehold(partner, [], null);
+    // Rows in the surviving household that point at the deleted owner must be nulled, not block.
+    const otherPlanId = randomUUID();
+    await fixtures.query(
+      `INSERT INTO plans (id, household_id, owner_user_id, name, type, period_kind, period_start, period_end, base_currency)
+       VALUES ($1, $2, $3, 'Shared', 'household', 'monthly', '2026-11-01', '2026-11-30', 'PLN')`,
+      [otherPlanId, other.householdId, owner],
+    );
+    await fixtures.query(
+      `UPDATE household_invites SET invited_by_user_id = $1, accepted_by_user_id = $1 WHERE household_id = $2`,
+      [owner, other.householdId],
+    );
 
     const output = await purgeAt(new Date());
 
@@ -164,17 +218,31 @@ describe('Integration: household purge (CLN-022) as the least-privilege app role
       ['transactions', 'household_id'],
       ['plans', 'household_id'],
       ['planned_items', 'household_id'],
+      ['planned_item_versions', 'household_id'],
+      ['transfers', 'household_id'],
+      ['categories', 'household_id'],
+      ['category_privacy', 'household_id'],
+      ['leftover_snapshots', 'household_id'],
+      ['household_exports', 'household_id'],
+      ['household_invites', 'household_id'],
       ['notifications_outbox', 'household_id'],
     ] as const) {
       expect(await count(table, column, due.householdId), table).toBe(0);
     }
     expect(await count('users', 'id', owner)).toBe(0);
+    expect(await count('totp_secrets', 'user_id', owner)).toBe(0);
+    const nulled = await fixtures.query<{ plan_owner: string | null; inviter: string | null }>(
+      `SELECT (SELECT owner_user_id FROM plans WHERE id = $1) AS plan_owner,
+              (SELECT invited_by_user_id FROM household_invites WHERE household_id = $2) AS inviter`,
+      [otherPlanId, other.householdId],
+    );
+    expect(nulled.rows[0]).toEqual({ plan_owner: null, inviter: null });
     expect(await count('sessions', 'user_id', owner)).toBe(0);
     expect(await count('auth_methods', 'user_id', owner)).toBe(0);
     expect(await count('users', 'id', partner)).toBe(1);
     expect(await count('sessions', 'user_id', partner)).toBe(1);
     expect(await count('households', 'id', other.householdId)).toBe(1);
-    expect(await count('transactions', 'household_id', other.householdId)).toBe(1);
+    expect(await count('transactions', 'household_id', other.householdId)).toBe(2);
     const audit = await fixtures.query<{ household_id: string | null; actor: string | null }>(
       `SELECT household_id, actor_user_id AS actor FROM audit_log WHERE action = 'plan.created'
        ORDER BY household_id NULLS FIRST`,
@@ -194,7 +262,7 @@ describe('Integration: household purge (CLN-022) as the least-privilege app role
     expect(output).toEqual({ purged: [], failed: [] });
     expect(await count('households', 'id', soon.householdId)).toBe(1);
     expect(await count('households', 'id', kept.householdId)).toBe(1);
-    expect(await count('transactions', 'household_id', soon.householdId)).toBe(1);
+    expect(await count('transactions', 'household_id', soon.householdId)).toBe(2);
   });
 
   it('purges once the 30-day grace period passes, not before', async () => {
