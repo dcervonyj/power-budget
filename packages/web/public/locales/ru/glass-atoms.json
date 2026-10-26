@@ -1,0 +1,15 @@
+{
+  "glass-atoms.sync.live": "В реальном времени",
+  "glass-atoms.sync.updating": "Обновление…",
+  "glass-atoms.sync.renew.owner": "Продлите доступ к банку",
+  "glass-atoms.sync.renew.partner": "Доступ партнёра к банку нужно продлить",
+  "glass-atoms.sync.stale.owner": "Данные банка устарели",
+  "glass-atoms.sync.stale.partner": "Данные банка партнёра устарели",
+  "glass-atoms.sync.cooldown": "Обновить можно через {minutes, plural, one {# минуту} few {# минуты} many {# минут} other {# минуты}}",
+  "glass-atoms.sync.bankAge.owner.minutes": "Ваш банк: обновлено {count, plural, one {# минуту} few {# минуты} many {# минут} other {# минуты}} назад",
+  "glass-atoms.sync.bankAge.partner.minutes": "Банк партнёра: обновлено {count, plural, one {# минуту} few {# минуты} many {# минут} other {# минуты}} назад",
+  "glass-atoms.sync.bankAge.owner.hours": "Ваш банк: обновлено {count, plural, one {# час} few {# часа} many {# часов} other {# часа}} назад",
+  "glass-atoms.sync.bankAge.partner.hours": "Банк партнёра: обновлено {count, plural, one {# час} few {# часа} many {# часов} other {# часа}} назад",
+  "glass-atoms.sync.bankAge.owner.days": "Ваш банк: обновлено {count, plural, one {# день} few {# дня} many {# дней} other {# дня}} назад",
+  "glass-atoms.sync.bankAge.partner.days": "Банк партнёра: обновлено {count, plural, one {# день} few {# дня} many {# дней} other {# дня}} назад"
+}
