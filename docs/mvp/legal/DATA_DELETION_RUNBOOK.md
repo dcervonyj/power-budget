@@ -26,6 +26,7 @@ Authorization: Bearer <access_token>
 ```
 
 This endpoint:
+
 1. Validates that the requester is the household owner
 2. Checks that the household has not already been scheduled for deletion
 3. Sets `households.scheduledForDeletion = NOW() + INTERVAL '30 days'`
@@ -38,11 +39,13 @@ The household becomes invisible in the UI immediately after this call (applicati
 ### Path 2 — Admin-initiated (support / compliance)
 
 An admin with database access or an admin CLI tool may trigger deletion for:
+
 - Abuse / Terms of Service violations
 - Court order / regulatory requirement
 - Manual GDPR erasure request received by email (privacy@powerbudget.app)
 
 **Admin CLI command** (to be implemented):
+
 ```bash
 pnpm -F @power-budget/backend cli household:schedule-deletion <householdId> --reason "GDPR_REQUEST" --admin-email "admin@powerbudget.app"
 ```
@@ -63,7 +66,7 @@ This clears `scheduled_for_deletion` and writes an audit entry `household.deleti
 
 ## Hard-Delete Process (automated)
 
-A BullMQ worker job (`household-export` + `period-close` queue) runs daily and processes households where `scheduled_for_deletion < NOW()`.
+The worker's `household-purge` cron (daily 03:30 UTC, `HouseholdPurgeCronService`, worker process only, system DB scope) runs `PurgeDeletedHouseholdsUseCase`: it processes households where `households.delete_scheduled_at <= NOW()` (CLN-022). One household per transaction; a failure leaves it scheduled for the next run. The SQL below is the order the code follows (`DrizzleHouseholdPurgeRepository`), with `leftover_snapshots` and `household_invites` added.
 
 ### Deletion order (respects FK constraints)
 
@@ -103,7 +106,7 @@ DELETE FROM households WHERE id = :id;
 
 ### Audit log anonymisation
 
-Audit log rows reference actors who may be shared across households. We do **not** delete audit rows — instead, we anonymise the actor reference for rows whose `actor_user_id` belongs to a user who has no remaining households:
+Audit rows are never deleted. `audit_log` is append-only for the app role, so anonymisation is done by the foreign keys: since migration `0015_cln-022_audit_set_null`, `audit_log.household_id` and `audit_log.actor_user_id` are `ON DELETE SET NULL`. Deleting the household nulls `household_id`; deleting a user with no remaining household nulls `actor_user_id`; an actor who still has another household keeps the reference. The `UPDATE` below is the equivalent in plain SQL (it is not run by the code and the `context` flag is not written):
 
 ```sql
 UPDATE audit_log
@@ -130,6 +133,7 @@ AND NOT EXISTS (
 ```
 
 User-owned encrypted data deleted in this step:
+
 - TOTP secret (encrypted blob)
 - OAuth refresh tokens (encrypted blobs)
 - DEK (Data Encryption Key) — deleted from KMS grants
@@ -168,6 +172,7 @@ Before the hard-delete, the system generates a GDPR data export artifact:
 - URL sent to the household owner's email
 
 The export includes:
+
 - `household`: name, createdAt
 - `members`: userId, email, role, joinedAt
 - `plans`: all plans + planned items + versions
@@ -181,16 +186,16 @@ The export includes:
 
 ## Timeline Summary
 
-| Day | Event |
-|-----|-------|
-| 0 | User triggers `DELETE /households/:id`; household hidden from UI |
-| 0 | Data export job enqueued |
-| 1–3 | Data export artifact generated and emailed to owner |
-| 1–30 | Soft-hold: data preserved, recovery possible via support |
-| 30 | Hard-delete worker fires |
-| 30 | All household rows deleted; audit log anonymised where applicable |
-| 30 | User account deleted if no remaining households |
-| 31+ | Verification query run by worker; result logged |
+| Day  | Event                                                             |
+| ---- | ----------------------------------------------------------------- |
+| 0    | User triggers `DELETE /households/:id`; household hidden from UI  |
+| 0    | Data export job enqueued                                          |
+| 1–3  | Data export artifact generated and emailed to owner               |
+| 1–30 | Soft-hold: data preserved, recovery possible via support          |
+| 30   | Hard-delete worker fires                                          |
+| 30   | All household rows deleted; audit log anonymised where applicable |
+| 30   | User account deleted if no remaining households                   |
+| 31+  | Verification query run by worker; result logged                   |
 
 ---
 

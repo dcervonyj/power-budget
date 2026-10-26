@@ -487,8 +487,9 @@ export const auditLog = pgTable(
   'audit_log',
   {
     id: uuid('id').primaryKey(),
-    householdId: uuid('household_id').references(() => households.id),
-    actorUserId: uuid('actor_user_id').references(() => users.id),
+    // SET NULL: a purge (CLN-022) keeps the audit rows and anonymises them via the FK action.
+    householdId: uuid('household_id').references(() => households.id, { onDelete: 'set null' }),
+    actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
     action: varchar('action', { length: 100 }).notNull(),
     subjectType: varchar('subject_type', { length: 100 }).notNull(),
     subjectId: uuid('subject_id').notNull(),
