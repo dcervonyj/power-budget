@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
 import { CategoriesApi, HouseholdsApi, PlansApi } from '@power-budget/shared-app';
 import { LocalStorageTokenStore } from './infrastructure/tokens/LocalStorageTokenStore.js';
@@ -87,24 +87,30 @@ export const householdsApi = new HouseholdsApi(apiClient);
 
 /**
  * The API client gave up on the session (refresh failed, tokens already cleared):
- * forget the user's data the same way sign-out does, then go to the login screen.
+ * forget the user's data the same way sign-out does, then go to the login screen,
+ * which brings the user back to the current screen after logging in again.
  */
 export function endSession(): void {
   clientSession.end();
-  navigationAdapter.navigate({ type: 'auth/login' });
+  navigationAdapter.replace({ type: 'auth/login', returnToCurrent: true });
 }
 
 /**
  * Inner component that has access to the router context and wires up the
- * navigation adapter's imperative navigate function.
+ * navigation adapter's imperative navigate function and current location.
  */
 function NavigationWirer(): null {
   const navigate = useNavigate();
+  const location = useLocation();
   const adapterRef = useRef(navigationAdapter);
 
   useEffect(() => {
     adapterRef.current.setNavigate(navigate);
   }, [navigate]);
+
+  useEffect(() => {
+    adapterRef.current.setLocation(location);
+  }, [location]);
 
   return null;
 }
