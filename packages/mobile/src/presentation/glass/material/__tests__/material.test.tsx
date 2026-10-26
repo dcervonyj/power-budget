@@ -1,8 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text } from 'react-native';
+import { Platform, StyleSheet, Text } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 import * as Reanimated from 'react-native-reanimated';
 import { ThemeProvider } from '../../../theme/index.js';
+import { GlassBlurBackground, GlassBlurProvider } from '../GlassBlurTarget.js';
 import { AmbientField } from '../AmbientField.js';
 import { DepthPanes } from '../DepthPanes.js';
 import { GlassPanel } from '../GlassPanel.js';
@@ -108,6 +109,65 @@ describe('GlassPanel', () => {
     );
 
     expect(StyleSheet.flatten(screen.getByTestId('glass-panel').props.style).opacity).toBe(0.5);
+  });
+});
+
+describe('GlassPanel blur on Android', () => {
+  const originalOs = Platform.OS;
+  const originalVersion = Platform.Version;
+
+  beforeEach(() => {
+    Object.defineProperty(Platform, 'OS', { value: 'android', configurable: true });
+    Object.defineProperty(Platform, 'Version', { value: 31, configurable: true });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(Platform, 'OS', { value: originalOs, configurable: true });
+    Object.defineProperty(Platform, 'Version', { value: originalVersion, configurable: true });
+  });
+
+  it('blurs once the target is attached, and passes it to the BlurView', async () => {
+    await renderThemed(
+      <GlassBlurProvider>
+        <GlassBlurBackground>
+          <AmbientField />
+        </GlassBlurBackground>
+        <GlassPanel>
+          <Text>x</Text>
+        </GlassPanel>
+      </GlassBlurProvider>,
+    );
+    const blur = screen.getByTestId('glass-blur', { includeHiddenElements: true });
+
+    expect(blur.props.blurMethod).toBe('dimezisBlurView');
+    expect(blur.props.blurTarget.current).toBeTruthy();
+    expect(blur.props.experimentalBlurMethod).toBeUndefined();
+  });
+
+  it('falls back to tint only without a target', async () => {
+    await renderThemed(
+      <GlassPanel>
+        <Text>x</Text>
+      </GlassPanel>,
+    );
+
+    expect(screen.queryByTestId('glass-blur', { includeHiddenElements: true })).toBeNull();
+  });
+
+  it('falls back to tint only below API 31', async () => {
+    Object.defineProperty(Platform, 'Version', { value: 30, configurable: true });
+    await renderThemed(
+      <GlassBlurProvider>
+        <GlassBlurBackground>
+          <AmbientField />
+        </GlassBlurBackground>
+        <GlassPanel>
+          <Text>x</Text>
+        </GlassPanel>
+      </GlassBlurProvider>,
+    );
+
+    expect(screen.queryByTestId('glass-blur', { includeHiddenElements: true })).toBeNull();
   });
 });
 
