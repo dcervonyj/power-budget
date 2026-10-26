@@ -364,6 +364,83 @@ describe('HTTP auth hardening (real app)', () => {
     });
   });
 
+  describe('per-user second-factor lockout (BE-BUGS-02)', () => {
+    const IPS = ['203.0.113.10', '203.0.113.11'];
+
+    function consumeFrom(
+      token: string,
+      totp: string,
+      remoteAddress: string,
+    ): Promise<LightMyRequestResponse> {
+      return app.inject({
+        method: 'POST',
+        url: '/auth/magic-link/consume',
+        payload: { token, totp },
+        remoteAddress,
+      });
+    }
+
+    it('25 wrong codes on magic links from 2 IPs lock the user out, password login included', async () => {
+      const user = await registerWithTotp('ml-brute@example.com');
+      const responses: LightMyRequestResponse[] = [];
+      for (const attempt of attemptNumbers(25)) {
+        const token = await insertMagicLink(user.userId);
+        responses.push(await consumeFrom(token, '000000', IPS[attempt % 2] ?? ''));
+      }
+      const correctWhileLocked = await login('ml-brute@example.com', PASSWORD, {
+        totp: totpCode(user.secret, 1),
+      });
+
+      const statuses = responses.map((res) => res.statusCode);
+      expect(statuses.slice(0, 5)).toEqual(Array.from({ length: 5 }, () => 401));
+      expect(statuses.slice(5)).toEqual(Array.from({ length: 20 }, () => 429));
+      const locked = responses[24];
+      expect(locked?.json()).toMatchObject({ statusCode: 429, code: 'too_many_requests' });
+      expect(Number(locked?.headers['retry-after'])).toBeGreaterThan(0);
+      expect(Number(locked?.headers['retry-after'])).toBeLessThanOrEqual(15 * 60);
+      expect(correctWhileLocked.statusCode).toBe(429);
+    });
+
+    it('accepts a correct code once the lockout window has passed', async () => {
+      const user = await registerWithTotp('ml-unlock@example.com');
+      for (const attempt of attemptNumbers(6)) {
+        await login('ml-unlock@example.com', PASSWORD, {
+          totp: '000000',
+          remoteAddress: IPS[attempt % 2],
+        });
+      }
+      const lockedOut = await login('ml-unlock@example.com', PASSWORD, {
+        totp: totpCode(user.secret, 1),
+      });
+      // The window is a Redis TTL: let it run out.
+      await redis.pexpire(`attempts:totp-failures:${user.userId}`, 1);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      const token = await insertMagicLink(user.userId);
+
+      const afterWindow = await consumeMagicLink(token, totpCode(user.secret, 1));
+
+      expect(lockedOut.statusCode).toBe(429);
+      expect(afterWindow.statusCode).toBe(201);
+      expect(afterWindow.json<AuthResponse>().userId).toBe(user.userId);
+    });
+
+    it('burns the magic link after 3 wrong codes', async () => {
+      const user = await registerWithTotp('ml-burn@example.com');
+      const token = await insertMagicLink(user.userId);
+      const statuses: number[] = [];
+      for (const attempt of attemptNumbers(3)) {
+        const res = await consumeFrom(token, '000000', IPS[attempt % 2] ?? '');
+        statuses.push(res.statusCode);
+      }
+
+      const withCode = await consumeMagicLink(token, totpCode(user.secret, 1));
+
+      expect(statuses).toEqual([401, 401, 401]);
+      expect(withCode.statusCode).toBe(401);
+      expect(withCode.json()).toMatchObject({ code: 'magic_link_expired' });
+    });
+  });
+
   describe('household delete step-up', () => {
     it('needs TOTP enrolment, then a recent TOTP verification', async () => {
       const user = await register('owner@example.com');

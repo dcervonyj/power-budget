@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createHash } from 'node:crypto';
 import { mock } from 'vitest-mock-extended';
 import type { UserId } from '@power-budget/core';
-import type { MagicLinkTokenRepository } from '../../../domain/auth/ports.js';
+import type { FailedAttemptCounter, MagicLinkTokenRepository } from '../../../domain/auth/ports.js';
 import { ConsumeMagicLinkUseCase } from './ConsumeMagicLinkUseCase.js';
 import {
   MagicLinkExpiredError,
   TotpInvalidError,
+  TotpLockedError,
   TotpRequiredError,
 } from '../../../domain/auth/errors.js';
 import type { LoginPolicy } from '../services/LoginPolicy.js';
@@ -23,13 +24,15 @@ const SESSION = {
 describe('ConsumeMagicLinkUseCase', () => {
   let magicLinkTokenRepo: ReturnType<typeof mock<MagicLinkTokenRepository>>;
   let loginPolicy: ReturnType<typeof mock<LoginPolicy>>;
+  let attemptCounter: ReturnType<typeof mock<FailedAttemptCounter>>;
   let useCase: ConsumeMagicLinkUseCase;
 
   beforeEach(() => {
     magicLinkTokenRepo = mock<MagicLinkTokenRepository>();
     loginPolicy = mock<LoginPolicy>();
     loginPolicy.issueSession.mockResolvedValue(SESSION);
-    useCase = new ConsumeMagicLinkUseCase(magicLinkTokenRepo, loginPolicy);
+    attemptCounter = mock<FailedAttemptCounter>();
+    useCase = new ConsumeMagicLinkUseCase(magicLinkTokenRepo, loginPolicy, attemptCounter);
   });
 
   it('issues a session when the token is live and the second factor passes', async () => {
@@ -62,16 +65,47 @@ describe('ConsumeMagicLinkUseCase', () => {
     await expect(useCase.execute({ token: RAW_TOKEN })).rejects.toThrow(TotpRequiredError);
     expect(magicLinkTokenRepo.consume).not.toHaveBeenCalled();
     expect(loginPolicy.issueSession).not.toHaveBeenCalled();
+    expect(attemptCounter.increment).not.toHaveBeenCalled();
   });
 
-  it('issues no session for a wrong TOTP code', async () => {
+  it('issues no session for a wrong TOTP code and counts it on the link', async () => {
     magicLinkTokenRepo.find.mockResolvedValue({ userId: TEST_USER_ID });
     loginPolicy.assertSecondFactor.mockRejectedValue(new TotpInvalidError());
+    attemptCounter.increment.mockResolvedValue({ attempts: 2, secondsLeft: 800 });
 
     await expect(useCase.execute({ token: RAW_TOKEN, totp: '000000' })).rejects.toThrow(
       TotpInvalidError,
     );
+    expect(attemptCounter.increment).toHaveBeenCalledWith(
+      `magic-link-failures:${TOKEN_HASH}`,
+      15 * 60,
+    );
+    expect(magicLinkTokenRepo.consume).not.toHaveBeenCalled();
     expect(loginPolicy.issueSession).not.toHaveBeenCalled();
+  });
+
+  it('burns the link with the third wrong code', async () => {
+    magicLinkTokenRepo.find.mockResolvedValue({ userId: TEST_USER_ID });
+    loginPolicy.assertSecondFactor.mockRejectedValue(new TotpInvalidError());
+    attemptCounter.increment.mockResolvedValue({ attempts: 3, secondsLeft: 700 });
+
+    await expect(useCase.execute({ token: RAW_TOKEN, totp: '000000' })).rejects.toThrow(
+      TotpInvalidError,
+    );
+    expect(magicLinkTokenRepo.consume).toHaveBeenCalledWith(TOKEN_HASH);
+    expect(attemptCounter.reset).toHaveBeenCalledWith(`magic-link-failures:${TOKEN_HASH}`);
+    expect(loginPolicy.issueSession).not.toHaveBeenCalled();
+  });
+
+  it('keeps the link while the user is locked out', async () => {
+    magicLinkTokenRepo.find.mockResolvedValue({ userId: TEST_USER_ID });
+    loginPolicy.assertSecondFactor.mockRejectedValue(new TotpLockedError(600));
+
+    await expect(useCase.execute({ token: RAW_TOKEN, totp: '123456' })).rejects.toThrow(
+      TotpLockedError,
+    );
+    expect(attemptCounter.increment).not.toHaveBeenCalled();
+    expect(magicLinkTokenRepo.consume).not.toHaveBeenCalled();
   });
 
   it('throws MagicLinkExpiredError when a concurrent request consumed the link first', async () => {
