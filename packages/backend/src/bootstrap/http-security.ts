@@ -77,27 +77,29 @@ export function assertBootEnv(env: HttpSecurityEnv): void {
   buildCorsOptions(env);
 }
 
-/** Fastify `trustProxy` value: `false`, `true`, a hop count, or a comma-separated list of proxy IPs/CIDRs. */
-export type TrustProxySetting = boolean | number | string;
+/** Fastify `trustProxy` value: `false`, `true`, or a comma-separated list of proxy IPs/CIDRs/keywords. */
+export type TrustProxySetting = boolean | string;
 
-const DEFAULT_TRUSTED_PROXY_HOPS = 1;
+// Fastify >= 5.12.2 disables hop-count trust (a direct client could spoof it), so the
+// default trusts only private-range peers: the platform load balancer (Render).
+const DEFAULT_TRUSTED_PROXIES = 'loopback,linklocal,uniquelocal';
 
 /**
  * TRUST_PROXY decides which X-Forwarded-For entry becomes `request.ip`, the
- * key of the per-IP rate limit (audit H4). Default: one hop, the platform load
- * balancer (Render). `true` would trust every hop, so any client could pick its
+ * key of the per-IP rate limit (audit H4). Default: private-range peers, the platform load
+ * balancer (Render). A legacy hop count (e.g. `1`) is mapped to that default. `true` would trust every hop, so any client could pick its
  * own IP by sending X-Forwarded-For; use it only behind a proxy that strips it.
  */
 export function resolveTrustProxy(raw: string | undefined): TrustProxySetting {
   const value = (raw ?? '').trim();
   if (value.length === 0) {
-    return DEFAULT_TRUSTED_PROXY_HOPS;
+    return DEFAULT_TRUSTED_PROXIES;
   }
   if (value === 'true' || value === 'false') {
     return value === 'true';
   }
   if (/^\d+$/.test(value)) {
-    return Number(value);
+    return DEFAULT_TRUSTED_PROXIES;
   }
 
   return value;
