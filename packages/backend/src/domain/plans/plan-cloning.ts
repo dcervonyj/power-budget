@@ -7,10 +7,27 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-function addMonths(date: Date, months: number): Date {
-  const d = new Date(date);
-  d.setUTCMonth(d.getUTCMonth() + months);
-  return d;
+/**
+ * Moves to the month `months` ahead, landing on `anchorDay` or on the last day of
+ * that month when it is shorter (31 Jan + 1 month = 28/29 Feb, never 2/3 Mar).
+ */
+function addMonthsClamped(date: Date, months: number, anchorDay: number): Date {
+  const lastDay = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months + 1, 0),
+  ).getUTCDate();
+
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, Math.min(anchorDay, lastDay)),
+  );
+}
+
+/**
+ * The day of month a monthly period is anchored on. A period that started on a clamped
+ * day (28 Feb after a 31 Jan anchor) still ends the day before the real anchor, so the
+ * larger of the start day and the next-period start day is the anchor.
+ */
+function monthlyAnchorDay(start: Date, end: Date): number {
+  return Math.max(start.getUTCDate(), addDays(end, 1).getUTCDate());
 }
 
 function toIsoDate(d: Date): IsoDate {
@@ -28,7 +45,9 @@ function parseIsoDate(s: string): Date {
 function periodStartingOn(periodKind: 'weekly' | 'monthly', start: IsoDate): PlanPeriod {
   const startDate = parseIsoDate(start);
   const end =
-    periodKind === 'weekly' ? addDays(startDate, 6) : addDays(addMonths(startDate, 1), -1);
+    periodKind === 'weekly'
+      ? addDays(startDate, 6)
+      : addDays(addMonthsClamped(startDate, 1, startDate.getUTCDate()), -1);
 
   return { start, end: toIsoDate(end) };
 }
@@ -43,7 +62,8 @@ function nextPeriod(periodKind: PlanPeriodKind, current: PlanPeriod): PlanPeriod
       return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
     case 'monthly': {
-      const nextEnd = addDays(addMonths(nextStart, 1), -1);
+      const anchorDay = monthlyAnchorDay(parseIsoDate(current.start), end);
+      const nextEnd = addDays(addMonthsClamped(nextStart, 1, anchorDay), -1);
       return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
     case 'custom': {
