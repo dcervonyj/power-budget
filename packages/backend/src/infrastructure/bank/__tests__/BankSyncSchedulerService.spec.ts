@@ -25,8 +25,24 @@ describe('BankSyncSchedulerService', () => {
 
     const slot = new Date('2026-10-21T08:00:00.000Z');
     expect(queue.enqueue.mock.calls).toEqual([
-      [{ connectionId: CONN_A, householdId: HOUSEHOLD_ID, scheduledAt: slot }],
-      [{ connectionId: CONN_B, householdId: HOUSEHOLD_ID, scheduledAt: slot }],
+      [
+        {
+          connectionId: CONN_A,
+          householdId: HOUSEHOLD_ID,
+          trigger: 'scheduled',
+          attended: false,
+          scheduledAt: slot,
+        },
+      ],
+      [
+        {
+          connectionId: CONN_B,
+          householdId: HOUSEHOLD_ID,
+          trigger: 'scheduled',
+          attended: false,
+          scheduledAt: slot,
+        },
+      ],
     ]);
   });
 });

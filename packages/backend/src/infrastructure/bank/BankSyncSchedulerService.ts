@@ -21,6 +21,8 @@ export class BankSyncSchedulerService {
       await this.syncQueue.enqueue({
         connectionId: target.connectionId,
         householdId: target.householdId,
+        trigger: 'scheduled',
+        attended: false,
         scheduledAt,
       });
     }

@@ -17,7 +17,7 @@ export class DrizzleBankAccountIdentityRepository implements BankAccountIdentity
     identity: AccountIdentity,
     householdId: HouseholdId,
   ): Promise<void> {
-    await this.db
+    const result = await this.db
       .update(schema.bankAccounts)
       .set({
         identificationHash: identity.identificationHash,
@@ -29,6 +29,9 @@ export class DrizzleBankAccountIdentityRepository implements BankAccountIdentity
           eq(schema.bankAccounts.householdId, householdId),
         ),
       );
+    if (result.rowCount === 0) {
+      throw new Error(`Bank account ${accountId} not found in household ${householdId}`);
+    }
   }
 
   async findByIdentificationHash(

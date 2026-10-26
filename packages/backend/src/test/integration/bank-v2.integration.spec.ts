@@ -105,6 +105,17 @@ describe('Integration: bank v2 repositories (BNK-003)', () => {
         ),
       ),
     ).rejects.toMatchObject({ cause: { code: '23505' } });
+    // A lookup never crosses households, and identifying an unknown account fails loudly.
+    expect(await asTenant(A, () => repo.findByIdentificationHash('h1', B.householdId))).toBeNull();
+    await expect(
+      asTenant(A, () =>
+        repo.setIdentity(
+          B.accountId,
+          { identificationHash: 'h9', providerAccountUid: null },
+          A.householdId,
+        ),
+      ),
+    ).rejects.toThrow(/not found/);
     // The same hash is allowed in another household, and is not visible across households.
     await asTenant(B, () =>
       repo.setIdentity(
@@ -159,6 +170,15 @@ describe('Integration: bank v2 repositories (BNK-003)', () => {
     ).toBe(1);
     await expect(
       asTenant(A, () => repo.record({ ...entry, accountId: B.accountId })),
+    ).rejects.toMatchObject({ cause: { code: '42501' } });
+    const foreignRun = await asTenant(B, () =>
+      new DrizzleSyncRunRepository(db).start(B.connectionId, {
+        trigger: 'manual',
+        attended: false,
+      }),
+    );
+    await expect(
+      asTenant(A, () => repo.record({ ...entry, syncRunId: foreignRun })),
     ).rejects.toMatchObject({ cause: { code: '42501' } });
     await expect(
       asTenant(A, () => repo.record({ ...entry, connectionId: B.connectionId })),
