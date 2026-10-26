@@ -10,10 +10,7 @@ import * as schema from '../../../drizzle/schema.js';
 export class DrizzleSyncRunRepository implements SyncRunRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async start(
-    connectionId: BankConnectionId,
-    options: SyncRunStartOptions = { trigger: 'manual', attended: false },
-  ): Promise<SyncRunId> {
+  async start(connectionId: BankConnectionId, options: SyncRunStartOptions): Promise<SyncRunId> {
     const id = randomUUID() as SyncRunId;
     await this.db.insert(schema.syncRuns).values({
       id,

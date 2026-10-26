@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { JobsOptions, Queue } from 'bullmq';
 import type { BankConnectionId, HouseholdId } from '@power-budget/core';
-import type { BankSyncQueuePort } from '../../domain/bank/ports.js';
+import type { BankSyncQueuePort, SyncRunStartOptions } from '../../domain/bank/ports.js';
 import { QUEUE_BANK_SYNC } from '../queue/queue.constants.js';
 import { DEFAULT_JOB_OPTIONS } from '../queue/retry-config.js';
 
@@ -13,6 +13,8 @@ export class BullMQBankSyncQueue implements BankSyncQueuePort {
   async enqueue(payload: {
     connectionId: BankConnectionId;
     householdId: HouseholdId;
+    trigger: SyncRunStartOptions['trigger'];
+    attended: boolean;
     since?: Date;
     scheduledAt?: Date;
   }): Promise<{ jobId: string }> {

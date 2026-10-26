@@ -23,6 +23,8 @@ function makeJob(overrides: Partial<BankSyncJobPayload> = {}): Job<BankSyncJobPa
     data: {
       connectionId: CONNECTION_ID,
       householdId: HOUSEHOLD_ID,
+      trigger: 'scheduled',
+      attended: false,
       ...overrides,
     },
   } as Job<BankSyncJobPayload>;
@@ -128,9 +130,25 @@ describe('BankSyncProcessor', () => {
 
     await processor.process(makeJob());
 
-    expect(syncRunRepo.start).toHaveBeenCalledWith(CONNECTION_ID);
+    expect(syncRunRepo.start).toHaveBeenCalledWith(CONNECTION_ID, {
+      trigger: 'scheduled',
+      attended: false,
+    });
     expect(syncRunRepo.finish).toHaveBeenCalledWith(SYNC_RUN_ID, { ok: true, fetched: 1 });
     expect(ingestUseCase.execute).toHaveBeenCalledOnce();
+  });
+
+  it('passes the trigger and attended flag of a manual refresh to the sync run', async () => {
+    connectionRepo.findById.mockResolvedValue(makeConnection());
+    connector.listAccounts.mockResolvedValue([]);
+    bankAccountRepo.listByConnection.mockResolvedValue([]);
+
+    await processor.process(makeJob({ trigger: 'manual', attended: true }));
+
+    expect(syncRunRepo.start).toHaveBeenCalledWith(CONNECTION_ID, {
+      trigger: 'manual',
+      attended: true,
+    });
   });
 
   it('skips processing when connection is not found', async () => {

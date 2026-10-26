@@ -5,6 +5,7 @@ import type {
   BankConnectionRepository,
   BankAccountRepository,
   SyncRunRepository,
+  SyncRunStartOptions,
   BankConnectorRegistry,
 } from '../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
@@ -13,6 +14,8 @@ import { QUEUE_BANK_SYNC } from '../queue/queue.constants.js';
 export interface BankSyncJobPayload {
   readonly connectionId: BankConnectionId;
   readonly householdId: HouseholdId;
+  readonly trigger: SyncRunStartOptions['trigger'];
+  readonly attended: boolean;
   readonly since?: string; // ISO date string
 }
 
@@ -31,7 +34,7 @@ export class BankSyncProcessor extends WorkerHost {
   }
 
   async process(job: Job<BankSyncJobPayload>): Promise<void> {
-    const { connectionId, householdId, since } = job.data;
+    const { connectionId, householdId, trigger, attended, since } = job.data;
     const scope = { householdId };
 
     const connection = await this.connectionRepo.findById(connectionId, scope);
@@ -39,7 +42,7 @@ export class BankSyncProcessor extends WorkerHost {
       return;
     }
 
-    const syncRunId = await this.syncRunRepo.start(connectionId);
+    const syncRunId = await this.syncRunRepo.start(connectionId, { trigger, attended });
     const sinceDt = since ? new Date(since) : await this.getDefaultSince(connectionId);
     let totalFetched = 0;
 
