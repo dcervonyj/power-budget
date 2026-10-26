@@ -125,10 +125,16 @@ export class SettingsStore {
           apiClient
             .get<{ url?: string; status?: string }>('/households/export/status')
             .then((res: { data: { url?: string; status?: string } }) => {
-              if (res.data.url) {
+              if (res.data.status === 'failed') {
+                clearInterval(timer);
+                reject(new Error('Export failed'));
+              } else if (typeof res.data.url === 'string' && res.data.url !== '') {
                 clearInterval(timer);
                 this.exportUrl = res.data.url;
                 resolve();
+              } else if (res.data.status === 'ready') {
+                clearInterval(timer);
+                reject(new Error('Export ready without a download url'));
               } else if (attempts >= maxAttempts) {
                 clearInterval(timer);
                 reject(new Error('Export timed out'));
