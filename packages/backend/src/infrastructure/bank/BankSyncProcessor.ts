@@ -55,10 +55,13 @@ export class BankSyncProcessor extends WorkerHost {
         const dbAccount = dbAccounts.find((a) => a.externalId === rawAccount.externalId);
         if (dbAccount === undefined) continue;
 
+        // Scheduled sync: nobody is present, so no PSU context (SYNC-003 adds attended runs).
         const rawTxs = await connector.fetchTransactions({
-          accountExternalId: rawAccount.externalId,
+          account: { externalId: rawAccount.externalId },
           consent: connection.encryptedConsent,
-          since: sinceDt,
+          dateFrom: sinceDt,
+          strategy: 'default',
+          psu: null,
         });
 
         await this.ingestUseCase.execute({

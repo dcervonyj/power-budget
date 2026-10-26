@@ -8,6 +8,10 @@ import type {
   BankProvider,
   CurrencyCode,
   Money,
+  IsoDate,
+  BankTxStatus,
+  BankTxDirection,
+  BankConsentStatus,
 } from '@power-budget/core';
 
 export type {
@@ -18,6 +22,9 @@ export type {
   SyncRunId,
   EncryptedString,
   BankProvider,
+  BankTxStatus,
+  BankTxDirection,
+  BankConsentStatus,
 };
 
 export type BankConnectionStatus = 'active' | 'expired' | 'disconnected' | 'reconnect_required';
@@ -110,14 +117,74 @@ export interface RawBankAccount {
   readonly balanceMinor: bigint;
 }
 
-export interface RawTransaction {
-  readonly externalId: string | null;
-  readonly accountExternalId: string;
-  readonly occurredOn: string; // ISO date YYYY-MM-DD
+/**
+ * An amount exactly as the bank reports it. The currency is not narrowed to `CurrencyCode`
+ * because a bank may report any ISO 4217 code (an FX card payment in THB, say).
+ */
+export interface RawAmount {
+  /** Signed minor units: negative for money out. */
   readonly amountMinor: bigint;
   readonly currency: string;
-  readonly description: string;
-  readonly merchant: string | null;
+}
+
+/**
+ * One transaction as the bank reports it (BankConnector v2, plan-banking.md §1.10).
+ * `amountMinor` is signed (negative for a debit) and agrees with `direction`.
+ */
+export interface RawTransaction {
+  readonly accountExternalId: string;
+  readonly status: BankTxStatus;
+  /** Stable key for booked rows only; never set it from a provider's per-fetch transaction id. */
+  readonly entryReference: string | null;
+  readonly bookingDate: IsoDate | null;
+  readonly valueDate: IsoDate | null;
+  readonly transactionDate: IsoDate | null;
+  readonly amountMinor: bigint;
+  readonly currency: string;
+  readonly direction: BankTxDirection;
+  /** The instructed amount of an FX payment (Enable Banking `exchange_rate.instructed_amount`). */
+  readonly originalAmount: RawAmount | null;
+  readonly counterpartyName: string | null;
+  readonly counterpartyIban: string | null;
+  /** Remittance information (the bank's description); empty when the bank sends none. */
+  readonly remittance: string;
+  readonly mcc: string | null;
+  readonly bankTxCode: string | null;
+  readonly balanceAfter: RawAmount | null;
+}
+
+/** One balance of an account as the bank reports it. */
+export interface RawBalance {
+  readonly accountExternalId: string;
+  readonly amount: RawAmount;
+  /** The provider's balance type code as sent (ISO 20022 such as `CLBD`, `ITAV`, `XPCD`). */
+  readonly balanceType: string;
+  readonly referenceDate: IsoDate | null;
+}
+
+/** The account a fetch is for, by the provider's account id. */
+export interface BankAccountRef {
+  readonly externalId: string;
+}
+
+/**
+ * The present user's request context, sent to the bank as PSU headers so an attended fetch
+ * does not use the unattended quota (PSD2). Never persisted beyond a job payload.
+ * More headers join when an ASPSP's `required_psu_headers` asks for them (SPK-001).
+ */
+export interface PsuContext {
+  readonly ipAddress: string;
+  readonly userAgent: string;
+  readonly acceptLanguage: string;
+}
+
+/** `default`: from `dateFrom`; `longest`: as far back as the bank allows (initial import). */
+export type BankFetchStrategy = 'default' | 'longest';
+
+export interface BankConsentStatusReport {
+  readonly status: BankConsentStatus;
+  /** When the consent ends; null when the provider does not say (a Wise token never expires). */
+  readonly validUntil: Date | null;
 }
 
 export interface SyncRun {

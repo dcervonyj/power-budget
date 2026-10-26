@@ -12,6 +12,11 @@ import type {
   EncryptedString,
   RawBankAccount,
   RawTransaction,
+  RawBalance,
+  BankAccountRef,
+  BankFetchStrategy,
+  BankConsentStatusReport,
+  PsuContext,
   NewBankConnection,
   SyncRunId,
 } from './entities.js';
@@ -20,7 +25,7 @@ export interface HouseholdScope {
   readonly householdId: HouseholdId;
 }
 
-/** The most important seam in the codebase. Per ARCHITECTURE.md §5.2. */
+/** The most important seam in the codebase. v2 per plan-banking.md §1.10. */
 export interface BankConnector {
   readonly provider: BankProvider;
   listSupportedBanks(country: CountryCode): Promise<BankCatalogEntry[]>;
@@ -35,13 +40,30 @@ export interface BankConnector {
     callbackPayload: Record<string, string>;
   }): Promise<{ consentToken: EncryptedString; expiresAt: Date | null }>;
   listAccounts(connectionId: BankConnectionId, consent: EncryptedString): Promise<RawBankAccount[]>;
-  fetchTransactions(input: {
-    accountExternalId: string;
-    consent: EncryptedString;
-    since: Date;
-  }): Promise<RawTransaction[]>;
+  /**
+   * Booked, pending and cancelled transactions of one account. `psu` is the present user's
+   * context for an attended fetch, null for an unattended one. Failures are the typed
+   * `BankConnectorError` subclasses (errors.ts).
+   */
+  fetchTransactions(input: FetchTransactionsInput): Promise<RawTransaction[]>;
+  fetchBalances(input: FetchBalancesInput): Promise<RawBalance[]>;
+  getConsentStatus(consent: EncryptedString): Promise<BankConsentStatusReport>;
   refreshConsent(connectionId: BankConnectionId): Promise<{ consentUrl: string }>;
   disconnect(connectionId: BankConnectionId, consent: EncryptedString): Promise<void>;
+}
+
+export interface FetchTransactionsInput {
+  readonly account: BankAccountRef;
+  readonly consent: EncryptedString;
+  readonly dateFrom: Date;
+  readonly strategy: BankFetchStrategy;
+  readonly psu: PsuContext | null;
+}
+
+export interface FetchBalancesInput {
+  readonly account: BankAccountRef;
+  readonly consent: EncryptedString;
+  readonly psu: PsuContext | null;
 }
 
 export interface BankConnectionRepository {
