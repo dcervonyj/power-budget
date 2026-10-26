@@ -208,7 +208,7 @@ Sensitive endpoints can require a recent TOTP verification via:
 @RequireRecentTotp()          // default 5 min window
 ```
 
-`TotpStepUpGuard` checks `RedisTotpStepUpStore` keyed `totp-stepup:{userId}` (TTL 300 s); without an enabled TOTP it answers 403 `requires_totp_enrollment`, otherwise 403 `requires_totp`. Every accepted code (`POST /auth/totp/verify`, or a login with `totp`) goes through `TotpAuthenticator`, which decrypts the secret via the `Encryption` port, rejects reused codes and stamps the step-up. First enrolment (`POST /auth/totp/enable`) needs no step-up; replacing an enabled TOTP does. Password and magic-link login share `LoginPolicy`: once TOTP is enabled both need a code. Credential endpoints use `ThrottlerGuard` (per IP and per account, Redis storage; see `presentation/auth/throttling.ts`).
+`TotpStepUpGuard` checks `RedisTotpStepUpStore` keyed `totp-stepup:{userId}` (TTL 300 s); without an enabled TOTP it answers 403 `requires_totp_enrollment`, otherwise 403 `requires_totp`. Every accepted code (`POST /auth/totp/verify`, or a login with `totp`) goes through `TotpAuthenticator`, which decrypts the secret via the `Encryption` port, rejects reused codes and stamps the step-up. First enrolment (`POST /auth/totp/enable`) needs no step-up; replacing an enabled TOTP does. Password and magic-link login share `LoginPolicy`: once TOTP is enabled both need a code, and a user gets 5 codes per 15 min across both paths and all IPs (Redis `attempts:totp-failures:{userId}`, reset on success), then 429 `too_many_requests` with `Retry-After`; a magic link is burned after 3 wrong codes. Credential endpoints use `ThrottlerGuard` (per IP and per account, Redis storage; see `presentation/auth/throttling.ts`).
 
 ## Audit log PII redaction
 

@@ -1,5 +1,5 @@
 import { HttpStatus } from '@nestjs/common';
-import { TotpEnrollmentRequiredError } from '../../domain/auth/errors.js';
+import { TotpEnrollmentRequiredError, TotpLockedError } from '../../domain/auth/errors.js';
 import { BankConnectionInvalidStateError } from '../../domain/bank/errors.js';
 
 export interface HttpErrorMapping {
@@ -166,6 +166,13 @@ export function mapDomainError(error: unknown): HttpErrorMapping | null {
   if (error instanceof TotpEnrollmentRequiredError) {
     return mapping(HttpStatus.FORBIDDEN, error.code, 'TOTP enrollment required');
   }
+  if (error instanceof TotpLockedError) {
+    return mapping(
+      HttpStatus.TOO_MANY_REQUESTS,
+      'too_many_requests',
+      'Too many attempts, try again later',
+    );
+  }
   if (error instanceof BankConnectionInvalidStateError) {
     return mapping(HttpStatus.CONFLICT, 'bank_connection_invalid_state', error.message);
   }
@@ -173,6 +180,15 @@ export function mapDomainError(error: unknown): HttpErrorMapping | null {
   const code = MESSAGE_CODE.exec(error.message)?.[1];
 
   return code !== undefined ? (BY_MESSAGE_CODE[code] ?? null) : null;
+}
+
+/** Response headers a domain error adds: `Retry-After` for a second-factor lockout (CLN-031). */
+export function headersForDomainError(error: unknown): Readonly<Record<string, string>> {
+  if (error instanceof TotpLockedError) {
+    return { 'Retry-After': String(error.retryAfterSeconds) };
+  }
+
+  return {};
 }
 
 /** Fallback `code` for HTTP exceptions thrown without one. */
