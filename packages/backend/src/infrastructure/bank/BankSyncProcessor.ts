@@ -55,7 +55,12 @@ export class BankSyncProcessor extends WorkerHost {
     const scope = { householdId };
 
     const connection = await this.connectionRepo.findById(connectionId, scope);
-    if (connection === null || connection.encryptedConsent === null) {
+    // A job queued before a disconnect (or for a connection without consent) does nothing.
+    if (
+      connection === null ||
+      connection.status !== 'active' ||
+      connection.encryptedConsent === null
+    ) {
       return;
     }
 

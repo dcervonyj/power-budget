@@ -145,6 +145,11 @@ export class BankController {
   @ApiResponse({ status: 200, description: 'Connection activated', type: BankConsentCompletedDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Consent not found' })
+  @ApiResponse({
+    status: 409,
+    description:
+      'Another connection to this bank is already active (bank_connection_invalid_state)',
+  })
   async completeBankConsent(
     @Param('id', UUID_V7_PIPE) id: string,
     @Query('code') code: string,
@@ -196,6 +201,10 @@ export class BankController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
   @ApiResponse({ status: 404, description: 'Connection not found' })
+  @ApiResponse({
+    status: 409,
+    description: 'Connection is not active with a consent (bank_connection_invalid_state)',
+  })
   async refreshConnection(
     @Param('id', UUID_V7_PIPE) id: string,
     @CurrentUser() user: AuthenticatedUser,

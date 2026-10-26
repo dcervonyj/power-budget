@@ -67,14 +67,17 @@ export interface FetchBalancesInput {
 }
 
 export interface BankConnectionRepository {
+  /** Stores a new connection as `pending`: it waits for the consent callback (CLN-038). */
   create(conn: NewBankConnection): Promise<BankConnection>;
   findById(id: BankConnectionId, scope: HouseholdScope): Promise<BankConnection | null>;
+  /** The user's `active` connection to the bank that holds a consent; `pending` ones never match. */
   findActiveByUserAndBank(
     userId: UserId,
     bankId: BankId,
     provider: BankProvider,
   ): Promise<BankConnection | null>;
   listByUser(userId: UserId): Promise<BankConnection[]>;
+  /** Every `active` connection that holds a consent: what the scheduler syncs. */
   findActiveConnections(): Promise<BankConnection[]>;
   updateConsent(
     id: BankConnectionId,
@@ -83,6 +86,7 @@ export interface BankConnectionRepository {
     scope: HouseholdScope,
   ): Promise<void>;
   markActive(id: BankConnectionId, scope: HouseholdScope): Promise<void>;
+  /** Marks the connection `disconnected` and drops the stored consent, so nothing can sync it. */
   markDisconnected(id: BankConnectionId, at: Date, scope: HouseholdScope): Promise<void>;
 }
 

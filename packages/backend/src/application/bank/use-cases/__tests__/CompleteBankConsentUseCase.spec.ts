@@ -9,7 +9,10 @@ import type {
 } from '../../../../domain/bank/ports.js';
 import type { BankConnection } from '../../../../domain/bank/entities.js';
 import { CompleteBankConsentUseCase } from '../CompleteBankConsentUseCase.js';
-import { BankConsentNotFoundError } from '../../../../domain/bank/errors.js';
+import {
+  BankConsentNotFoundError,
+  BankConnectionInvalidStateError,
+} from '../../../../domain/bank/errors.js';
 import { BankController } from '../../../../presentation/bank/BankController.js';
 
 const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;
@@ -19,6 +22,7 @@ const ALICE_HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
 const MALLORY_HOUSEHOLD = '01900000-0000-7000-8000-0000000000b1' as HouseholdId;
 const ALICE_CONN = '01900000-0000-7000-8000-0000000000a2' as BankConnectionId;
 const MALLORY_CONN = '01900000-0000-7000-8000-0000000000b2' as BankConnectionId;
+const MALLORY_RETRY_CONN = '01900000-0000-7000-8000-0000000000b3' as BankConnectionId;
 const MALLORY_TOKEN = 'enc:mallory-wise-token' as EncryptedString;
 
 function makeConnection(overrides: Partial<BankConnection>): BankConnection {
@@ -31,7 +35,7 @@ function makeConnection(overrides: Partial<BankConnection>): BankConnection {
     externalConsentRef: 'wise-alice-ref',
     encryptedConsent: null,
     expiresAt: null,
-    status: 'active',
+    status: 'pending',
     disconnectedAt: null,
     createdAt: new Date(),
     ...overrides,
@@ -63,6 +67,7 @@ describe('CompleteBankConsentUseCase', () => {
     ];
     connectionRepo = mock<BankConnectionRepository>();
     connectionRepo.findById.mockImplementation(findScoped);
+    connectionRepo.findActiveByUserAndBank.mockResolvedValue(null);
     connector = mock<BankConnector>();
     connector.completeConsent.mockResolvedValue({ consentToken: MALLORY_TOKEN, expiresAt: null });
     const registry = mock<BankConnectorRegistry>();
@@ -92,6 +97,60 @@ describe('CompleteBankConsentUseCase', () => {
       null,
       expect.anything(),
     );
+    expect(connectionRepo.markActive).toHaveBeenCalledWith(MALLORY_CONN, {
+      householdId: MALLORY_HOUSEHOLD,
+    });
+  });
+
+  // CLN-038: an abandoned attempt completed late must not open a second connection to the bank.
+  it('refuses a pending connection when another one to the same bank is already active', async () => {
+    connectionRepo.findActiveByUserAndBank.mockResolvedValue(
+      makeConnection({
+        id: MALLORY_RETRY_CONN,
+        householdId: MALLORY_HOUSEHOLD,
+        userId: MALLORY,
+        status: 'active',
+      }),
+    );
+
+    await expect(
+      useCase.execute({
+        connectionId: MALLORY_CONN,
+        userId: MALLORY,
+        householdId: MALLORY_HOUSEHOLD,
+        callbackPayload: { apiToken: 'mallory-token' },
+      }),
+    ).rejects.toThrow(BankConnectionInvalidStateError);
+    expect(connectionRepo.findActiveByUserAndBank).toHaveBeenCalledWith(
+      MALLORY,
+      'wise',
+      'wise_personal',
+    );
+    expect(connector.completeConsent).not.toHaveBeenCalled();
+    expect(connectionRepo.markActive).not.toHaveBeenCalled();
+  });
+
+  it('completes again when the active connection to the bank is this one', async () => {
+    connectionRepo.findActiveByUserAndBank.mockResolvedValue(
+      makeConnection({
+        id: MALLORY_CONN,
+        householdId: MALLORY_HOUSEHOLD,
+        userId: MALLORY,
+        status: 'active',
+      }),
+    );
+
+    const result = await useCase.execute({
+      connectionId: MALLORY_CONN,
+      userId: MALLORY,
+      householdId: MALLORY_HOUSEHOLD,
+      callbackPayload: { apiToken: 'mallory-token' },
+    });
+
+    expect(result).toEqual({ connectionId: MALLORY_CONN });
+    expect(connectionRepo.markActive).toHaveBeenCalledWith(MALLORY_CONN, {
+      householdId: MALLORY_HOUSEHOLD,
+    });
   });
 
   it("refuses to complete another household's connection", async () => {

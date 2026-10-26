@@ -27,7 +27,12 @@ export type {
   BankConsentStatus,
 };
 
-export type BankConnectionStatus = 'active' | 'expired' | 'disconnected' | 'reconnect_required';
+/**
+ * `pending`: created by InitiateBankConnection, waiting for the consent callback (CLN-038);
+ * it becomes `active` only in CompleteBankConsent and never blocks a new attempt.
+ */
+export type BankConnectionStatus =
+  'pending' | 'active' | 'expired' | 'disconnected' | 'reconnect_required';
 export type CountryCode = string; // ISO 3166-1 alpha-2
 export type BankId = string;
 

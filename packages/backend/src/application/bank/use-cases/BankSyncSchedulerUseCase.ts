@@ -10,7 +10,9 @@ export class BankSyncSchedulerUseCase {
   constructor(private readonly connectionRepo: BankConnectionRepository) {}
 
   async execute(): Promise<ScheduledSyncTarget[]> {
+    // Only `active` connections that hold a consent (CLN-038).
     const connections = await this.connectionRepo.findActiveConnections();
+
     return connections.map((c) => ({
       connectionId: c.id,
       householdId: c.householdId,
