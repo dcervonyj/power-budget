@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
-import { FormattedMessage, useIntl } from 'react-intl';
-import { rnDarkTheme } from '@power-budget/design-tokens/rn';
-import { Button } from './Button.js';
+import { View } from 'react-native';
+import { useIntl } from 'react-intl';
+import { makeStyles } from '../theme/index.js';
+import { AmbientField } from '../glass/material/AmbientField.js';
+import { BiometricOptInPanel } from '../glass/overlays/BiometricPanels.js';
+import { useToast } from '../glass/overlays/Toast.js';
 import { biometricUnlockService } from '../../infrastructure/index.js';
-
-const t = rnDarkTheme;
 
 interface Props {
   readonly onDone: () => void;
@@ -14,6 +14,8 @@ interface Props {
 /** Shown once on first launch when biometrics are available. */
 export function BiometricOptInPrompt({ onDone }: Props): React.JSX.Element {
   const intl = useIntl();
+  const styles = useStyles();
+  const toast = useToast();
   const [loading, setLoading] = useState(false);
 
   const handleEnable = async (): Promise<void> => {
@@ -29,8 +31,7 @@ export function BiometricOptInPrompt({ onDone }: Props): React.JSX.Element {
         await biometricUnlockService.setBiometricEnabled(true);
         onDone();
       } else {
-        Alert.alert(
-          intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),
+        toast.show(
           intl.formatMessage({
             id: 'biometric.optIn.authFailed',
             defaultMessage: 'Authentication failed. Biometric unlock was not enabled.',
@@ -50,62 +51,25 @@ export function BiometricOptInPrompt({ onDone }: Props): React.JSX.Element {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>
-        <FormattedMessage id="biometric.optIn.title" defaultMessage="Enable Biometric Unlock" />
-      </Text>
-      <Text style={styles.body}>
-        <FormattedMessage
-          id="biometric.optIn.body"
-          defaultMessage="Unlock Power Budget quickly and securely with Face ID or Touch ID."
-        />
-      </Text>
-
-      <Button
-        variant="primary"
-        onPress={() => {
+      <AmbientField />
+      <BiometricOptInPanel
+        loading={loading}
+        onEnable={() => {
           void handleEnable();
         }}
-        loading={loading}
-      >
-        {intl.formatMessage({ id: 'biometric.optIn.enable', defaultMessage: 'Enable' })}
-      </Button>
-
-      <View style={styles.spacer} />
-
-      <Button
-        variant="secondary"
-        onPress={() => {
+        onSkip={() => {
           void handleSkip();
         }}
-        disabled={loading}
-      >
-        {intl.formatMessage({ id: 'biometric.optIn.skip', defaultMessage: 'Not Now' })}
-      </Button>
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((glass) => ({
   container: {
     flex: 1,
     justifyContent: 'center',
-    padding: t.spaceLg,
-    backgroundColor: t.colorSurfaceBase,
+    padding: glass.space.lg,
+    backgroundColor: glass.colors.base,
   },
-  title: {
-    fontSize: t.fontSizeXl,
-    fontWeight: t.fontWeightBold,
-    color: t.colorTextPrimary,
-    marginBottom: t.spaceMd,
-    textAlign: 'center',
-  },
-  body: {
-    color: t.colorTextSecondary,
-    fontSize: t.fontSizeMd,
-    textAlign: 'center',
-    marginBottom: t.spaceLg,
-  },
-  spacer: {
-    height: t.spaceSm,
-  },
-});
+}));
