@@ -1,6 +1,6 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { CompositeScreenProps } from '@react-navigation/native';
+import type { CompositeScreenProps, NavigatorScreenParams } from '@react-navigation/native';
 
 // Auth stack
 export type AuthStackParamList = {
@@ -15,13 +15,14 @@ export type AuthStackParamList = {
 export type AppTabParamList = {
   Dashboard: undefined;
   Transactions: undefined;
+  ToSort: undefined;
   Plans: undefined;
   Settings: undefined;
 };
 
 // App stack (screens reachable from tabs)
 export type AppStackParamList = {
-  Tabs: undefined;
+  Tabs: NavigatorScreenParams<AppTabParamList> | undefined;
   TransactionDetail: { transactionId: string };
   PlanEditor: { planId?: string };
   PlanDashboard: { planId: string };
@@ -30,6 +31,7 @@ export type AppStackParamList = {
   Categories: undefined;
   Household: undefined;
   AuditLog: undefined;
+  AddExpense: undefined;
 };
 
 // Root navigator

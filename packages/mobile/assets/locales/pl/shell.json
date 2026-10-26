@@ -1,0 +1,19 @@
+{
+  "shell.tab.overview": "Przegląd",
+  "shell.tab.transactions": "Transakcje",
+  "shell.tab.toSort": "Do sortowania",
+  "shell.tab.plan": "Plan",
+  "shell.tab.add": "Dodaj wydatek",
+  "shell.tabBar": "Główna nawigacja",
+  "shell.account.menu": "Menu konta",
+  "shell.menu.settings": "Ustawienia",
+  "shell.menu.categories": "Kategorie",
+  "shell.menu.household": "Gospodarstwo domowe",
+  "shell.menu.banks": "Banki",
+  "shell.menu.audit": "Dziennik zdarzeń",
+  "shell.header.back": "Wstecz",
+  "shell.title.transaction": "Transakcja",
+  "shell.title.planEditor": "Edytuj plan",
+  "shell.title.planDashboard": "Plan",
+  "shell.title.addBank": "Dodaj bank"
+}
