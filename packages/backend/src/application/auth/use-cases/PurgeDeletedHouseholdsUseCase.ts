@@ -22,24 +22,43 @@ export class PurgeDeletedHouseholdsUseCase {
   constructor(private readonly purgeRepo: HouseholdPurgeRepository) {}
 
   async execute(now: Date): Promise<PurgeDeletedHouseholdsOutput> {
-    const dueIds = await this.purgeRepo.findDueHouseholdIds(
-      now,
-      PurgeDeletedHouseholdsUseCase.BATCH_SIZE,
-    );
     const purged: HouseholdPurgeResult[] = [];
     const failed: PurgeFailure[] = [];
+    const attempted: HouseholdId[] = [];
 
-    for (const householdId of dueIds) {
-      try {
-        const result = await this.purgeRepo.purge(householdId, now);
-        if (result !== null) {
-          purged.push(result);
-        }
-      } catch (error) {
-        failed.push({ householdId, error });
+    // Page until nothing due is left. Every attempted id (failed or not) is excluded from the
+    // next page, so a household that keeps failing cannot block the others.
+    for (;;) {
+      const dueIds = await this.purgeRepo.findDueHouseholdIds(
+        now,
+        PurgeDeletedHouseholdsUseCase.BATCH_SIZE,
+        [...attempted],
+      );
+      if (dueIds.length === 0) {
+        break;
+      }
+      for (const householdId of dueIds) {
+        attempted.push(householdId);
+        await this.purgeOne(householdId, now, purged, failed);
       }
     }
 
     return { purged, failed };
+  }
+
+  private async purgeOne(
+    householdId: HouseholdId,
+    now: Date,
+    purged: HouseholdPurgeResult[],
+    failed: PurgeFailure[],
+  ): Promise<void> {
+    try {
+      const result = await this.purgeRepo.purge(householdId, now);
+      if (result !== null) {
+        purged.push(result);
+      }
+    } catch (error) {
+      failed.push({ householdId, error });
+    }
   }
 }

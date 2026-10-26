@@ -50,8 +50,12 @@ export interface HouseholdPurgeResult {
 
 /** GDPR hard delete of households whose grace period has passed (runs in the worker only). */
 export interface HouseholdPurgeRepository {
-  /** Households whose `delete_scheduled_at` is at or before `now`, oldest first. */
-  findDueHouseholdIds(now: Date, limit: number): Promise<HouseholdId[]>;
+  /** Households whose `delete_scheduled_at` is at or before `now`, oldest first, minus `excludeIds`. */
+  findDueHouseholdIds(
+    now: Date,
+    limit: number,
+    excludeIds: readonly HouseholdId[],
+  ): Promise<HouseholdId[]>;
   /**
    * Deletes the household's data, memberships and the household in one transaction, then the
    * accounts of former members left without a household. Returns null when the household is

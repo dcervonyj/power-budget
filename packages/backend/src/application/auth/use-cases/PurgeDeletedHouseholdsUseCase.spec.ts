@@ -20,15 +20,16 @@ describe('PurgeDeletedHouseholdsUseCase', () => {
   });
 
   it('purges every due household', async () => {
-    repo.findDueHouseholdIds.mockResolvedValue([H1, H2]);
+    repo.findDueHouseholdIds.mockResolvedValueOnce([H1, H2]).mockResolvedValue([]);
     repo.purge.mockImplementation((id) => Promise.resolve({ householdId: id, deletedUserIds: [] }));
 
     const output = await useCase.execute(NOW);
 
-    expect(repo.findDueHouseholdIds).toHaveBeenCalledWith(
+    expect(repo.findDueHouseholdIds.mock.calls[0]).toEqual([
       NOW,
       PurgeDeletedHouseholdsUseCase.BATCH_SIZE,
-    );
+      [],
+    ]);
     expect(repo.purge.mock.calls).toEqual([
       [H1, NOW],
       [H2, NOW],
@@ -38,7 +39,7 @@ describe('PurgeDeletedHouseholdsUseCase', () => {
   });
 
   it('reports the accounts deleted with the household', async () => {
-    repo.findDueHouseholdIds.mockResolvedValue([H1]);
+    repo.findDueHouseholdIds.mockResolvedValueOnce([H1]).mockResolvedValue([]);
     repo.purge.mockResolvedValue({ householdId: H1, deletedUserIds: [USER] });
 
     const output = await useCase.execute(NOW);
@@ -47,7 +48,7 @@ describe('PurgeDeletedHouseholdsUseCase', () => {
   });
 
   it('skips a household whose deletion was cancelled meanwhile', async () => {
-    repo.findDueHouseholdIds.mockResolvedValue([H1]);
+    repo.findDueHouseholdIds.mockResolvedValueOnce([H1]).mockResolvedValue([]);
     repo.purge.mockResolvedValue(null);
 
     const output = await useCase.execute(NOW);
@@ -57,7 +58,7 @@ describe('PurgeDeletedHouseholdsUseCase', () => {
 
   it('keeps going after one household fails', async () => {
     const boom = new Error('fk violation');
-    repo.findDueHouseholdIds.mockResolvedValue([H1, H2, H3]);
+    repo.findDueHouseholdIds.mockResolvedValueOnce([H1, H2, H3]).mockResolvedValue([]);
     repo.purge.mockImplementation((id) =>
       id === H2 ? Promise.reject(boom) : Promise.resolve({ householdId: id, deletedUserIds: [] }),
     );
@@ -75,5 +76,23 @@ describe('PurgeDeletedHouseholdsUseCase', () => {
 
     expect(repo.purge).not.toHaveBeenCalled();
     expect(output).toEqual({ purged: [], failed: [] });
+  });
+
+  it('pages past a failing household instead of retrying it, so it cannot block the others', async () => {
+    repo.findDueHouseholdIds
+      .mockResolvedValueOnce([H1])
+      .mockResolvedValueOnce([H2])
+      .mockResolvedValue([]);
+    repo.purge.mockImplementation((id) =>
+      id === H1
+        ? Promise.reject(new Error('stuck'))
+        : Promise.resolve({ householdId: id, deletedUserIds: [] }),
+    );
+
+    const output = await useCase.execute(NOW);
+
+    expect(repo.findDueHouseholdIds.mock.calls[1]?.[2]).toEqual([H1]);
+    expect(output.purged.map((p) => p.householdId)).toEqual([H2]);
+    expect(output.failed.map((f) => f.householdId)).toEqual([H1]);
   });
 });
