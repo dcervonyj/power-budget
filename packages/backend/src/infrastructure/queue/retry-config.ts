@@ -20,7 +20,9 @@ export const DEFAULT_JOB_OPTIONS = {
     type: 'custom',
   } satisfies BackoffOptions,
   removeOnComplete: { count: 100, age: 24 * 3600 },
-  removeOnFail: false, // keep failed jobs for inspection
+  // Failed jobs are kept for inspection but bounded: Redis is 25 MB with noeviction, so an
+  // unbounded failed set (a stack trace per job) would eventually reject every write.
+  removeOnFail: { count: 200, age: 7 * 24 * 3600 },
 } as const;
 
 /**
@@ -30,4 +32,14 @@ export const DEFAULT_JOB_OPTIONS = {
 export function customBackoffStrategy(attemptsMade: number): number {
   const idx = Math.min(attemptsMade, RETRY_DELAYS_MS.length - 1);
   return RETRY_DELAYS_MS[idx] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]!;
+}
+
+/**
+ * BullMQ passes the 1-based number of the attempt that just failed (first failure = 1),
+ * while RETRY_DELAYS_MS is indexed from 0. Workers must register this under
+ * `settings.backoffStrategy`; without it a job with `backoff.type: 'custom'` fails the
+ * retry instead of being delayed.
+ */
+export function bullmqBackoffStrategy(failedAttempt: number): number {
+  return customBackoffStrategy(Math.max(failedAttempt - 1, 0));
 }
