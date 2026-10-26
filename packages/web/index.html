@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Power Budget</title>
+    <meta name="color-scheme" content="dark light" />
+    <!-- Sets data-theme and color-scheme before first paint (external file for the script-src 'self' CSP). -->
+    <script src="/theme-boot.js"></script>
     <!-- Page base from the dark design tokens (surface.base, text.primary, fontFamily.sans),
          so screens are not drawn on a white, serif default page (UI-013). -->
     <style>
@@ -11,7 +14,17 @@
         margin: 0;
         background-color: #07080e;
         color: #e6e0d8;
-        font-family: Inter, -apple-system, system-ui, 'Segoe UI', Roboto, sans-serif;
+        font-family:
+          Inter,
+          -apple-system,
+          system-ui,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+      }
+      html[data-theme='light'] body {
+        background-color: #eef1f4;
+        color: #0e1726;
       }
     </style>
   </head>
