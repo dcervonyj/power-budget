@@ -64,7 +64,7 @@
     "@types/node": "^22",
     "@types/pg": "^8.20.0",
     "@vitest/coverage-v8": "^4.1.11",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "^0.31.11",
     "testcontainers": "^12.2.1",
     "tsx": "^4.22.4",
     "typescript": "^5.9.3",
