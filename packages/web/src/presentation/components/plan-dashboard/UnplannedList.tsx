@@ -1,11 +1,13 @@
 import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
-import { useTheme } from '../ThemeContext.js';
 import { Button } from '../Button.js';
-import { formatAmount, formatIsoDate } from '../../i18n/formatAmount.js';
+import { AmountText } from '../../glass/atoms/AmountText.js';
+import { Icon } from '../../glass/atoms/Icon.js';
+import { formatIsoDate } from '../../i18n/formatAmount.js';
 import type { UnplannedList as UnplannedListState } from '../../../application/dashboard/PlanDashboardStore.js';
 import type { LineDirection, MoneyAmount } from '../../../domain/dashboard/PlanDashboard.js';
+import { DIM_TEXT_STYLE, LIST_RESET_STYLE } from './overviewStyles.js';
 
 export interface UnplannedListProps {
   readonly direction: LineDirection;
@@ -13,6 +15,14 @@ export interface UnplannedListProps {
   readonly list: UnplannedListState;
   readonly onLoadMore: () => void;
 }
+
+const ROW_STYLE: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  padding: '9px 0',
+  fontSize: 'var(--pb-glass-type-body-web)',
+};
 
 /**
  * The caller's own transactions with no planned item, in their own currency. The
@@ -24,19 +34,16 @@ export const UnplannedList = observer(function UnplannedList({
   list,
   onLoadMore,
 }: UnplannedListProps): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
-  const totalText = formatAmount(total, intl.locale);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-xs)' }}>
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          gap: theme.space.md,
-          fontSize: theme.fontSize.sm,
-          color: theme.color.text.primary,
+          gap: 12,
+          ...DIM_TEXT_STYLE,
         }}
       >
         <span>
@@ -52,47 +59,39 @@ export const UnplannedList = observer(function UnplannedList({
             />
           )}
         </span>
-        <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: theme.fontWeight.semibold }}>
-          {totalText}
+        <span style={{ color: 'var(--pb-glass-fg)', fontWeight: 600 }}>
+          <AmountText amount={total} />
         </span>
       </div>
 
       {list.items.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-          {list.items.map((tx) => (
+        <ul style={LIST_RESET_STYLE}>
+          {list.items.map((tx, index) => (
             <li
               key={tx.id}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                gap: theme.space.md,
-                padding: `${String(theme.space.xs)}px 0`,
-                borderTop: `1px solid ${theme.color.border.subtle}`,
-                fontSize: theme.fontSize.xs,
+                ...ROW_STYLE,
+                boxShadow: index === 0 ? 'none' : 'inset 0 1px 0 var(--pb-glass-sep)',
               }}
             >
-              <span style={{ color: theme.color.text.primary }}>
+              <span style={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                 {tx.description}
-                <span style={{ color: theme.color.text.secondary, marginLeft: theme.space.sm }}>
-                  {formatIsoDate(tx.occurredOn, intl.locale)}
+                <span style={{ ...DIM_TEXT_STYLE, marginLeft: '0.3em' }}>
+                  <FormattedMessage
+                    id="overview.unplanned.date"
+                    defaultMessage="· {date}"
+                    values={{ date: formatIsoDate(tx.occurredOn, intl.locale) }}
+                  />
                 </span>
               </span>
-              <span
-                style={{
-                  fontVariantNumeric: 'tabular-nums',
-                  whiteSpace: 'nowrap',
-                  color: theme.color.text.primary,
-                }}
-              >
-                {formatAmount(tx.amount, intl.locale)}
-              </span>
+              <AmountText amount={tx.amount} />
             </li>
           ))}
         </ul>
       )}
 
       {list.items.length === 0 && !list.loading && !list.failed && (
-        <span style={{ fontSize: theme.fontSize.xs, color: theme.color.text.secondary }}>
+        <span style={DIM_TEXT_STYLE}>
           <FormattedMessage
             id="planDashboard.unplanned.noneOwn"
             defaultMessage="None of your own transactions"
@@ -103,8 +102,15 @@ export const UnplannedList = observer(function UnplannedList({
       {list.failed && (
         <span
           role="alert"
-          style={{ fontSize: theme.fontSize.xs, color: theme.color.status.danger }}
+          style={{
+            ...DIM_TEXT_STYLE,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            color: 'var(--pb-glass-over)',
+          }}
         >
+          <Icon name="warning" size={16} />
           <FormattedMessage
             id="planDashboard.unplanned.failed"
             defaultMessage="The list could not be loaded."
