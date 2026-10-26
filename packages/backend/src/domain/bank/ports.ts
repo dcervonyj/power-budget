@@ -103,8 +103,13 @@ export interface AccountRepository {
   createManual(input: NewManualAccount, scope: HouseholdScope): Promise<ManualAccount>;
 }
 
+export interface SyncRunStartOptions {
+  readonly trigger: 'scheduled' | 'manual' | 'live_signal' | 'reserve';
+  readonly attended: boolean;
+}
+
 export interface SyncRunRepository {
-  start(connectionId: BankConnectionId): Promise<SyncRunId>;
+  start(connectionId: BankConnectionId, options?: SyncRunStartOptions): Promise<SyncRunId>;
   finish(id: SyncRunId, result: { ok: boolean; fetched: number; error?: string }): Promise<void>;
   lastSuccessfulAt(connectionId: BankConnectionId): Promise<Date | null>;
 }
