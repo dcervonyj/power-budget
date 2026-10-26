@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import { FormattedMessage } from 'react-intl';
-import { rnDarkTheme } from '@power-budget/design-tokens/rn';
-
-const t = rnDarkTheme;
+import { View, Text, TextInput, Pressable } from 'react-native';
+import { useIntl } from 'react-intl';
+import { makeStyles, useGlass } from '../theme/index.js';
+import { BODY_FONT, LABEL_FONT, TOUCH_TARGET } from '../glass/controls/fonts.js';
 
 export interface InputProps {
   readonly label?: string;
@@ -16,6 +15,47 @@ export interface InputProps {
   readonly autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
 }
 
+const useStyles = makeStyles((glass) => ({
+  container: { marginBottom: glass.space.md },
+  label: {
+    color: glass.colors.dim,
+    fontFamily: LABEL_FONT,
+    fontSize: glass.type.small.mobile,
+    marginBottom: glass.space.xxs,
+  },
+  wrapper: {
+    minHeight: TOUCH_TARGET,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: glass.colors.clear,
+    borderRadius: glass.radius.control,
+    borderWidth: 1,
+    paddingHorizontal: glass.space.md,
+  },
+  wrapperDefault: { borderColor: glass.colors.sep },
+  wrapperFocused: { borderColor: glass.colors.accent },
+  wrapperError: { borderColor: glass.colors.over },
+  input: {
+    flex: 1,
+    minHeight: TOUCH_TARGET,
+    color: glass.colors.fg,
+    fontFamily: BODY_FONT,
+    fontSize: glass.type.body.mobile,
+  },
+  toggle: { minHeight: TOUCH_TARGET, paddingLeft: glass.space.xs, justifyContent: 'center' },
+  toggleText: {
+    color: glass.colors.dim,
+    fontFamily: LABEL_FONT,
+    fontSize: glass.type.small.mobile,
+  },
+  error: {
+    color: glass.colors.over,
+    fontFamily: BODY_FONT,
+    fontSize: glass.type.small.mobile,
+    marginTop: glass.space.xxs,
+  },
+}));
+
 export function Input({
   label,
   placeholder,
@@ -26,64 +66,59 @@ export function Input({
   keyboardType = 'default',
   autoCapitalize = 'none',
 }: InputProps): React.JSX.Element {
+  const styles = useStyles();
+  const glass = useGlass();
+  const intl = useIntl();
   const [showText, setShowText] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const toggleLabel = showText
+    ? intl.formatMessage({ id: 'input.password.hide', defaultMessage: 'Hide' })
+    : intl.formatMessage({ id: 'input.password.show', defaultMessage: 'Show' });
 
   return (
     <View style={styles.container}>
       {label && <Text style={styles.label}>{label}</Text>}
-      <View style={[styles.inputWrapper, error ? styles.inputError : styles.inputDefault]}>
+      <View
+        style={[
+          styles.wrapper,
+          error ? styles.wrapperError : focused ? styles.wrapperFocused : styles.wrapperDefault,
+        ]}
+      >
         <TextInput
           style={styles.input}
           value={value}
           onChangeText={onChangeText}
+          onFocus={() => {
+            setFocused(true);
+          }}
+          onBlur={() => {
+            setFocused(false);
+          }}
           placeholder={placeholder}
-          placeholderTextColor={t.colorTextMuted}
+          placeholderTextColor={glass.colors.faint}
+          accessibilityLabel={label ?? placeholder}
           secureTextEntry={secureTextEntry && !showText}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
         />
         {secureTextEntry && (
-          <TouchableOpacity
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={toggleLabel}
             onPress={() => {
               setShowText((s) => !s);
             }}
             style={styles.toggle}
           >
-            <Text style={styles.toggleText}>
-              {showText ? (
-                <FormattedMessage id="input.password.hide" defaultMessage="Hide" />
-              ) : (
-                <FormattedMessage id="input.password.show" defaultMessage="Show" />
-              )}
-            </Text>
-          </TouchableOpacity>
+            <Text style={styles.toggleText}>{toggleLabel}</Text>
+          </Pressable>
         )}
       </View>
-      {error && <Text style={styles.error}>{error}</Text>}
+      {error && (
+        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+          {error}
+        </Text>
+      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { marginBottom: t.spaceMd },
-  label: { color: t.colorTextSecondary, fontSize: t.fontSizeSm, marginBottom: t.spaceXs },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: t.colorSurfaceRaised,
-    borderRadius: t.radiusSm,
-    borderWidth: 1,
-    paddingHorizontal: t.spaceMd,
-  },
-  inputDefault: { borderColor: t.colorBorderSubtle },
-  inputError: { borderColor: t.colorStatusDanger },
-  input: {
-    flex: 1,
-    color: t.colorTextPrimary,
-    fontSize: t.fontSizeMd,
-    paddingVertical: t.spaceSm,
-  },
-  toggle: { paddingLeft: t.spaceSm },
-  toggleText: { color: t.colorTextSecondary, fontSize: t.fontSizeSm },
-  error: { color: t.colorStatusDanger, fontSize: t.fontSizeXs, marginTop: t.spaceXs },
-});
