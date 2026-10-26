@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { signOut } from '../../AppProviders.js';
@@ -10,10 +10,11 @@ import { useTheme } from '../theme/ThemeProvider.js';
 import { AppShellView, type ShellSyncChip } from './AppShellView.js';
 import { ShellLoading } from './ShellLoading.js';
 import { activeNavItem } from './shellNav.js';
+import { useShellRefresh } from './useShellRefresh.js';
 
 /**
- * Layout route of the signed-in app (DSN-017): loads the shell data once, refreshes the to-sort
- * count and the sync chip on every navigation, and renders the current screen in `main`.
+ * Layout route of the signed-in app (DSN-017): keeps the shell data current (`useShellRefresh`)
+ * and renders the current screen in `main`.
  */
 export const AppShell = observer(function AppShell(): React.JSX.Element {
   const location = useLocation();
@@ -21,18 +22,7 @@ export const AppShell = observer(function AppShell(): React.JSX.Element {
   const { preference, setPreference } = useTheme();
   const { locale, changeLocale } = useLocaleChoice();
   const [signingOut, setSigningOut] = useState(false);
-  const loadedRef = useRef(false);
-
-  // The first render loads everything; each navigation after it refreshes the parts that change.
-  useEffect(() => {
-    if (loadedRef.current) {
-      void appShellStore.refresh();
-
-      return;
-    }
-    loadedRef.current = true;
-    void appShellStore.load();
-  }, [location.pathname, location.search]);
+  useShellRefresh(appShellStore, location.pathname);
 
   async function handleSignOut(): Promise<void> {
     setSigningOut(true);
