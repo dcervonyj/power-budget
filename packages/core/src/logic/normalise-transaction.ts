@@ -28,16 +28,33 @@ const DIACRITICS: Readonly<Record<string, string>> = {
   ś: 's',
   ź: 'z',
   ż: 'z',
+  ß: 'ss',
+  ø: 'o',
+  æ: 'ae',
+  œ: 'oe',
+  đ: 'd',
+  ð: 'd',
+  þ: 'th',
 };
 
+/** Keyword end: next char is not a letter or digit (JS \b is ASCII-only). */
+const END = String.raw`(?![\p{L}\d])`;
+
 const MERCHANT_PREFIXES: readonly RegExp[] = [
-  /^(?:card payment to|card purchase at|platnosc karta|transakcja karta)\s*/i,
-  /^(?:payu|przelewy24|p24)[\s*:-]*/i,
-  /^(?:blik(?: payment)?|platnosc blik)[\s*:-]*/i,
-  /^(?:allegro(?:\.pl)?)[\s*:-]*/i,
-  /^(?:wyplata gotowki|cash withdrawal)(?:\s+(?:bankomat|atm))?\s*/i,
-  /^(?:oplata|prowizja|fee|charge)[\s*:-]*/i,
-];
+  `(?:card payment to|card purchase at|p[łl]atno[śs][ćc] kart[ąa]|transakcja kart[ąa])${END}[\\s*:-]*`,
+  `(?:payu|przelewy24|p24)${END}[\\s*:-]*`,
+  `(?:blik payment|p[łl]atno[śs][ćc] blik|blik)${END}[\\s*:-]*`,
+  `(?:allegro\\.pl|allegro)${END}[\\s*:-]*`,
+  `(?:wyp[łl]ata got[óo]wki|cash withdrawal)${END}(?:\\s+(?:bankomat|atm)${END})?\\s*`,
+  `(?:op[łl]ata|prowizja|fee|charge)${END}[\\s*:-]*`,
+].map(toPrefixPattern);
+
+function toPrefixPattern(source: string): RegExp {
+  return new RegExp(`^${source}`, 'iu');
+}
+
+const COUNTERPARTY_MARKER =
+  /\b(?:odbiorca|nadawca|recipient|sender|beneficiary|transfer (?:to|from)|received from|sent to|from|przelew(?: blik)? (?:do|od)|(?:przelew )?(?:blik )?na telefon)\b[\s:-]*(.+)$/i;
 
 /** Folded city names that trail card descriptors. */
 const CITIES: readonly string[] = [
@@ -67,7 +84,7 @@ const CITIES: readonly string[] = [
 export function normaliseText(value: string): string {
   return value
     .toLocaleLowerCase('pl-PL')
-    .replace(/[ąćęłńóśźż]/g, replacePolishDiacritic)
+    .replace(/[ąćęłńóśźżßøæœđðþ]/g, replacePolishDiacritic)
     .normalize('NFD')
     .replace(/([a-z])[\u0300-\u036f]+/g, '$1')
     .normalize('NFC')
@@ -130,11 +147,15 @@ function classify(description: string): DescriptorClass {
     return 'atm';
   }
 
+  if (/\b(przelew (do|od)|odbiorca|nadawca|transfer (to|from)|recipient|sender)\b/.test(key)) {
+    return 'transfer';
+  }
+
   if (/\b(oplata|prowizja|fee|charge|commission)\b/.test(key)) {
     return 'fee';
   }
 
-  if (/\b(przelew|transfer|recipient|odbiorca)\b/.test(key)) {
+  if (/\b(przelew|transfer)\b/.test(key)) {
     return 'transfer';
   }
 
@@ -150,9 +171,7 @@ function extractCounterparty(description: string, descriptorClass: DescriptorCla
     return null;
   }
 
-  const matched = description.match(
-    /(?:odbiorca|recipient|beneficiary|transfer to|przelew(?: blik)? do)[\s:-]*(.+)$/i,
-  );
+  const matched = description.match(COUNTERPARTY_MARKER);
 
   if (matched === null || matched[1] === undefined) {
     return null;
@@ -172,19 +191,24 @@ function extractMerchant(
     return counterparty;
   }
 
-  const withoutPrefix = MERCHANT_PREFIXES.reduce(stripPrefix, description);
-  const merchant = stripTrailingMetadata(withoutPrefix);
+  const merchant = stripTrailingMetadata(stripFirstPrefix(description));
 
   return merchant.length === 0 ? null : merchant;
 }
 
-function stripPrefix(value: string, prefix: RegExp): string {
-  return value.replace(prefix, '');
+function stripFirstPrefix(description: string): string {
+  for (const prefix of MERCHANT_PREFIXES) {
+    if (prefix.test(description)) {
+      return description.replace(prefix, '');
+    }
+  }
+
+  return description;
 }
 
 function merchantKey(merchant: string): string {
   const withoutNoise = merchant
-    .replace(/\b(?:terminal|term|nr|no)[\s:#]*[a-z0-9-]+\b/gi, '')
+    .replace(/\b(?:terminal|term|nr|no)\b[\s:.#]*\d[\w-]*/gi, '')
     .replace(/\b(?:z|t)\d{3,}\b/gi, '')
     .replace(/\b[ck]\.?\d+\b/gi, '')
     .replace(/\b\d{3,}\b/g, '');
@@ -205,8 +229,8 @@ function stripTrailingMetadata(value: string): string {
     .replace(/\b\d{2}[-/.]\d{2}[-/.]\d{4}\b/g, '')
     .replace(/\b\d{2}:\d{2}(?::\d{2})?\b/g, '')
     .replace(/(?:\*{2,}|x{2,}|\.{3})\s?\d{4}\b/gi, '')
-    .replace(/\b(?:ref(?:erence)?|id|nr)[\s:#]*[a-z0-9-]{6,}\b/gi, '')
-    .replace(/\b(?:terminal|term)[\s:#]*[a-z0-9-]+\b/gi, '')
+    .replace(/\b(?:ref(?:erence)?|id|nr)\b[\s:#]*(?=[a-z0-9-]*\d)[a-z0-9-]{6,}/gi, '')
+    .replace(/\b(?:terminal|term)\b[\s:#]*\d[\w-]*/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
