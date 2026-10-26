@@ -12,7 +12,7 @@ const detail: TransactionDetailDto = {
     description: 'Biedronka',
     merchant: null,
     source: 'bank_sync',
-    status: 'posted',
+    status: 'booked',
     ignored: false,
     notes: null,
     suggestedPlannedItemId: null,

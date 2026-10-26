@@ -228,11 +228,14 @@ export function TransactionDetailModal({
 
   const statusLabel = (status: Transaction['status']): string => {
     switch (status) {
+      case 'live':
       case 'pending':
         return intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' });
-      case 'posted':
-        return intl.formatMessage({ id: 'transaction.status.posted', defaultMessage: 'Booked' });
+      case 'booked':
+      case 'manual':
+        return intl.formatMessage({ id: 'transaction.status.booked', defaultMessage: 'Booked' });
       case 'cancelled':
+      case 'expired':
         return intl.formatMessage({
           id: 'transaction.status.cancelled',
           defaultMessage: 'Cancelled',

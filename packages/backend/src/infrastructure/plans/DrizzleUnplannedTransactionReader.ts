@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { and, desc, eq, gte, lte, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lte, lt, notInArray, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { BankAccountId, IsoDate, TransactionId } from '@power-budget/core';
 import type {
@@ -7,6 +7,7 @@ import type {
   UnplannedTransactionPage,
   UnplannedTransactionQuery,
 } from '../../domain/plans/ports.js';
+import { UNCOUNTED_TRANSACTION_STATUSES } from '../../domain/transactions/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
 
@@ -37,6 +38,8 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
       gte(schema.transactions.occurredOn, query.periodStart),
       lte(schema.transactions.occurredOn, query.periodEnd),
       eq(schema.transactions.ignored, false),
+      // cancelled and expired rows are kept for audit only (plan-banking.md §1.7).
+      notInArray(schema.transactions.status, [...UNCOUNTED_TRANSACTION_STATUSES]),
       // Only the viewer's own accounts: a partner's transactions stay private
       sql`EXISTS (
         SELECT 1 FROM bank_accounts ba

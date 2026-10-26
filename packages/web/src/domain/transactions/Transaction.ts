@@ -15,8 +15,11 @@ export interface TransactionMapping {
 
 export type TransactionSource = 'bank_sync' | 'manual';
 
-/** Lifecycle of the bank record: pending until the bank books it. */
-export type TransactionStatus = 'pending' | 'posted' | 'cancelled';
+/**
+ * Row lifecycle (plan-banking.md §1.7): `live` and `pending` until the bank books the row,
+ * `cancelled` and `expired` rows count in no total, `manual` rows are entered by a user.
+ */
+export type TransactionStatus = 'live' | 'pending' | 'booked' | 'cancelled' | 'expired' | 'manual';
 
 /** A transaction as the web screens use it; built from the API DTO by TransactionMapper. */
 export interface Transaction {

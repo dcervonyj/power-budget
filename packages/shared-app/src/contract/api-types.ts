@@ -1126,10 +1126,10 @@ export interface components {
       /** @enum {string} */
       source: 'bank_sync' | 'manual';
       /**
-       * @description Booking status: `pending`, `posted` (booked by the bank) or `cancelled`
+       * @description Row lifecycle: `live` (live signal only), `pending`, `booked` (booked by the bank), `cancelled`, `expired` (provisional, never booked) or `manual`. `cancelled` and `expired` rows count in no total
        * @enum {string}
        */
-      status: 'pending' | 'posted' | 'cancelled';
+      status: 'live' | 'pending' | 'booked' | 'cancelled' | 'expired' | 'manual';
       ignored: boolean;
       notes: string | null;
       suggestedPlannedItemId: string | null;
@@ -1162,10 +1162,10 @@ export interface components {
       /** @enum {string} */
       source: 'bank_sync' | 'manual';
       /**
-       * @description Booking status: `pending`, `posted` (booked by the bank) or `cancelled`
+       * @description Row lifecycle: `live` (live signal only), `pending`, `booked` (booked by the bank), `cancelled`, `expired` (provisional, never booked) or `manual`. `cancelled` and `expired` rows count in no total
        * @enum {string}
        */
-      status: 'pending' | 'posted' | 'cancelled';
+      status: 'live' | 'pending' | 'booked' | 'cancelled' | 'expired' | 'manual';
       ignored: boolean;
       notes: string | null;
       suggestedPlannedItemId: string | null;

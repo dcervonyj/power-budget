@@ -263,7 +263,7 @@
   "component.transactionRow.ignored": "Игнорируется",
   "component.transactionRow.remap": "Изменить",
   "transaction.status.pending": "В обработке",
-  "transaction.status.posted": "Проведена",
+  "transaction.status.booked": "Проведена",
   "transaction.status.cancelled": "Отменена",
   "screen.transactionMap.title": "Привязка транзакции",
   "screen.transactionMap.action": "Привязать",

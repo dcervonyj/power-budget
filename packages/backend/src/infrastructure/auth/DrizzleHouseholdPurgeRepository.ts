@@ -94,6 +94,7 @@ export class DrizzleHouseholdPurgeRepository implements HouseholdPurgeRepository
       .from(schema.transactions)
       .where(eq(schema.transactions.householdId, householdId));
 
+    await tx.delete(schema.liveSignals).where(eq(schema.liveSignals.householdId, householdId));
     await tx.delete(schema.syncRuns).where(inArray(schema.syncRuns.connectionId, connectionIds));
     await tx
       .delete(schema.transactionMappings)

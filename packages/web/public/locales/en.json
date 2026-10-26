@@ -197,7 +197,7 @@
   "component.transactionRow.ignored": "Ignored",
   "component.transactionRow.remap": "Change",
   "transaction.status.pending": "Pending",
-  "transaction.status.posted": "Booked",
+  "transaction.status.booked": "Booked",
   "transaction.status.cancelled": "Cancelled",
   "screen.transactionMap.title": "Map transaction",
   "screen.transactionMap.action": "Map",

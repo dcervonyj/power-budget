@@ -127,7 +127,7 @@ describe('Integration: transaction list read model, accounts and manual transact
         member.householdId,
         accountId,
         occurredOn,
-        extra.status ?? 'posted',
+        extra.status ?? 'booked',
         extra.ignored ?? false,
       ],
     );
@@ -234,7 +234,7 @@ describe('Integration: transaction list read model, accounts and manual transact
 
       expect(page.items).toHaveLength(7);
       expect(byId.get(mapped)).toMatchObject({
-        status: 'posted',
+        status: 'booked',
         ignored: false,
         mappingSource: 'manual',
         transfer: null,
@@ -281,7 +281,7 @@ describe('Integration: transaction list read model, accounts and manual transact
       for (let i = 0; i < 24; i++) {
         const date = dates[i % dates.length]!;
         const id = await insertTx(me, account, date, {
-          status: i % 6 === 5 ? 'pending' : 'posted',
+          status: i % 6 === 5 ? 'pending' : 'booked',
           ignored: i % 6 === 4,
         });
         if (i % 6 === 0) {
@@ -313,7 +313,7 @@ describe('Integration: transaction list read model, accounts and manual transact
 
       const bad = await app.inject({
         method: 'GET',
-        url: '/transactions?status=booked',
+        url: '/transactions?status=posted',
         headers: me.headers,
       });
       expect(bad.statusCode).toBe(400);
@@ -448,7 +448,7 @@ describe('Integration: transaction list read model, accounts and manual transact
       expect(res.json()).toMatchObject({
         accountId: cash.id,
         source: 'manual',
-        status: 'posted',
+        status: 'manual',
         amount: { amountMinor: '-1250', currency: 'PLN' },
       });
       const page = await list(me, `accountId=${cash.id}&unmappedOnly=true`);

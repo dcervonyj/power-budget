@@ -13,7 +13,7 @@ function makeTx(merchant: string | null, desc: string): Transaction {
     accountId: id('acc-1'),
     externalId: null,
     source: 'bank',
-    status: 'posted',
+    status: 'booked',
     amount: { amountMinor: 5000n, currency: 'PLN' },
     description: desc,
     merchantName: merchant,
