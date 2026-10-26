@@ -81,11 +81,22 @@ export class BankController {
   ) {}
 
   @Get('catalogue')
+  // A login is required and the list is cached for 24 h: each provider call spends the shared
+  // provider quota (CLN-033, audit BE-BUGS-17).
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'List available banks for a given country' })
   @ApiResponse({
     status: 200,
     description: 'List of bank institutions',
     type: [BankCatalogEntryDto],
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 429,
+    description:
+      'The bank provider is rate limiting (code bank_rate_limited); `Retry-After` is an ' +
+      'HTTP-date when the provider gave one',
   })
   async catalogue(@Query() query: GetCatalogQueryDto): Promise<BankCatalogEntryDto[]> {
     const country = query.country ?? 'PL';

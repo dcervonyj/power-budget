@@ -6,37 +6,20 @@ import type { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
 import type { UserId, HouseholdId } from '@power-budget/core';
 import type {
-  UserRepository,
   HouseholdRepository,
-  PasswordHashing,
   JwtAccessTokenIssuer,
   RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
 import { AuthController } from '../AuthController.js';
 import { JwtAuthGuard } from '../guards/JwtAuthGuard.js';
 import { InvalidJwtSecretError } from '../../../infrastructure/auth/jwt-secret.js';
-import { RegisterUserUseCase } from '../../../application/auth/use-cases/RegisterUserUseCase.js';
+import type { RegisterUserUseCase } from '../../../application/auth/use-cases/RegisterUserUseCase.js';
 import { RefreshTokenUseCase } from '../../../application/auth/use-cases/RefreshTokenUseCase.js';
-import type { User, Household, HouseholdMembership } from '../../../domain/auth/entities.js';
+import type { Household } from '../../../domain/auth/entities.js';
 
 const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
 const TEST_HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
 const TEST_SECRET = 'unit-test-jwt-secret-with-at-least-32-bytes';
-
-function makeUser(overrides: Partial<User> = {}): User {
-  return {
-    id: TEST_USER_ID,
-    email: 'alice@example.com',
-    displayName: 'alice',
-    localePreference: null,
-    defaultLocale: 'en',
-    passwordHash: 'hashed',
-    emailVerifiedAt: null,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    ...overrides,
-  };
-}
 
 function makeHousehold(overrides: Partial<Household> = {}): Household {
   return {
@@ -48,39 +31,12 @@ function makeHousehold(overrides: Partial<Household> = {}): Household {
   };
 }
 
-function makeMembership(overrides: Partial<HouseholdMembership> = {}): HouseholdMembership {
-  return {
-    householdId: TEST_HOUSEHOLD_ID,
-    userId: TEST_USER_ID,
-    role: 'owner',
-    joinedAt: new Date(),
-    ...overrides,
-  };
-}
-
 describe('AuthController — register', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let passwordHashing: ReturnType<typeof mock<PasswordHashing>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
-  let registerUseCase: RegisterUserUseCase;
+  let registerUseCase: ReturnType<typeof mock<RegisterUserUseCase>>;
   let controller: AuthController;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    householdRepo = mock<HouseholdRepository>();
-    passwordHashing = mock<PasswordHashing>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
-    refreshTokenStore = mock<RefreshTokenStore>();
-
-    registerUseCase = new RegisterUserUseCase(
-      userRepo,
-      householdRepo,
-      passwordHashing,
-      jwtIssuer,
-      refreshTokenStore,
-    );
+    registerUseCase = mock<RegisterUserUseCase>();
 
     // Build controller with all other use cases as mocks
     controller = new AuthController(
@@ -96,25 +52,28 @@ describe('AuthController — register', () => {
   });
 
   it('calls RegisterUserUseCase with correct args and returns tokens', async () => {
-    userRepo.findByEmail.mockResolvedValue(null);
-    passwordHashing.hash.mockResolvedValue('hashed');
-    userRepo.create.mockResolvedValue(makeUser());
-    householdRepo.findByUserId.mockResolvedValue(null);
-    householdRepo.create.mockResolvedValue(makeHousehold());
-    householdRepo.addMember.mockResolvedValue(makeMembership());
-    jwtIssuer.issue.mockReturnValue('access-token');
-    refreshTokenStore.issue.mockResolvedValue('refresh-token');
+    registerUseCase.execute.mockResolvedValue({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      userId: TEST_USER_ID,
+    });
 
     const result = await controller.register({
       email: 'alice@example.com',
       password: 'password123',
+      locale: 'pl',
     });
 
-    expect(result.userId).toBe(TEST_USER_ID);
-    expect(result.accessToken).toBe('access-token');
-    expect(result.refreshToken).toBe('refresh-token');
-    expect(passwordHashing.hash).toHaveBeenCalledWith('password123');
-    expect(userRepo.create).toHaveBeenCalledOnce();
+    expect(result).toEqual({
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      userId: TEST_USER_ID,
+    });
+    expect(registerUseCase.execute).toHaveBeenCalledWith({
+      email: 'alice@example.com',
+      password: 'password123',
+      locale: 'pl',
+    });
   });
 });
 

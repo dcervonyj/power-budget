@@ -47,7 +47,10 @@
             }
           },
           "409": {
-            "description": "Email already in use"
+            "description": "Email already in use (code email_already_registered)"
+          },
+          "429": {
+            "description": "Too many attempts"
           }
         },
         "summary": "Register a new user",
@@ -1150,8 +1153,19 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "429": {
+            "description": "The bank provider is rate limiting (code bank_rate_limited); `Retry-After` is an HTTP-date when the provider gave one"
           }
         },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
         "summary": "List available banks for a given country",
         "tags": ["bank-connections"]
       }

@@ -12,6 +12,7 @@ import type {
   AcceptInviteOutcome,
   LocaleCode,
   TotpSecret,
+  NewUserRegistration,
 } from './entities.js';
 
 export interface HouseholdScope {
@@ -39,6 +40,15 @@ export interface HouseholdRepository {
   /** The members in join order, with their email and display name. */
   listMembers(householdId: HouseholdId): Promise<HouseholdMember[]>;
   scheduleDelete(id: HouseholdId, scheduledFor: Date): Promise<void>;
+}
+
+export interface UserRegistrationRepository {
+  /**
+   * Inserts the user, the household and the owner membership in one transaction: all or
+   * nothing (CLN-033). Throws EmailAlreadyRegisteredError when the email is taken, also when
+   * a concurrent registration took it first.
+   */
+  register(registration: NewUserRegistration): Promise<void>;
 }
 
 /** What one purge removed (CLN-022). */

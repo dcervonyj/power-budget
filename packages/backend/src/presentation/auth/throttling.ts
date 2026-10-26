@@ -4,11 +4,11 @@ import type { Redis } from 'ioredis';
 import { RedisThrottlerStorage } from '../../infrastructure/auth/RedisThrottlerStorage.js';
 
 /**
- * Rate limits for the credential endpoints (CLN-004 / audit H4). Two named
- * throttlers apply to every route that uses ThrottlerGuard:
+ * Rate limits for the credential endpoints (CLN-004 / audit H4) and registration
+ * (CLN-033). Two named throttlers apply to every route that uses ThrottlerGuard:
  * - `ip`: per client IP (Fastify `request.ip`, which honours TRUST_PROXY);
  * - `account`: per target account, i.e. the body `email` (login, magic-link
- *   request) or the authenticated user (TOTP verify). Skipped when neither
+ *   request, register) or the authenticated user (TOTP verify). Skipped when neither
  *   exists (magic-link consume: `ip` here, plus the per-user TOTP attempt
  *   limit in LoginPolicy and the link burn in ConsumeMagicLinkUseCase, CLN-031).
  * Counters live in Redis, so they hold across restarts and API instances.

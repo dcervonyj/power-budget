@@ -1711,8 +1711,15 @@ export interface operations {
           'application/json': components['schemas']['AuthTokensDto'];
         };
       };
-      /** @description Email already in use */
+      /** @description Email already in use (code email_already_registered) */
       409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Too many attempts */
+      429: {
         headers: {
           [name: string]: unknown;
         };
@@ -2867,6 +2874,20 @@ export interface operations {
         content: {
           'application/json': components['schemas']['BankCatalogEntryDto'][];
         };
+      };
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The bank provider is rate limiting (code bank_rate_limited); `Retry-After` is an HTTP-date when the provider gave one */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };

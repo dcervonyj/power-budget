@@ -1,13 +1,12 @@
 import { uuidv7 } from 'uuidv7';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import { UserId, HouseholdId } from '@power-budget/core';
 import type {
   UserRepository,
-  HouseholdRepository,
+  UserRegistrationRepository,
   PasswordHashing,
   JwtAccessTokenIssuer,
   RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
-import { HouseholdInvariants } from '../../../domain/auth/invariants.js';
 import { EmailAlreadyRegisteredError } from '../../../domain/auth/errors.js';
 import type { LocaleCode } from '../../../domain/auth/entities.js';
 
@@ -28,56 +27,40 @@ const REFRESH_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30; // 30 days
 export class RegisterUserUseCase {
   constructor(
     private readonly userRepo: UserRepository,
-    private readonly householdRepo: HouseholdRepository,
+    private readonly registrationRepo: UserRegistrationRepository,
     private readonly passwordHashing: PasswordHashing,
     private readonly jwtIssuer: JwtAccessTokenIssuer,
     private readonly refreshTokenStore: RefreshTokenStore,
   ) {}
 
   async execute(input: RegisterUserInput): Promise<RegisterUserOutput> {
+    // Fast path only: a concurrent registration of the same email is caught by the unique
+    // index inside `register` (CLN-033).
     const existing = await this.userRepo.findByEmail(input.email);
     if (existing !== null) {
       throw new EmailAlreadyRegisteredError();
     }
 
     const passwordHash = await this.passwordHashing.hash(input.password);
-    const userId = uuidv7() as UserId;
+    const userId = UserId.of(uuidv7());
+    const householdId = HouseholdId.of(uuidv7());
+    const displayName = input.email.split('@')[0] ?? input.email;
 
-    const user = await this.userRepo.create({
-      id: userId,
-      email: input.email,
-      displayName: input.email.split('@')[0] ?? input.email,
-      defaultLocale: input.locale ?? 'en',
-      passwordHash,
+    // User, household and owner membership in one transaction: a failure leaves no rows.
+    await this.registrationRepo.register({
+      user: {
+        id: userId,
+        email: input.email,
+        displayName,
+        defaultLocale: input.locale ?? 'en',
+        passwordHash,
+      },
+      household: { id: householdId, name: `${displayName}'s household`, baseCurrency: 'PLN' },
     });
 
-    const existingHousehold = await this.householdRepo.findByUserId(user.id);
-    // A brand-new user should have no household; invariant guards multi-household join.
-    HouseholdInvariants.assertSingleHousehold(
-      existingHousehold !== null
-        ? [
-            {
-              householdId: existingHousehold.id,
-              userId: user.id,
-              role: 'owner' as const,
-              joinedAt: new Date(),
-            },
-          ]
-        : [],
-    );
+    const accessToken = this.jwtIssuer.issue({ userId, householdId });
+    const refreshToken = await this.refreshTokenStore.issue(userId, REFRESH_TOKEN_TTL_SECONDS);
 
-    const householdId = uuidv7() as HouseholdId;
-    const household = await this.householdRepo.create({
-      id: householdId,
-      name: `${user.displayName}'s household`,
-      baseCurrency: 'PLN',
-    });
-
-    await this.householdRepo.addMember(household.id, user.id, 'owner');
-
-    const accessToken = this.jwtIssuer.issue({ userId: user.id, householdId: household.id });
-    const refreshToken = await this.refreshTokenStore.issue(user.id, REFRESH_TOKEN_TTL_SECONDS);
-
-    return { accessToken, refreshToken, userId: user.id };
+    return { accessToken, refreshToken, userId };
   }
 }
