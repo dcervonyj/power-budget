@@ -95,14 +95,14 @@ describe('ReactRouterNavigationAdapter', () => {
     ]);
   });
 
-  it('does not ask to come back to a public auth screen', () => {
+  it('stays on a sign-in screen when the session ends again there', () => {
     const calls: NavigateCall[] = [];
     const adapter = adapterRecordingInto(calls);
     adapter.setLocation({ pathname: '/register', search: '' });
 
     adapter.replace({ type: 'auth/login', returnToCurrent: true });
 
-    expect(calls).toEqual([{ to: '/login', options: { replace: true } }]);
+    expect(calls).toEqual([]);
   });
 
   it('brings the user back to the screen where the session ended', () => {
@@ -117,6 +117,28 @@ describe('ReactRouterNavigationAdapter', () => {
       </MemoryRouter>,
     );
 
+    act(() => {
+      adapter.replace({ type: 'auth/login', returnToCurrent: true });
+    });
+
+    expect(screen.getByText('return to /plans/p1?tab=items')).toBeDefined();
+  });
+
+  it('keeps the return path when late 401s end the session a second time', () => {
+    const adapter = new ReactRouterNavigationAdapter();
+    render(
+      <MemoryRouter initialEntries={['/plans/p1?tab=items']}>
+        <Wirer adapter={adapter} />
+        <Routes>
+          <Route path={ROUTE_PATHS.login} element={<ReturnPathProbe />} />
+          <Route path={ROUTE_PATHS.planEditor} element={<p>plan editor</p>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    act(() => {
+      adapter.replace({ type: 'auth/login', returnToCurrent: true });
+    });
     act(() => {
       adapter.replace({ type: 'auth/login', returnToCurrent: true });
     });

@@ -1,6 +1,6 @@
 import axios, { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { ApiClient } from '../ApiClient.js';
+import { ApiClient, type RefreshRaceTiming } from '../ApiClient.js';
 import { readApiError } from '../ApiError.js';
 import type { SecureTokenStore } from '../../tokens/SecureTokenStore.js';
 
@@ -61,18 +61,29 @@ function respond(config: InternalAxiosRequestConfig, status: number, data: unkno
   return Promise.resolve(response);
 }
 
-const REFRESH_LATENCY_MS = 20;
+/** Fast enough for the hang guard; the production default waits 3 s. */
+const RACE_TIMING: RefreshRaceTiming = { waitMs: 200, pollMs: 5 };
+
+interface RefreshLatency {
+  /** Time to answer 201 after the token was taken (Redis SET, household lookup, JWT). */
+  issueMs: number;
+  /** Time to answer 401 for a token that was already taken. */
+  rejectMs: number;
+}
 
 /**
- * The backend's refresh semantics: a refresh token is single use (Redis GETDEL),
- * each refresh rotates the pair, and only the latest access token is accepted.
+ * The backend's refresh semantics: a refresh token is single use (Redis GETDEL on
+ * arrival), each refresh rotates the pair, and only the latest access token is accepted.
  */
 class RotatingRefreshServer {
   private validAccess = 'access-0';
   private readonly refreshTokens: Set<string>;
   private issued = 0;
 
-  constructor(refreshToken: string) {
+  constructor(
+    refreshToken: string,
+    private readonly latency: RefreshLatency = { issueMs: 20, rejectMs: 20 },
+  ) {
     this.refreshTokens = new Set([refreshToken]);
   }
 
@@ -85,12 +96,14 @@ class RotatingRefreshServer {
   }
 
   async refresh(config: InternalAxiosRequestConfig): Promise<RouteResult> {
-    await delay(REFRESH_LATENCY_MS);
     const body: unknown = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
     const refreshToken = Reflect.get(Object(body), 'refreshToken');
     if (typeof refreshToken !== 'string' || !this.refreshTokens.delete(refreshToken)) {
+      await delay(this.latency.rejectMs);
+
       return { status: 401, data: { code: 'invalid_credentials' } };
     }
+    await delay(this.latency.issueMs);
     this.issued += 1;
     this.validAccess = `access-${this.issued}`;
     const rotated = `refresh-${this.issued}`;
@@ -131,9 +144,14 @@ describe('ApiClient token refresh', () => {
   let unauthenticated: number;
 
   function createClient(): ApiClient {
-    return new ApiClient('http://api.test', store, () => {
-      unauthenticated += 1;
-    });
+    return new ApiClient(
+      'http://api.test',
+      store,
+      () => {
+        unauthenticated += 1;
+      },
+      RACE_TIMING,
+    );
   }
 
   beforeEach(() => {
@@ -351,13 +369,16 @@ describe('ApiClient token refresh', () => {
     expect(unauthenticated).toBe(0);
   });
 
-  it('keeps both tabs signed in when they refresh with the same rotated token', async () => {
-    const server = new RotatingRefreshServer('old-refresh');
+  it.each<[string, RefreshLatency]>([
+    ['the winner answers first', { issueMs: 20, rejectMs: 20 }],
+    ['the loser is rejected before the winner stored its pair', { issueMs: 60, rejectMs: 1 }],
+  ])('keeps both tabs signed in when they refresh with the same token (%s)', async (_, latency) => {
+    const server = new RotatingRefreshServer('old-refresh', latency);
     routes['/data'] = (config) => server.data(config);
     routes['/auth/refresh'] = (config) => server.refresh(config);
     const loggedOut: string[] = [];
-    const tabA = new ApiClient('http://api.test', store, () => loggedOut.push('A'));
-    const tabB = new ApiClient('http://api.test', store, () => loggedOut.push('B'));
+    const tabA = new ApiClient('http://api.test', store, () => loggedOut.push('A'), RACE_TIMING);
+    const tabB = new ApiClient('http://api.test', store, () => loggedOut.push('B'), RACE_TIMING);
 
     const results = await withinGuard(Promise.allSettled([tabA.get('/data'), tabB.get('/data')]));
 
@@ -379,6 +400,26 @@ describe('ApiClient token refresh', () => {
     expect(readApiError(failure).status).toBe(401);
     expect(store.cleared).toBe(1);
     expect(unauthenticated).toBe(1);
+  });
+
+  it('surfaces a failure to store the rotated pair as that error, without ending the session', async () => {
+    const storageFull = new Error('QuotaExceededError');
+    store.setTokens = async (): Promise<void> => {
+      throw storageFull;
+    };
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = () => ({
+      status: 201,
+      data: { accessToken: 'new-access', refreshToken: 'new-refresh' },
+    });
+
+    const failure = await withinGuard(createClient().get('/transactions')).catch(
+      (error: unknown) => error,
+    );
+
+    expect(failure).toBe(storageFull);
+    expect(store.cleared).toBe(0);
+    expect(unauthenticated).toBe(0);
   });
 
   it('sends PATCH with a body', async () => {

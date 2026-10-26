@@ -37,16 +37,28 @@ export class ReactRouterNavigationAdapter implements Navigator {
   }
 
   private go(route: AppRoute, options: NavigateOptions): void {
+    if (this.alreadySigningIn(route)) {
+      return;
+    }
     const state = this.stateFor(route);
     this._navigate?.(routeToPath(route), state ? { ...options, state } : options);
+  }
+
+  /**
+   * Late 401s end the session again after the first redirect. The user is already
+   * on a sign-in screen then; replacing it would drop the `state.from` it carries.
+   */
+  private alreadySigningIn(route: AppRoute): boolean {
+    if (route.type !== 'auth/login' || !route.returnToCurrent || !this._location) {
+      return false;
+    }
+
+    return PUBLIC_AUTH_PATHS.includes(this._location.pathname);
   }
 
   /** Same shape as RequireAuth's redirect, so LoginScreen returns to the page after login. */
   private stateFor(route: AppRoute): { from: CurrentLocation } | null {
     if (route.type !== 'auth/login' || !route.returnToCurrent || !this._location) {
-      return null;
-    }
-    if (PUBLIC_AUTH_PATHS.includes(this._location.pathname)) {
       return null;
     }
 

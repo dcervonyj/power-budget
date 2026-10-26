@@ -20,6 +20,23 @@ interface QueuedRequest {
 
 type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
+/** The refresh answered 201 (the pair to store), or another tab's pair was adopted. */
+type RefreshOutcome =
+  { kind: 'rotated'; tokens: RefreshResponse } | { kind: 'adopted'; accessToken: string };
+
+/**
+ * How long a tab whose refresh was rejected waits for another tab to store the
+ * rotated pair before it ends the session. The winning refresh still writes
+ * Redis, reads the household and signs a JWT after the loser was rejected, so
+ * its pair usually lands a moment later.
+ */
+export interface RefreshRaceTiming {
+  readonly waitMs: number;
+  readonly pollMs: number;
+}
+
+const DEFAULT_REFRESH_RACE_TIMING: RefreshRaceTiming = { waitMs: 3000, pollMs: 100 };
+
 const AUTH_PATH_PREFIX = '/auth/';
 const REFRESH_PATH = '/auth/refresh';
 const SESSION_REJECTED_STATUSES: readonly number[] = [400, 401];
@@ -34,6 +51,7 @@ export class ApiClient implements HttpClient {
     baseURL: string,
     private readonly tokenStore: SecureTokenStore,
     private readonly onUnauthenticated?: () => void,
+    private readonly raceTiming: RefreshRaceTiming = DEFAULT_REFRESH_RACE_TIMING,
   ) {
     this._axios = axios.create({ baseURL });
     this._axios.interceptors.request.use(this.attachAccessToken.bind(this));
@@ -159,13 +177,25 @@ export class ApiClient implements HttpClient {
       await this.endSession();
       throw originalError;
     }
+    const outcome = await this.requestRefresh(refreshToken);
+    if (outcome.kind === 'adopted') {
+      return outcome.accessToken;
+    }
+    // Outside the refresh-error classification: a storage failure is not an HTTP answer.
+    await this.tokenStore.setTokens(outcome.tokens.accessToken, outcome.tokens.refreshToken);
+
+    return outcome.tokens.accessToken;
+  }
+
+  private async requestRefresh(refreshToken: string): Promise<RefreshOutcome> {
     try {
       const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
-      await this.tokenStore.setTokens(data.accessToken, data.refreshToken);
 
-      return data.accessToken;
+      return { kind: 'rotated', tokens: data };
     } catch (refreshError) {
-      return this.recoverFromRefreshFailure(refreshError, refreshToken);
+      const accessToken = await this.recoverFromRefreshFailure(refreshError, refreshToken);
+
+      return { kind: 'adopted', accessToken };
     }
   }
 
@@ -181,14 +211,29 @@ export class ApiClient implements HttpClient {
     if (!SESSION_REJECTED_STATUSES.includes(readApiError(refreshError).status)) {
       throw refreshError;
     }
-    // Refresh tokens are single use: when two tabs refresh with the same one, the
-    // slower tab is rejected after the faster one stored the rotated pair.
+    // Refresh tokens are single use: when two tabs refresh with the same one, one
+    // of them is rejected, usually before the other has stored the rotated pair.
+    const polls = Math.ceil(this.raceTiming.waitMs / this.raceTiming.pollMs);
+    const rotated = await this.waitForRotation(usedRefreshToken, polls);
     const storedAccessToken = this.tokenStore.getAccessToken();
-    if (storedAccessToken && this.tokenStore.getRefreshToken() !== usedRefreshToken) {
+    if (rotated && storedAccessToken) {
       return storedAccessToken;
     }
     await this.endSession();
     throw refreshError;
+  }
+
+  /** True once the stored refresh token is no longer the one this tab spent. */
+  private async waitForRotation(usedRefreshToken: string, pollsLeft: number): Promise<boolean> {
+    if (this.tokenStore.getRefreshToken() !== usedRefreshToken) {
+      return true;
+    }
+    if (pollsLeft <= 0) {
+      return false;
+    }
+    await delay(this.raceTiming.pollMs);
+
+    return this.waitForRotation(usedRefreshToken, pollsLeft - 1);
   }
 
   private waitForRefresh(): Promise<string> {
@@ -231,6 +276,12 @@ function isAuthRequest(url: string | undefined): boolean {
   const path = url.replace(ABSOLUTE_URL_ORIGIN, '');
 
   return path.startsWith(AUTH_PATH_PREFIX);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function bearer(token: string): string {
