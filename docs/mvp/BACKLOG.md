@@ -28,141 +28,141 @@ The v1.0 backlog marked Waves 1-16 as Done. An audit of `master` @ `fdb7b19` (`d
 - **Broken**: wired, but fails at runtime or through a contract mismatch.
 - **Not started**: no code.
 
-| Status | Count |
-| --- | --- |
-| Done | 28 |
-| Partial | 39 |
-| Stub | 33 |
-| Broken | 17 |
-| Not started | 5 |
-| **Total** | **122** |
+| Status      | Count   |
+| ----------- | ------- |
+| Done        | 29      |
+| Partial     | 39      |
+| Stub        | 33      |
+| Broken      | 17      |
+| Not started | 4       |
+| **Total**   | **122** |
 
 Tally by the audit (tasks marked Done, in its review scope): about 15% real, about 45% partial, about 40% stub, dead or broken.
 
-| ID | Real status | Reason | Finished by |
-| --- | --- | --- | --- |
-| INF-001 | Done | repo and branch protection exist | - |
-| INF-002 | Done | monorepo installs, builds and lints | - |
-| INF-003 | Done | lint passes in 6 packages; dead web/mobile `.eslintrc.cjs` remain (L8) | CLN-020 follow-up |
-| INF-004 | Done | docker-compose works | - |
-| INF-005 | Partial | CI is green but runs no integration tests, Playwright skips, visual baselines are 1x1 | CLN-003, CLN-017 |
-| INF-006 | Done | `build.yml` green and triggers the Render deploy hook | - |
-| INF-007 | Done | dependabot and secret scanning on; 20+ PRs await triage | CLN-019 |
-| INF-015 | Partial | scaffold exists but every module is `export {}`; Metro resolution fails | CLN-016, CLN-015 |
-| INF-008 | Partial | journal has 7 entries; snapshots only for 0000-0002; three files share prefix 0004 | CLN-018 |
-| INF-009 | Partial | `render.yaml` is real, but `JWT_SECRET`, `RESEND_API_KEY`, `APP_BASE_URL` and Google env are missing and the free plan sleeps; replaced by ADR-003 | HOST-001, HOST-002, CLN-001 |
-| INF-010 | Partial | Neon and Upstash in use via Render env; Redis TLS URL dropped (H13); no PR branching | CLN-010 |
-| INF-011 | Not started | `power-budget.pages.dev` does not resolve | CLN-014 |
-| INF-012 | Not started | no pino context, no `/metrics`, no OpenTelemetry | SYNC-009 |
-| INF-013 | Not started | skipped; superseded by the VPS and domain tasks | HOST-002, HOST-003 |
-| INF-014 | Partial | Sentry filter exists but turns domain errors into 500; web and mobile not verified | CLN-002 |
-| BE-001 | Done | NestJS skeleton boots | - |
-| BE-002 | Done | core package is pure; import ban works | - |
-| BE-003 | Done | branded ids and Money are real | - |
-| BE-004 | Done | core entity types are real | - |
-| BE-005 | Done | Drizzle schema covers the tables | - |
-| BE-006 | Partial | real in core, dead in prod: `DrizzlePlanActualsReader` reimplements it with no FX | CLN-012 |
-| BE-007 | Partial | float rate x1e6, truncation, broken EUR pivot, no spec | CLN-013 |
-| BE-008 | Partial | ignores the viewer, defaults to `full_detail` | CLN-012 |
-| BE-009 | Stub | `BankModule` passes `STUB_SUGGESTION` | AI-003 |
-| BE-010 | Done | formatters exist; `Number(bigint)` in `format.ts` is minor (L6) | CLN-002 |
-| BE-011 | Done | auth domain and ports are real | - |
-| BE-012 | Partial | TOTP bypassed on magic-link and Google login | CLN-004 |
-| BE-013 | Partial | Google client is a stub with empty email; TOTP secret stored in plaintext | CLN-001, CLN-004 |
-| BE-014 | Broken | `inviteUrl` dropped and every register creates a household, so accept always throws; the second person can never join | CLN-006 |
-| BE-015 | Partial | no ValidationPipe; domain errors become 500; `requires_totp` code lost | CLN-002 |
-| BE-016 | Partial | domain exists; consent expiry never applied; float money | BNK-002, BNK-004 |
-| BE-017 | Broken | web calls a route that does not exist; provider enum mismatch (`wise` vs `wise_personal`) | BNK-005 |
-| BE-018 | Partial | GoCardless adapter exists with float money and quota burn; being replaced by Enable Banking | BNK-004, BNK-008 |
-| BE-019 | Partial | legacy Wise statement adapter, shared `wise-pending` ref (hijack), float money | CLN-001, BNK-004, WISE-005 |
-| BE-020 | Done | transactions domain and ports are real | - |
-| BE-021 | Partial | hash fallback drops identical same-day purchases; bulk map is a no-op, cross-tenant writes | BNK-002, SYNC-006, CLN-005 |
-| BE-022 | Partial | wrong cursor, filters ignored, no validators, `bigint` not serialised | CLN-002, CLN-008r |
-| BE-023 | Partial | crons and processors registered twice; Redis TLS dropped; no DLQ | CLN-010, SYNC-003 |
-| BE-024 | Partial | runs twice; 'since' always 90 days; no DLQ | SYNC-003 |
-| BE-025 | Partial | domain real; no Drizzle PlannedItem repository | CLN-011 |
-| BE-026 | Stub | use cases exist but only 2 GET endpoints are wired | CLN-011 |
-| BE-027 | Stub | domain and seed only; no repository, use cases or endpoints | CLN-011 |
-| BE-028 | Stub | dead code: the worker imports no FX module; no repository, cron or endpoint | CLN-013 |
-| BE-029 | Partial | real Resend channel, but only the oldest pending row is sent; no API key; `.mjml` not in `dist` | CLN-009 |
-| BE-030 | Broken | materialised view never refreshed; `bigint` response; dashboard IDOR | CLN-012, CLN-002, CLN-001 |
-| BE-031 | Broken | household dashboard IDOR; privacy per category not owner | CLN-001, CLN-012 |
-| BE-032 | Stub | k6 script is a fake gate | CLN-017 |
-| BE-033 | Broken | period close uses v4 uuid where v7 is required and swallows the error; relay has no producer | CLN-009 |
-| BE-034 | Stub | export only enqueues; delete only sets a flag; nothing consumes | CLN-022 |
-| BE-035 | Partial | only `DisconnectBankUseCase` audits; no REVOKE migration | CLN-005 |
-| BE-036 | Stub | RLS migration is excluded from the journal and no GUC is set: RLS is not applied | CLN-005 |
-| BE-037 | Stub | lint rule skips `this.repo.x()` calls, never fires | CLN-005 |
-| BE-038 | Partial | 91 of 92 `@ApiResponse` have no type | CLN-011 |
-| WEB-001 | Done | Vite app builds | - |
-| WEB-002 | Broken | `RequireAuth` reads `access_token`, the store writes `pb_access_token`: every login bounces to /login | CLN-014 |
-| WEB-003 | Done | MobX stores and ReactiveView are in use | - |
-| WEB-004 | Stub | `api-types.ts` is never used; DTOs hand-written | UI-007, CLN-011 |
-| WEB-005 | Partial | screens exist; no 2FA step at login; Google callback depends on a stub | CLN-014, CLN-004 |
-| WEB-006 | Broken | field names differ from backend; enrolment deadlock and secret rotates on visit | CLN-004 |
-| WEB-007 | Partial | wizard exists; needs plans and categories endpoints that do not exist (not run) | CLN-011 |
-| WEB-008 | Stub | backend has no `/plans*` endpoints | CLN-011 |
-| WEB-009 | Stub | backend has no history endpoint | CLN-011 |
-| WEB-010 | Partial | bank list renders raw i18n keys; contract with backend broken | BNK-005, UI-012 |
-| WEB-011 | Broken | consent callback route and provider enum do not match the backend | BNK-005 |
-| WEB-012 | Broken | amounts show `undefined NaN`; 500 on `bigint` | CLN-002, UI-007, UI-014 |
-| WEB-013 | Broken | calls missing `GET /plans`; view shape differs from backend | CLN-011, CLN-012, UI-013 |
-| WEB-014 | Broken | sends `{action, ids}` but DTO is `{op, ids, payload}`; spec asserts the wrong body | CLN-014 |
-| WEB-015 | Stub | backend has no `/categories*` | CLN-011 |
-| WEB-016 | Stub | no `/fx-rates` endpoint | CLN-013 |
-| WEB-017 | Partial | dynamic JSON import without `.default` (not run); uk/ru/pl incomplete | CLN-014, UI-012 |
-| WEB-018 | Partial | tabs render; saving needs missing `PATCH /users/me` | CLN-011 |
-| WEB-019 | Done | audit drawer is real | - |
-| WEB-020 | Partial | works but parses money with `Math.round(parseFloat*100)` | CLN-014 |
-| WEB-021 | Stub | no household-category endpoints | CLN-012, UI-013 |
-| WEB-022 | Partial | states exist on some screens; others crash or show raw keys (not fully checked) | UI-013, UI-012 |
-| MOB-001 | Partial | scaffold exists; Expo 51 mixed with expo-* 55 modules, EAS build very likely fails | CLN-015 |
-| MOB-002 | Broken | `RootNavigator` returns `false` with a TODO: no app screen is reachable | CLN-015 |
-| MOB-003 | Stub | depends on empty shared-app | CLN-016, CLN-015 |
-| MOB-004 | Broken | sync getters always return null; base URL hard-coded to localhost | CLN-015 |
-| MOB-005 | Broken | cannot be reached past the navigator | CLN-015 |
-| MOB-006 | Stub | depends on the TOTP deadlock and mobile navigator | CLN-004, CLN-015 |
-| MOB-007 | Stub | Apple association file has `TEAMID` | CLN-015 |
-| MOB-008 | Stub | not reachable; not verified on device | CLN-015, UI-016 |
-| MOB-009 | Partial | mobile uk/ru/pl bundles are `{}` | UI-012, CLN-015 |
-| MOB-010 | Stub | title-only screen | UI-016 |
-| MOB-011 | Stub | title-only screen | UI-016 |
-| MOB-012 | Stub | title-only screen; plan editor parses money with `parseFloat` | UI-016, CLN-014 |
-| MOB-013 | Stub | no notification channel | AI-009 |
-| MOB-014 | Stub | `eas.json` has `*_PLACEHOLDER` ids; `eas-build.yml` never ran | CLN-015 |
-| DES-001 | Done | tokens exist | - |
-| DES-002 | Done | component library scaffold exists | - |
-| DES-003 | Done | visual assets exist under docs/design-arctic (the app does not follow them yet) | UI-009 |
-| DES-004 | Done | visual assets exist (the app does not follow them yet) | UI-009 |
-| DES-005 | Done | visual assets exist (the app does not follow them yet) | UI-013 |
-| DES-006 | Done | visual assets exist (the app does not follow them yet) | UI-013 |
-| DES-007 | Done | visual assets exist (the app does not follow them yet) | UI-011 |
-| DES-008 | Stub | `ThemeContext` hard-codes dark; no toggle | UI-010 |
-| I18N-001 | Done | extraction pipeline works | - |
-| I18N-002 | Done | react-intl provider and lint rule exist | - |
-| I18N-003 | Partial | `en.json` is missing 44 keys used in code | UI-012 |
-| I18N-004 | Stub | web uk/ru/pl have 138 of 290 keys, about 92 copied from English; mobile are `{}` | UI-012 |
-| I18N-005 | Partial | MJML files exist but no magic-link template and not copied to `dist` | CLN-009 |
-| I18N-006 | Partial | core formatters exist; not applied across the UI | UI-012 |
-| I18N-007 | Not started | skipped; no v1.1 task, decide under CLN-011 (categories) | CLN-011 |
-| QA-001 | Done | Vitest runs; 443 unit tests pass (many mock the code under test) | - |
-| QA-002 | Broken | `@testcontainers/postgresql` missing; both suites cannot load; not in CI | CLN-003 |
-| QA-003 | Stub | no server in CI so every test skips; selectors do not match the UI | CLN-017 |
-| QA-004 | Done | ADR written | - |
-| QA-005 | Stub | 38 mock-only tests; the real IDORs are not covered | CLN-005 |
-| QA-006 | Stub | 40 identical 1x1 PNG baselines | CLN-017 |
-| QA-007 | Stub | uses in-memory doubles and never runs a processor | CLN-009, CLN-017 |
-| QA-008 | Stub | k6 has a placeholder token, starts no backend, no failure threshold | CLN-017 |
-| QA-009 | Partial | test plan document exists; partner onboarding cannot work (invite broken) | CLN-006 |
-| SEC-001 | Partial | AES-GCM with one KEK, no per-user DEK; TOTP secret plaintext | CLN-004 |
-| SEC-002 | Stub | `RotateUserDekUseCase` is used only by its spec; runbook still says `fly` | CLN-004 |
-| SEC-003 | Broken | enable needs a recent verify and verify needs a secret: enrolment is impossible | CLN-004 |
-| SEC-004 | Partial | helmet is set; the headers spec is tautological; no production CSP on web | CLN-014, CLN-017 |
-| SEC-005 | Stub | GDPR export and delete do not execute; policy text only | CLN-022 |
-| SEC-006 | Not started | no throttler anywhere (the pentest checklist wrongly claimed one) | CLN-004 |
-| SEC-007 | Broken | gate requires TOTP, which cannot be enrolled | CLN-004, BNK-005 |
-| SEC-008 | Stub | `REDACTING_AUDIT_LOGGER` is never injected | CLN-005 |
-| SEC-009 | Partial | checklist corrected in CLN-020; the pentest itself is still to do | CLN-001, CLN-005 |
+| ID       | Real status | Reason                                                                                                                                             | Finished by                 |
+| -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| INF-001  | Done        | repo and branch protection exist                                                                                                                   | -                           |
+| INF-002  | Done        | monorepo installs, builds and lints                                                                                                                | -                           |
+| INF-003  | Done        | lint passes in 6 packages; dead web/mobile `.eslintrc.cjs` remain (L8)                                                                             | CLN-020 follow-up           |
+| INF-004  | Done        | docker-compose works                                                                                                                               | -                           |
+| INF-005  | Partial     | CI is green but runs no integration tests, Playwright skips, visual baselines are 1x1                                                              | CLN-003, CLN-017            |
+| INF-006  | Done        | `build.yml` green and triggers the Render deploy hook                                                                                              | -                           |
+| INF-007  | Done        | dependabot and secret scanning on; 20+ PRs await triage                                                                                            | CLN-019                     |
+| INF-015  | Partial     | scaffold exists but every module is `export {}`; Metro resolution fails                                                                            | CLN-016, CLN-015            |
+| INF-008  | Partial     | journal has 7 entries; snapshots only for 0000-0002; three files share prefix 0004                                                                 | CLN-018                     |
+| INF-009  | Partial     | `render.yaml` is real, but `JWT_SECRET`, `RESEND_API_KEY`, `APP_BASE_URL` and Google env are missing and the free plan sleeps; replaced by ADR-003 | HOST-001, HOST-002, CLN-001 |
+| INF-010  | Partial     | Neon and Upstash in use via Render env; Redis TLS URL dropped (H13); no PR branching                                                               | CLN-010                     |
+| INF-011  | Done        | Pages project `power-budget` builds `master`; SPA deep links and CORS to the Frankfurt API checked (26 Oct 2026)                                   | -                           |
+| INF-012  | Not started | no pino context, no `/metrics`, no OpenTelemetry                                                                                                   | SYNC-009                    |
+| INF-013  | Not started | skipped; superseded by the VPS and domain tasks                                                                                                    | HOST-002, HOST-003          |
+| INF-014  | Partial     | Sentry filter exists but turns domain errors into 500; web and mobile not verified                                                                 | CLN-002                     |
+| BE-001   | Done        | NestJS skeleton boots                                                                                                                              | -                           |
+| BE-002   | Done        | core package is pure; import ban works                                                                                                             | -                           |
+| BE-003   | Done        | branded ids and Money are real                                                                                                                     | -                           |
+| BE-004   | Done        | core entity types are real                                                                                                                         | -                           |
+| BE-005   | Done        | Drizzle schema covers the tables                                                                                                                   | -                           |
+| BE-006   | Partial     | real in core, dead in prod: `DrizzlePlanActualsReader` reimplements it with no FX                                                                  | CLN-012                     |
+| BE-007   | Partial     | float rate x1e6, truncation, broken EUR pivot, no spec                                                                                             | CLN-013                     |
+| BE-008   | Partial     | ignores the viewer, defaults to `full_detail`                                                                                                      | CLN-012                     |
+| BE-009   | Stub        | `BankModule` passes `STUB_SUGGESTION`                                                                                                              | AI-003                      |
+| BE-010   | Done        | formatters exist; `Number(bigint)` in `format.ts` is minor (L6)                                                                                    | CLN-002                     |
+| BE-011   | Done        | auth domain and ports are real                                                                                                                     | -                           |
+| BE-012   | Partial     | TOTP bypassed on magic-link and Google login                                                                                                       | CLN-004                     |
+| BE-013   | Partial     | Google client is a stub with empty email; TOTP secret stored in plaintext                                                                          | CLN-001, CLN-004            |
+| BE-014   | Broken      | `inviteUrl` dropped and every register creates a household, so accept always throws; the second person can never join                              | CLN-006                     |
+| BE-015   | Partial     | no ValidationPipe; domain errors become 500; `requires_totp` code lost                                                                             | CLN-002                     |
+| BE-016   | Partial     | domain exists; consent expiry never applied; float money                                                                                           | BNK-002, BNK-004            |
+| BE-017   | Broken      | web calls a route that does not exist; provider enum mismatch (`wise` vs `wise_personal`)                                                          | BNK-005                     |
+| BE-018   | Partial     | GoCardless adapter exists with float money and quota burn; being replaced by Enable Banking                                                        | BNK-004, BNK-008            |
+| BE-019   | Partial     | legacy Wise statement adapter, shared `wise-pending` ref (hijack), float money                                                                     | CLN-001, BNK-004, WISE-005  |
+| BE-020   | Done        | transactions domain and ports are real                                                                                                             | -                           |
+| BE-021   | Partial     | hash fallback drops identical same-day purchases; bulk map is a no-op, cross-tenant writes                                                         | BNK-002, SYNC-006, CLN-005  |
+| BE-022   | Partial     | wrong cursor, filters ignored, no validators, `bigint` not serialised                                                                              | CLN-002, CLN-008r           |
+| BE-023   | Partial     | crons and processors registered twice; Redis TLS dropped; no DLQ                                                                                   | CLN-010, SYNC-003           |
+| BE-024   | Partial     | runs twice; 'since' always 90 days; no DLQ                                                                                                         | SYNC-003                    |
+| BE-025   | Partial     | domain real; no Drizzle PlannedItem repository                                                                                                     | CLN-011                     |
+| BE-026   | Stub        | use cases exist but only 2 GET endpoints are wired                                                                                                 | CLN-011                     |
+| BE-027   | Stub        | domain and seed only; no repository, use cases or endpoints                                                                                        | CLN-011                     |
+| BE-028   | Stub        | dead code: the worker imports no FX module; no repository, cron or endpoint                                                                        | CLN-013                     |
+| BE-029   | Partial     | real Resend channel, but only the oldest pending row is sent; no API key; `.mjml` not in `dist`                                                    | CLN-009                     |
+| BE-030   | Broken      | materialised view never refreshed; `bigint` response; dashboard IDOR                                                                               | CLN-012, CLN-002, CLN-001   |
+| BE-031   | Broken      | household dashboard IDOR; privacy per category not owner                                                                                           | CLN-001, CLN-012            |
+| BE-032   | Stub        | k6 script is a fake gate                                                                                                                           | CLN-017                     |
+| BE-033   | Broken      | period close uses v4 uuid where v7 is required and swallows the error; relay has no producer                                                       | CLN-009                     |
+| BE-034   | Stub        | export only enqueues; delete only sets a flag; nothing consumes                                                                                    | CLN-022                     |
+| BE-035   | Partial     | only `DisconnectBankUseCase` audits; no REVOKE migration                                                                                           | CLN-005                     |
+| BE-036   | Stub        | RLS migration is excluded from the journal and no GUC is set: RLS is not applied                                                                   | CLN-005                     |
+| BE-037   | Stub        | lint rule skips `this.repo.x()` calls, never fires                                                                                                 | CLN-005                     |
+| BE-038   | Partial     | 91 of 92 `@ApiResponse` have no type                                                                                                               | CLN-011                     |
+| WEB-001  | Done        | Vite app builds                                                                                                                                    | -                           |
+| WEB-002  | Broken      | `RequireAuth` reads `access_token`, the store writes `pb_access_token`: every login bounces to /login                                              | CLN-014                     |
+| WEB-003  | Done        | MobX stores and ReactiveView are in use                                                                                                            | -                           |
+| WEB-004  | Stub        | `api-types.ts` is never used; DTOs hand-written                                                                                                    | UI-007, CLN-011             |
+| WEB-005  | Partial     | screens exist; no 2FA step at login; Google callback depends on a stub                                                                             | CLN-014, CLN-004            |
+| WEB-006  | Broken      | field names differ from backend; enrolment deadlock and secret rotates on visit                                                                    | CLN-004                     |
+| WEB-007  | Partial     | wizard exists; needs plans and categories endpoints that do not exist (not run)                                                                    | CLN-011                     |
+| WEB-008  | Stub        | backend has no `/plans*` endpoints                                                                                                                 | CLN-011                     |
+| WEB-009  | Stub        | backend has no history endpoint                                                                                                                    | CLN-011                     |
+| WEB-010  | Partial     | bank list renders raw i18n keys; contract with backend broken                                                                                      | BNK-005, UI-012             |
+| WEB-011  | Broken      | consent callback route and provider enum do not match the backend                                                                                  | BNK-005                     |
+| WEB-012  | Broken      | amounts show `undefined NaN`; 500 on `bigint`                                                                                                      | CLN-002, UI-007, UI-014     |
+| WEB-013  | Broken      | calls missing `GET /plans`; view shape differs from backend                                                                                        | CLN-011, CLN-012, UI-013    |
+| WEB-014  | Broken      | sends `{action, ids}` but DTO is `{op, ids, payload}`; spec asserts the wrong body                                                                 | CLN-014                     |
+| WEB-015  | Stub        | backend has no `/categories*`                                                                                                                      | CLN-011                     |
+| WEB-016  | Stub        | no `/fx-rates` endpoint                                                                                                                            | CLN-013                     |
+| WEB-017  | Partial     | dynamic JSON import without `.default` (not run); uk/ru/pl incomplete                                                                              | CLN-014, UI-012             |
+| WEB-018  | Partial     | tabs render; saving needs missing `PATCH /users/me`                                                                                                | CLN-011                     |
+| WEB-019  | Done        | audit drawer is real                                                                                                                               | -                           |
+| WEB-020  | Partial     | works but parses money with `Math.round(parseFloat*100)`                                                                                           | CLN-014                     |
+| WEB-021  | Stub        | no household-category endpoints                                                                                                                    | CLN-012, UI-013             |
+| WEB-022  | Partial     | states exist on some screens; others crash or show raw keys (not fully checked)                                                                    | UI-013, UI-012              |
+| MOB-001  | Partial     | scaffold exists; Expo 51 mixed with expo-* 55 modules, EAS build very likely fails                                                                 | CLN-015                     |
+| MOB-002  | Broken      | `RootNavigator` returns `false` with a TODO: no app screen is reachable                                                                            | CLN-015                     |
+| MOB-003  | Stub        | depends on empty shared-app                                                                                                                        | CLN-016, CLN-015            |
+| MOB-004  | Broken      | sync getters always return null; base URL hard-coded to localhost                                                                                  | CLN-015                     |
+| MOB-005  | Broken      | cannot be reached past the navigator                                                                                                               | CLN-015                     |
+| MOB-006  | Stub        | depends on the TOTP deadlock and mobile navigator                                                                                                  | CLN-004, CLN-015            |
+| MOB-007  | Stub        | Apple association file has `TEAMID`                                                                                                                | CLN-015                     |
+| MOB-008  | Stub        | not reachable; not verified on device                                                                                                              | CLN-015, UI-016             |
+| MOB-009  | Partial     | mobile uk/ru/pl bundles are `{}`                                                                                                                   | UI-012, CLN-015             |
+| MOB-010  | Stub        | title-only screen                                                                                                                                  | UI-016                      |
+| MOB-011  | Stub        | title-only screen                                                                                                                                  | UI-016                      |
+| MOB-012  | Stub        | title-only screen; plan editor parses money with `parseFloat`                                                                                      | UI-016, CLN-014             |
+| MOB-013  | Stub        | no notification channel                                                                                                                            | AI-009                      |
+| MOB-014  | Stub        | `eas.json` has `*_PLACEHOLDER` ids; `eas-build.yml` never ran                                                                                      | CLN-015                     |
+| DES-001  | Done        | tokens exist                                                                                                                                       | -                           |
+| DES-002  | Done        | component library scaffold exists                                                                                                                  | -                           |
+| DES-003  | Done        | visual assets exist under docs/design-arctic (the app does not follow them yet)                                                                    | UI-009                      |
+| DES-004  | Done        | visual assets exist (the app does not follow them yet)                                                                                             | UI-009                      |
+| DES-005  | Done        | visual assets exist (the app does not follow them yet)                                                                                             | UI-013                      |
+| DES-006  | Done        | visual assets exist (the app does not follow them yet)                                                                                             | UI-013                      |
+| DES-007  | Done        | visual assets exist (the app does not follow them yet)                                                                                             | UI-011                      |
+| DES-008  | Stub        | `ThemeContext` hard-codes dark; no toggle                                                                                                          | UI-010                      |
+| I18N-001 | Done        | extraction pipeline works                                                                                                                          | -                           |
+| I18N-002 | Done        | react-intl provider and lint rule exist                                                                                                            | -                           |
+| I18N-003 | Partial     | `en.json` is missing 44 keys used in code                                                                                                          | UI-012                      |
+| I18N-004 | Stub        | web uk/ru/pl have 138 of 290 keys, about 92 copied from English; mobile are `{}`                                                                   | UI-012                      |
+| I18N-005 | Partial     | MJML files exist but no magic-link template and not copied to `dist`                                                                               | CLN-009                     |
+| I18N-006 | Partial     | core formatters exist; not applied across the UI                                                                                                   | UI-012                      |
+| I18N-007 | Not started | skipped; no v1.1 task, decide under CLN-011 (categories)                                                                                           | CLN-011                     |
+| QA-001   | Done        | Vitest runs; 443 unit tests pass (many mock the code under test)                                                                                   | -                           |
+| QA-002   | Broken      | `@testcontainers/postgresql` missing; both suites cannot load; not in CI                                                                           | CLN-003                     |
+| QA-003   | Stub        | no server in CI so every test skips; selectors do not match the UI                                                                                 | CLN-017                     |
+| QA-004   | Done        | ADR written                                                                                                                                        | -                           |
+| QA-005   | Stub        | 38 mock-only tests; the real IDORs are not covered                                                                                                 | CLN-005                     |
+| QA-006   | Stub        | 40 identical 1x1 PNG baselines                                                                                                                     | CLN-017                     |
+| QA-007   | Stub        | uses in-memory doubles and never runs a processor                                                                                                  | CLN-009, CLN-017            |
+| QA-008   | Stub        | k6 has a placeholder token, starts no backend, no failure threshold                                                                                | CLN-017                     |
+| QA-009   | Partial     | test plan document exists; partner onboarding cannot work (invite broken)                                                                          | CLN-006                     |
+| SEC-001  | Partial     | AES-GCM with one KEK, no per-user DEK; TOTP secret plaintext                                                                                       | CLN-004                     |
+| SEC-002  | Stub        | `RotateUserDekUseCase` is used only by its spec; runbook still says `fly`                                                                          | CLN-004                     |
+| SEC-003  | Broken      | enable needs a recent verify and verify needs a secret: enrolment is impossible                                                                    | CLN-004                     |
+| SEC-004  | Partial     | helmet is set; the headers spec is tautological; no production CSP on web                                                                          | CLN-014, CLN-017            |
+| SEC-005  | Stub        | GDPR export and delete do not execute; policy text only                                                                                            | CLN-022                     |
+| SEC-006  | Not started | no throttler anywhere (the pentest checklist wrongly claimed one)                                                                                  | CLN-004                     |
+| SEC-007  | Broken      | gate requires TOTP, which cannot be enrolled                                                                                                       | CLN-004, BNK-005            |
+| SEC-008  | Stub        | `REDACTING_AUDIT_LOGGER` is never injected                                                                                                         | CLN-005                     |
+| SEC-009  | Partial     | checklist corrected in CLN-020; the pentest itself is still to do                                                                                  | CLN-001, CLN-005            |
 
 ---
 
@@ -267,11 +267,11 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 2 — depends on Wave 1
 
-| ID      | Title                              | Area   |
+| ID | Title | Area |
 | ------- | ---------------------------------- | ------ | ---------------- |
-| INF-002 | Scaffold pnpm + Turborepo monorepo | Infra  |
-| INF-007 | Dependabot + secret scanning       | Infra  |
-| DES-002 | Component library scaffold         | Design | merged (PR #72) |
+| INF-002 | Scaffold pnpm + Turborepo monorepo | Infra |
+| INF-007 | Dependabot + secret scanning | Infra |
+| DES-002 | Component library scaffold | Design | merged (PR #72) |
 
 ### Wave 3 — depends on Waves 1+2 (the "explosion" wave — many parallel starters)
 
@@ -289,8 +289,8 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 4 — depends on Waves 1–3
 
-| ID      | Title                                        | Area    | Merge record           |
-| ------- | -------------------------------------------- | ------- | ---------------- |
+| ID      | Title                                        | Area    | Merge record    |
+| ------- | -------------------------------------------- | ------- | --------------- |
 | INF-005 | GitHub Actions CI                            | Infra   | merged (PR #10) |
 | INF-015 | Scaffold `packages/shared-app` + Metro spike | Infra   | merged (PR #12) |
 | BE-001  | Scaffold `packages/backend` (NestJS)         | Backend | merged (PR #11) |
@@ -300,88 +300,88 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 5
 
-| ID       | Title                                    | Area    | Merge record                  |
-| -------- | ---------------------------------------- | ------- | ----------------------- |
-| INF-006  | GH Actions build + preview deploy        | Infra   | merged (PR #30)        |
-| INF-008  | Drizzle ORM tooling                      | Infra   | merged (PR #37)        |
-| INF-012  | Observability stack                      | Infra   | —                       |
-| BE-004   | Core entity types (Plan, Transaction, …) | Backend | merged (PR #34)        |
-| BE-010   | Core locale-aware formatters             | Backend | merged (PR #39)        |
-| WEB-002  | Routing + protected-route wrapper        | Web     | merged (PR #32)        |
-| WEB-003  | MobX + ReactiveView wiring               | Web     | merged (PR #36)        |
-| MOB-002  | React Navigation                         | Mobile  | merged (PR #35)        |
+| ID       | Title                                    | Area    | Merge record      |
+| -------- | ---------------------------------------- | ------- | ----------------- |
+| INF-006  | GH Actions build + preview deploy        | Infra   | merged (PR #30)   |
+| INF-008  | Drizzle ORM tooling                      | Infra   | merged (PR #37)   |
+| INF-012  | Observability stack                      | Infra   | —                 |
+| BE-004   | Core entity types (Plan, Transaction, …) | Backend | merged (PR #34)   |
+| BE-010   | Core locale-aware formatters             | Backend | merged (PR #39)   |
+| WEB-002  | Routing + protected-route wrapper        | Web     | merged (PR #32)   |
+| WEB-003  | MobX + ReactiveView wiring               | Web     | merged (PR #36)   |
+| MOB-002  | React Navigation                         | Mobile  | merged (PR #35)   |
 | MOB-003  | MobX + ReactiveView wiring (mobile)      | Mobile  | — (BE-038 merged) |
-| MOB-013  | Notification routing layer (placeholder) | Mobile  | —                       |
-| I18N-001 | String-extraction infrastructure         | i18n    | merged (PR #70)        |
-| QA-001   | Vitest unit-test setup                   | QA      | merged (PR #33)        |
-| QA-004   | Detox-defer ADR                          | QA      | merged (PR #31)        |
+| MOB-013  | Notification routing layer (placeholder) | Mobile  | —                 |
+| I18N-001 | String-extraction infrastructure         | i18n    | merged (PR #70)   |
+| QA-001   | Vitest unit-test setup                   | QA      | merged (PR #33)   |
+| QA-004   | Detox-defer ADR                          | QA      | merged (PR #31)   |
 
 ### Wave 6
 
-| ID       | Title                                   | Area    | Merge record                           |
-| -------- | --------------------------------------- | ------- | -------------------------------- |
-| INF-009  | Deployment topology — Render (ADR-002)  | Infra   | merged (repo side) |
-| BE-005   | Drizzle schema — every MVP table        | Backend | merged (PR #38)                 |
-| BE-006   | Core `computePlanActuals`               | Backend | merged (PR #40)                 |
-| BE-007   | Core `computeLeftover` + `convertMoney` | Backend | merged (PR #41)                 |
-| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | merged (PR #42)                 |
-| BE-009   | Core `applyMappingSuggestion`           | Backend | merged (PR #43)                 |
-| BE-010   | Core locale-aware formatters            | Backend | merged (PR #39)                 |
-| MOB-004  | Secure storage for tokens               | Mobile  | blocked (needs MOB-003)        |
-| I18N-002 | `react-intl` provider + lint rule       | i18n    | merged (PR #78)                 |
-| I18N-003 | Resource bundles — `en.json` baseline   | i18n    | deferred to Wave 7             |
+| ID       | Title                                   | Area    | Merge record            |
+| -------- | --------------------------------------- | ------- | ----------------------- |
+| INF-009  | Deployment topology — Render (ADR-002)  | Infra   | merged (repo side)      |
+| BE-005   | Drizzle schema — every MVP table        | Backend | merged (PR #38)         |
+| BE-006   | Core `computePlanActuals`               | Backend | merged (PR #40)         |
+| BE-007   | Core `computeLeftover` + `convertMoney` | Backend | merged (PR #41)         |
+| BE-008   | Core `aggregateByCategoryWithPrivacy`   | Backend | merged (PR #42)         |
+| BE-009   | Core `applyMappingSuggestion`           | Backend | merged (PR #43)         |
+| BE-010   | Core locale-aware formatters            | Backend | merged (PR #39)         |
+| MOB-004  | Secure storage for tokens               | Mobile  | blocked (needs MOB-003) |
+| I18N-002 | `react-intl` provider + lint rule       | i18n    | merged (PR #78)         |
+| I18N-003 | Resource bundles — `en.json` baseline   | i18n    | deferred to Wave 7      |
 
 ### Wave 7
 
-| ID       | Title                                         | Area    | Merge record     | PR                                                       |
-| -------- | --------------------------------------------- | ------- | ---------- | -------------------------------------------------------- |
-| INF-010  | Managed PG (Neon) + Redis (Upstash)           | Infra   | skipped | —                                                        |
-| INF-011  | Web hosting — Cloudflare Pages                | Infra   | skipped | —                                                        |
-| BE-011   | Auth domain — entities + ports                | Backend | merged    | [#45](https://github.com/dcervonyj/power-budget/pull/45) |
-| BE-016   | BankConnection domain + `BankConnector`       | Backend | merged    | [#48](https://github.com/dcervonyj/power-budget/pull/48) |
-| BE-020   | Transactions domain — entities + ports        | Backend | merged    | [#47](https://github.com/dcervonyj/power-budget/pull/47) |
-| BE-023   | BullMQ infrastructure                         | Backend | merged    | [#44](https://github.com/dcervonyj/power-budget/pull/44) |
-| BE-025   | Plans domain — entities + ports               | Backend | merged    | [#46](https://github.com/dcervonyj/power-budget/pull/46) |
-| BE-027   | Categories domain + privacy + seed migration  | Backend | merged    | [#49](https://github.com/dcervonyj/power-budget/pull/49) |
-| I18N-004 | Translations — uk/ru/pl (LLM + native review) | i18n    | skipped | —                                                        |
-| QA-002   | Integration test harness                      | QA      | merged    | [#50](https://github.com/dcervonyj/power-budget/pull/50) |
+| ID       | Title                                         | Area    | Merge record                  | PR                                                       |
+| -------- | --------------------------------------------- | ------- | ----------------------------- | -------------------------------------------------------- |
+| INF-010  | Managed PG (Neon) + Redis (Upstash)           | Infra   | skipped                       | —                                                        |
+| INF-011  | Web hosting — Cloudflare Pages                | Infra   | done (26 Oct 2026, dashboard) | —                                                        |
+| BE-011   | Auth domain — entities + ports                | Backend | merged                        | [#45](https://github.com/dcervonyj/power-budget/pull/45) |
+| BE-016   | BankConnection domain + `BankConnector`       | Backend | merged                        | [#48](https://github.com/dcervonyj/power-budget/pull/48) |
+| BE-020   | Transactions domain — entities + ports        | Backend | merged                        | [#47](https://github.com/dcervonyj/power-budget/pull/47) |
+| BE-023   | BullMQ infrastructure                         | Backend | merged                        | [#44](https://github.com/dcervonyj/power-budget/pull/44) |
+| BE-025   | Plans domain — entities + ports               | Backend | merged                        | [#46](https://github.com/dcervonyj/power-budget/pull/46) |
+| BE-027   | Categories domain + privacy + seed migration  | Backend | merged                        | [#49](https://github.com/dcervonyj/power-budget/pull/49) |
+| I18N-004 | Translations — uk/ru/pl (LLM + native review) | i18n    | skipped                       | —                                                        |
+| QA-002   | Integration test harness                      | QA      | merged                        | [#50](https://github.com/dcervonyj/power-budget/pull/50) |
 
 ### Wave 8
 
-| ID       | Title                             | Area    | Merge record     | PR                                                       |
-| -------- | --------------------------------- | ------- | ---------- | -------------------------------------------------------- |
-| INF-013  | Staging environment + DNS + TLS   | Infra   | skipped | —                                                        |
-| BE-012   | Auth use cases                    | Backend | merged    | [#51](https://github.com/dcervonyj/power-budget/pull/51) |
-| BE-026   | Plans use cases + REST + audit    | Backend | merged    | [#54](https://github.com/dcervonyj/power-budget/pull/54) |
-| BE-028   | FX — ECB ingest                   | Backend | merged    | [#53](https://github.com/dcervonyj/power-budget/pull/53) |
-| BE-037   | ESLint `no-repo-without-scope`    | Backend | merged    | [#52](https://github.com/dcervonyj/power-budget/pull/52) |
-| I18N-005 | Localised email templates         | i18n    | skipped | —                                                        |
-| I18N-006 | Locale-aware formatters across UI | i18n    | skipped | —                                                        |
-| I18N-007 | Localised seed categories         | i18n    | skipped | —                                                        |
+| ID       | Title                             | Area    | Merge record | PR                                                       |
+| -------- | --------------------------------- | ------- | ------------ | -------------------------------------------------------- |
+| INF-013  | Staging environment + DNS + TLS   | Infra   | skipped      | —                                                        |
+| BE-012   | Auth use cases                    | Backend | merged       | [#51](https://github.com/dcervonyj/power-budget/pull/51) |
+| BE-026   | Plans use cases + REST + audit    | Backend | merged       | [#54](https://github.com/dcervonyj/power-budget/pull/54) |
+| BE-028   | FX — ECB ingest                   | Backend | merged       | [#53](https://github.com/dcervonyj/power-budget/pull/53) |
+| BE-037   | ESLint `no-repo-without-scope`    | Backend | merged       | [#52](https://github.com/dcervonyj/power-budget/pull/52) |
+| I18N-005 | Localised email templates         | i18n    | skipped      | —                                                        |
+| I18N-006 | Locale-aware formatters across UI | i18n    | skipped      | —                                                        |
+| I18N-007 | Localised seed categories         | i18n    | skipped      | —                                                        |
 
 ### Wave 9
 
-| ID      | Title                          | Area     | Merge record     | PR  |
-| ------- | ------------------------------ | -------- | ---------- | --- |
-| BE-013  | Auth infrastructure adapters   | Backend  | merged | #58 |
-| BE-014  | Household domain + invite flow | Backend  | merged | #56 |
-| BE-021  | Transactions use cases         | Backend  | merged | #57 |
-| SEC-001 | KMS / envelope encryption      | Security | merged | #55 |
-| SEC-006 | Auth rate limiting             | Security | skipped | —   |
+| ID      | Title                          | Area     | Merge record | PR  |
+| ------- | ------------------------------ | -------- | ------------ | --- |
+| BE-013  | Auth infrastructure adapters   | Backend  | merged       | #58 |
+| BE-014  | Household domain + invite flow | Backend  | merged       | #56 |
+| BE-021  | Transactions use cases         | Backend  | merged       | #57 |
+| SEC-001 | KMS / envelope encryption      | Security | merged       | #55 |
+| SEC-006 | Auth rate limiting             | Security | skipped      | —   |
 
 ### Wave 10
 
-| ID      | Title                                         | Area     | Merge record  | PR                                                       |
-| ------- | --------------------------------------------- | -------- | ------- | -------------------------------------------------------- |
-| BE-015  | Auth presentation — REST controllers + guards | Backend  | merged | [#59](https://github.com/dcervonyj/power-budget/pull/59) |
-| BE-022  | Transactions infrastructure + REST            | Backend  | merged | [#60](https://github.com/dcervonyj/power-budget/pull/60) |
-| BE-035  | Audit log API + `AuditLogger` port            | Backend  | merged | [#62](https://github.com/dcervonyj/power-budget/pull/62) |
-| SEC-002 | Key rotation runbook                          | Security | merged | [#61](https://github.com/dcervonyj/power-budget/pull/61) |
+| ID      | Title                                         | Area     | Merge record | PR                                                       |
+| ------- | --------------------------------------------- | -------- | ------------ | -------------------------------------------------------- |
+| BE-015  | Auth presentation — REST controllers + guards | Backend  | merged       | [#59](https://github.com/dcervonyj/power-budget/pull/59) |
+| BE-022  | Transactions infrastructure + REST            | Backend  | merged       | [#60](https://github.com/dcervonyj/power-budget/pull/60) |
+| BE-035  | Audit log API + `AuditLogger` port            | Backend  | merged       | [#62](https://github.com/dcervonyj/power-budget/pull/62) |
+| SEC-002 | Key rotation runbook                          | Security | merged       | [#61](https://github.com/dcervonyj/power-budget/pull/61) |
 
 ### Wave 11
 
-| ID      | Title                           | Area     | Merge record           | PR  |
-| ------- | ------------------------------- | -------- | ---------------- | --- |
+| ID      | Title                           | Area     | Merge record    | PR  |
+| ------- | ------------------------------- | -------- | --------------- | --- |
 | BE-017  | BankConnection use cases + REST | Backend  | merged (PR #63) | #63 |
 | BE-038  | OpenAPI / Swagger docs          | Backend  | merged (PR #68) | #68 |
 | INF-014 | Sentry error tracking           | Infra    | merged (PR #64) | #64 |
@@ -391,8 +391,8 @@ Only two pure wave-1 starters exist because nearly every other task depends on t
 
 ### Wave 12
 
-| ID      | Title                             | Area     | Merge record |
-| ------- | --------------------------------- | -------- | ------ |
+| ID      | Title                             | Area     | Merge record    |
+| ------- | --------------------------------- | -------- | --------------- |
 | BE-018  | GoCardless adapter                | Backend  | merged (PR #71) |
 | BE-019  | Wise adapter                      | Backend  | merged (PR #73) |
 | BE-036  | RLS policies + tenancy spec       | Backend  | merged (PR #74) |
@@ -639,7 +639,7 @@ These eight together unblock ~70% of the rest of the backlog within the first tw
 
 - **Area**: Infra
 - **Effort**: S (~1d)
-- **Status**: Not started (audit 21 Oct 2026) — `power-budget.pages.dev` does not resolve. Finished by: CLN-014.
+- **Status**: Done (26 Oct 2026) — Cloudflare Pages project `power-budget` (Git-connected, production branch `master`, build `pnpm turbo run build --filter=@power-budget/web...`, output `packages/web/dist`, `VITE_API_URL=https://power-budget-api-eu.onrender.com`). `https://power-budget.pages.dev` serves the app; `/login` and other deep links return 200; CSP from `_headers` is served; the API answers CORS preflight for this origin. Custom domain not set yet.
 - **Description**: Cloudflare Pages project bound to the repo, building `packages/web`. SPA fallback to `index.html`. Custom domain (placeholder) + automatic HTTPS. Per ARCHITECTURE.md §10.
 - **Blocked by**: INF-006, WEB-001
 - **Blocks**: INF-013
@@ -2118,19 +2118,19 @@ Conventions: the same task format as §4. `Needs the owner or partner` marks tas
 
 Total: 78 tasks, about 167.1 person-days (including optional work).
 
-| Phase | Name | Tasks | Days |
-| --- | --- | --- | --- |
-| P0 | Emergency stop | 3 | 1.85 |
-| P1 | Foundation | 7 | 11.5 |
-| M0 | Spikes and hosting | 7 | 7 |
-| P2 | Working web journeys | 12 | 38 |
-| M1 | Both banks to dashboard | 14 | 28 |
-| M2 | Live signals | 11 | 19.25 |
-| M3 | AI categorisation | 9 | 23 |
-| M4 | Hardening | 4 | 7 |
-| UI | UI polish | 5 | 11 |
-| MOB | Mobile | 3 | 9 |
-| OPT | Options | 3 | 11.5 |
+| Phase | Name                    | Tasks | Days  |
+| ----- | ----------------------- | ----- | ----- |
+| P0    | Emergency stop          | 3     | 1.85  |
+| P1    | Foundation              | 7     | 11.5  |
+| M0    | Spikes and hosting      | 7     | 7     |
+| P2    | Working web journeys    | 12    | 38    |
+| M1    | Both banks to dashboard | 14    | 28    |
+| M2    | Live signals            | 11    | 19.25 |
+| M3    | AI categorisation       | 9     | 23    |
+| M4    | Hardening               | 4     | 7     |
+| UI    | UI polish               | 5     | 11    |
+| MOB   | Mobile                  | 3     | 9     |
+| OPT   | Options                 | 3     | 11.5  |
 
 ### P0 — Emergency stop
 
@@ -3045,7 +3045,7 @@ Rules first (transfers, planned items, merchant memory), Claude for the rest.
   - descriptor classes: `payu`, `przelewy24`, `allegro`, `blik_p2p`, `blik_merchant`, `atm`, `card`, `transfer`, `fee`;
   - city and terminal stripping;
   - Polish diacritics folding.
-  Replaces the local `normalise()` in `apply-mapping-suggestion.ts`, which today drops Polish letters (`[^a-z0-9Ѐ-ӿ]` removes ą, ę, ł, ż and the others).
+    Replaces the local `normalise()` in `apply-mapping-suggestion.ts`, which today drops Polish letters (`[^a-z0-9Ѐ-ӿ]` removes ą, ę, ł, ż and the others).
 - **Blocked by**: none
 - **Blocks**: AI-002, AI-003, AI-005
 - **Acceptance criteria**:
@@ -3207,7 +3207,7 @@ Consent lifecycle, alerts, uptime, the GDPR decision.
   - more than 3 unparsed signals a day;
   - live rows expiring;
   - EB 401.
-  An admin page or endpoint lists them. Runbook `docs/mvp/runbooks/bank-sync.md`.
+    An admin page or endpoint lists them. Runbook `docs/mvp/runbooks/bank-sync.md`.
 - **Blocked by**: SYNC-003, SYNC-008
 - **Blocks**: none
 - **Acceptance criteria**:
