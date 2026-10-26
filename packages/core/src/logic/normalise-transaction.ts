@@ -56,8 +56,7 @@ function toPrefixPattern(source: string): RegExp {
 const COUNTERPARTY_MARKER =
   /\b(?:odbiorca|nadawca|recipient|sender|beneficiary|transfer (?:to|from)|received from|sent to|przelew(?: blik)? (?:do|od)|(?:przelew )?(?:blik )?na telefon)\b/i;
 
-const TITLE_MARKER =
-  /(?:,|(?<![\p{L}\d])(?:op[łl]ata za|tytu[łl](?:em)?|title|za)(?![\p{L}\d])).*$/iu;
+const TITLE_MARKER = /,|(?<![\p{L}\d])(?:op[łl]ata za|tytu[łl](?:em)?|title|za)(?![\p{L}\d])/iu;
 
 /** Folded city names that trail card descriptors. */
 const CITIES: readonly string[] = [
@@ -205,7 +204,8 @@ function extractMerchant(
 }
 
 function cutAtTitle(rest: string): string {
-  const name = rest.replace(TITLE_MARKER, '').trim();
+  const markerAt = rest.search(TITLE_MARKER);
+  const name = (markerAt === -1 ? rest : rest.slice(0, markerAt)).trim();
 
   return name.length === 0 ? rest : name;
 }
