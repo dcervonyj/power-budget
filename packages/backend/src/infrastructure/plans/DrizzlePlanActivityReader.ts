@@ -17,7 +17,13 @@ import type {
   PlanActivityReader,
 } from '../../domain/plans/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
-import { currencyOf, isoDateOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
+import {
+  currencyOf,
+  isoDateOf,
+  isoDateTimeOf,
+  oneOf,
+  SUPPORTED_CURRENCY_CODES,
+} from '../database/row-values.js';
 import {
   TRANSACTION_STATUSES,
   UNCOUNTED_TRANSACTION_STATUSES,
@@ -43,6 +49,8 @@ export class DrizzlePlanActivityReader implements PlanActivityReader {
       lte(schema.transactions.occurredOn, query.period.end),
       // cancelled and expired rows are kept for audit only (plan-banking.md §1.7).
       notInArray(schema.transactions.status, [...UNCOUNTED_TRANSACTION_STATUSES]),
+      // A row in a currency the app does not support is never counted (and never throws).
+      inArray(schema.transactions.currency, SUPPORTED_CURRENCY_CODES),
     );
     const periodTxIds = this.db
       .select({ id: schema.transactions.id })

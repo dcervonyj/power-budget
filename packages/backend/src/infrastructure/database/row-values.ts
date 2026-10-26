@@ -1,4 +1,4 @@
-import { IsoDate, IsoDateTime, isSupportedCurrency } from '@power-budget/core';
+import { CURRENCIES, IsoDate, IsoDateTime, isSupportedCurrency } from '@power-budget/core';
 import type { CurrencyCode } from '@power-budget/core';
 
 /**
@@ -17,6 +17,9 @@ export function nullableIsoDateTimeOf(value: Date | null): IsoDateTime | null {
 export function isoDateOf(value: string): IsoDate {
   return IsoDate.of(value);
 }
+
+/** The currency codes `currencyOf` accepts: SQL filters use it to leave other rows out (CLN-039). */
+export const SUPPORTED_CURRENCY_CODES: readonly string[] = Object.keys(CURRENCIES);
 
 export function currencyOf(value: string): CurrencyCode {
   const code = value.trim().toUpperCase();

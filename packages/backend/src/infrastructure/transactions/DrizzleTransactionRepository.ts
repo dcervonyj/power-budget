@@ -56,7 +56,12 @@ import { mappingSourceOf } from '../../domain/transactions/mapping-source.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import { decodeTransactionCursor, encodeTransactionCursor } from './transactionCursor.js';
 import { containsPattern } from '../database/likePattern.js';
-import { currencyOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
+import {
+  currencyOf,
+  isoDateTimeOf,
+  oneOf,
+  SUPPORTED_CURRENCY_CODES,
+} from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
 import { TransactionRowMapper } from './TransactionRowMapper.js';
 
@@ -90,30 +95,28 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   async upsertByExternalId(
     input: NewTransaction,
   ): Promise<{ id: TransactionId; created: boolean }> {
-    const existing = input.externalId
-      ? await this.db
-          .select({ id: schema.transactions.id })
-          .from(schema.transactions)
-          .where(
-            and(
-              eq(schema.transactions.householdId, input.householdId),
-              eq(schema.transactions.accountId, input.accountId),
-              eq(schema.transactions.externalId, input.externalId),
-            ),
-          )
-          .limit(1)
-      : [];
-
-    if (existing.length > 0 && existing[0]) {
-      return { id: existing[0].id as TransactionId, created: false };
-    }
-
-    const rows = await this.db
+    const inserted = await this.db
       .insert(schema.transactions)
       .values(this.rows.toInsert(input))
+      .onConflictDoNothing()
       .returning({ id: schema.transactions.id });
+    if (inserted[0]) {
+      return { id: inserted[0].id as TransactionId, created: true };
+    }
 
-    return { id: rows[0]!.id as TransactionId, created: true };
+    const existing = await this.db
+      .select({ id: schema.transactions.id })
+      .from(schema.transactions)
+      .where(
+        and(
+          eq(schema.transactions.householdId, input.householdId),
+          eq(schema.transactions.accountId, input.accountId),
+          eq(schema.transactions.externalId, input.externalId ?? ''),
+        ),
+      )
+      .limit(1);
+
+    return { id: existing[0]!.id as TransactionId, created: false };
   }
 
   async insertManual(input: NewManualTransaction): Promise<Transaction> {
@@ -133,6 +136,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
           sourceKind: 'manual',
           status: 'manual',
           bank: NO_BANK_DETAILS,
+          ignored: false,
         }),
         notes: input.notes,
       })
@@ -167,7 +171,11 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .select()
       .from(schema.transactions)
       .where(
-        and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
+        and(
+          eq(schema.transactions.id, id),
+          eq(schema.transactions.householdId, scope.householdId),
+          this.supportedCurrency(),
+        ),
       )
       .limit(1);
 
@@ -184,7 +192,11 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .from(schema.transactions)
       .innerJoin(schema.bankAccounts, this.ownedAccountJoin(ownerUserId))
       .where(
-        and(eq(schema.transactions.id, id), eq(schema.transactions.householdId, scope.householdId)),
+        and(
+          eq(schema.transactions.id, id),
+          eq(schema.transactions.householdId, scope.householdId),
+          this.supportedCurrency(),
+        ),
       )
       .limit(1);
     const row = rows[0];
@@ -360,6 +372,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
           inArray(t.status, [...PROVISIONAL_TRANSACTION_STATUSES]),
           gte(t.occurredOn, query.window.start),
           lte(t.occurredOn, query.window.end),
+          this.supportedCurrency(),
         ),
       )
       .orderBy(asc(t.occurredOn), asc(t.id));
@@ -434,6 +447,14 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     }
   }
 
+  /**
+   * A row in a currency the app does not support (stored ignored by ingest, CLN-039) cannot be
+   * mapped to the domain entity, so entity reads leave it out instead of throwing.
+   */
+  private supportedCurrency(): SQL {
+    return inArray(schema.transactions.currency, [...SUPPORTED_CURRENCY_CODES]);
+  }
+
   private ownedAccountJoin(ownerUserId: UserId): SQL | undefined {
     return and(
       eq(schema.bankAccounts.id, schema.transactions.accountId),
@@ -444,7 +465,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
 
   private listConditions(query: TransactionQuery, scope: HouseholdScope): SQL[] {
     const t = schema.transactions;
-    const conditions: SQL[] = [eq(t.householdId, scope.householdId)];
+    const conditions: SQL[] = [eq(t.householdId, scope.householdId), this.supportedCurrency()];
 
     if (query.accountId) {
       conditions.push(eq(t.accountId, query.accountId));

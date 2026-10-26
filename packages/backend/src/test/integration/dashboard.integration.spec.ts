@@ -152,6 +152,16 @@ describe('Plan and household dashboards (real app, 2-member household)', () => {
       expect(res.body.net).toEqual({ amountMinor: '-27750', currency: 'PLN' });
     });
 
+    it('stays 200 with unchanged numbers when a row is in a currency the app does not support', async () => {
+      await insertTx(anna, annaAccount, '2026-09-12', -5000n, 'HUF', 'Wise pocket', true);
+
+      const res = await get<DashboardBody>(anna, `/plans/${planId}/dashboard`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.totalActualExpenses).toEqual({ amountMinor: '19250', currency: 'PLN' });
+      expect(res.body.net).toEqual({ amountMinor: '-27750', currency: 'PLN' });
+    });
+
     it('counts only the owner transactions as unplanned in a personal plan', async () => {
       const personal = await createPlan(anna, 'personal', 'PLN');
 

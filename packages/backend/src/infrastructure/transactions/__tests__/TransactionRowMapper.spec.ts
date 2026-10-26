@@ -235,6 +235,7 @@ describe('TransactionRowMapper', () => {
       sourceKind: 'enable_banking',
       status: 'booked',
       bank: details,
+      ignored: false,
     });
 
     expect(values).toEqual({
