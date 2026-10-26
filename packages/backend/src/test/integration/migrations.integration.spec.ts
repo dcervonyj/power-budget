@@ -108,6 +108,39 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     await expectFullSchema(pool);
   });
 
+  it('has the indexes the queries need and no duplicates (CLN-049)', async () => {
+    const pool = await createDatabase(`indexes_${SUFFIX}`);
+
+    await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
+
+    const { rows } = await pool.query<{ indexname: string }>(
+      "SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename IN ('transfers','audit_log','sessions','household_invites','transactions')",
+    );
+    const names = rows.map((r) => r.indexname);
+    expect(names).toEqual(
+      expect.arrayContaining(['transfers_household_idx', 'audit_log_household_id_idx']),
+    );
+    for (const dropped of [
+      'sessions_token_hash_idx',
+      'household_invites_token_idx',
+      'transfers_tx_a_idx',
+      'transfers_tx_b_idx',
+      'transactions_household_date_idx',
+    ]) {
+      expect(names).not.toContain(dropped);
+    }
+    // The unique twins and the keyset index keep serving the dropped duplicates' queries.
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'sessions_token_hash_unique',
+        'household_invites_token_unique',
+        'transfers_tx_a_unique',
+        'transfers_tx_b_unique',
+        'transactions_household_date_id_idx',
+      ]),
+    );
+  });
+
   it.each([
     [2, 'fresh 0002 baseline'],
     [5, 'journal idx 5 (before 0005_be-029_email_bouncing)'],

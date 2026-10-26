@@ -134,6 +134,13 @@
       "when": 1793047687419,
       "tag": "0018_cln-032_totp_pending_secret",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793051472257,
+      "tag": "0019_cln-049_index_cleanup",
+      "breakpoints": true
     }
   ]
 }
