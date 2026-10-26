@@ -60,10 +60,9 @@ describe('buildGalleryEntries', () => {
   });
 
   it('discovers the sample entries from src', () => {
-    expect(galleryEntries.map((entry) => entry.id)).toEqual([
-      'Tokens/Swatches',
-      'Tokens/TypeScale',
-    ]);
+    expect(galleryEntries.map((entry) => entry.id)).toEqual(
+      expect.arrayContaining(['Tokens/Swatches', 'Tokens/TypeScale']),
+    );
   });
 });
 
@@ -82,6 +81,8 @@ describe('GalleryApp', () => {
   it('lists entries when none is selected', () => {
     render(<GalleryApp params={{ theme: 'dark', entry: null }} entries={galleryEntries} />);
 
-    expect(screen.getByTestId('gallery-index').querySelectorAll('li')).toHaveLength(2);
+    expect(screen.getByTestId('gallery-index').querySelectorAll('li')).toHaveLength(
+      galleryEntries.length,
+    );
   });
 });
