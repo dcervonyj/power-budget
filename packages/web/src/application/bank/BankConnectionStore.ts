@@ -1,5 +1,6 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { apiClient } from '../../AppProviders.js';
+import { clientSession } from '../auth/ClientSession.js';
 import type { BankConnectionDto } from '@power-budget/shared-app/contract';
 import {
   BankConnectionMapper,
@@ -11,8 +12,11 @@ export class BankConnectionStore {
   loading = false;
   error: string | null = null;
 
+  /** Bumped when the session ends, so a late answer for the previous user is dropped. */
+  private session = 0;
+
   constructor() {
-    makeAutoObservable(this);
+    makeAutoObservable<BankConnectionStore, 'session'>(this, { session: false });
   }
 
   get expiringConnections(): BankConnection[] {
@@ -21,19 +25,14 @@ export class BankConnectionStore {
   }
 
   async fetchConnections(): Promise<void> {
+    const session = this.session;
     this.loading = true;
     this.error = null;
     try {
       const res = await apiClient.get<BankConnectionDto[]>('/bank-connections');
-      runInAction(() => {
-        this.connections = res.data.map(BankConnectionMapper.toBankConnection);
-        this.loading = false;
-      });
+      this.applyConnections(session, res.data);
     } catch {
-      runInAction(() => {
-        this.error = 'Failed to load bank connections';
-        this.loading = false;
-      });
+      this.applyFetchFailed(session);
     }
   }
 
@@ -58,6 +57,31 @@ export class BankConnectionStore {
       });
     }
   }
+
+  /** Sign-out or session end: the previous user's connections go. */
+  resetSession(): void {
+    this.session += 1;
+    this.connections = [];
+    this.loading = false;
+    this.error = null;
+  }
+
+  private applyConnections(session: number, connections: BankConnectionDto[]): void {
+    if (session !== this.session) {
+      return;
+    }
+    this.connections = connections.map(BankConnectionMapper.toBankConnection);
+    this.loading = false;
+  }
+
+  private applyFetchFailed(session: number): void {
+    if (session !== this.session) {
+      return;
+    }
+    this.error = 'Failed to load bank connections';
+    this.loading = false;
+  }
 }
 
 export const bankConnectionStore = new BankConnectionStore();
+clientSession.register(bankConnectionStore);

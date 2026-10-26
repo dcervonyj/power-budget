@@ -8,6 +8,7 @@ import {
   type PlanDto,
 } from '@power-budget/shared-app/contract';
 import { householdsApi, plansApi } from '../../AppProviders.js';
+import { clientSession } from '../auth/ClientSession.js';
 
 /** A household has at most two members in the MVP: you and your partner (CLN-006). */
 export const HOUSEHOLD_MAX_MEMBERS = 2;
@@ -51,13 +52,16 @@ export class HouseholdStore {
 
   private readonly households: HouseholdMembersApi;
   private readonly plans: HouseholdPlansApi;
+  /** Bumped when the session ends, so a late answer for the previous user is dropped. */
+  private session = 0;
 
   constructor(households: HouseholdMembersApi, plans: HouseholdPlansApi) {
     this.households = households;
     this.plans = plans;
-    makeAutoObservable<HouseholdStore, 'households' | 'plans'>(this, {
+    makeAutoObservable<HouseholdStore, 'households' | 'plans' | 'session'>(this, {
       households: false,
       plans: false,
+      session: false,
     });
   }
 
@@ -78,19 +82,22 @@ export class HouseholdStore {
     if (userId !== this.userId || householdId !== this.householdId) {
       this.reset();
     }
+    const session = this.session;
     this.userId = userId;
     this.householdId = householdId;
     this.loading = true;
     this.loadFailed = false;
     try {
       const [members, plans] = await Promise.all([this.households.members(), this.plans.list()]);
-      this.applyMembers(members, plans);
+      if (!this.applyMembers(session, members, plans)) {
+        return;
+      }
       if (this.isOwner) {
-        this.applyInvites(await this.households.invites());
+        this.applyInvites(session, await this.households.invites());
       }
       await this.loadAggregates();
     } catch {
-      this.applyLoadFailed();
+      this.applyLoadFailed(session);
     }
   }
 
@@ -118,7 +125,21 @@ export class HouseholdStore {
     await this.runInviteAction(this.households.revokeInvite(inviteId), 'revoked');
   }
 
+  /** Sign-out or session end: nothing of the previous user's household stays. */
+  resetSession(): void {
+    this.session += 1;
+    this.reset();
+    this.userId = '';
+    this.householdId = '';
+    this.loading = false;
+    this.loadFailed = false;
+    this.aggregatesLoading = false;
+    this.aggregatesError = null;
+    this.inviteBusy = false;
+  }
+
   private async loadAggregates(): Promise<void> {
+    const session = this.session;
     const planId = this.selectedPlanId;
     if (planId === null || this.householdId === '') {
       this.categories = [];
@@ -129,9 +150,10 @@ export class HouseholdStore {
     this.aggregatesError = null;
     try {
       const dashboard = await this.households.dashboard(this.householdId, planId);
-      this.applyAggregates(planId, dashboard.categories);
+      this.applyAggregates(session, planId, dashboard.categories);
     } catch (err) {
       this.applyAggregatesFailed(
+        session,
         planId,
         readApiError(err).code === FX_RATE_UNAVAILABLE ? 'fx_unavailable' : 'failed',
       );
@@ -143,14 +165,15 @@ export class HouseholdStore {
     action: Promise<unknown>,
     notice: HouseholdInviteNotice,
   ): Promise<void> {
+    const session = this.session;
     this.inviteBusy = true;
     this.inviteError = null;
     this.inviteNotice = null;
     try {
       await action;
-      this.applyInviteDone(notice, await this.households.invites());
+      this.applyInviteDone(session, notice, await this.households.invites());
     } catch (err) {
-      this.applyInviteFailed(classifyInviteError(err));
+      this.applyInviteFailed(session, classifyInviteError(err));
     }
   }
 
@@ -166,7 +189,15 @@ export class HouseholdStore {
     this.inviteNotice = null;
   }
 
-  private applyMembers(members: HouseholdMemberResponseDto[], plans: PlanDto[]): void {
+  /** False when the answer belongs to a session that has ended. */
+  private applyMembers(
+    session: number,
+    members: HouseholdMemberResponseDto[],
+    plans: PlanDto[],
+  ): boolean {
+    if (session !== this.session) {
+      return false;
+    }
     this.members = members;
     this.householdPlans = plans.filter(isHouseholdPlan);
     const kept = this.householdPlans.some(this.isSelectedPlan, this);
@@ -174,27 +205,42 @@ export class HouseholdStore {
     this.selectedPlanId = kept ? this.selectedPlanId : first === undefined ? null : first.id;
     this.loaded = true;
     this.loading = false;
+
+    return true;
   }
 
-  private applyInvites(invites: HouseholdInviteResponseDto[]): void {
-    this.invites = invites;
+  private applyInvites(session: number, invites: HouseholdInviteResponseDto[]): void {
+    if (session === this.session) {
+      this.invites = invites;
+    }
   }
 
-  private applyLoadFailed(): void {
+  private applyLoadFailed(session: number): void {
+    if (session !== this.session) {
+      return;
+    }
     this.loadFailed = true;
     this.loading = false;
   }
 
-  private applyAggregates(planId: string, categories: HouseholdDashboardCategoryDto[]): void {
-    if (this.selectedPlanId !== planId) {
+  private applyAggregates(
+    session: number,
+    planId: string,
+    categories: HouseholdDashboardCategoryDto[],
+  ): void {
+    if (session !== this.session || this.selectedPlanId !== planId) {
       return;
     }
     this.categories = categories;
     this.aggregatesLoading = false;
   }
 
-  private applyAggregatesFailed(planId: string, error: HouseholdAggregatesError): void {
-    if (this.selectedPlanId !== planId) {
+  private applyAggregatesFailed(
+    session: number,
+    planId: string,
+    error: HouseholdAggregatesError,
+  ): void {
+    if (session !== this.session || this.selectedPlanId !== planId) {
       return;
     }
     this.categories = [];
@@ -203,15 +249,22 @@ export class HouseholdStore {
   }
 
   private applyInviteDone(
+    session: number,
     notice: HouseholdInviteNotice,
     invites: HouseholdInviteResponseDto[],
   ): void {
+    if (session !== this.session) {
+      return;
+    }
     this.invites = invites;
     this.inviteNotice = notice;
     this.inviteBusy = false;
   }
 
-  private applyInviteFailed(error: HouseholdInviteError): void {
+  private applyInviteFailed(session: number, error: HouseholdInviteError): void {
+    if (session !== this.session) {
+      return;
+    }
     this.inviteError = error;
     this.inviteBusy = false;
   }
@@ -253,3 +306,4 @@ function classifyInviteError(err: unknown): HouseholdInviteError {
 }
 
 export const householdStore = new HouseholdStore(householdsApi, plansApi);
+clientSession.register(householdStore);
