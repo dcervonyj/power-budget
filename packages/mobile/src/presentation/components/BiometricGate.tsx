@@ -3,6 +3,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { biometricUnlockService } from '../../infrastructure/index.js';
 import { BiometricPromptOverlay } from './BiometricPromptOverlay.js';
 import { BiometricOptInPrompt } from './BiometricOptInPrompt.js';
+import { ToastProvider } from '../glass/overlays/Toast.js';
 
 /** After this many ms in background, require re-authentication. */
 const BACKGROUND_TIMEOUT_MS = 5 * 60 * 1000;
@@ -81,26 +82,27 @@ export function BiometricGate({ children }: Props): React.JSX.Element {
     return <></>;
   }
 
-  if (initState === 'opt-in') {
-    return (
-      <BiometricOptInPrompt
-        onDone={() => {
-          setInitState('ready');
-        }}
-      />
-    );
-  }
-
+  // One provider across the opt-in and ready states, so a notice raised as the prompt closes survives.
   return (
-    <>
-      {children}
-      <BiometricPromptOverlay
-        visible={locked}
-        onSuccess={() => {
-          setLocked(false);
-        }}
-      />
-    </>
+    <ToastProvider>
+      {initState === 'opt-in' ? (
+        <BiometricOptInPrompt
+          onDone={() => {
+            setInitState('ready');
+          }}
+        />
+      ) : (
+        <>
+          {children}
+          <BiometricPromptOverlay
+            visible={locked}
+            onSuccess={() => {
+              setLocked(false);
+            }}
+          />
+        </>
+      )}
+    </ToastProvider>
   );
 }
 
