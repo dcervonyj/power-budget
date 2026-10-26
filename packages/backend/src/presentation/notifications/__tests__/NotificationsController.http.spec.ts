@@ -115,6 +115,18 @@ describe('POST /notifications/bounce (HTTP)', () => {
     expect(repo.setEmailBouncing).toHaveBeenCalledWith('victim@example.com');
   });
 
+  it('accepts a correctly signed JSON null without suppressing anything', async () => {
+    const ts = nowSeconds();
+    const res = await post(
+      { 'svix-id': 'msg_1', 'svix-timestamp': ts, 'svix-signature': sign('msg_1', ts, 'null') },
+      'null',
+    );
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ ok: true });
+    expect(repo.setEmailBouncing).not.toHaveBeenCalled();
+  });
+
   it('rejects everything when RESEND_WEBHOOK_SECRET is not configured (fail closed)', async () => {
     await app.close();
     await start(undefined);
