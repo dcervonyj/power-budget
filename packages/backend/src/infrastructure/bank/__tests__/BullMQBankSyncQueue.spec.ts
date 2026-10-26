@@ -22,13 +22,20 @@ describe('BullMQBankSyncQueue', () => {
     const result = await syncQueue.enqueue({
       connectionId: CONNECTION_ID,
       householdId: HOUSEHOLD_ID,
+      trigger: 'scheduled',
+      attended: false,
       scheduledAt: new Date('2026-10-21T08:00:00.000Z'),
     });
 
     expect(result).toEqual({ jobId: 'job-1' });
     expect(queue.add).toHaveBeenCalledWith(
       'sync',
-      { connectionId: CONNECTION_ID, householdId: HOUSEHOLD_ID },
+      {
+        connectionId: CONNECTION_ID,
+        householdId: HOUSEHOLD_ID,
+        trigger: 'scheduled',
+        attended: false,
+      },
       {
         ...DEFAULT_JOB_OPTIONS,
         deduplication: { id: `bank-sync-${CONNECTION_ID}` },
@@ -43,11 +50,15 @@ describe('BullMQBankSyncQueue', () => {
     await syncQueue.enqueue({
       connectionId: CONNECTION_ID,
       householdId: HOUSEHOLD_ID,
+      trigger: 'scheduled',
+      attended: false,
       scheduledAt,
     });
     await syncQueue.enqueue({
       connectionId: CONNECTION_ID,
       householdId: HOUSEHOLD_ID,
+      trigger: 'scheduled',
+      attended: false,
       scheduledAt,
     });
 
@@ -61,11 +72,23 @@ describe('BullMQBankSyncQueue', () => {
   it('deduplicates an on-demand sync per connection without a fixed job id', async () => {
     const since = new Date('2026-10-01T00:00:00.000Z');
 
-    await syncQueue.enqueue({ connectionId: CONNECTION_ID, householdId: HOUSEHOLD_ID, since });
+    await syncQueue.enqueue({
+      connectionId: CONNECTION_ID,
+      householdId: HOUSEHOLD_ID,
+      trigger: 'manual',
+      attended: true,
+      since,
+    });
 
     expect(queue.add).toHaveBeenCalledWith(
       'sync',
-      { connectionId: CONNECTION_ID, householdId: HOUSEHOLD_ID, since },
+      {
+        connectionId: CONNECTION_ID,
+        householdId: HOUSEHOLD_ID,
+        trigger: 'manual',
+        attended: true,
+        since,
+      },
       { ...DEFAULT_JOB_OPTIONS, deduplication: { id: `bank-sync-${CONNECTION_ID}` } },
     );
   });

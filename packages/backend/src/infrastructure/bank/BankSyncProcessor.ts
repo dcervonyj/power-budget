@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 import type { BankConnectionId, HouseholdId } from '@power-budget/core';
@@ -5,6 +6,7 @@ import type {
   BankConnectionRepository,
   BankAccountRepository,
   SyncRunRepository,
+  SyncRunStartOptions,
   BankConnectorRegistry,
 } from '../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
@@ -13,11 +15,16 @@ import { QUEUE_BANK_SYNC } from '../queue/queue.constants.js';
 export interface BankSyncJobPayload {
   readonly connectionId: BankConnectionId;
   readonly householdId: HouseholdId;
+  /** Absent on jobs queued before BNK-003; they are treated as scheduled, unattended. */
+  readonly trigger?: SyncRunStartOptions['trigger'];
+  readonly attended?: boolean;
   readonly since?: string; // ISO date string
 }
 
 @Processor(QUEUE_BANK_SYNC, { concurrency: 2 })
 export class BankSyncProcessor extends WorkerHost {
+  private readonly logger = new Logger(BankSyncProcessor.name);
+  private legacyPayloadLogged = false;
   private static readonly RECONNECT_REMINDER_DAYS = 7;
 
   constructor(
@@ -32,6 +39,7 @@ export class BankSyncProcessor extends WorkerHost {
 
   async process(job: Job<BankSyncJobPayload>): Promise<void> {
     const { connectionId, householdId, since } = job.data;
+    const runOptions = this.runOptions(job.data);
     const scope = { householdId };
 
     const connection = await this.connectionRepo.findById(connectionId, scope);
@@ -39,7 +47,7 @@ export class BankSyncProcessor extends WorkerHost {
       return;
     }
 
-    const syncRunId = await this.syncRunRepo.start(connectionId);
+    const syncRunId = await this.syncRunRepo.start(connectionId, runOptions);
     const sinceDt = since ? new Date(since) : await this.getDefaultSince(connectionId);
     let totalFetched = 0;
 
@@ -81,6 +89,18 @@ export class BankSyncProcessor extends WorkerHost {
       await this.syncRunRepo.finish(syncRunId, { ok: false, fetched: 0, error: message });
       throw err;
     }
+  }
+
+  private runOptions(payload: BankSyncJobPayload): SyncRunStartOptions {
+    if (payload.trigger !== undefined && payload.attended !== undefined) {
+      return { trigger: payload.trigger, attended: payload.attended };
+    }
+    if (!this.legacyPayloadLogged) {
+      this.legacyPayloadLogged = true;
+      this.logger.warn('Sync job without trigger/attended (queued before BNK-003): scheduled');
+    }
+
+    return { trigger: 'scheduled', attended: false };
   }
 
   private async getDefaultSince(connectionId: BankConnectionId): Promise<Date> {

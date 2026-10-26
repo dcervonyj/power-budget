@@ -35,8 +35,9 @@ export class RefreshConnectionUseCase {
     const { jobId } = await this.syncQueue.enqueue({
       connectionId: input.connectionId,
       householdId: input.householdId,
+      trigger: 'manual',
+      attended: true,
     });
     return { jobId };
   }
 }
-
