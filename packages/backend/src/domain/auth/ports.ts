@@ -177,6 +177,24 @@ export interface TotpStepUpStore {
   isRecent(userId: UserId): Promise<boolean>;
 }
 
+/** One fixed window of a FailedAttemptCounter (CLN-031). */
+export interface AttemptWindow {
+  /** Attempts in the current window, this one included. */
+  readonly attempts: number;
+  /** Seconds until the window ends and the count starts again. */
+  readonly secondsLeft: number;
+}
+
+/**
+ * Counts attempts per key in a fixed window that opens at the first attempt
+ * (CLN-031, audit BE-BUGS-02). Shared by every API instance.
+ */
+export interface FailedAttemptCounter {
+  /** Atomically adds one attempt; of concurrent calls each sees its own count. */
+  increment(key: string, windowSeconds: number): Promise<AttemptWindow>;
+  reset(key: string): Promise<void>;
+}
+
 export interface HouseholdExport {
   readonly id: HouseholdExportId;
   readonly householdId: HouseholdId;

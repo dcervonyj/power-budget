@@ -14,6 +14,7 @@ import { OtplibTotpVerifier } from './OtplibTotpVerifier.js';
 import { JwtAccessTokenIssuerAdapter } from './JwtAccessTokenIssuer.js';
 import { RedisRefreshTokenStore, REDIS_CLIENT } from './RedisRefreshTokenStore.js';
 import { RedisTotpStepUpStore } from './RedisTotpStepUpStore.js';
+import { RedisFailedAttemptCounter } from './RedisFailedAttemptCounter.js';
 import { DrizzleMagicLinkTokenRepository } from './DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from './DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from './DrizzleHouseholdInviteRepository.js';
@@ -44,6 +45,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
       },
     },
     RedisRefreshTokenStore,
+    RedisFailedAttemptCounter,
     {
       // The optional ttlSeconds ctor param breaks decorator-metadata wiring —
       // instantiate explicitly with the default TTL.
@@ -74,6 +76,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     JwtAccessTokenIssuerAdapter,
     RedisRefreshTokenStore,
     RedisTotpStepUpStore,
+    RedisFailedAttemptCounter,
     EnvKekEncryption,
   ],
 })

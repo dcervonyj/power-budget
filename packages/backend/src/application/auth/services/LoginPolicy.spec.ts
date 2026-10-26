@@ -2,11 +2,16 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type {
+  FailedAttemptCounter,
   HouseholdRepository,
   JwtAccessTokenIssuer,
   RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
-import { TotpInvalidError, TotpRequiredError } from '../../../domain/auth/errors.js';
+import {
+  TotpInvalidError,
+  TotpLockedError,
+  TotpRequiredError,
+} from '../../../domain/auth/errors.js';
 import { LoginPolicy } from './LoginPolicy.js';
 import type { TotpAuthenticator } from './TotpAuthenticator.js';
 
@@ -18,6 +23,7 @@ describe('LoginPolicy', () => {
   let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
   let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
   let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
+  let attemptCounter: ReturnType<typeof mock<FailedAttemptCounter>>;
   let policy: LoginPolicy;
 
   beforeEach(() => {
@@ -25,7 +31,9 @@ describe('LoginPolicy', () => {
     householdRepo = mock<HouseholdRepository>();
     jwtIssuer = mock<JwtAccessTokenIssuer>();
     refreshTokenStore = mock<RefreshTokenStore>();
-    policy = new LoginPolicy(totp, householdRepo, jwtIssuer, refreshTokenStore);
+    attemptCounter = mock<FailedAttemptCounter>();
+    attemptCounter.increment.mockResolvedValue({ attempts: 1, secondsLeft: 900 });
+    policy = new LoginPolicy(totp, householdRepo, jwtIssuer, refreshTokenStore, attemptCounter);
   });
 
   describe('assertSecondFactor', () => {
@@ -44,6 +52,7 @@ describe('LoginPolicy', () => {
       );
       await expect(policy.assertSecondFactor(USER_ID, '')).rejects.toThrow(TotpRequiredError);
       expect(totp.verify).not.toHaveBeenCalled();
+      expect(attemptCounter.increment).not.toHaveBeenCalled();
     });
 
     it('verifies the code once TOTP is enabled', async () => {
@@ -54,11 +63,43 @@ describe('LoginPolicy', () => {
       expect(totp.verify).toHaveBeenCalledWith(USER_ID, '123456');
     });
 
-    it('propagates a rejected code', async () => {
+    it('counts the attempt per user before checking, and resets the count on success', async () => {
+      totp.isEnabled.mockResolvedValue(true);
+
+      await policy.assertSecondFactor(USER_ID, '123456');
+
+      expect(attemptCounter.increment).toHaveBeenCalledWith(`totp-failures:${USER_ID}`, 15 * 60);
+      expect(attemptCounter.reset).toHaveBeenCalledWith(`totp-failures:${USER_ID}`);
+    });
+
+    it('propagates a rejected code and keeps it counted', async () => {
       totp.isEnabled.mockResolvedValue(true);
       totp.verify.mockRejectedValue(new TotpInvalidError());
 
       await expect(policy.assertSecondFactor(USER_ID, '000000')).rejects.toThrow(TotpInvalidError);
+      expect(attemptCounter.increment).toHaveBeenCalledWith(`totp-failures:${USER_ID}`, 15 * 60);
+      expect(attemptCounter.reset).not.toHaveBeenCalled();
+    });
+
+    it('still checks the fifth attempt in a window', async () => {
+      totp.isEnabled.mockResolvedValue(true);
+      attemptCounter.increment.mockResolvedValue({ attempts: 5, secondsLeft: 600 });
+
+      await policy.assertSecondFactor(USER_ID, '123456');
+
+      expect(totp.verify).toHaveBeenCalledWith(USER_ID, '123456');
+    });
+
+    it('locks the user out after five attempts, without checking the code', async () => {
+      totp.isEnabled.mockResolvedValue(true);
+      attemptCounter.increment.mockResolvedValue({ attempts: 6, secondsLeft: 600 });
+
+      const result = policy.assertSecondFactor(USER_ID, '123456');
+
+      await expect(result).rejects.toThrow(TotpLockedError);
+      await expect(result).rejects.toMatchObject({ retryAfterSeconds: 600 });
+      expect(totp.verify).not.toHaveBeenCalled();
+      expect(attemptCounter.reset).not.toHaveBeenCalled();
     });
   });
 

@@ -19,6 +19,14 @@ export class TotpInvalidError extends Error {
   }
 }
 
+/** Too many wrong second-factor codes for this user (CLN-031); retry after the window. */
+export class TotpLockedError extends Error {
+  constructor(readonly retryAfterSeconds: number) {
+    super('TOTP_LOCKED');
+    this.name = 'TotpLockedError';
+  }
+}
+
 export class MagicLinkExpiredError extends Error {
   constructor() {
     super('MAGIC_LINK_EXPIRED');

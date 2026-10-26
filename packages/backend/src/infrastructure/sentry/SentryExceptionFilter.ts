@@ -8,7 +8,11 @@ import {
 } from '@nestjs/common';
 import * as Sentry from '@sentry/node';
 import type { FastifyReply } from 'fastify';
-import { codeForStatus, mapDomainError } from '../../presentation/http/domain-error-mapping.js';
+import {
+  codeForStatus,
+  headersForDomainError,
+  mapDomainError,
+} from '../../presentation/http/domain-error-mapping.js';
 
 /** Every error response has this shape; HttpException bodies may add fields (e.g. `errors`). */
 export interface ErrorResponseBody {
@@ -48,7 +52,7 @@ export class SentryExceptionFilter implements ExceptionFilter {
       Sentry.captureException(exception);
     }
 
-    response.status(status).send(body);
+    response.status(status).headers(headersForDomainError(exception)).send(body);
   }
 }
 
