@@ -112,6 +112,36 @@ describe('Sheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('springs back when the gesture is terminated and ignores a second close while leaving', async () => {
+    const onClose = jest.fn();
+    const view = await renderThemed(
+      <Sheet isOpen title="Edit category" onClose={onClose}>
+        <Text>sheet body</Text>
+      </Sheet>,
+    );
+    const header = screen.getByTestId('sheet-header');
+    await fireEvent(header, 'responderGrant', { nativeEvent: { pageY: 100 }, timeStamp: 0 });
+    await fireEvent(header, 'responderMove', { nativeEvent: { pageY: 160 }, timeStamp: 10 });
+    await fireEvent(header, 'responderTerminate');
+
+    expect(onClose).not.toHaveBeenCalled();
+    await view.rerender(
+      <ThemeProvider>
+        <IntlProvider locale="en" defaultLocale="en">
+          <Sheet isOpen={false} title="Edit category" onClose={onClose}>
+            <Text>sheet body</Text>
+          </Sheet>
+        </IntlProvider>
+      </ThemeProvider>,
+    );
+    const close = screen.queryByRole('button', { name: 'Close' });
+    if (close !== null) {
+      await userEvent.setup().press(close);
+    }
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('stays open on a short, slow drag or an upward drag', async () => {
     const onClose = jest.fn();
     await renderThemed(

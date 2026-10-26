@@ -64,6 +64,6 @@ const useStyles = makeStyles((glass) => ({
     flex: 1,
     justifyContent: 'center',
     padding: glass.space.lg,
-    backgroundColor: glass.colors.scrim,
+    backgroundColor: glass.colors.base,
   },
 }));
