@@ -57,6 +57,8 @@ describe('DisconnectBankUseCase', () => {
       completeConsent: vi.fn(),
       listAccounts: vi.fn(),
       fetchTransactions: vi.fn(),
+      fetchBalances: vi.fn(),
+      getConsentStatus: vi.fn(),
       refreshConsent: vi.fn(),
       disconnect: vi.fn().mockResolvedValue(undefined),
     });

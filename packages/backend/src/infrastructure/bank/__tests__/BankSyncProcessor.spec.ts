@@ -10,8 +10,9 @@ import type {
 } from '../../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import { BankSyncProcessor, type BankSyncJobPayload } from '../BankSyncProcessor.js';
-import type { BankConnection } from '../../../domain/bank/entities.js';
+import type { BankConnection, RawTransaction } from '../../../domain/bank/entities.js';
 import type { BankConnectionId, HouseholdId, SyncRunId } from '@power-budget/core';
+import { IsoDate } from '@power-budget/core';
 
 const CONNECTION_ID = 'conn-1' as BankConnectionId;
 const HOUSEHOLD_ID = 'hh-1' as HouseholdId;
@@ -99,15 +100,24 @@ describe('BankSyncProcessor', () => {
       lastSyncedAt: null,
       createdAt: new Date(),
     };
-    const rawTxs = [
+    const rawTxs: RawTransaction[] = [
       {
-        externalId: 'tx-1',
         accountExternalId: 'ext-acc-1',
-        occurredOn: '2024-01-01',
+        status: 'booked',
+        entryReference: 'tx-1',
+        bookingDate: IsoDate.of('2024-01-01'),
+        valueDate: null,
+        transactionDate: null,
         amountMinor: -500n,
         currency: 'PLN',
-        description: 'Coffee',
-        merchant: 'Cafe',
+        direction: 'debit',
+        originalAmount: null,
+        counterpartyName: 'Cafe',
+        counterpartyIban: null,
+        remittance: 'Coffee',
+        mcc: null,
+        bankTxCode: null,
+        balanceAfter: null,
       },
     ];
 
@@ -194,8 +204,12 @@ describe('BankSyncProcessor', () => {
 
     await processor.process(makeJob({ since: '2024-06-01T00:00:00Z' }));
 
-    expect(connector.fetchTransactions).toHaveBeenCalledWith(
-      expect.objectContaining({ since: new Date('2024-06-01T00:00:00Z') }),
-    );
+    expect(connector.fetchTransactions).toHaveBeenCalledWith({
+      account: { externalId: 'ext-acc-1' },
+      consent: 'enc-token',
+      dateFrom: new Date('2024-06-01T00:00:00Z'),
+      strategy: 'default',
+      psu: null,
+    });
   });
 });
