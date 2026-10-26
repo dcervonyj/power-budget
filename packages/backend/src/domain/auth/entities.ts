@@ -71,6 +71,12 @@ export interface TotpSecret {
   readonly verifiedAt: Date | null;
   /** Last accepted TOTP time step (replay protection). */
   readonly lastUsedTimeStep: number | null;
+  /**
+   * A replacement secret (ciphertext, same context) waiting for its first valid
+   * code (CLN-032). Login and step-up never read it: until it is confirmed the
+   * active secret above stays in force.
+   */
+  readonly pendingEncryptedSecret: EncryptedString | null;
 }
 
 export interface HouseholdInvite {

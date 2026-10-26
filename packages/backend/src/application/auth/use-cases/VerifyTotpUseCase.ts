@@ -6,11 +6,11 @@ export interface VerifyTotpInput {
   readonly code: string;
 }
 
-/** Confirms a pending enrolment, or refreshes the TOTP step-up window. */
+/** Confirms a pending enrolment or replacement, or refreshes the TOTP step-up window. */
 export class VerifyTotpUseCase {
   constructor(private readonly totp: TotpAuthenticator) {}
 
   async execute(input: VerifyTotpInput): Promise<void> {
-    await this.totp.verify(input.userId, input.code);
+    await this.totp.confirm(input.userId, input.code);
   }
 }
