@@ -32,7 +32,12 @@ function writeLegacyMessages(extractedMessagesPath, featureDirectory, legacyMess
     readFeatureMessageIds(featureDirectory),
   );
   const existingLegacyMessages = JSON.parse(readFileSync(legacyMessagesPath, 'utf8'));
-  const legacyMessages = { ...existingLegacyMessages, ...extractedLegacyMessages };
+  const legacyMessages = Object.fromEntries(
+    Object.entries(existingLegacyMessages).map(([messageId, message]) => [
+      messageId,
+      extractedLegacyMessages[messageId] ?? message,
+    ]),
+  );
 
   writeFileSync(legacyMessagesPath, `${JSON.stringify(legacyMessages, null, 2)}\n`);
 }

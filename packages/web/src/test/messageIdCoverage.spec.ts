@@ -8,6 +8,12 @@ const MESSAGE_ID_PATTERN =
   /\bid\s*(?:=\s*\{?\s*|:\s*)["']([A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9-]+)+)["']/g;
 const TEST_FILE_PATTERN = /(?:\.(?:spec|test)\.tsx?$)|(?:\.d\.ts$)/;
 
+// Ids with an inline defaultMessage render through the fallback, so only ids that
+// rely on the bundle alone must exist there.
+function hasDefaultMessage(source: string, index: number): boolean {
+  return source.slice(Math.max(0, index - 150), index + 300).includes('defaultMessage');
+}
+
 function readMessageIds(directory: string): Set<string> {
   const messageIds = new Set<string>();
 
@@ -28,7 +34,7 @@ function readMessageIds(directory: string): Set<string> {
       for (const match of source.matchAll(MESSAGE_ID_PATTERN)) {
         const [, messageId] = match;
 
-        if (messageId !== undefined) {
+        if (messageId !== undefined && !hasDefaultMessage(source, match.index)) {
           messageIds.add(messageId);
         }
       }
