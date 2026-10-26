@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View } from 'react-native';
 import { makeStyles } from '../../theme/index.js';
 import { AmbientField } from './AmbientField.js';
+import { GlassBlurBackground, GlassBlurProvider } from './GlassBlurTarget.js';
 import { DepthPanes } from './DepthPanes.js';
 import { GlassPanel } from './GlassPanel.js';
 import type { GlassDepth, GlassMaterial } from './GlassPanel.js';
@@ -38,16 +39,20 @@ function MaterialStage({ material }: { material: GlassMaterial }): React.JSX.Ele
   const styles = useStyles();
 
   return (
-    <View accessibilityLabel={`${material} glass`} style={styles.stage}>
-      <AmbientField />
-      <View style={styles.stack}>
-        {DEPTHS.map((depth) => (
-          <GlassPanel key={depth} material={material} depth={depth}>
-            <Text style={styles.text}>{materialLabel(material, depth)}</Text>
-          </GlassPanel>
-        ))}
+    <GlassBlurProvider>
+      <View accessibilityLabel={`${material} glass`} style={styles.stage}>
+        <GlassBlurBackground>
+          <AmbientField />
+        </GlassBlurBackground>
+        <View style={styles.stack}>
+          {DEPTHS.map((depth) => (
+            <GlassPanel key={depth} material={material} depth={depth}>
+              <Text style={styles.text}>{materialLabel(material, depth)}</Text>
+            </GlassPanel>
+          ))}
+        </View>
       </View>
-    </View>
+    </GlassBlurProvider>
   );
 }
 
@@ -71,20 +76,24 @@ export function Decor(): React.JSX.Element {
   const styles = useStyles();
 
   return (
-    <View accessibilityLabel="Panel decor" style={styles.stage}>
-      <AmbientField />
-      <View style={styles.stack}>
-        <GlassPanel decor={{ specular: true }}>
-          <Text style={styles.text}>{LABELS.specular}</Text>
-        </GlassPanel>
-        <GlassPanel decor={{ specular: true, film: true }}>
-          <Text style={styles.text}>{LABELS.film}</Text>
-        </GlassPanel>
-        <GlassPanel depth={0} decor={{ specular: true, film: true, sweep: 0 }}>
-          <Text style={styles.text}>{LABELS.sweep}</Text>
-        </GlassPanel>
+    <GlassBlurProvider>
+      <View accessibilityLabel="Panel decor" style={styles.stage}>
+        <GlassBlurBackground>
+          <AmbientField />
+        </GlassBlurBackground>
+        <View style={styles.stack}>
+          <GlassPanel decor={{ specular: true }}>
+            <Text style={styles.text}>{LABELS.specular}</Text>
+          </GlassPanel>
+          <GlassPanel decor={{ specular: true, film: true }}>
+            <Text style={styles.text}>{LABELS.film}</Text>
+          </GlassPanel>
+          <GlassPanel depth={0} decor={{ specular: true, film: true, sweep: 0 }}>
+            <Text style={styles.text}>{LABELS.sweep}</Text>
+          </GlassPanel>
+        </View>
       </View>
-    </View>
+    </GlassBlurProvider>
   );
 }
 
@@ -93,14 +102,18 @@ export function Depth(): React.JSX.Element {
   const styles = useStyles();
 
   return (
-    <View accessibilityLabel="Depth panes" style={[styles.stage, styles.depthStage]}>
-      <AmbientField />
-      <DepthPanes>
-        <GlassPanel depth={0} decor={{ specular: true, film: true }}>
-          <Text style={styles.text}>{LABELS.hero}</Text>
-        </GlassPanel>
-      </DepthPanes>
-    </View>
+    <GlassBlurProvider>
+      <View accessibilityLabel="Depth panes" style={[styles.stage, styles.depthStage]}>
+        <GlassBlurBackground>
+          <AmbientField />
+        </GlassBlurBackground>
+        <DepthPanes>
+          <GlassPanel depth={0} decor={{ specular: true, film: true }}>
+            <Text style={styles.text}>{LABELS.hero}</Text>
+          </GlassPanel>
+        </DepthPanes>
+      </View>
+    </GlassBlurProvider>
   );
 }
 
