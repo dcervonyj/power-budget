@@ -13,6 +13,8 @@ import {
 } from '../infrastructure/locale/index.js';
 import type { SupportedLocale } from '../infrastructure/locale/index.js';
 import type { RootStackParamList } from './navigation/types.js';
+import { tokenStore } from '../infrastructure/index.js';
+import { AuthGate } from './AuthGate.js';
 import { BiometricGate } from './components/BiometricGate.js';
 import {
   FontGate,
@@ -23,6 +25,10 @@ import {
 } from './theme/index.js';
 
 const resolver = new LocaleResolver();
+
+function loadStoredTokens(): Promise<void> {
+  return tokenStore.load();
+}
 
 /**
  * Deep linking configuration.
@@ -93,9 +99,11 @@ export function App(): React.JSX.Element {
     <ThemeProvider>
       <FontGate>
         <IntlProvider locale={locale} messages={messages} defaultLocale="en">
-          <BiometricGate>
-            <ThemedNavigation />
-          </BiometricGate>
+          <AuthGate loadTokens={loadStoredTokens}>
+            <BiometricGate>
+              <ThemedNavigation />
+            </BiometricGate>
+          </AuthGate>
         </IntlProvider>
       </FontGate>
     </ThemeProvider>
