@@ -87,6 +87,7 @@ function dashboard() {
   const money = (amountMinor: string) => ({ amountMinor, currency: 'EUR' });
 
   return {
+    period: { start: '2026-10-01', end: '2026-10-31' },
     expenseLines: [
       {
         plannedItemId: 'i1',
@@ -236,14 +237,52 @@ describe('TransactionMapModal', () => {
     expect(preview.textContent).toContain('Over budget');
   });
 
-  it('shows no preview when the picked item has no dashboard line', async () => {
+  it('drops the preview of the previous pick when the new item has no dashboard line', async () => {
     open(null, null);
-    fireEvent.click(await screen.findByText('Transport'));
+    fireEvent.click(await screen.findByText('Groceries'));
+    await screen.findByTestId('map-rod-preview');
 
-    await screen.findByRole('radio', { checked: true });
+    fireEvent.click(screen.getByText('Transport'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('map-rod-preview')).toBeNull();
+    });
+  });
+
+  it('shows no preview for a payment the dashboard does not count (ignored)', async () => {
+    const ignored = { ...transaction(null), ignored: true };
+    render(
+      <TransactionMapModal
+        transaction={ignored}
+        currentPlannedItemId={null}
+        isOpen
+        onClose={onClose}
+        onMapped={onMapped}
+      />,
+      { wrapper },
+    );
+    fireEvent.click(await screen.findByText('Groceries'));
+
     await waitFor(() => {
       expect(mockGet).toHaveBeenCalledWith('/plans/plan-1/dashboard');
     });
+    await screen.findByRole('radio', { checked: true });
     expect(screen.queryByTestId('map-rod-preview')).toBeNull();
+  });
+
+  it('fetches a fresh dashboard for every pick, so a changed mapping is not previewed stale', async () => {
+    open(null, null);
+    fireEvent.click(await screen.findByText('Groceries'));
+    await screen.findByTestId('map-rod-preview');
+    spentOnI1 = '21500';
+    fireEvent.click(screen.getByText('Transport'));
+    fireEvent.click(screen.getByText('Groceries'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('map-rod-preview').textContent).toMatch(
+        /262\.00|263\.00|2[0-9]{2}\.00/,
+      );
+    });
+    expect(mockGet.mock.calls.filter(([url]) => url === '/plans/plan-1/dashboard')).toHaveLength(3);
   });
 });
