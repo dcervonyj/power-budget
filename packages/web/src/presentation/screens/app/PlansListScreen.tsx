@@ -1,13 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../../components/ThemeContext.js';
-import { Button } from '../../components/Button.js';
 import { ClonePlanModal } from '../../components/ClonePlanModal.js';
 import { isSupportedCurrency, toLocalIsoDate } from '@power-budget/core';
-import { isPlanArchived } from '@power-budget/shared-app';
-import type { CreatePlanDto, PlanDto, PlanPeriodKindDto } from '@power-budget/shared-app/contract';
+import type { CreatePlanDto, PlanDto } from '@power-budget/shared-app/contract';
 import { plansApi } from '../../../AppProviders.js';
+import { PlansListView } from './PlansListView.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
 
 const DEFAULT_PLAN_CURRENCY = 'EUR';
@@ -20,7 +18,6 @@ function currentMonthStart(): string {
 }
 
 export function PlansListScreen(): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
   const navigate = useNavigate();
 
@@ -97,151 +94,26 @@ export function PlansListScreen(): React.JSX.Element {
     }
   };
 
-  const periodLabel = (period: PlanPeriodKindDto): string => {
-    switch (period) {
-      case 'weekly':
-        return intl.formatMessage({
-          id: 'screen.plansList.planPeriod.weekly',
-          defaultMessage: 'Weekly',
-        });
-      case 'monthly':
-        return intl.formatMessage({
-          id: 'screen.plansList.planPeriod.monthly',
-          defaultMessage: 'Monthly',
-        });
-      case 'custom':
-        return intl.formatMessage({
-          id: 'screen.plansList.planPeriod.custom',
-          defaultMessage: 'Custom',
-        });
-    }
-  };
-
-  const statusLabel = (plan: PlanDto): string =>
-    isPlanArchived(plan)
-      ? intl.formatMessage({
-          id: 'screen.plansList.planStatus.archived',
-          defaultMessage: 'Archived',
-        })
-      : intl.formatMessage({
-          id: 'screen.plansList.planStatus.active',
-          defaultMessage: 'Active',
-        });
-
   return (
-    <div
-      style={{
-        padding: theme.space['2xl'],
-        maxWidth: 800,
-        margin: '0 auto',
-        color: theme.color.text.primary,
+    <PlansListView
+      plans={plans}
+      loading={loading}
+      error={error}
+      creating={creating}
+      onCreate={() => {
+        void handleCreate();
+      }}
+      onOpen={(planId) => {
+        void navigate(`/plans/${planId}`);
+      }}
+      onClone={setCloneTarget}
+      onDelete={(planId) => {
+        void handleDelete(planId);
+      }}
+      onRetry={() => {
+        void fetchPlans();
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: theme.space.xl,
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: theme.fontSize['2xl'],
-            fontWeight: theme.fontWeight.semibold,
-          }}
-        >
-          <FormattedMessage id="screen.plansList.title" defaultMessage="Plans" />
-        </h1>
-        <Button
-          variant="primary"
-          loading={creating}
-          onClick={() => {
-            void handleCreate();
-          }}
-        >
-          <FormattedMessage id="screen.plansList.createButton" defaultMessage="Create new plan" />
-        </Button>
-      </div>
-
-      {loading && (
-        <p style={{ color: theme.color.text.secondary }}>
-          <FormattedMessage id="screen.plansList.loading" defaultMessage="Loading plans…" />
-        </p>
-      )}
-
-      {error !== null && !loading && <p style={{ color: theme.color.status.danger }}>{error}</p>}
-
-      {!loading && !error && plans.length === 0 && (
-        <p style={{ color: theme.color.text.secondary }}>
-          <FormattedMessage id="screen.plansList.empty" defaultMessage="No plans yet" />
-        </p>
-      )}
-
-      {!loading && plans.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
-          {plans.map((plan) => (
-            <div
-              key={plan.id}
-              style={{
-                backgroundColor: theme.color.surface.raised,
-                borderRadius: theme.radius.md,
-                padding: `${theme.space.md}px ${theme.space.lg}px`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-                border: `1px solid ${theme.color.border.subtle}`,
-              }}
-              onClick={() => {
-                void navigate(`/plans/${plan.id}`);
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xs }}>
-                <span style={{ fontWeight: theme.fontWeight.medium, fontSize: theme.fontSize.md }}>
-                  {plan.name}
-                </span>
-                <span
-                  style={{
-                    color: theme.color.text.secondary,
-                    fontSize: theme.fontSize.sm,
-                    display: 'flex',
-                    gap: theme.space.xs,
-                  }}
-                >
-                  <span>{periodLabel(plan.periodKind)}</span>
-                  <span>{statusLabel(plan)}</span>
-                </span>
-              </div>
-              <div
-                style={{ display: 'flex', gap: theme.space.sm }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-              >
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setCloneTarget(plan.id);
-                  }}
-                >
-                  <FormattedMessage id="screen.plansList.cloneButton" defaultMessage="Clone" />
-                </Button>
-                <Button
-                  variant="danger"
-                  onClick={() => {
-                    void handleDelete(plan.id);
-                  }}
-                >
-                  <FormattedMessage id="screen.plansList.deleteButton" defaultMessage="Delete" />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {cloneTarget !== null && (
         <ClonePlanModal
           isOpen
@@ -254,6 +126,6 @@ export function PlansListScreen(): React.JSX.Element {
           }}
         />
       )}
-    </div>
+    </PlansListView>
   );
 }

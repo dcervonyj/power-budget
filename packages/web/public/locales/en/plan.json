@@ -1,0 +1,19 @@
+{
+  "plan.list.period": "{start} – {end}",
+  "plan.editor.totals.label": "Plan totals",
+  "plan.editor.totals.income": "Income",
+  "plan.editor.totals.planned": "Planned",
+  "plan.editor.totals.left": "Left to plan",
+  "plan.editor.totals.overIncome": "Over income",
+  "plan.editor.totals.withinIncome": "Within income",
+  "plan.editor.totals.excluded": "{count, plural, one {# item in another currency is not counted} other {# items in other currencies are not counted}}",
+  "plan.editor.details.title": "Plan details",
+  "plan.editor.income.title": "Income",
+  "plan.editor.income.empty": "No income planned yet",
+  "plan.editor.limits.title": "Category limits",
+  "plan.editor.limits.empty": "No category limits yet",
+  "plan.editor.limit.label": "{category} limit",
+  "plan.editor.limit.decrease": "Decrease the {category} limit",
+  "plan.editor.limit.increase": "Increase the {category} limit",
+  "plan.editor.addItem.title": "Add an item"
+}
