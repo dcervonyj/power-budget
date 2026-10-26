@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Node 25+ hides jsdom's localStorage; the store reads it when the module loads.
 vi.hoisted(() => {
@@ -174,5 +174,82 @@ describe('SettingsStore profile (UserProfileDto)', () => {
 
     expect(store.saveError).toBe('unsupported_currency');
     expect(mockPatch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SettingsStore.exportData', () => {
+  let store: SettingsStore;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.useFakeTimers();
+    store = new SettingsStore();
+    mockPost.mockResolvedValueOnce({ status: 202, data: undefined, headers: {} });
+  });
+
+  it('stops polling and reports an error when export fails', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'failed' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportError).toBe('export_failed');
+    expect(store.isExporting).toBe(false);
+  });
+
+  it('stops polling when export is ready', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'ready', url: '/export.csv' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportUrl).toBe('/export.csv');
+    expect(store.exportError).toBeNull();
+  });
+
+  it('stops polling and reports an error when the status request fails', async () => {
+    mockGet.mockRejectedValueOnce(new Error('network down'));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportError).toBe('export_failed');
+    expect(store.isExporting).toBe(false);
+  });
+
+  it('reports an error when the export is ready without a download url', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'ready' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(store.exportUrl).toBeNull();
+    expect(store.exportError).toBe('export_failed');
+  });
+
+  it('keeps polling while export is pending', async () => {
+    mockGet.mockResolvedValueOnce(ok({ status: 'pending' }));
+    mockGet.mockResolvedValueOnce(ok({ status: 'ready', url: '/export.csv' }));
+
+    const exporting = store.exportData();
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(2000);
+    await exporting;
+
+    expect(mockGet).toHaveBeenCalledTimes(2);
+    expect(store.exportUrl).toBe('/export.csv');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 });
