@@ -101,7 +101,7 @@ export class TransactionRowMapper {
       source: input.source,
       sourceKind: input.sourceKind,
       status: input.status,
-      ignored: false,
+      ignored: input.ignored,
       notes: null,
       ...this.bankColumns(input.bank),
     };

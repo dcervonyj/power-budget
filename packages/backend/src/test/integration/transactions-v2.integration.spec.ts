@@ -150,6 +150,7 @@ function newBooked(overrides: Partial<NewTransaction> = {}): NewTransaction {
     sourceKind: 'enable_banking',
     status: 'booked',
     bank: BOOKED_DETAILS,
+    ignored: false,
     ...overrides,
   };
 }

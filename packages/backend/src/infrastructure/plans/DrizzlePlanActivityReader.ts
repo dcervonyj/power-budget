@@ -3,6 +3,7 @@ import { and, eq, gte, inArray, lte, notInArray, or } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   BankAccountId,
+  CURRENCIES,
   HouseholdId,
   PlannedItemId,
   TransactionId,
@@ -24,6 +25,8 @@ import {
 } from '../../domain/transactions/entities.js';
 import * as schema from '../../../drizzle/schema.js';
 
+const SUPPORTED_CURRENCY_CODES = Object.keys(CURRENCIES);
+
 type TransactionRow = typeof schema.transactions.$inferSelect;
 type MappingRow = typeof schema.transactionMappings.$inferSelect;
 type TransferRow = typeof schema.transfers.$inferSelect;
@@ -43,6 +46,8 @@ export class DrizzlePlanActivityReader implements PlanActivityReader {
       lte(schema.transactions.occurredOn, query.period.end),
       // cancelled and expired rows are kept for audit only (plan-banking.md §1.7).
       notInArray(schema.transactions.status, [...UNCOUNTED_TRANSACTION_STATUSES]),
+      // A row in a currency the app does not support is never counted (and never throws).
+      inArray(schema.transactions.currency, SUPPORTED_CURRENCY_CODES),
     );
     const periodTxIds = this.db
       .select({ id: schema.transactions.id })
