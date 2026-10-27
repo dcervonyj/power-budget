@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
 import { FULL_STACK } from './support/stack.js';
 import {
   BackendApi,
@@ -59,7 +59,10 @@ test.describe('household journey (2-user fixture)', () => {
     ).toBe(200);
   });
 
-  test('the owner invites the partner from the household screen', async ({ page, request }) => {
+  test('the owner invites the partner from the household screen', async ({
+    page,
+    request,
+  }, testInfo) => {
     const api = new BackendApi(request);
     const owner = await api.register(uniqueEmail('owner'));
     const partnerEmail = uniqueEmail('partner');
@@ -75,9 +78,13 @@ test.describe('household journey (2-user fixture)', () => {
     await expect(page.getByRole('button', { name: 'Resend invite' })).toBeVisible();
     // The worker emailed the invite link through the real outbox.
     expect(await api.inviteToken(partnerEmail)).toMatch(/^[0-9a-f]{64}$/);
+    await attachThemeShots(page, testInfo, 'household-invited');
   });
 
-  test('the partner accepts the invite from the email link', async ({ page, request }) => {
+  test('the partner accepts the invite from the email link', async ({
+    page,
+    request,
+  }, testInfo) => {
     const api = new BackendApi(request);
     const ownerEmail = uniqueEmail('owner');
     const partnerEmail = uniqueEmail('partner');
@@ -93,11 +100,13 @@ test.describe('household journey (2-user fixture)', () => {
     await page.getByLabel('Password').fill(PASSWORD);
     await page.getByRole('button', { name: 'Log in' }).click();
     await expect(page.getByRole('heading', { name: 'Join a household' })).toBeVisible();
+    await attachThemeShots(page, testInfo, 'accept-invite');
     await page.getByRole('button', { name: 'Accept invite' }).click();
 
     await expect(page).toHaveURL(/\/household$/);
     await expect(page.getByText(ownerEmail)).toBeVisible();
     await expect(page.getByText('(you)')).toBeVisible();
+    await attachThemeShots(page, testInfo, 'household-joined');
     const accessToken = await page.evaluate(() => localStorage.getItem('pb_access_token'));
     const members = await api.json<Array<{ email: string; role: string }>>(
       await api.get('/households/members', accessToken ?? ''),
@@ -109,3 +118,17 @@ test.describe('household journey (2-user fixture)', () => {
     ]);
   });
 });
+
+/** Full-page screenshots of the current page in both D7 themes, attached to the report. */
+async function attachThemeShots(page: Page, testInfo: TestInfo, name: string): Promise<void> {
+  for (const theme of ['dark', 'light'] as const) {
+    await page.evaluate((value) => {
+      document.documentElement.setAttribute('data-theme', value);
+      document.documentElement.style.colorScheme = value;
+    }, theme);
+    await testInfo.attach(`${name}-${theme}`, {
+      body: await page.screenshot({ fullPage: true, animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+  }
+}

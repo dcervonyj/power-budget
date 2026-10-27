@@ -158,14 +158,19 @@ describe('household cards', () => {
     if (groceries === undefined || fuel === undefined || kids === undefined) {
       throw new Error('expected three category rows');
     }
-    expect(within(groceries).getByText('Total only')).toBeInTheDocument();
-    expect(within(groceries).getByText('Details hidden')).toBeInTheDocument();
-    expect(within(groceries).getByText('PLN 1,500.00')).toBeInTheDocument();
+    // total_only: the shared glass CategoryRow, which shows the sum and nothing else.
+    expect(within(groceries).getByRole('group')).toHaveAccessibleName(
+      /^Groceries: PLN\s1,500\.00 spent, totals only$/,
+    );
+    expect(within(groceries).getByText('Totals only')).toBeInTheDocument();
     expect(within(groceries).queryByText(/transaction/)).toBeNull();
     expect(within(groceries).queryByRole('link')).toBeNull();
 
     expect(within(fuel).getByText('Total + count')).toBeInTheDocument();
     expect(within(fuel).getByText('3 transactions')).toBeInTheDocument();
+    expect(within(fuel).getByRole('group')).toHaveAccessibleName(
+      /^Fuel: PLN\s420\.00, Total \+ count$/,
+    );
     expect(within(fuel).queryByRole('link')).toBeNull();
 
     expect(within(kids).getByText('Full detail')).toBeInTheDocument();
