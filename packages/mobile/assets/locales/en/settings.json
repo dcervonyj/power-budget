@@ -1,0 +1,19 @@
+{
+  "settings.signOut": "Sign out",
+  "settings.loadError": "Could not load your profile.",
+  "settings.profile.title": "Profile",
+  "settings.profile.name": "Display name",
+  "settings.profile.save": "Save changes",
+  "settings.saved": "Saved",
+  "settings.saveError": "Could not save. Please try again.",
+  "settings.appearance.system": "System",
+  "settings.appearance.night": "Night",
+  "settings.appearance.day": "Day",
+  "settings.appearance.title": "Appearance",
+  "settings.appearance.description": "Choose Night, Day, or follow your device. The choice is kept on this device.",
+  "settings.locale.title": "Language",
+  "settings.currency.title": "Base currency",
+  "settings.biometric.title": "Biometric unlock",
+  "settings.biometric.description": "Ask for Face ID, fingerprint or your passcode when the app opens.",
+  "settings.biometric.reason": "Confirm to turn on biometric unlock"
+}

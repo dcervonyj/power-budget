@@ -1,0 +1,19 @@
+{
+  "settings.signOut": "Выйти",
+  "settings.loadError": "Не удалось загрузить профиль.",
+  "settings.profile.title": "Профиль",
+  "settings.profile.name": "Отображаемое имя",
+  "settings.profile.save": "Сохранить изменения",
+  "settings.saved": "Сохранено",
+  "settings.saveError": "Не удалось сохранить. Попробуйте ещё раз.",
+  "settings.appearance.system": "Система",
+  "settings.appearance.night": "Ночь",
+  "settings.appearance.day": "День",
+  "settings.appearance.title": "Оформление",
+  "settings.appearance.description": "Выберите Ночь, День или настройку устройства. Выбор сохраняется на этом устройстве.",
+  "settings.locale.title": "Язык",
+  "settings.currency.title": "Базовая валюта",
+  "settings.biometric.title": "Биометрическая разблокировка",
+  "settings.biometric.description": "Запрашивать Face ID, отпечаток пальца или код при открытии приложения.",
+  "settings.biometric.reason": "Подтвердите, чтобы включить биометрическую разблокировку"
+}
