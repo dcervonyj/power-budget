@@ -76,7 +76,8 @@ test.describe('manual transaction journey', () => {
     await page.goto('/transactions');
     await expect(page.getByText('No transactions yet')).toBeVisible();
     await page.getByRole('button', { name: 'Add transaction', exact: true }).click();
-    await expect(page.getByLabel('Currency')).toHaveValue('PLN');
+    const dialog = page.getByRole('dialog', { name: 'Add Manual Transaction' });
+    await expect(dialog.getByLabel('Currency')).toHaveValue('PLN');
     await page.getByRole('button', { name: 'Create cash account' }).click();
 
     // Normal units in, exact minor units out; the currency is the account's.
@@ -85,10 +86,10 @@ test.describe('manual transaction journey', () => {
     await page.getByLabel('Description').fill('Corner shop');
     await page.getByRole('button', { name: 'Add Transaction', exact: true }).click();
 
-    await expect(page.getByRole('status')).toContainText('Transaction added.');
-    const row = page.getByRole('button', { name: /Corner shop/ });
+    await expect(page.getByRole('status').filter({ hasText: 'Transaction added.' })).toBeVisible();
+    const row = page.getByRole('group', { name: /Corner shop/ });
     await expect(row).toBeVisible();
-    await expect(row.getByText('Unmapped')).toBeVisible();
+    await expect(row.getByText('To sort')).toBeVisible();
     const [created] = await listed(api, tokens.accessToken);
     expect(created).toMatchObject({
       description: 'Corner shop',
@@ -103,11 +104,12 @@ test.describe('manual transaction journey', () => {
 
     // Mapped from the list, it counts against the planned item.
     await page.goto('/transactions');
-    await row.getByRole('button', { name: 'Map' }).click();
+    await row.getByRole('button', { name: 'Choose a category for Corner shop' }).click();
     await page.getByRole('radio', { name: new RegExp(category.name) }).click();
     await page.getByRole('button', { name: 'Map transaction' }).click();
-    await expect(row.getByText('Manual')).toBeVisible();
-    await expect(row.getByTestId('mapping-target')).toHaveText(category.name);
+    await expect(row.getByText('Added by hand')).toBeVisible();
+    await expect(row.getByText(new RegExp(category.name))).toBeVisible();
+    await expect(row.getByText('To sort')).toHaveCount(0);
 
     await expect
       .poll(async () => {
@@ -139,16 +141,16 @@ test.describe('manual transaction journey', () => {
     await page.getByRole('button', { name: 'Ignore (2)' }).click();
 
     await expect(
-      page.getByRole('button', { name: /Refund one/ }).getByText('Ignored'),
+      page.getByRole('group', { name: /Refund one/ }).getByText(/Ignored/),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: /Refund two/ }).getByText('Ignored'),
+      page.getByRole('group', { name: /Refund two/ }).getByText(/Ignored/),
     ).toBeVisible();
 
     await page.getByLabel(`Select transaction ${String(third)}`).check();
     await page.getByRole('button', { name: 'Mark as Transfer (1)' }).click();
     await expect(
-      page.getByRole('button', { name: /To savings/ }).getByText('Transfer'),
+      page.getByRole('group', { name: /To savings/ }).getByText('Transfer', { exact: true }),
     ).toBeVisible();
 
     const rows = new Map((await listed(api, tokens.accessToken)).map((tx) => [tx.id, tx]));
@@ -157,6 +159,26 @@ test.describe('manual transaction journey', () => {
       true,
       false,
     ]);
+  });
+
+  test('shows the sorting panel and day groups in both themes', async ({ page, request }, info) => {
+    const api = new BackendApi(request);
+    const tokens = await api.register(uniqueEmail('themes'));
+    await cashTransactions(api, tokens.accessToken, ['Corner shop', 'Bakery']);
+    await signInWithTokens(page, tokens);
+
+    await page.goto('/transactions');
+    await expect(page.getByRole('heading', { name: 'Sorting' })).toBeVisible();
+    await expect(page.getByText('0 sorted · 2 to sort')).toBeVisible();
+
+    for (const theme of ['dark', 'light']) {
+      await page.evaluate((value) => {
+        document.documentElement.setAttribute('data-theme', value);
+      }, theme);
+      const path = info.outputPath(`transactions-${theme}.png`);
+      await page.screenshot({ path, fullPage: true });
+      await info.attach(`transactions-${theme}`, { path, contentType: 'image/png' });
+    }
   });
 
   test("a partner's transaction opened by URL closes with a notice", async ({ page, request }) => {
@@ -169,9 +191,9 @@ test.describe('manual transaction journey', () => {
 
     await page.goto(`/transactions/${String(partnerTx)}`);
 
-    await expect(page.getByRole('status')).toContainText(
-      'This transaction is no longer available.',
-    );
+    await expect(
+      page.getByRole('status').filter({ hasText: 'This transaction is no longer available.' }),
+    ).toBeVisible();
     await expect(page).toHaveURL(/\/transactions$/);
     await expect(page.getByText('Partner private')).toHaveCount(0);
   });

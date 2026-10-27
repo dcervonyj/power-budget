@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { FormattedMessage } from 'react-intl';
-import { useTheme } from './ThemeContext.js';
-import { Button } from './Button.js';
+import { FormattedMessage, useIntl } from 'react-intl';
+import '../glass/controls/controls.css';
 import { readApiError } from '@power-budget/shared-app';
 import { bulkTransactionActions } from '../../AppProviders.js';
 import type { BulkAction } from '../../application/transactions/BulkTransactionActions.js';
@@ -16,6 +15,74 @@ export interface BulkActionBarProps {
   readonly onGone?: () => void;
 }
 
+const BAR_STYLE: React.CSSProperties = {
+  position: 'sticky',
+  bottom: 'var(--pb-glass-space-md)',
+  zIndex: 100,
+  display: 'flex',
+  flexWrap: 'wrap',
+  alignItems: 'center',
+  gap: 'var(--pb-glass-space-sm)',
+  boxSizing: 'border-box',
+  maxWidth: '100%',
+  marginTop: 'var(--pb-glass-space-lg)',
+  padding: 'var(--pb-glass-space-sm) var(--pb-glass-space-lg)',
+  borderRadius: 'var(--pb-glass-radius-panel)',
+  background: 'var(--pb-glass-tint)',
+  boxShadow: 'var(--pb-glass-tint-rim), var(--pb-glass-shadow-f)',
+  backdropFilter: 'blur(var(--pb-glass-blur-web)) saturate(150%)',
+  WebkitBackdropFilter: 'blur(var(--pb-glass-blur-web)) saturate(150%)',
+  color: 'var(--pb-glass-fg)',
+  fontSize: 'var(--pb-glass-type-small-web)',
+};
+
+const BUTTON_STYLE: React.CSSProperties = {
+  minHeight: 44,
+  padding: '0 var(--pb-glass-space-lg)',
+  border: 'none',
+  borderRadius: 'var(--pb-glass-radius-control)',
+  background: 'var(--pb-glass-fill2)',
+  boxShadow: 'var(--pb-glass-clear-rim)',
+  color: 'var(--pb-glass-fg)',
+  fontSize: 'var(--pb-glass-type-label-web)',
+  fontWeight: 'var(--pb-glass-type-label-weight)',
+  cursor: 'pointer',
+};
+
+const PRIMARY_STYLE: React.CSSProperties = {
+  ...BUTTON_STYLE,
+  background: 'var(--pb-glass-light-solid)',
+  boxShadow: 'inset 0 0 0 1px var(--pb-glass-light-edge)',
+  color: 'var(--pb-glass-accent-ink)',
+};
+
+interface BarButtonProps {
+  readonly primary?: boolean;
+  readonly busy?: boolean;
+  readonly onPress: () => void;
+  readonly children: React.ReactNode;
+}
+
+function BarButton({
+  primary = false,
+  busy = false,
+  onPress,
+  children,
+}: BarButtonProps): React.JSX.Element {
+  return (
+    <button
+      type="button"
+      className="pbg-ctl"
+      aria-busy={busy}
+      disabled={busy}
+      onClick={onPress}
+      style={primary ? PRIMARY_STYLE : BUTTON_STYLE}
+    >
+      {children}
+    </button>
+  );
+}
+
 type Failure = 'mappedTransfer' | 'other';
 
 export function BulkActionBar({
@@ -25,7 +92,7 @@ export function BulkActionBar({
   onActionComplete,
   onGone,
 }: BulkActionBarProps): React.JSX.Element | null {
-  const theme = useTheme();
+  const intl = useIntl();
   const [loadingAction, setLoadingAction] = useState<BulkAction | null>(null);
   const [failure, setFailure] = useState<Failure | null>(null);
 
@@ -55,29 +122,15 @@ export function BulkActionBar({
 
   return (
     <div
-      style={{
-        position: 'sticky',
-        bottom: 0,
-        backgroundColor: theme.color.surface.raised,
-        borderTop: `1px solid ${theme.color.border.subtle}`,
-        padding: `${theme.space.md}px ${theme.space.lg}px`,
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        gap: theme.space.sm,
-        boxSizing: 'border-box',
-        maxWidth: '100%',
-        zIndex: 100,
-      }}
+      role="toolbar"
+      aria-label={intl.formatMessage({
+        id: 'tx.bulk.toolbar',
+        defaultMessage: 'Actions for the selected transactions',
+      })}
+      data-selected-count={count}
+      style={BAR_STYLE}
     >
-      <span
-        style={{
-          color: theme.color.text.secondary,
-          fontSize: theme.fontSize.sm,
-          marginRight: 'auto',
-          flex: '1 1 auto',
-        }}
-      >
+      <span style={{ marginRight: 'auto', flex: '1 1 auto' }}>
         <FormattedMessage
           id="bulk.selected"
           defaultMessage="{count, plural, one {# selected} other {# selected}}"
@@ -86,10 +139,7 @@ export function BulkActionBar({
       </span>
 
       {failure !== null && (
-        <span
-          role="alert"
-          style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
-        >
+        <span role="alert" style={{ color: 'var(--pb-glass-over)' }}>
           {failure === 'mappedTransfer' ? (
             <FormattedMessage
               id="bulk.error.mappedTransfer"
@@ -104,33 +154,28 @@ export function BulkActionBar({
         </span>
       )}
 
-      <Button variant="primary" onClick={onMapAll}>
+      <BarButton primary onPress={onMapAll}>
         <FormattedMessage id="bulk.mapAll" defaultMessage="Map all ({count})" values={{ count }} />
-      </Button>
+      </BarButton>
 
-      <Button
-        variant="secondary"
-        onClick={() => void handleBulkAction('transfer')}
-        loading={loadingAction === 'transfer'}
+      <BarButton
+        onPress={() => void handleBulkAction('transfer')}
+        busy={loadingAction === 'transfer'}
       >
         <FormattedMessage
           id="bulk.markAsTransfer"
           defaultMessage="Mark as Transfer ({count})"
           values={{ count }}
         />
-      </Button>
+      </BarButton>
 
-      <Button
-        variant="secondary"
-        onClick={() => void handleBulkAction('ignore')}
-        loading={loadingAction === 'ignore'}
-      >
+      <BarButton onPress={() => void handleBulkAction('ignore')} busy={loadingAction === 'ignore'}>
         <FormattedMessage id="bulk.ignore" defaultMessage="Ignore ({count})" values={{ count }} />
-      </Button>
+      </BarButton>
 
-      <Button variant="secondary" onClick={onClear}>
+      <BarButton onPress={onClear}>
         <FormattedMessage id="bulk.clear" defaultMessage="Clear" />
-      </Button>
+      </BarButton>
     </div>
   );
 }
