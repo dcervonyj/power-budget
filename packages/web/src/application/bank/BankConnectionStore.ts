@@ -1,16 +1,27 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { apiClient } from '../../AppProviders.js';
 import { clientSession } from '../auth/ClientSession.js';
-import type { BankConnectionDto } from '@power-budget/shared-app/contract';
+import type {
+  BankConnectionDto,
+  BankConsentLinkDto,
+  BankProviderDto,
+  BankReconnectLinkDto,
+} from '@power-budget/shared-app/contract';
 import {
   BankConnectionMapper,
   type BankConnection,
 } from '../../infrastructure/api/BankConnectionMapper.js';
 
+export type BankActionError = 'reconnect' | 'refresh' | 'connect';
+
 export class BankConnectionStore {
   connections: BankConnection[] = [];
   loading = false;
   error: string | null = null;
+  /** A failed reconnect, refresh or connect: the list stays on screen, the screen shows this. */
+  actionError: BankActionError | null = null;
+  /** Connections with a refresh in flight (the card shows its chip as updating). */
+  refreshingIds: string[] = [];
 
   /** Bumped when the session ends, so a late answer for the previous user is dropped. */
   private session = 0;
@@ -19,15 +30,11 @@ export class BankConnectionStore {
     makeAutoObservable<BankConnectionStore, 'session'>(this, { session: false });
   }
 
-  get expiringConnections(): BankConnection[] {
-    const threshold = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    return this.connections.filter((c) => c.expiresAt !== null && c.expiresAt < threshold);
-  }
-
   async fetchConnections(): Promise<void> {
     const session = this.session;
     this.loading = true;
     this.error = null;
+    this.actionError = null;
     try {
       const res = await apiClient.get<BankConnectionDto[]>('/bank-connections');
       this.applyConnections(session, res.data);
@@ -36,25 +43,54 @@ export class BankConnectionStore {
     }
   }
 
-  async reconnect(id: string): Promise<void> {
+  /** Asks the bank for a new consent; resolves to the consent page to go to, or null on failure. */
+  async reconnect(id: string, redirectUri: string): Promise<string | null> {
+    this.actionError = null;
     try {
-      await apiClient.post(`/bank-connections/${id}/reconnect`, {});
-      await this.fetchConnections();
-    } catch {
-      runInAction(() => {
-        this.error = 'Failed to reconnect';
+      const res = await apiClient.post<BankReconnectLinkDto>(`/bank-connections/${id}/reconnect`, {
+        redirectUri,
       });
+
+      return res.data.consentUrl;
+    } catch {
+      this.setActionError('reconnect');
+
+      return null;
+    }
+  }
+
+  /** Starts a new connection; resolves to the consent page to go to, or null on failure. */
+  async connect(
+    provider: BankProviderDto,
+    bankId: string,
+    redirectUri: string,
+  ): Promise<string | null> {
+    this.actionError = null;
+    try {
+      const res = await apiClient.post<BankConsentLinkDto>('/bank-connections', {
+        provider,
+        bankId,
+        redirectUri,
+      });
+
+      return res.data.consentUrl;
+    } catch {
+      this.setActionError('connect');
+
+      return null;
     }
   }
 
   async refresh(id: string): Promise<void> {
+    this.actionError = null;
+    this.refreshingIds = [...this.refreshingIds, id];
     try {
       await apiClient.post(`/bank-connections/${id}/refresh`, {});
       await this.fetchConnections();
     } catch {
-      runInAction(() => {
-        this.error = 'Failed to refresh';
-      });
+      this.setActionError('refresh');
+    } finally {
+      this.stopRefreshing(id);
     }
   }
 
@@ -64,6 +100,20 @@ export class BankConnectionStore {
     this.connections = [];
     this.loading = false;
     this.error = null;
+    this.actionError = null;
+    this.refreshingIds = [];
+  }
+
+  private setActionError(action: BankActionError): void {
+    runInAction(() => {
+      this.actionError = action;
+    });
+  }
+
+  private stopRefreshing(id: string): void {
+    runInAction(() => {
+      this.refreshingIds = this.refreshingIds.filter((refreshingId) => refreshingId !== id);
+    });
   }
 
   private applyConnections(session: number, connections: BankConnectionDto[]): void {
