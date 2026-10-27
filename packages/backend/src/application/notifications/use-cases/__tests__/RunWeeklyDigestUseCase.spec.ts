@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { formatMoney } from '@power-budget/core';
 import type { CurrencyCode, HouseholdId, IsoDate, UserId } from '@power-budget/core';
 import type {
@@ -7,6 +7,7 @@ import type {
 } from '../../../../domain/notifications/entities.js';
 import type {
   NotificationRepository,
+  WeeklyDigestRun,
   WeeklyDigestSummaryReader,
 } from '../../../../domain/notifications/ports.js';
 import type { EnqueueNotificationInput } from '../EnqueueNotificationUseCase.js';
@@ -40,10 +41,14 @@ describe('RunWeeklyDigestUseCase', () => {
   let useCase: RunWeeklyDigestUseCase;
   let members: HouseholdMemberRow[];
   let summaries: Map<UserId, WeeklyDigestSummary>;
+  let failures: Map<UserId, Error>;
+  let reads: Mock<WeeklyDigestRun['read']>;
+  let startRun: Mock<WeeklyDigestSummaryReader['startRun']>;
 
   beforeEach(() => {
     members = [MEMBER];
     summaries = new Map([[USER_ID, SUMMARY]]);
+    failures = new Map();
     enqueued = [];
     const repo = {
       listAllHouseholdMembers: vi.fn(async () => members),
@@ -53,11 +58,17 @@ describe('RunWeeklyDigestUseCase', () => {
         enqueued.push(input);
       }),
     } as unknown as EnqueueNotificationUseCase;
-    const summaryReader: WeeklyDigestSummaryReader = {
-      read: vi.fn(
-        async (member: { readonly userId: UserId }) => summaries.get(member.userId) ?? null,
-      ),
-    };
+    reads = vi.fn(async (member: { readonly userId: UserId }) => {
+      const failure = failures.get(member.userId);
+      if (failure !== undefined) {
+        throw failure;
+      }
+
+      return summaries.get(member.userId) ?? null;
+    });
+    const run: WeeklyDigestRun = { read: reads };
+    startRun = vi.fn(() => run);
+    const summaryReader: WeeklyDigestSummaryReader = { startRun };
     useCase = new RunWeeklyDigestUseCase(repo, enqueue, summaryReader);
   });
 
@@ -146,5 +157,51 @@ describe('RunWeeklyDigestUseCase', () => {
     await useCase.execute(new Date('2026-10-19T07:00:00Z'));
 
     expect(enqueued.map((n) => n.recipientUserId)).toEqual([USER_ID]);
+  });
+
+  it('skips a failing member, counts it and still digests the other members', async () => {
+    const failing = { ...MEMBER, userId: 'u-2' as UserId };
+    const later = { ...MEMBER, userId: 'u-3' as UserId, householdId: 'hh-2' as HouseholdId };
+    summaries.set(later.userId, SUMMARY);
+    failures.set(failing.userId, new Error('FX_RATE_UNAVAILABLE: no EUR/PLN'));
+    members = [failing, MEMBER, later];
+
+    const result = await useCase.execute(new Date('2026-10-19T07:00:00Z'));
+
+    expect(result).toEqual({
+      skipped: [{ userId: 'u-2', reason: 'FX_RATE_UNAVAILABLE: no EUR/PLN' }],
+    });
+    expect(enqueued.map((n) => n.recipientUserId)).toEqual([USER_ID, 'u-3']);
+  });
+
+  it('counts a failing enqueue as a skipped member too', async () => {
+    members = [MEMBER];
+    const repo = {
+      listAllHouseholdMembers: vi.fn(async () => members),
+    } as unknown as NotificationRepository;
+    const enqueue = {
+      execute: vi.fn(async () => {
+        throw new Error('outbox down');
+      }),
+    } as unknown as EnqueueNotificationUseCase;
+    const run: WeeklyDigestRun = { read: async () => SUMMARY };
+
+    const result = await new RunWeeklyDigestUseCase(repo, enqueue, {
+      startRun: () => run,
+    }).execute(new Date('2026-10-19T07:00:00Z'));
+
+    expect(result).toEqual({ skipped: [{ userId: USER_ID, reason: 'outbox down' }] });
+  });
+
+  it('starts one run at the cron time and reads every member through it', async () => {
+    const now = new Date('2026-10-19T07:00:00Z');
+    const second = { ...MEMBER, userId: 'u-2' as UserId };
+    members = [MEMBER, second];
+
+    await useCase.execute(now);
+
+    expect(startRun).toHaveBeenCalledTimes(1);
+    expect(startRun).toHaveBeenCalledWith(now);
+    expect(reads.mock.calls).toEqual([[MEMBER], [second]]);
   });
 });

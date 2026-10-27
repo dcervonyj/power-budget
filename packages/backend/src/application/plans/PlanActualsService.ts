@@ -52,6 +52,11 @@ export class PlanActualsService implements PlanActualsReader {
     }
   }
 
+  /** A reader for one cron run: the FX table of each rate date is loaded once for all plans. */
+  runScoped(): PlanActualsService {
+    return new PlanActualsService(this.itemRepo, this.activityReader, this.fxRates.runScoped());
+  }
+
   private toCorePlan(
     plan: Plan,
     baseCurrency: CurrencyCode,

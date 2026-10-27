@@ -13,7 +13,7 @@ describe('PlansCronService', () => {
 
     expect(queue.add).toHaveBeenCalledWith(
       'period-close',
-      {},
+      { day: '2026-10-21' },
       {
         jobId: 'period-close-2026-10-21',
         attempts: 5,
