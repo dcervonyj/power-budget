@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { FormattedMessage, useIntl } from 'react-intl';
-import { rnDarkTheme } from '@power-budget/design-tokens/rn';
+import { Modal, View } from 'react-native';
+import { useIntl } from 'react-intl';
+import { makeStyles } from '../theme/index.js';
+import { BiometricUnlockPanel } from '../glass/overlays/BiometricPanels.js';
 import { biometricUnlockService } from '../../infrastructure/index.js';
-
-const t = rnDarkTheme;
 
 interface Props {
   readonly visible: boolean;
@@ -13,6 +12,7 @@ interface Props {
 
 export function BiometricPromptOverlay({ visible, onSuccess }: Props): React.JSX.Element {
   const intl = useIntl();
+  const styles = useStyles();
   const [authenticating, setAuthenticating] = useState(false);
   const [failed, setFailed] = useState(false);
 
@@ -47,93 +47,23 @@ export function BiometricPromptOverlay({ visible, onSuccess }: Props): React.JSX
   return (
     <Modal visible={visible} animationType="fade" transparent statusBarTranslucent>
       <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <Text style={styles.title}>
-            <FormattedMessage id="biometric.title" defaultMessage="Unlock App" />
-          </Text>
-          <Text style={styles.body}>
-            <FormattedMessage id="biometric.body" defaultMessage="Authenticate to continue." />
-          </Text>
-
-          {authenticating ? (
-            <ActivityIndicator size="large" color={t.colorAccentDefault} style={styles.spinner} />
-          ) : (
-            <>
-              {failed && (
-                <Text style={styles.errorText}>
-                  <FormattedMessage
-                    id="biometric.failed"
-                    defaultMessage="Authentication failed. Try again."
-                  />
-                </Text>
-              )}
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => {
-                  void triggerAuth();
-                }}
-              >
-                <Text style={styles.buttonText}>
-                  <FormattedMessage
-                    id="biometric.retry"
-                    defaultMessage="Use Biometrics / Passcode"
-                  />
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
+        <BiometricUnlockPanel
+          authenticating={authenticating}
+          failed={failed}
+          onRetry={() => {
+            void triggerAuth();
+          }}
+        />
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles((glass) => ({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: t.spaceLg,
+    padding: glass.space.lg,
+    backgroundColor: glass.colors.base,
   },
-  card: {
-    backgroundColor: t.colorSurfaceRaised,
-    borderRadius: t.radiusLg,
-    padding: t.spaceLg,
-    width: '100%',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: t.fontSizeXl,
-    fontWeight: t.fontWeightBold,
-    color: t.colorTextPrimary,
-    marginBottom: t.spaceSm,
-    textAlign: 'center',
-  },
-  body: {
-    color: t.colorTextSecondary,
-    fontSize: t.fontSizeMd,
-    textAlign: 'center',
-    marginBottom: t.spaceLg,
-  },
-  spinner: {
-    marginTop: t.spaceMd,
-  },
-  errorText: {
-    color: t.colorStatusDanger,
-    fontSize: t.fontSizeSm,
-    marginBottom: t.spaceMd,
-    textAlign: 'center',
-  },
-  button: {
-    backgroundColor: t.colorAccentDefault,
-    paddingVertical: t.spaceSm,
-    paddingHorizontal: t.spaceLg,
-    borderRadius: t.radiusMd,
-  },
-  buttonText: {
-    color: t.colorAccentOnAccent,
-    fontSize: t.fontSizeMd,
-    fontWeight: t.fontWeightMedium,
-  },
-});
+}));
