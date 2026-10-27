@@ -15,6 +15,20 @@ const MIN_HEIGHT = 844;
 
 const entryIds = discoverGalleryEntryIds();
 
+// A page error (for example Skia used before CanvasKit is loaded) leaves canvases blank, so every
+// entry must open without one.
+function collectPageErrors(page: Page): string[] {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      errors.push(message.text());
+    }
+  });
+
+  return errors;
+}
+
 async function openEntry(page: Page, entry: string, theme: string): Promise<void> {
   await page.goto(`/?${new URLSearchParams({ entry, theme }).toString()}`);
   await page.locator('#gallery-main').waitFor();
@@ -44,10 +58,12 @@ test('gallery index lists every discovered entry', async ({ page }) => {
 for (const entry of entryIds) {
   for (const theme of THEMES) {
     test(`${entry} ${theme}`, async ({ page }) => {
+      const errors = collectPageErrors(page);
       await openEntry(page, entry, theme);
       await fitViewportToContent(page);
 
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
+      expect(errors).toEqual([]);
       await expect(page).toHaveScreenshot(`${entry.replace('/', '-')}-${theme}.png`, {
         animations: 'disabled',
       });
