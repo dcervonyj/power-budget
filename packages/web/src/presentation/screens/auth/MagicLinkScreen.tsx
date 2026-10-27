@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
 import type {
@@ -8,12 +7,10 @@ import type {
   RequestMagicLinkDto,
 } from '@power-budget/shared-app/contract';
 import { apiClient, tokenStore } from '../../../AppProviders.js';
-import { Button, Input } from '../../components/index.js';
-
-type MagicLinkError = 'consumeFailed' | 'requestFailed' | 'invalidTotp' | 'tooManyAttempts' | null;
+import { MagicLinkView, type MagicLinkError, type MagicLinkStage } from './MagicLinkView.js';
 
 /** What a failed consume means (CLN-004): 403 requires_totp keeps the link valid. */
-function classifyConsumeError(err: unknown): 'requiresTotp' | Exclude<MagicLinkError, null> {
+function classifyConsumeError(err: unknown): 'requiresTotp' | MagicLinkError {
   switch (readApiError(err).code) {
     case 'requires_totp':
       return 'requiresTotp';
@@ -26,12 +23,11 @@ function classifyConsumeError(err: unknown): 'requiresTotp' | Exclude<MagicLinkE
   }
 }
 
-function classifyRequestError(err: unknown): Exclude<MagicLinkError, null> {
+function classifyRequestError(err: unknown): MagicLinkError {
   return readApiError(err).code === 'too_many_requests' ? 'tooManyAttempts' : 'requestFailed';
 }
 
 export function MagicLinkScreen(): React.JSX.Element {
-  const intl = useIntl();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -42,7 +38,7 @@ export function MagicLinkScreen(): React.JSX.Element {
   const [showTotp, setShowTotp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [magicLinkError, setMagicLinkError] = useState<MagicLinkError>(null);
+  const [magicLinkError, setMagicLinkError] = useState<MagicLinkError | null>(null);
   const consumedOnMount = useRef(false);
 
   const consumeToken = useCallback(
@@ -99,99 +95,30 @@ export function MagicLinkScreen(): React.JSX.Element {
     }
   };
 
-  const tooManyAttempts = magicLinkError === 'tooManyAttempts' && (
-    <p role="alert">
-      <FormattedMessage
-        id="auth.error.tooManyAttempts"
-        defaultMessage="Too many attempts. Please wait a few minutes and try again."
-      />
-    </p>
-  );
-
-  if (token) {
-    return (
-      <div>
-        {isLoading && (
-          <p>
-            <FormattedMessage id="screen.magicLink.consuming" defaultMessage="Signing you in…" />
-          </p>
-        )}
-        {showTotp && (
-          <form onSubmit={handleTotpSubmit}>
-            <Input
-              id="magic-link-totp"
-              type="text"
-              label={intl.formatMessage({
-                id: 'screen.login.totp.label',
-                defaultMessage: 'Authenticator code',
-              })}
-              value={totp}
-              onChange={setTotp}
-            />
-            {magicLinkError === 'invalidTotp' && (
-              <p>
-                <FormattedMessage
-                  id="screen.login.error.invalidTotp"
-                  defaultMessage="Invalid authenticator code."
-                />
-              </p>
-            )}
-            <Button type="submit" loading={isLoading}>
-              <FormattedMessage id="screen.login.submit" defaultMessage="Log in" />
-            </Button>
-          </form>
-        )}
-        {tooManyAttempts}
-        {magicLinkError === 'consumeFailed' && (
-          <p>
-            <FormattedMessage
-              id="screen.magicLink.error.consumeFailed"
-              defaultMessage="This link is invalid or has expired. Please request a new one."
-            />
-          </p>
-        )}
-      </div>
-    );
-  }
+  const onRequestSubmit = (e: React.FormEvent): void => {
+    void handleSubmit(e);
+  };
 
   return (
-    <div>
-      <h1>
-        <FormattedMessage id="screen.magicLink.title" defaultMessage="Sign in with email link" />
-      </h1>
-      {sent ? (
-        <p>
-          <FormattedMessage
-            id="screen.magicLink.sent"
-            defaultMessage="Check your email — we sent you a sign-in link."
-          />
-        </p>
-      ) : (
-        <form onSubmit={handleSubmit}>
-          <Input
-            id="magic-link-email"
-            type="email"
-            label={intl.formatMessage({
-              id: 'screen.magicLink.email.label',
-              defaultMessage: 'Email',
-            })}
-            value={email}
-            onChange={setEmail}
-          />
-          {magicLinkError === 'requestFailed' && (
-            <p>
-              <FormattedMessage
-                id="screen.magicLink.error.requestFailed"
-                defaultMessage="Could not send the link. Please try again."
-              />
-            </p>
-          )}
-          {tooManyAttempts}
-          <Button type="submit" loading={isLoading}>
-            <FormattedMessage id="screen.magicLink.submit" defaultMessage="Send sign-in link" />
-          </Button>
-        </form>
-      )}
-    </div>
+    <MagicLinkView
+      stage={stageOf(token, sent)}
+      email={email}
+      totp={totp}
+      showTotp={showTotp}
+      loading={isLoading}
+      error={magicLinkError}
+      onEmailChange={setEmail}
+      onTotpChange={setTotp}
+      onRequestSubmit={onRequestSubmit}
+      onTotpSubmit={handleTotpSubmit}
+    />
   );
+}
+
+function stageOf(token: string | null, sent: boolean): MagicLinkStage {
+  if (token) {
+    return 'consume';
+  }
+
+  return sent ? 'sent' : 'request';
 }
