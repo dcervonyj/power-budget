@@ -52,8 +52,11 @@ export interface PlanRepository {
   list(query: PlanListQuery): Promise<Plan[]>;
   update(id: PlanId, patch: PlanPatch, scope: HouseholdScope): Promise<Plan>;
   archive(id: PlanId, at: Date, scope: HouseholdScope): Promise<void>;
-  /** System-level query — no HouseholdScope needed. Returns all non-archived plans ending on the given date. */
-  findByPeriodEnd(date: Date): Promise<Plan[]>;
+  /**
+   * System-level query — no HouseholdScope needed. Returns the non-archived plans whose period
+   * ended before `day` and that have no leftover snapshot yet, so a missed run is caught up.
+   */
+  findDueForClose(day: IsoDate): Promise<Plan[]>;
 }
 
 export interface PlannedItemRepository {

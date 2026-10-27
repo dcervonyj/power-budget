@@ -10,7 +10,10 @@ import type {
 } from '@power-budget/core';
 import type { Plan } from '../../../domain/plans/entities.js';
 import type { PlanActualsReader, PlanRepository } from '../../../domain/plans/ports.js';
-import { PlanActualsWeeklyDigestSummaryReader } from '../PlanActualsWeeklyDigestSummaryReader.js';
+import {
+  PlanActualsWeeklyDigestSummaryReader,
+  type RunScopedPlanActuals,
+} from '../PlanActualsWeeklyDigestSummaryReader.js';
 
 const HH = 'hh-1' as HouseholdId;
 const ANN = 'u-ann' as UserId;
@@ -57,13 +60,17 @@ function view(): PlanActualsView {
 function setup(plans: Plan[]): {
   reader: PlanActualsWeeklyDigestSummaryReader;
   actuals: PlanActualsReader;
+  scoped: RunScopedPlanActuals;
 } {
   const repo = mock<PlanRepository>();
   repo.list.mockResolvedValue(plans);
   const actuals = mock<PlanActualsReader>();
   actuals.read.mockResolvedValue(view());
 
-  return { reader: new PlanActualsWeeklyDigestSummaryReader(repo, actuals), actuals };
+  const scoped = mock<RunScopedPlanActuals>();
+  scoped.runScoped.mockReturnValue(actuals);
+
+  return { reader: new PlanActualsWeeklyDigestSummaryReader(repo, scoped), actuals, scoped };
 }
 
 describe('PlanActualsWeeklyDigestSummaryReader', () => {
@@ -74,7 +81,7 @@ describe('PlanActualsWeeklyDigestSummaryReader', () => {
       shared,
     ]);
 
-    const summary = await reader.read({ householdId: HH, userId: ANN }, AT);
+    const summary = await reader.startRun(AT).read({ householdId: HH, userId: ANN });
 
     expect(summary).toEqual({
       planName: 'Shared',
@@ -92,9 +99,32 @@ describe('PlanActualsWeeklyDigestSummaryReader', () => {
       plan('Old shared', { archivedAt: '2026-10-02T00:00:00Z' as IsoDateTime }),
     ]);
 
-    expect(await reader.read({ householdId: HH, userId: BOB }, AT)).toBeNull();
-    expect((await reader.read({ householdId: HH, userId: ANN }, AT))?.planName).toBe(
+    expect(await reader.startRun(AT).read({ householdId: HH, userId: BOB })).toBeNull();
+    expect((await reader.startRun(AT).read({ householdId: HH, userId: ANN }))?.planName).toBe(
       'Ann personal',
     );
+  });
+
+  it('computes a shared plan once per run for all members of the household', async () => {
+    const shared = plan('Shared', {});
+    const { reader, actuals, scoped } = setup([shared]);
+    const run = reader.startRun(AT);
+
+    await run.read({ householdId: HH, userId: ANN });
+    await run.read({ householdId: HH, userId: BOB });
+
+    expect(actuals.read).toHaveBeenCalledTimes(1);
+    expect(actuals.read).toHaveBeenCalledWith(shared, AT);
+    expect(scoped.runScoped).toHaveBeenCalledTimes(1);
+  });
+
+  it('starts fresh caches for every run', async () => {
+    const { reader, actuals, scoped } = setup([plan('Shared', {})]);
+
+    await reader.startRun(AT).read({ householdId: HH, userId: ANN });
+    await reader.startRun(AT).read({ householdId: HH, userId: ANN });
+
+    expect(actuals.read).toHaveBeenCalledTimes(2);
+    expect(scoped.runScoped).toHaveBeenCalledTimes(2);
   });
 });
