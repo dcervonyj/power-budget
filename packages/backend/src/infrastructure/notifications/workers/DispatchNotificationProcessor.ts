@@ -35,6 +35,14 @@ export type DeliveryOutcome =
   | { readonly status: 'failed'; readonly error: Error }
   | { readonly status: 'retry'; readonly error: Error };
 
+/** Another claim holds the row right now; BullMQ retries the job after its backoff. */
+export class NotificationBusyError extends Error {
+  constructor(outboxId: string) {
+    super(`Notification ${outboxId} is being claimed by another worker`);
+    this.name = 'NotificationBusyError';
+  }
+}
+
 @Processor(QUEUE_NOTIFICATION_DISPATCH, { concurrency: 5 })
 export class DispatchNotificationProcessor extends WorkerHost {
   constructor(
@@ -55,6 +63,8 @@ export class DispatchNotificationProcessor extends WorkerHost {
 
     const claim = await this.outbox.claimForDispatch(outboxId);
     if (claim === null) {
+      await this.assertNoLongerPending(outboxId);
+
       return;
     }
 
@@ -126,6 +136,14 @@ export class DispatchNotificationProcessor extends WorkerHost {
         const unreachable: never = outcome;
         throw new Error(`Unknown delivery outcome ${JSON.stringify(unreachable)}`);
       }
+    }
+  }
+
+  /** A row that is still pending but could not be claimed is held by another claim; retry, it may crash. */
+  private async assertNoLongerPending(outboxId: string): Promise<void> {
+    const current = await this.outbox.findById(outboxId);
+    if (current !== null && current.sentAt === null && current.failedAt === null) {
+      throw new NotificationBusyError(outboxId);
     }
   }
 
