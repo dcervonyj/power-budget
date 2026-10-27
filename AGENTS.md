@@ -137,7 +137,7 @@ FX conversion always uses a `FxRateTable` snapshot passed in explicitly — neve
 
 Every repo method that reads or writes household data takes `HouseholdScope = { householdId: HouseholdId }` and includes `household_id` in its WHERE clause (writes too: no update or delete by id alone; ids from the request, such as a transfer counterpart, a bulk-map id or a manual-transaction account, are checked against the scope). The ESLint rule `no-repo-without-scope` (`packages/backend/eslint-local-rules.cjs`) enforces it for `repo.method()` and `this.repo.method()` calls; identity repositories are exempted in `eslint.config.js`.
 
-Postgres RLS (migration `0008_rls_tenancy`, FORCE) is the second layer: the app connects as a non-owner role, and `ScopedPool` sets `app.household_id` / `app.user_id` / `app.rls_bypass` with `set_config(..., true)` in every transaction from the `DbScope` of the request (`DbScopeInterceptor`) or the worker (system scope). See `docs/runbooks/db-roles-and-migrations.md`.
+Postgres RLS (migration `0008_rls_tenancy`, FORCE) is the second layer: the app connects as a non-owner role, and `ScopedPool` sets `app.household_id` / `app.user_id` / `app.rls_bypass` on each pooled connection (`set_config(..., false)`, sent only when the connection's last scope differs) from the `DbScope` of the request (`DbScopeInterceptor`) or the worker (system scope). See `docs/runbooks/db-roles-and-migrations.md`.
 
 ## TypeScript strictness
 
