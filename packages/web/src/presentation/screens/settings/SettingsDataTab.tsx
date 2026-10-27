@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { Link } from 'react-router-dom';
-import { useTheme } from '../../components/ThemeContext.js';
+import { GlassPanel } from '../../glass/material/GlassPanel.js';
+import {
+  ACTIONS_STYLE,
+  ERROR_STYLE,
+  HEADING_STYLE,
+  NOTE_STYLE,
+  SECTION_STYLE,
+} from './settingsStyles.js';
 import { Button } from '../../components/Button.js';
 import { Input } from '../../components/Input.js';
 import { Modal } from '../../components/Modal.js';
@@ -11,7 +18,6 @@ import { settingsStore } from '../../../application/settings/SettingsStore.js';
 const CONFIRM_WORD = 'DELETE';
 
 export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
@@ -46,35 +52,19 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space['2xl'] }}>
-      {/* Export section */}
-      <section>
-        <h2
-          style={{
-            margin: `0 0 ${theme.space.md}px`,
-            fontSize: theme.fontSize.lg,
-            fontWeight: theme.fontWeight.semibold,
-            color: theme.color.text.primary,
-          }}
-        >
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-lg)' }}>
+      <GlassPanel material="frosted" depth={1} contentStyle={SECTION_STYLE}>
+        <h2 style={HEADING_STYLE}>
           <FormattedMessage id="settings.data.export.title" defaultMessage="Export my data" />
         </h2>
-        <p
-          style={{
-            margin: `0 0 ${theme.space.md}px`,
-            color: theme.color.text.secondary,
-            fontSize: theme.fontSize.sm,
-          }}
-        >
+        <p style={NOTE_STYLE}>
           <FormattedMessage
             id="settings.data.export.description"
             defaultMessage="Download a copy of all your household data in JSON format."
           />
         </p>
 
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: theme.space.md, flexWrap: 'wrap' }}
-        >
+        <div style={ACTIONS_STYLE}>
           <Button
             variant="secondary"
             loading={settingsStore.isExporting}
@@ -87,7 +77,7 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
           </Button>
 
           {settingsStore.isExporting && (
-            <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+            <span role="status" style={NOTE_STYLE}>
               <FormattedMessage
                 id="settings.data.export.downloading"
                 defaultMessage="Preparing export…"
@@ -103,9 +93,9 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
                 settingsStore.clearExportUrl();
               }}
               style={{
-                color: theme.color.accent.default,
-                fontSize: theme.fontSize.sm,
-                fontWeight: theme.fontWeight.medium,
+                color: 'var(--pb-glass-accent)',
+                fontSize: 'var(--pb-glass-type-small-web)',
+                fontWeight: 'var(--pb-glass-type-label-weight)',
               }}
             >
               <FormattedMessage id="settings.data.export.ready" defaultMessage="Download ready" />
@@ -113,7 +103,7 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
           )}
 
           {settingsStore.exportError && (
-            <span style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}>
+            <span role="alert" style={ERROR_STYLE}>
               <FormattedMessage
                 id="settings.data.export.error"
                 defaultMessage="Export failed. Please try again."
@@ -121,44 +111,28 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
             </span>
           )}
         </div>
-      </section>
+      </GlassPanel>
 
-      {/* Danger zone */}
-      <section
-        style={{
-          border: `1px solid ${theme.color.status.danger}`,
-          borderRadius: theme.radius.md,
-          padding: theme.space.lg,
-        }}
+      <GlassPanel
+        material="tinted"
+        depth={1}
+        contentStyle={{ ...SECTION_STYLE, boxShadow: 'inset 0 0 0 1px var(--pb-glass-over)' }}
       >
-        <h2
-          style={{
-            margin: `0 0 ${theme.space.sm}px`,
-            fontSize: theme.fontSize.lg,
-            fontWeight: theme.fontWeight.semibold,
-            color: theme.color.status.danger,
-          }}
-        >
+        <h2 style={HEADING_STYLE}>
           <FormattedMessage id="settings.data.dangerZone" defaultMessage="Danger Zone" />
         </h2>
-
-        <p
-          style={{
-            margin: `0 0 ${theme.space.md}px`,
-            color: theme.color.text.secondary,
-            fontSize: theme.fontSize.sm,
-          }}
-        >
+        <p style={NOTE_STYLE}>
           <FormattedMessage
             id="settings.data.delete.warning"
             defaultMessage="This action schedules account deletion in 30 days."
           />
         </p>
-
-        <Button variant="danger" onClick={handleOpenDeleteModal}>
-          <FormattedMessage id="settings.data.delete.button" defaultMessage="Delete account" />
-        </Button>
-      </section>
+        <div style={ACTIONS_STYLE}>
+          <Button variant="danger" onClick={handleOpenDeleteModal}>
+            <FormattedMessage id="settings.data.delete.button" defaultMessage="Delete account" />
+          </Button>
+        </div>
+      </GlassPanel>
 
       {/* Delete confirmation modal */}
       <Modal
@@ -183,21 +157,14 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
           },
         ]}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.md }}>
-          <p style={{ margin: 0, color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-md)' }}>
+          <p style={NOTE_STYLE}>
             <FormattedMessage
               id="settings.data.delete.warning"
               defaultMessage="This action schedules account deletion in 30 days."
             />
           </p>
-          <p
-            style={{
-              margin: 0,
-              color: theme.color.status.danger,
-              fontWeight: theme.fontWeight.medium,
-              fontSize: theme.fontSize.sm,
-            }}
-          >
+          <p style={{ ...ERROR_STYLE, margin: 0, fontWeight: 'var(--pb-glass-type-label-weight)' }}>
             <FormattedMessage
               id="settings.data.delete.holdWarning"
               defaultMessage="Your household and all associated data will be permanently deleted after 30 days. This cannot be undone."
@@ -216,7 +183,7 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
           />
 
           {!canConfirm && confirmText.length > 0 && (
-            <span style={{ color: theme.color.status.danger, fontSize: theme.fontSize.xs }}>
+            <span style={ERROR_STYLE}>
               <FormattedMessage
                 id="settings.data.delete.confirmMismatch"
                 defaultMessage="Please type DELETE exactly to confirm."
@@ -237,10 +204,7 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
           )}
 
           {settingsStore.deleteError && (
-            <span
-              role="alert"
-              style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
-            >
+            <span role="alert" style={ERROR_STYLE}>
               {settingsStore.deleteError === 'requires_totp' && (
                 <FormattedMessage
                   id="settings.data.delete.requiresTotp"
