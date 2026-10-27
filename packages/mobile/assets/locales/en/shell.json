@@ -1,0 +1,19 @@
+{
+  "shell.tab.overview": "Overview",
+  "shell.tab.transactions": "Transactions",
+  "shell.tab.toSort": "To sort",
+  "shell.tab.plan": "Plan",
+  "shell.tab.add": "Add expense",
+  "shell.tabBar": "Main navigation",
+  "shell.account.menu": "Account menu",
+  "shell.menu.settings": "Settings",
+  "shell.menu.categories": "Categories",
+  "shell.menu.household": "Household",
+  "shell.menu.banks": "Banks",
+  "shell.menu.audit": "Audit log",
+  "shell.header.back": "Back",
+  "shell.title.transaction": "Transaction",
+  "shell.title.planEditor": "Edit plan",
+  "shell.title.planDashboard": "Plan",
+  "shell.title.addBank": "Add a bank"
+}

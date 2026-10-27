@@ -1,0 +1,19 @@
+{
+  "shell.tab.overview": "Огляд",
+  "shell.tab.transactions": "Транзакції",
+  "shell.tab.toSort": "До сортування",
+  "shell.tab.plan": "План",
+  "shell.tab.add": "Додати витрату",
+  "shell.tabBar": "Головна навігація",
+  "shell.account.menu": "Меню облікового запису",
+  "shell.menu.settings": "Налаштування",
+  "shell.menu.categories": "Категорії",
+  "shell.menu.household": "Домогосподарство",
+  "shell.menu.banks": "Банки",
+  "shell.menu.audit": "Журнал аудиту",
+  "shell.header.back": "Назад",
+  "shell.title.transaction": "Транзакція",
+  "shell.title.planEditor": "Редагувати план",
+  "shell.title.planDashboard": "План",
+  "shell.title.addBank": "Додати банк"
+}

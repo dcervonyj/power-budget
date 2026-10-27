@@ -7,11 +7,15 @@ import { MagicLinkScreen } from '../screens/auth/MagicLinkScreen.js';
 import { TotpEnrollmentScreen } from '../screens/auth/TotpEnrollmentScreen.js';
 import { OAuthCallbackScreen } from '../screens/auth/OAuthCallbackScreen.js';
 
+import { useNativeHeaderOptions } from './useNativeHeaderOptions.js';
+
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
-export function AuthStackNavigator() {
+export function AuthStackNavigator(): React.JSX.Element {
+  const headerOptions = useNativeHeaderOptions();
+
   return (
-    <Stack.Navigator initialRouteName="Login">
+    <Stack.Navigator initialRouteName="Login" screenOptions={headerOptions}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="MagicLink" component={MagicLinkScreen} />
