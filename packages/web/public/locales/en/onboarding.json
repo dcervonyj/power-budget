@@ -1,0 +1,20 @@
+{
+  "onboarding.progress": "Step {current} of {total}",
+  "onboarding.button.back": "Back",
+  "onboarding.button.next": "Next",
+  "onboarding.button.finish": "Finish",
+  "onboarding.button.skip": "Skip for now",
+  "onboarding.step.language.title": "Choose your language",
+  "onboarding.step.currency.title": "Set your base currency",
+  "onboarding.step.currency.description": "All amounts will be converted to this currency by default.",
+  "onboarding.step.currency.label": "Base currency",
+  "onboarding.step.interestingCurrencies.title": "Track additional currencies",
+  "onboarding.step.interestingCurrencies.description": "Select up to {max} currencies to track alongside your base currency.",
+  "onboarding.step.interestingCurrencies.maxHint": "Maximum {max} currencies selected.",
+  "onboarding.step.bankConnect.title": "Connect your bank",
+  "onboarding.step.bankConnect.description": "Link your bank accounts to automatically import transactions. We support GoCardless (PSD2) and Wise.",
+  "onboarding.step.bankConnect.connectNow": "Connect now",
+  "onboarding.step.createPlan.title": "Create your first plan",
+  "onboarding.step.createPlan.description": "A plan lets you set income and expense targets for a period (weekly, monthly, or custom). Map your transactions to planned items to track your actuals.",
+  "onboarding.step.createPlan.createNow": "Create plan"
+}

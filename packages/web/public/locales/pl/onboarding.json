@@ -1,0 +1,20 @@
+{
+  "onboarding.progress": "Krok {current} z {total}",
+  "onboarding.button.back": "Wstecz",
+  "onboarding.button.next": "Dalej",
+  "onboarding.button.finish": "Zakończ",
+  "onboarding.button.skip": "Pomiń na razie",
+  "onboarding.step.language.title": "Wybierz język",
+  "onboarding.step.currency.title": "Ustaw walutę bazową",
+  "onboarding.step.currency.description": "Wszystkie kwoty będą domyślnie przeliczane na tę walutę.",
+  "onboarding.step.currency.label": "Waluta bazowa",
+  "onboarding.step.interestingCurrencies.title": "Śledź dodatkowe waluty",
+  "onboarding.step.interestingCurrencies.description": "Wybierz do {max} walut do śledzenia obok waluty bazowej.",
+  "onboarding.step.interestingCurrencies.maxHint": "Wybrano maksymalną liczbę walut: {max}.",
+  "onboarding.step.bankConnect.title": "Połącz swój bank",
+  "onboarding.step.bankConnect.description": "Połącz konta bankowe, aby transakcje importowały się automatycznie. Obsługujemy GoCardless (PSD2) i Wise.",
+  "onboarding.step.bankConnect.connectNow": "Połącz teraz",
+  "onboarding.step.createPlan.title": "Utwórz pierwszy plan",
+  "onboarding.step.createPlan.description": "Plan pozwala ustawić cele przychodów i wydatków na okres (tydzień, miesiąc lub własny). Przypisuj transakcje do zaplanowanych pozycji, aby śledzić faktyczne kwoty.",
+  "onboarding.step.createPlan.createNow": "Utwórz plan"
+}

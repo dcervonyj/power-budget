@@ -1,56 +1,51 @@
 import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import type { SelectOption } from '@power-budget/shared-app';
+import { BASE_CURRENCY_OPTIONS } from '../../../application/onboarding/OnboardingOptions.js';
 import type { OnboardingStore } from '../../../application/onboarding/OnboardingStore.js';
+import { Select } from '../../components/Select.js';
+import { STEP_STYLE, STEP_TEXT_STYLE, STEP_TITLE_STYLE } from './onboardingStyles.js';
 
 interface StepCurrencyProps {
   store: OnboardingStore;
 }
 
-const CURRENCY_OPTIONS: string[] = ['USD', 'EUR', 'GBP', 'PLN', 'UAH', 'CHF', 'CZK'];
+const OPTIONS: ReadonlyArray<SelectOption<string>> = BASE_CURRENCY_OPTIONS.map(toOption);
+
+function toOption(code: string): SelectOption<string> {
+  return { value: code, label: code };
+}
 
 export const StepCurrency = observer(function StepCurrency({
   store,
 }: StepCurrencyProps): React.JSX.Element {
   const intl = useIntl();
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>): void {
-    store.setBaseCurrency(e.target.value);
-  }
-
   return (
-    <div>
-      <h2>
+    <div style={STEP_STYLE}>
+      <h1 style={STEP_TITLE_STYLE}>
         <FormattedMessage
           id="onboarding.step.currency.title"
           defaultMessage="Set your base currency"
         />
-      </h2>
-      <p>
+      </h1>
+      <p style={STEP_TEXT_STYLE}>
         <FormattedMessage
           id="onboarding.step.currency.description"
           defaultMessage="All amounts will be converted to this currency by default."
         />
       </p>
-      <label htmlFor="base-currency-select">
-        <FormattedMessage id="onboarding.step.currency.label" defaultMessage="Base currency" />
-      </label>
-      <select
+      <Select<string>
         id="base-currency-select"
-        value={store.baseCurrency}
-        onChange={handleChange}
-        aria-label={intl.formatMessage({
+        label={intl.formatMessage({
           id: 'onboarding.step.currency.label',
           defaultMessage: 'Base currency',
         })}
-        style={{ display: 'block', marginTop: '0.5rem', padding: '0.5rem', minWidth: '200px' }}
-      >
-        {CURRENCY_OPTIONS.map((code) => (
-          <option key={code} value={code}>
-            {code}
-          </option>
-        ))}
-      </select>
+        options={OPTIONS}
+        value={store.baseCurrency}
+        onChange={store.setBaseCurrency.bind(store)}
+      />
     </div>
   );
 });
