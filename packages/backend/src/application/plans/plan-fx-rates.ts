@@ -13,14 +13,19 @@ export interface PlanFxRates {
 
 /** Converts a plan's money into its base currency with one rate snapshot. */
 export class PlanFxRatesLoader {
-  constructor(private readonly fxRepo: FxRateRepository) {}
+  constructor(protected readonly fxRepo: FxRateRepository) {}
 
   async load(plan: Plan, asOf: Date): Promise<PlanFxRates> {
     const today = IsoDate.of(asOf.toISOString().slice(0, 10));
     const rateDate = today < plan.period.end ? today : plan.period.end;
-    const table = await this.fxRepo.getTable(rateDate, FX_CARRY_FORWARD_DAYS);
+    const table = await this.fetchTable(rateDate);
 
     return { rateDate, table };
+  }
+
+  /** A loader for one cron run: each rate date's table is fetched once, however many plans ask. */
+  runScoped(): PlanFxRatesLoader {
+    return new RunScopedPlanFxRatesLoader(this.fxRepo);
   }
 
   /** Throws UNSUPPORTED_CURRENCY when the stored base currency is not one the app knows. */
@@ -34,6 +39,10 @@ export class PlanFxRatesLoader {
     return plan.baseCurrency;
   }
 
+  protected fetchTable(rateDate: IsoDate): Promise<FxRateTable> {
+    return this.fxRepo.getTable(rateDate, FX_CARRY_FORWARD_DAYS);
+  }
+
   /** A missing rate becomes FX_RATE_UNAVAILABLE (503) instead of an unmapped 500. */
   translateError(error: unknown, rates: PlanFxRates): unknown {
     if (error instanceof UnknownCurrencyPairError) {
@@ -41,5 +50,20 @@ export class PlanFxRatesLoader {
     }
 
     return error;
+  }
+}
+
+class RunScopedPlanFxRatesLoader extends PlanFxRatesLoader {
+  private readonly tables = new Map<IsoDate, Promise<FxRateTable>>();
+
+  protected override fetchTable(rateDate: IsoDate): Promise<FxRateTable> {
+    const cached = this.tables.get(rateDate);
+    if (cached !== undefined) {
+      return cached;
+    }
+    const fetched = super.fetchTable(rateDate);
+    this.tables.set(rateDate, fetched);
+
+    return fetched;
   }
 }

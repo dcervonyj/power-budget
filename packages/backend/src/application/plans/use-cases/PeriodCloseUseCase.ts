@@ -1,3 +1,4 @@
+import { IsoDate } from '@power-budget/core';
 import type { IsoDateTime, PlanId } from '@power-budget/core';
 import type { PlanRepository } from '../../../domain/plans/ports.js';
 import { ClosePeriodSnapshotUseCase } from './ClosePeriodSnapshotUseCase.js';
@@ -26,11 +27,12 @@ export class PeriodCloseUseCase {
     private readonly closePeriodSnapshot: ClosePeriodSnapshotUseCase,
   ) {}
 
-  async execute(now: Date = new Date()): Promise<PeriodCloseResult> {
-    const yesterday = new Date(now);
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-
-    const plans = await this.planRepo.findByPeriodEnd(yesterday);
+  /**
+   * Closes every plan whose period ended before `day` (the job's UTC day) and has no snapshot yet,
+   * so a missed or late run is healed by the next one.
+   */
+  async execute(day: IsoDate, now: Date = new Date()): Promise<PeriodCloseResult> {
+    const plans = await this.planRepo.findDueForClose(day);
     const closedAt = now.toISOString() as IsoDateTime;
 
     let processed = 0;

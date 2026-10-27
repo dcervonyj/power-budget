@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { PlanId, HouseholdId, IsoDate, IsoDateTime, UserId } from '@power-budget/core';
 import type { Plan } from '../../../../domain/plans/entities.js';
 import type { PlanRepository } from '../../../../domain/plans/ports.js';
-import type { ClosePeriodSnapshotInput } from '../ClosePeriodSnapshotUseCase.js';
 import { ClosePeriodSnapshotUseCase } from '../ClosePeriodSnapshotUseCase.js';
 import { PeriodCloseFailedError, PeriodCloseUseCase } from '../PeriodCloseUseCase.js';
 
@@ -38,41 +37,50 @@ describe('PeriodCloseUseCase', () => {
       list: vi.fn(),
       update: vi.fn(),
       archive: vi.fn(),
-      findByPeriodEnd: vi.fn(),
+      findDueForClose: vi.fn(),
     };
     closePeriodSnapshot = { execute: vi.fn() } as unknown as ClosePeriodSnapshotUseCase;
     useCase = new PeriodCloseUseCase(planRepo, closePeriodSnapshot);
   });
 
-  it('processes all plans ending yesterday', async () => {
+  it('closes every plan due before the job day, stamping the snapshots with the run time', async () => {
+    const day = '2024-02-01' as IsoDate;
     const now = new Date('2024-02-01T00:30:00Z');
-    const yesterdayPlans = [
+    const duePlans = [
       makePlan(PLAN_ID_1, '2024-01-31' as IsoDate),
-      makePlan(PLAN_ID_2, '2024-01-31' as IsoDate),
+      makePlan(PLAN_ID_2, '2024-01-15' as IsoDate),
     ];
-    vi.mocked(planRepo.findByPeriodEnd).mockResolvedValue(yesterdayPlans);
+    vi.mocked(planRepo.findDueForClose).mockResolvedValue(duePlans);
     vi.mocked(closePeriodSnapshot.execute).mockResolvedValue(undefined);
 
-    const result = await useCase.execute(now);
+    const result = await useCase.execute(day, now);
 
     expect(result).toEqual({ plansProcessed: 2 });
-    expect(planRepo.findByPeriodEnd).toHaveBeenCalledWith(
-      expect.objectContaining({ toISOString: expect.any(Function) }),
-    );
-    const callArg = vi.mocked(planRepo.findByPeriodEnd).mock.calls[0]?.[0];
-    expect(callArg?.toISOString().slice(0, 10)).toBe('2024-01-31');
-    expect(closePeriodSnapshot.execute).toHaveBeenCalledTimes(2);
-
-    const call1: ClosePeriodSnapshotInput = vi.mocked(closePeriodSnapshot.execute).mock
-      .calls[0]![0];
-    expect(call1.planId).toBe(PLAN_ID_1);
-    expect(call1.householdId).toBe(HH_ID);
+    expect(planRepo.findDueForClose).toHaveBeenCalledWith('2024-02-01');
+    expect(closePeriodSnapshot.execute).toHaveBeenNthCalledWith(1, {
+      planId: PLAN_ID_1,
+      householdId: HH_ID,
+      closedAt: '2024-02-01T00:30:00.000Z',
+    });
+    expect(closePeriodSnapshot.execute).toHaveBeenNthCalledWith(2, {
+      planId: PLAN_ID_2,
+      householdId: HH_ID,
+      closedAt: '2024-02-01T00:30:00.000Z',
+    });
   });
 
-  it('returns plansProcessed 0 when no plans end yesterday', async () => {
-    vi.mocked(planRepo.findByPeriodEnd).mockResolvedValue([]);
+  it('uses the job day, not the processing time, to pick the plans', async () => {
+    vi.mocked(planRepo.findDueForClose).mockResolvedValue([]);
 
-    const result = await useCase.execute(new Date('2024-02-01T00:30:00Z'));
+    await useCase.execute('2024-02-01' as IsoDate, new Date('2024-02-03T09:00:00Z'));
+
+    expect(planRepo.findDueForClose).toHaveBeenCalledWith('2024-02-01');
+  });
+
+  it('returns plansProcessed 0 when no plan is due', async () => {
+    vi.mocked(planRepo.findDueForClose).mockResolvedValue([]);
+
+    const result = await useCase.execute('2024-02-01' as IsoDate, new Date('2024-02-01T00:30:00Z'));
 
     expect(result).toEqual({ plansProcessed: 0 });
     expect(closePeriodSnapshot.execute).not.toHaveBeenCalled();
@@ -80,16 +88,18 @@ describe('PeriodCloseUseCase', () => {
 
   it('closes the remaining plans, then fails the job so BullMQ retries the failed one', async () => {
     const now = new Date('2024-02-01T00:30:00Z');
-    const yesterdayPlans = [
+    const duePlans = [
       makePlan(PLAN_ID_1, '2024-01-31' as IsoDate),
       makePlan(PLAN_ID_2, '2024-01-31' as IsoDate),
     ];
-    vi.mocked(planRepo.findByPeriodEnd).mockResolvedValue(yesterdayPlans);
+    vi.mocked(planRepo.findDueForClose).mockResolvedValue(duePlans);
     vi.mocked(closePeriodSnapshot.execute)
       .mockRejectedValueOnce(new Error('DB error'))
       .mockResolvedValueOnce(undefined);
 
-    const failure = await useCase.execute(now).catch((err: unknown) => err);
+    const failure = await useCase
+      .execute('2024-02-01' as IsoDate, now)
+      .catch((err: unknown) => err);
 
     expect(failure).toBeInstanceOf(PeriodCloseFailedError);
     expect(failure).toMatchObject({ plansProcessed: 1 });

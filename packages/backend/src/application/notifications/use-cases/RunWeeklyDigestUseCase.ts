@@ -1,4 +1,4 @@
-import { formatMoney, type SupportedLocale } from '@power-budget/core';
+import { formatMoney, type SupportedLocale, type UserId } from '@power-budget/core';
 import type {
   HouseholdMemberRow,
   WeeklyDigestPayload,
@@ -6,6 +6,7 @@ import type {
 } from '../../../domain/notifications/entities.js';
 import type {
   NotificationRepository,
+  WeeklyDigestRun,
   WeeklyDigestSummaryReader,
 } from '../../../domain/notifications/ports.js';
 import type { EnqueueNotificationUseCase } from './EnqueueNotificationUseCase.js';
@@ -18,6 +19,16 @@ const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
  */
 export const DEFAULT_DIGEST_TIME_ZONE = 'Europe/Warsaw';
 
+export interface SkippedDigestMember {
+  readonly userId: UserId;
+  readonly reason: string;
+}
+
+export interface WeeklyDigestResult {
+  /** Members whose digest failed; the rest of the run went on without them. */
+  readonly skipped: readonly SkippedDigestMember[];
+}
+
 export class RunWeeklyDigestUseCase {
   constructor(
     private readonly notificationRepo: NotificationRepository,
@@ -28,28 +39,49 @@ export class RunWeeklyDigestUseCase {
   async execute(
     now: Date = new Date(),
     timeZone: string = DEFAULT_DIGEST_TIME_ZONE,
-  ): Promise<void> {
+  ): Promise<WeeklyDigestResult> {
     const members = await this.notificationRepo.listAllHouseholdMembers();
     const periodLabel = this.getIsoWeekLabel(now, timeZone);
+
+    const run = this.summaryReader.startRun(now);
+    const skipped: SkippedDigestMember[] = [];
 
     for (const member of members) {
       if (member.emailBouncing) {
         continue;
       }
-      // No active plan means nothing to summarise: no digest for this member.
-      const summary = await this.summaryReader.read(member, now);
-      if (summary === null) {
-        continue;
+      // One failing member (e.g. a missing FX rate) must not stop the other households.
+      try {
+        await this.digestFor(member, run, periodLabel);
+      } catch (err) {
+        skipped.push({
+          userId: member.userId,
+          reason: err instanceof Error ? err.message : String(err),
+        });
       }
-
-      await this.enqueueNotification.execute({
-        recipientUserId: member.userId,
-        householdId: member.householdId,
-        kind: 'weekly_digest',
-        dedupeKey: `${member.householdId}:${member.userId}:${periodLabel}`,
-        payload: { ...this.toPayload(member, summary) },
-      });
     }
+
+    return { skipped };
+  }
+
+  private async digestFor(
+    member: HouseholdMemberRow,
+    run: WeeklyDigestRun,
+    periodLabel: string,
+  ): Promise<void> {
+    // No active plan means nothing to summarise: no digest for this member.
+    const summary = await run.read(member);
+    if (summary === null) {
+      return;
+    }
+
+    await this.enqueueNotification.execute({
+      recipientUserId: member.userId,
+      householdId: member.householdId,
+      kind: 'weekly_digest',
+      dedupeKey: `${member.householdId}:${member.userId}:${periodLabel}`,
+      payload: { ...this.toPayload(member, summary) },
+    });
   }
 
   private toPayload(member: HouseholdMemberRow, summary: WeeklyDigestSummary): WeeklyDigestPayload {

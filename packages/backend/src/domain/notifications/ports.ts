@@ -77,9 +77,14 @@ export interface TemplateRenderer {
 }
 
 export interface WeeklyDigestSummaryReader {
-  /** The recipient's active plan at `at`, or null when there is none. */
-  read(
-    member: { readonly householdId: HouseholdId; readonly userId: UserId },
-    at: Date,
-  ): Promise<WeeklyDigestSummary | null>;
+  /** One digest run at `at`: each plan's numbers and the FX table are computed once per run. */
+  startRun(at: Date): WeeklyDigestRun;
+}
+
+export interface WeeklyDigestRun {
+  /** The recipient's active plan at the run time, or null when there is none. */
+  read(member: {
+    readonly householdId: HouseholdId;
+    readonly userId: UserId;
+  }): Promise<WeeklyDigestSummary | null>;
 }

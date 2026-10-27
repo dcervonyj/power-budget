@@ -18,6 +18,7 @@ function makeService(pendingIds: string[]): {
   queue: ReturnType<typeof mock<NotificationDispatchQueue>>;
 } {
   const digest = mock<RunWeeklyDigestUseCase>();
+  digest.execute.mockResolvedValue({ skipped: [] });
   const reminders = mock<RunReconnectRemindersUseCase>();
   const repo = mock<NotificationRepository>();
   repo.findPendingBatch.mockResolvedValue(pendingIds.map((id) => mock<NotificationOutbox>({ id })));
