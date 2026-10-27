@@ -1,103 +1,99 @@
 import { describe, expect, it, vi } from 'vitest';
-import { reloadOnStaleChunk, RELOAD_FLAG_KEY, RECOVERY_MS } from '../reloadOnStaleChunk.js';
+import {
+  reloadOnStaleChunk,
+  RELOAD_COOLDOWN_MS,
+  RELOAD_FLAG_KEY,
+  type StaleChunkTarget,
+} from '../reloadOnStaleChunk.js';
 
-function setup(store = new Map<string, string>(), buildId = 'build-a') {
+function setup(overrides: Partial<StaleChunkTarget> = {}) {
+  const store = new Map<string, string>();
+  const clock = { value: 1_000_000 };
   const reload = vi.fn();
-  const timers = new Map<number, { handler: () => void; ms: number }>();
   let listener: (event: Event) => void = () => undefined;
   reloadOnStaleChunk({
     addEventListener: (_type, fn) => {
       listener = fn;
     },
     location: { reload },
-    sessionStorage: {
+    sessionStorage: () => ({
       getItem: (key) => store.get(key) ?? null,
       setItem: (key, value) => void store.set(key, value),
-      removeItem: (key) => void store.delete(key),
-    },
-    setTimeout: (handler, ms) => {
-      timers.set(timers.size + 1, { handler, ms });
-
-      return timers.size;
-    },
-    clearTimeout: (id) => void timers.delete(id),
-    buildId,
+    }),
+    now: () => clock.value,
+    ...overrides,
   });
 
   return {
     reload,
     store,
-    timers,
+    clock,
     fire: () => listener(new Event('vite:preloadError', { cancelable: true })),
   };
 }
 
 describe('reloadOnStaleChunk', () => {
-  it('reloads once on the first preload error', () => {
+  it('reloads on the first preload error and records the time', () => {
     const { reload, store, fire } = setup();
 
     fire();
 
     expect(reload).toHaveBeenCalledTimes(1);
-    expect(store.get(RELOAD_FLAG_KEY)).toBe('build-a');
+    expect(store.get(RELOAD_FLAG_KEY)).toBe('1000000');
   });
 
-  it('does not reload again for the same build, however late the failure comes', () => {
-    const { reload, fire } = setup();
+  describe('(a) never a loop', () => {
+    it('does not reload again for a failure right after the reload', () => {
+      const { reload, clock, fire } = setup();
 
-    fire();
-    fire();
+      fire();
+      clock.value += RELOAD_COOLDOWN_MS - 1;
+      fire();
 
-    expect(reload).toHaveBeenCalledTimes(1);
+      expect(reload).toHaveBeenCalledTimes(1);
+    });
+
+    it('holds across a build change: the guard is the stored time, not a build id', () => {
+      const { reload, store, clock, fire } = setup();
+      store.set(RELOAD_FLAG_KEY, String(clock.value - 1000));
+
+      fire();
+
+      expect(reload).not.toHaveBeenCalled();
+    });
   });
 
-  it('does not reload after a reload that kept the same build (persistent failure)', () => {
-    const store = new Map([[RELOAD_FLAG_KEY, 'build-a']]);
-    const { reload, fire } = setup(store, 'build-a');
+  describe('(b) later deploy in a long-lived tab', () => {
+    it('reloads again once the cooldown has passed', () => {
+      const { reload, clock, fire } = setup();
 
-    fire();
+      fire();
+      clock.value += RELOAD_COOLDOWN_MS;
+      fire();
 
-    expect(reload).not.toHaveBeenCalled();
+      expect(reload).toHaveBeenCalledTimes(2);
+    });
   });
 
-  it('reloads again for a later deploy (different build)', () => {
-    const store = new Map([[RELOAD_FLAG_KEY, 'build-a']]);
-    const { reload, fire } = setup(store, 'build-b');
+  describe('(c) unavailable sessionStorage', () => {
+    it('registers without touching storage, so the app can start', () => {
+      const sessionStorage = vi.fn(() => {
+        throw new Error('SecurityError');
+      });
 
-    fire();
+      expect(() => setup({ sessionStorage })).not.toThrow();
+      expect(sessionStorage).not.toHaveBeenCalled();
+    });
 
-    expect(reload).toHaveBeenCalledTimes(1);
-    expect(store.get(RELOAD_FLAG_KEY)).toBe('build-b');
-  });
+    it('does not reload or throw when storage throws, leaving the error to the boundary', () => {
+      const { reload, fire } = setup({
+        sessionStorage: () => {
+          throw new Error('SecurityError');
+        },
+      });
 
-  it('clears the guard once the reloaded page has run error free', () => {
-    const store = new Map([[RELOAD_FLAG_KEY, 'build-a']]);
-    const { timers } = setup(store, 'build-a');
-
-    expect([...timers.values()].map((timer) => timer.ms)).toEqual([RECOVERY_MS]);
-    [...timers.values()][0]?.handler();
-
-    expect(store.has(RELOAD_FLAG_KEY)).toBe(false);
-  });
-
-  it('lets a later stale chunk reload the same build after recovery', () => {
-    const store = new Map([[RELOAD_FLAG_KEY, 'build-a']]);
-    const { reload, timers, fire } = setup(store, 'build-a');
-
-    [...timers.values()][0]?.handler();
-    fire();
-
-    expect(reload).toHaveBeenCalledTimes(1);
-  });
-
-  it('keeps the guard when the error comes before recovery', () => {
-    const store = new Map([[RELOAD_FLAG_KEY, 'build-a']]);
-    const { reload, timers, fire } = setup(store, 'build-a');
-
-    fire();
-
-    expect(timers.size).toBe(0);
-    expect(reload).not.toHaveBeenCalled();
-    expect(store.get(RELOAD_FLAG_KEY)).toBe('build-a');
+      expect(() => fire()).not.toThrow();
+      expect(reload).not.toHaveBeenCalled();
+    });
   });
 });
