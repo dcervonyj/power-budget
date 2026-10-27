@@ -348,7 +348,10 @@ test.describe('UI-013 screens', () => {
     }
 
     await expect(page.getByRole('heading', { name: 'Members' })).toBeVisible();
-    await expect(page.getByText('Details hidden')).toBeVisible();
+    // A total_only category shows the sum and the privacy tag, never its details.
+    await expect(
+      page.getByRole('group', { name: /^Groceries:.*totals only$/ }).getByText('Totals only'),
+    ).toBeVisible();
     await page.getByLabel("Partner's email").fill('bob@example.com');
     await page.getByRole('button', { name: 'Invite partner' }).click();
 
