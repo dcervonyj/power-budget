@@ -4,18 +4,19 @@ import {
   asc,
   desc,
   eq,
+  exists,
   gte,
   ilike,
   inArray,
-  isNotNull,
   isNull,
-  lt,
   lte,
+  notExists,
   or,
   sql,
 } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type {
   BankAccountId,
@@ -68,6 +69,9 @@ import { TransactionRowMapper } from './TransactionRowMapper.js';
 /** A transfer seen from either side: the row is its `tx_a` or its `tx_b`. */
 const transferAsA = alias(schema.transfers, 'transfer_as_a');
 const transferAsB = alias(schema.transfers, 'transfer_as_b');
+
+/** LIMIT that never cuts rows; it only stops the planner from merging the subquery (see `pageOf`). */
+const PLANNER_FENCE = Number.MAX_SAFE_INTEGER;
 
 interface ListRow {
   readonly tx: schema.SelectTransaction;
@@ -227,9 +231,16 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     return rows.map((row) => row.id as TransactionId);
   }
 
+  /**
+   * Two steps (CLN-048): `pageOf` picks the page ids from `transactions` alone (filters as EXISTS
+   * tests, keyset on the `(household_id, occurred_on DESC, id DESC)` index, `LIMIT n+1`), then this
+   * query joins mappings, plans, categories and transfers for those rows only. Joining first made
+   * every page cost grow with the caller's whole history.
+   */
   async list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>> {
     const limit = query.limit ?? 50;
     const t = schema.transactions;
+    const page = this.pageOf(query, scope, limit + 1);
 
     const rows: ListRow[] = await this.db
       .select({
@@ -248,9 +259,8 @@ export class DrizzleTransactionRepository implements TransactionRepository {
         transferAsBId: transferAsB.id,
         transferAsBCounterpart: transferAsB.txAId,
       })
-      .from(t)
-      // Only the caller's own accounts: a partner's transactions stay private.
-      .innerJoin(schema.bankAccounts, this.ownedAccountJoin(query.ownerUserId))
+      .from(page)
+      .innerJoin(t, eq(t.id, page.id))
       // Each join matches at most one row (PK / unique keys), so paging stays one row per tx.
       .leftJoin(schema.transactionMappings, eq(schema.transactionMappings.transactionId, t.id))
       .leftJoin(
@@ -271,9 +281,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
         transferAsB,
         and(eq(transferAsB.txBId, t.id), eq(transferAsB.householdId, t.householdId)),
       )
-      .where(and(...this.listConditions(query, scope)))
-      .orderBy(desc(t.occurredOn), desc(t.id))
-      .limit(limit + 1);
+      .orderBy(desc(page.occurredOn), desc(page.id));
 
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
@@ -463,9 +471,46 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     );
   }
 
-  private listConditions(query: TransactionQuery, scope: HouseholdScope): SQL[] {
+  /**
+   * The ids of one page. Without a mapping filter the household/date index is walked in order and
+   * stops after `size` rows. A mapping filter is tested per row, and each `transaction_mappings`
+   * probe also runs that table's RLS policy (a `transactions` lookup), so the planner prefers to
+   * read every own row, probe them all and sort (about 15k buffers for 3,333 rows). There the own
+   * rows are sorted first inside a fenced subquery (a subquery with LIMIT is planned on its own and
+   * outer filters are not pushed into it), and the mapping probe runs on them in order until the
+   * page is full.
+   */
+  private pageOf(query: TransactionQuery, scope: HouseholdScope, size: number) {
     const t = schema.transactions;
-    const conditions: SQL[] = [eq(t.householdId, scope.householdId), this.supportedCurrency()];
+    const rows = this.db
+      .select({ id: t.id, occurredOn: t.occurredOn })
+      .from(t)
+      .where(and(...this.rowConditions(query, scope)))
+      .orderBy(desc(t.occurredOn), desc(t.id));
+    if (!query.unmappedOnly && !query.mapped) {
+      return rows.limit(size).as('page');
+    }
+
+    const ownRows = rows.limit(PLANNER_FENCE).as('own_rows');
+
+    return this.db
+      .select({ id: ownRows.id, occurredOn: ownRows.occurredOn })
+      .from(ownRows)
+      .where(and(...this.mappingConditions(query, ownRows.id)))
+      .orderBy(desc(ownRows.occurredOn), desc(ownRows.id))
+      .limit(size)
+      .as('page');
+  }
+
+  /** Conditions on the `transactions` row and its transfers; the mapping test is separate. */
+  private rowConditions(query: TransactionQuery, scope: HouseholdScope): SQL[] {
+    const t = schema.transactions;
+    const conditions: SQL[] = [
+      eq(t.householdId, scope.householdId),
+      // Only the caller's own accounts: a partner's transactions stay private.
+      inArray(t.accountId, this.ownedAccountIds(query.ownerUserId, scope)),
+      this.supportedCurrency(),
+    ];
 
     if (query.accountId) {
       conditions.push(eq(t.accountId, query.accountId));
@@ -482,43 +527,78 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     if (query.status) {
       conditions.push(eq(t.status, query.status));
     }
-    if (query.unmappedOnly) {
-      conditions.push(
-        isNull(schema.transactionMappings.transactionId),
-        isNull(transferAsA.id),
-        isNull(transferAsB.id),
-        eq(t.ignored, false),
-      );
-    }
-    if (query.mapped) {
-      conditions.push(
-        isNotNull(schema.transactionMappings.transactionId),
-        isNull(transferAsA.id),
-        isNull(transferAsB.id),
-        eq(t.ignored, false),
-      );
+    if (query.unmappedOnly || query.mapped) {
+      conditions.push(...this.notATransfer(), eq(t.ignored, false));
     }
     if (query.transfer === true) {
-      const isTransfer = or(isNotNull(transferAsA.id), isNotNull(transferAsB.id));
+      const isTransfer = or(exists(this.transferOfRow('a')), exists(this.transferOfRow('b')));
       if (isTransfer) {
         conditions.push(isTransfer, eq(t.ignored, false));
       }
     }
     if (query.transfer === false) {
-      conditions.push(isNull(transferAsA.id), isNull(transferAsB.id));
+      conditions.push(...this.notATransfer());
     }
     if (query.cursor) {
       const after = decodeTransactionCursor(query.cursor);
-      const keyset = or(
-        lt(t.occurredOn, after.occurredOn),
-        and(eq(t.occurredOn, after.occurredOn), lt(t.id, after.id)),
+      // Row value, not `a < x OR (a = x AND b < y)`: the planner turns it into an index bound.
+      conditions.push(
+        sql`(${t.occurredOn}, ${t.id}) < (${after.occurredOn}::date, ${after.id}::uuid)`,
       );
-      if (keyset) {
-        conditions.push(keyset);
-      }
     }
 
     return conditions;
+  }
+
+  private mappingConditions(query: TransactionQuery, rowId: AnyPgColumn): SQL[] {
+    const conditions: SQL[] = [];
+    if (query.unmappedOnly) {
+      conditions.push(notExists(this.mappingOf(rowId)));
+    }
+    if (query.mapped) {
+      conditions.push(exists(this.mappingOf(rowId)));
+    }
+
+    return conditions;
+  }
+
+  private ownedAccountIds(ownerUserId: UserId, scope: HouseholdScope) {
+    return this.db
+      .select({ id: schema.bankAccounts.id })
+      .from(schema.bankAccounts)
+      .where(
+        and(
+          eq(schema.bankAccounts.householdId, scope.householdId),
+          eq(schema.bankAccounts.ownerUserId, ownerUserId),
+        ),
+      );
+  }
+
+  /** The mapping of the transaction `rowId` (correlated subquery). */
+  private mappingOf(rowId: AnyPgColumn) {
+    return this.db
+      .select({ one: sql`1` })
+      .from(schema.transactionMappings)
+      .where(eq(schema.transactionMappings.transactionId, rowId));
+  }
+
+  /** The transfer in which the outer `transactions` row is side `a` or side `b`. */
+  private transferOfRow(side: 'a' | 'b') {
+    const ownSide = side === 'a' ? schema.transfers.txAId : schema.transfers.txBId;
+
+    return this.db
+      .select({ one: sql`1` })
+      .from(schema.transfers)
+      .where(
+        and(
+          eq(ownSide, schema.transactions.id),
+          eq(schema.transfers.householdId, schema.transactions.householdId),
+        ),
+      );
+  }
+
+  private notATransfer(): SQL[] {
+    return [notExists(this.transferOfRow('a')), notExists(this.transferOfRow('b'))];
   }
 
   private toListItem(row: ListRow): TransactionListItem {
