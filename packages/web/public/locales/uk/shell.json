@@ -20,5 +20,7 @@
   "shell.theme.label": "Вигляд",
   "shell.theme.system": "Системний",
   "shell.theme.dark": "Ніч",
-  "shell.theme.light": "День"
+  "shell.theme.light": "День",
+  "shell.crash.message": "Щось пішло не так. Зазвичай допомагає перезавантаження сторінки.",
+  "shell.crash.reload": "Перезавантажити"
 }
