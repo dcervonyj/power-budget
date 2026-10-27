@@ -7,42 +7,39 @@ import type {
   WeeklyDigestSummary,
 } from './entities.js';
 
+/** The account a claimed row addresses, read in the claim transaction. */
+export interface ClaimedRecipient {
+  readonly email: string;
+  readonly locale: string;
+  readonly emailBouncing: boolean;
+}
+
 /**
- * An outbox row held exclusively by one dispatcher. `notification.attempts`
- * already counts the current attempt. Both terminal marks strip the secret
- * payload keys (SECRET_PAYLOAD_KEYS).
+ * A pending outbox row claimed by one dispatch attempt. `notification.attempts`
+ * already counts the current attempt. The claim holds no connection: the row
+ * lock is released when the claim commits, and each terminal mark is its own
+ * short statement. Both marks strip the secret payload keys (SECRET_PAYLOAD_KEYS).
  */
 export interface NotificationClaim {
   readonly notification: NotificationOutbox;
+  /** The user behind `notification.recipientUserId`; null for an address-only row or a missing user. */
+  readonly recipient: ClaimedRecipient | null;
   markSent(): Promise<void>;
   markFailed(): Promise<void>;
 }
-
-export interface NotificationClaimHandler<R> {
-  handle(claim: NotificationClaim): Promise<R>;
-}
-
-/**
- * `claimed`: the handler ran while this dispatcher held the row.
- * `unavailable`: another dispatcher holds the row, or it is no longer pending.
- */
-export type NotificationClaimOutcome<R> =
-  { readonly status: 'claimed'; readonly result: R } | { readonly status: 'unavailable' };
 
 export interface NotificationRepository {
   enqueue(notification: NewNotificationOutbox): Promise<void>;
   findById(id: string): Promise<NotificationOutbox | null>;
   findPendingBatch(limit: number): Promise<NotificationOutbox[]>;
   /**
-   * Atomically claims a pending row (sent_at and failed_at unset), counts the
-   * attempt and runs the handler while the claim is held. The handler must not
-   * throw for a delivery failure: it returns the outcome instead, so the
-   * attempt count is kept.
+   * Claims a pending row (sent_at and failed_at unset) in one short transaction:
+   * counts the attempt and reads the recipient, then commits. Returns null when
+   * the row is no longer pending or another claim holds it at this instant. The
+   * send happens outside any transaction; the provider idempotency key covers
+   * two attempts that overlap.
    */
-  claimForDispatch<R>(
-    id: string,
-    handler: NotificationClaimHandler<R>,
-  ): Promise<NotificationClaimOutcome<R>>;
+  claimForDispatch(id: string): Promise<NotificationClaim | null>;
   listAllHouseholdMembers(): Promise<HouseholdMemberRow[]>;
   findExpiringConnections(thresholdDate: Date): Promise<ExpiringConnectionRow[]>;
   setEmailBouncing(email: string): Promise<void>;

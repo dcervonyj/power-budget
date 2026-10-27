@@ -10,8 +10,8 @@ import type {
   NotificationKind,
 } from '../../domain/notifications/entities.js';
 import type {
-  NotificationClaimHandler,
-  NotificationClaimOutcome,
+  ClaimedRecipient,
+  NotificationClaim,
   NotificationRepository,
 } from '../../domain/notifications/ports.js';
 import { DrizzleNotificationClaim } from './DrizzleNotificationClaim.js';
@@ -58,12 +58,9 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     return rows.map((r) => this.toEntity(r));
   }
 
-  async claimForDispatch<R>(
-    id: string,
-    handler: NotificationClaimHandler<R>,
-  ): Promise<NotificationClaimOutcome<R>> {
-    // The row lock is the claim: a second dispatcher skips the locked row, and a
-    // crashed one releases it with its connection, so the row is retried.
+  async claimForDispatch(id: string): Promise<NotificationClaim | null> {
+    // The row lock only spans this short transaction (attempt count plus the
+    // recipient read); the send runs after the commit and holds no connection.
     return this.db.transaction(async (tx) => {
       const [row] = await tx
         .update(schema.notificationsOutbox)
@@ -81,12 +78,15 @@ export class DrizzleNotificationRepository implements NotificationRepository {
         .returning();
 
       if (row === undefined) {
-        return { status: 'unavailable' };
+        return null;
       }
+      const notification = this.toEntity(row);
+      const recipient =
+        notification.recipientUserId === null
+          ? null
+          : await this.readRecipient(tx, notification.recipientUserId);
 
-      const claim = new DrizzleNotificationClaim(tx, this.toEntity(row));
-
-      return { status: 'claimed', result: await handler.handle(claim) };
+      return new DrizzleNotificationClaim(this.db, notification, recipient);
     });
   }
 
@@ -184,6 +184,32 @@ export class DrizzleNotificationRepository implements NotificationRepository {
       displayName: r.displayName,
       locale: r.localePreference ?? r.defaultLocale,
       emailBouncing: r.emailBouncing,
+    };
+  }
+
+  private async readRecipient(
+    tx: Pick<NodePgDatabase<typeof schema>, 'select'>,
+    userId: UserId,
+  ): Promise<ClaimedRecipient | null> {
+    const [user] = await tx
+      .select({
+        email: schema.users.email,
+        defaultLocale: schema.users.defaultLocale,
+        localePreference: schema.users.localePreference,
+        emailBouncing: schema.users.emailBouncing,
+      })
+      .from(schema.users)
+      .where(eq(schema.users.id, userId))
+      .limit(1);
+
+    if (user === undefined) {
+      return null;
+    }
+
+    return {
+      email: user.email,
+      locale: user.localePreference ?? user.defaultLocale,
+      emailBouncing: user.emailBouncing,
     };
   }
 

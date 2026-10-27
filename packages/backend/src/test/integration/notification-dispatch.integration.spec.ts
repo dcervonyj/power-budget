@@ -6,7 +6,7 @@ import { mock } from 'vitest-mock-extended';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import type { UserId } from '@power-budget/core';
-import { getDb, resetState, startContainers, stopContainers } from './setup.js';
+import { getDb, getPool, resetState, startContainers, stopContainers } from './setup.js';
 import { insertTestUser } from './test-helpers.js';
 import * as schema from '../../../drizzle/schema.js';
 import type { NotificationKind } from '../../domain/notifications/entities.js';
@@ -17,10 +17,7 @@ import {
   BullMQNotificationDispatchQueue,
   type DispatchNotificationJobPayload,
 } from '../../infrastructure/notifications/BullMQNotificationDispatchQueue.js';
-import {
-  DispatchNotificationProcessor,
-  NotificationBusyError,
-} from '../../infrastructure/notifications/workers/DispatchNotificationProcessor.js';
+import { DispatchNotificationProcessor } from '../../infrastructure/notifications/workers/DispatchNotificationProcessor.js';
 import { InMemoryEmailChannel } from '../doubles/InMemoryEmailChannel.js';
 
 const QUEUE_NAME = 'cln-009-notification-dispatch';
@@ -178,25 +175,67 @@ describe('notification dispatch against real Postgres + Redis', () => {
     expect(stored?.payload).toEqual({});
   });
 
-  it('a second dispatcher cannot claim a row while the first one is sending it', async () => {
+  it('holds no connection while the email is being sent', async () => {
     const ann = await insertTestUser(getDb());
     const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
     const email = new GatedEmailChannel();
-    const renderer = new MjmlTemplateRenderer(TEMPLATE_DIR);
-    const first = new DispatchNotificationProcessor(repo, email, renderer);
-    const second = new DispatchNotificationProcessor(repo, email, renderer);
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      email,
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
     const job = mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
 
-    const firstRun = first.process(job);
+    const run = processor.process(job);
     await email.entered;
-    await expect(second.process(job)).rejects.toBeInstanceOf(NotificationBusyError);
+    const pool = getPool();
+    expect(pool.totalCount - pool.idleCount).toBe(0);
     email.release();
-    await firstRun;
+    await run;
+
+    expect(await isSent(id)).toBe(true);
+  });
+
+  it('5 concurrent jobs use at most 5 connections', async () => {
+    const ann = await insertTestUser(getDb());
+    const ids = await Promise.all(
+      Array.from({ length: 5 }, () => enqueue(ann.id, 'over_budget', { name: 'Ann' })),
+    );
+    const email = new GatedEmailChannel();
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      email,
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
+    const runs = ids.map((outboxId) =>
+      processor.process(mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId } })),
+    );
+
+    await email.entered;
+    const pool = getPool();
+    expect(pool.totalCount - pool.idleCount).toBeLessThanOrEqual(5);
+    email.release();
+    await Promise.all(runs);
+
+    expect(pool.totalCount).toBeLessThanOrEqual(5);
+    expect((await Promise.all(ids.map((id) => isSent(id)))).every(Boolean)).toBe(true);
+  });
+
+  it('a duplicate job after the first committed is a no-op', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const email = new InMemoryEmailChannel();
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      email,
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
+    const job = mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
+
+    await processor.process(job);
+    await processor.process(job);
 
     expect(email.calls).toHaveLength(1);
     expect(await isSent(id)).toBe(true);
-    // After the first commit, a late duplicate job is a no-op.
-    await expect(second.process(job)).resolves.toBeUndefined();
-    expect(email.calls).toHaveLength(1);
   });
 });
