@@ -1,0 +1,4 @@
+{
+  "transaction-dialogs.map.previewOver": "Po przypisaniu: przekroczenie o {amount}",
+  "transaction-dialogs.map.previewLeft": "Po przypisaniu: zostaje {amount} z {plan}"
+}

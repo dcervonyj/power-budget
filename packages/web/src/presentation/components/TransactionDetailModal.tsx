@@ -1,8 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
-import { useTheme } from './ThemeContext.js';
-import { Modal } from './Modal.js';
+import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { Button } from './Button.js';
+import { Sheet } from '../glass/overlays/Sheet.js';
+import { StatusTag } from '../glass/atoms/StatusTag.js';
+import {
+  ALERT_TEXT,
+  DIALOG_SECTION,
+  FIELD_LABEL,
+  MUTED_TEXT,
+  SPLIT_LINE,
+  TEXT_AREA_CONTROL,
+} from './transactionDialogStyles.js';
 import { MoneyView } from './MoneyView.js';
 import { parseLocalIsoDate } from '@power-budget/core';
 import { apiClient, plansApi } from '../../AppProviders.js';
@@ -38,7 +46,6 @@ export function TransactionDetailModal({
   onUpdated,
   onGone,
 }: TransactionDetailModalProps): React.JSX.Element | null {
-  const theme = useTheme();
   const intl = useIntl();
 
   const [transaction, setTransaction] = useState<Transaction | null>(null);
@@ -211,90 +218,144 @@ export function TransactionDetailModal({
     }
   };
 
-  const sourceLabel = (source: Transaction['source']): string => {
-    switch (source) {
-      case 'bank_sync':
-        return intl.formatMessage({
-          id: 'screen.transactionDetail.source.bankSync',
-          defaultMessage: 'Bank',
-        });
-      case 'manual':
-        return intl.formatMessage({
-          id: 'screen.transactionDetail.source.manual',
-          defaultMessage: 'Manual',
-        });
-    }
-  };
+  const mappedLabel = mapping === null ? undefined : catalogue?.labels.get(mapping.plannedItemId);
 
-  const statusLabel = (status: Transaction['status']): string => {
-    switch (status) {
-      case 'live':
-      case 'pending':
-        return intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' });
-      case 'booked':
-      case 'manual':
-        return intl.formatMessage({ id: 'transaction.status.booked', defaultMessage: 'Booked' });
-      case 'cancelled':
-      case 'expired':
-        return intl.formatMessage({
-          id: 'transaction.status.cancelled',
-          defaultMessage: 'Cancelled',
-        });
-    }
-  };
+  return (
+    <TransactionDetailView
+      isOpen={isOpen}
+      onClose={onClose}
+      loading={loading}
+      fetchError={fetchError}
+      transaction={transaction}
+      notes={notes}
+      onNotes={setNotes}
+      savingNotes={savingNotes}
+      notesError={notesError}
+      onSaveNotes={() => {
+        void handleSaveNotes();
+      }}
+      mappedTo={
+        mapping === null
+          ? null
+          : {
+              categoryName: mappedLabel?.categoryName || mapping.plannedItemId,
+              planName: mappedLabel?.planName ?? '',
+            }
+      }
+      isTransfer={isTransfer}
+      ignored={ignored}
+      togglingTransfer={togglingTransfer}
+      togglingIgnored={togglingIgnored}
+      onToggleTransfer={() => {
+        void handleToggleTransfer();
+      }}
+      onToggleIgnored={() => {
+        void handleToggleIgnored();
+      }}
+      onOpenMap={() => {
+        setShowMapModal(true);
+      }}
+      mapDialog={
+        transaction === null ? null : (
+          <TransactionMapModal
+            transaction={transaction}
+            currentPlannedItemId={mapping?.plannedItemId ?? null}
+            isOpen={showMapModal}
+            onClose={() => {
+              setShowMapModal(false);
+            }}
+            onMapped={handleMapped}
+            onGone={
+              onGone === undefined
+                ? undefined
+                : () => {
+                    onGone(transactionId);
+                  }
+            }
+          />
+        )
+      }
+    />
+  );
+}
+
+export interface TransactionDetailViewProps {
+  readonly isOpen: boolean;
+  readonly onClose: () => void;
+  readonly loading: boolean;
+  readonly fetchError: string | null;
+  readonly transaction: Transaction | null;
+  readonly notes: string;
+  readonly onNotes: (notes: string) => void;
+  readonly savingNotes: boolean;
+  readonly notesError: string | null;
+  readonly onSaveNotes: () => void;
+  /** Null when the transaction is not mapped; empty plan name when the plan is not known yet. */
+  readonly mappedTo: { readonly categoryName: string; readonly planName: string } | null;
+  readonly isTransfer: boolean;
+  readonly ignored: boolean;
+  readonly togglingTransfer: boolean;
+  readonly togglingIgnored: boolean;
+  readonly onToggleTransfer: () => void;
+  readonly onToggleIgnored: () => void;
+  readonly onOpenMap: () => void;
+  /** The map sheet, opened over this one. */
+  readonly mapDialog: React.ReactNode;
+}
+
+/** The detail sheet from props only: amount, who and when, mapping, notes, transfer and ignore. */
+export function TransactionDetailView({
+  isOpen,
+  onClose,
+  loading,
+  fetchError,
+  transaction,
+  notes,
+  onNotes,
+  savingNotes,
+  notesError,
+  onSaveNotes,
+  mappedTo,
+  isTransfer,
+  ignored,
+  togglingTransfer,
+  togglingIgnored,
+  onToggleTransfer,
+  onToggleIgnored,
+  onOpenMap,
+  mapDialog,
+}: TransactionDetailViewProps): React.JSX.Element {
+  const intl = useIntl();
 
   const title = intl.formatMessage({
     id: 'screen.transactionDetail.title',
     defaultMessage: 'Transaction Details',
   });
 
-  const sectionStyle: React.CSSProperties = {
-    borderTop: `1px solid ${theme.color.border.subtle}`,
-    paddingTop: theme.space.md,
-    marginTop: theme.space.md,
-  };
-
-  const labelStyle: React.CSSProperties = {
-    color: theme.color.text.secondary,
-    fontSize: theme.fontSize.sm,
-    marginBottom: theme.space.xs,
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    backgroundColor: theme.color.surface.raised,
-    color: theme.color.text.primary,
-    border: `1px solid ${theme.color.border.subtle}`,
-    borderRadius: theme.radius.sm,
-    padding: `${theme.space.sm}px ${theme.space.md}px`,
-    fontSize: theme.fontSize.md,
-    boxSizing: 'border-box',
-    resize: 'vertical',
-  };
-
-  const mappedLabel = mapping === null ? undefined : catalogue?.labels.get(mapping.plannedItemId);
-  const mappedCategoryName = mappedLabel?.categoryName ?? '';
-  const mappedPlanName = mappedLabel?.planName ?? '';
-
   return (
-    <Modal title={title} isOpen={isOpen} onClose={onClose}>
+    <Sheet title={title} isOpen={isOpen} onClose={onClose}>
       {loading && (
-        <p style={{ color: theme.color.text.secondary }}>
+        <p style={MUTED_TEXT}>
           <FormattedMessage id="app.loading" defaultMessage="Loading…" />
         </p>
       )}
 
-      {fetchError !== null && <p style={{ color: theme.color.status.danger }}>{fetchError}</p>}
+      {fetchError !== null && (
+        <p role="alert" style={ALERT_TEXT}>
+          {fetchError}
+        </p>
+      )}
 
       {transaction !== null && !loading && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {/* Transaction info */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontWeight: theme.fontWeight.semibold, fontSize: theme.fontSize.xl }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-md)' }}>
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-sm)' }}
+          >
+            <div style={{ ...SPLIT_LINE, flexWrap: 'nowrap' }}>
+              <span style={{ fontWeight: 600, fontSize: 'var(--pb-glass-type-amount-web)' }}>
                 <MoneyView amount={transaction.amount} showTooltip />
               </span>
-              <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+              <span style={MUTED_TEXT}>
                 {parseLocalIsoDate(transaction.occurredOn).toLocaleDateString(intl.locale, {
                   year: 'numeric',
                   month: 'long',
@@ -304,84 +365,61 @@ export function TransactionDetailModal({
             </div>
 
             <div>
-              <p
-                style={{ margin: 0, fontSize: theme.fontSize.md, color: theme.color.text.primary }}
-              >
+              <p style={{ margin: 0, fontSize: 'var(--pb-glass-type-body-web)' }}>
                 {transaction.description}
               </p>
               {transaction.merchant !== null &&
                 transaction.merchant !== transaction.description && (
-                  <p
-                    style={{
-                      margin: `${theme.space.xs}px 0 0 0`,
-                      fontSize: theme.fontSize.sm,
-                      color: theme.color.text.secondary,
-                    }}
-                  >
+                  <p style={{ ...MUTED_TEXT, marginTop: 'var(--pb-glass-space-xs)' }}>
                     {transaction.merchant}
                   </p>
                 )}
             </div>
 
-            <p
-              style={{ margin: 0, fontSize: theme.fontSize.sm, color: theme.color.text.secondary }}
-            >
-              {[sourceLabel(transaction.source), statusLabel(transaction.status)].join(' · ')}
+            <p style={MUTED_TEXT}>
+              {[sourceLabel(intl, transaction.source), statusLabel(intl, transaction.status)].join(
+                ' · ',
+              )}
             </p>
           </div>
 
-          {/* Mapping section: read-only here; the Map modal edits it */}
-          <div style={sectionStyle}>
-            <p style={labelStyle}>
+          {/* Mapping section: read-only here; the Map sheet edits it */}
+          <div style={DIALOG_SECTION}>
+            <p style={{ ...FIELD_LABEL, margin: 0 }}>
               <FormattedMessage id="screen.transactionDetail.mapping" defaultMessage="Mapped to" />
             </p>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: theme.space.sm,
-              }}
-            >
-              <span style={{ fontSize: theme.fontSize.sm, color: theme.color.text.primary }}>
+            <div style={SPLIT_LINE}>
+              <span style={{ fontSize: 'var(--pb-glass-type-body-web)' }}>
                 {isTransfer ? (
-                  <FormattedMessage
-                    id="component.transactionRow.transfer"
-                    defaultMessage="Transfer"
+                  <StatusTag
+                    kind="neutral"
+                    icon="repeat"
+                    label={intl.formatMessage({
+                      id: 'component.transactionRow.transfer',
+                      defaultMessage: 'Transfer',
+                    })}
                   />
-                ) : mapping === null ? (
+                ) : mappedTo === null ? (
                   <FormattedMessage
                     id="screen.transactionDetail.notMapped"
                     defaultMessage="Not mapped"
                   />
                 ) : (
                   <>
-                    <span style={{ fontWeight: theme.fontWeight.medium }}>
-                      {mappedCategoryName || mapping.plannedItemId}
-                    </span>
-                    {mappedPlanName !== '' && (
+                    <span style={{ fontWeight: 600 }}>{mappedTo.categoryName}</span>
+                    {mappedTo.planName !== '' && (
                       <span
-                        style={{
-                          fontSize: theme.fontSize.xs,
-                          color: theme.color.text.secondary,
-                          marginLeft: theme.space.sm,
-                        }}
+                        style={{ ...MUTED_TEXT, marginInlineStart: 'var(--pb-glass-space-sm)' }}
                       >
-                        {mappedPlanName}
+                        {mappedTo.planName}
                       </span>
                     )}
                   </>
                 )}
               </span>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  setShowMapModal(true);
-                }}
-              >
-                {mapping === null ? (
+              <Button variant="secondary" onClick={onOpenMap}>
+                {mappedTo === null ? (
                   <FormattedMessage
                     id="screen.transactionDetail.mapTo"
                     defaultMessage="Map to planned item"
@@ -397,61 +435,38 @@ export function TransactionDetailModal({
           </div>
 
           {/* Notes section */}
-          <div style={sectionStyle}>
-            <p style={labelStyle}>
+          <div style={DIALOG_SECTION}>
+            <label htmlFor="transaction-detail-notes" style={FIELD_LABEL}>
               <FormattedMessage id="screen.transactionDetail.notes" defaultMessage="Notes" />
-            </p>
+            </label>
             <textarea
+              id="transaction-detail-notes"
               value={notes}
               onChange={(e) => {
-                setNotes(e.target.value);
+                onNotes(e.target.value);
               }}
               rows={3}
-              style={inputStyle}
-              placeholder={intl.formatMessage({
-                id: 'screen.transactionDetail.notes',
-                defaultMessage: 'Notes',
-              })}
+              className="pbg-ctl pbg-ctl-field"
+              style={TEXT_AREA_CONTROL}
             />
             {notesError !== null && (
-              <p
-                style={{
-                  color: theme.color.status.danger,
-                  fontSize: theme.fontSize.sm,
-                  margin: `${theme.space.xs}px 0 0`,
-                }}
-              >
+              <p role="alert" style={ALERT_TEXT}>
                 {notesError}
               </p>
             )}
-            <div style={{ marginTop: theme.space.sm }}>
-              <Button
-                variant="primary"
-                loading={savingNotes}
-                onClick={() => {
-                  void handleSaveNotes();
-                }}
-              >
+            <div style={{ marginTop: 'var(--pb-glass-space-xs)' }}>
+              <Button variant="primary" loading={savingNotes} onClick={onSaveNotes}>
                 <FormattedMessage id="screen.transactionDetail.save" defaultMessage="Save" />
               </Button>
             </div>
           </div>
 
           {/* Actions section */}
-          <div
-            style={{
-              ...sectionStyle,
-              display: 'flex',
-              gap: theme.space.sm,
-              flexWrap: 'wrap',
-            }}
-          >
+          <div style={{ ...DIALOG_SECTION, flexDirection: 'row', flexWrap: 'wrap' }}>
             <Button
               variant={isTransfer ? 'primary' : 'secondary'}
               loading={togglingTransfer}
-              onClick={() => {
-                void handleToggleTransfer();
-              }}
+              onClick={onToggleTransfer}
             >
               <FormattedMessage
                 id="screen.transactionDetail.markTransfer"
@@ -462,33 +477,46 @@ export function TransactionDetailModal({
             <Button
               variant={ignored ? 'danger' : 'secondary'}
               loading={togglingIgnored}
-              onClick={() => {
-                void handleToggleIgnored();
-              }}
+              onClick={onToggleIgnored}
             >
               <FormattedMessage id="screen.transactionDetail.ignore" defaultMessage="Ignore" />
             </Button>
           </div>
         </div>
       )}
-      {transaction !== null && (
-        <TransactionMapModal
-          transaction={transaction}
-          currentPlannedItemId={mapping?.plannedItemId ?? null}
-          isOpen={showMapModal}
-          onClose={() => {
-            setShowMapModal(false);
-          }}
-          onMapped={handleMapped}
-          onGone={
-            onGone === undefined
-              ? undefined
-              : () => {
-                  onGone(transactionId);
-                }
-          }
-        />
-      )}
-    </Modal>
+      {mapDialog}
+    </Sheet>
   );
+}
+
+function sourceLabel(intl: IntlShape, source: Transaction['source']): string {
+  switch (source) {
+    case 'bank_sync':
+      return intl.formatMessage({
+        id: 'screen.transactionDetail.source.bankSync',
+        defaultMessage: 'Bank',
+      });
+    case 'manual':
+      return intl.formatMessage({
+        id: 'screen.transactionDetail.source.manual',
+        defaultMessage: 'Manual',
+      });
+  }
+}
+
+function statusLabel(intl: IntlShape, status: Transaction['status']): string {
+  switch (status) {
+    case 'live':
+    case 'pending':
+      return intl.formatMessage({ id: 'transaction.status.pending', defaultMessage: 'Pending' });
+    case 'booked':
+    case 'manual':
+      return intl.formatMessage({ id: 'transaction.status.booked', defaultMessage: 'Booked' });
+    case 'cancelled':
+    case 'expired':
+      return intl.formatMessage({
+        id: 'transaction.status.cancelled',
+        defaultMessage: 'Cancelled',
+      });
+  }
 }

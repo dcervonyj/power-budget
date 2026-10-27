@@ -14,11 +14,20 @@ import type {
   TransactionDto,
 } from '@power-budget/shared-app/contract';
 import { apiClient } from '../../AppProviders.js';
-import { useTheme } from './ThemeContext.js';
+import { Button } from './Button.js';
+import {
+  ALERT_TEXT,
+  FIELD_CONTROL,
+  FIELD_LABEL,
+  MUTED_TEXT,
+  TEXT_AREA_CONTROL,
+} from './transactionDialogStyles.js';
 
 export interface ManualTransactionFormProps {
   onSuccess?: (transactionId: string) => void;
   onCancel?: () => void;
+  /** Accounts to show without calling `GET /accounts` (gallery fixtures). */
+  initialAccounts?: ReadonlyArray<AccountDto>;
 }
 
 type Direction = 'expense' | 'income';
@@ -64,12 +73,12 @@ function preferredAccount(accounts: ReadonlyArray<AccountDto>): AccountDto | und
 export function ManualTransactionForm({
   onSuccess,
   onCancel,
+  initialAccounts,
 }: ManualTransactionFormProps): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
 
-  const [accounts, setAccounts] = useState<ReadonlyArray<AccountDto>>([]);
-  const [accountsLoading, setAccountsLoading] = useState(true);
+  const [accounts, setAccounts] = useState<ReadonlyArray<AccountDto>>(initialAccounts ?? []);
+  const [accountsLoading, setAccountsLoading] = useState(initialAccounts === undefined);
   const [accountsError, setAccountsError] = useState(false);
 
   const [cashName, setCashName] = useState(() =>
@@ -81,7 +90,9 @@ export function ManualTransactionForm({
   const [cashCurrency, setCashCurrency] = useState<CurrencyCode>('PLN');
   const [creatingAccount, setCreatingAccount] = useState(false);
 
-  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [selectedAccountId, setSelectedAccountId] = useState(
+    preferredAccount(initialAccounts ?? [])?.id ?? '',
+  );
   const [direction, setDirection] = useState<Direction>('expense');
   const [occurredOn, setOccurredOn] = useState(todayIso);
   const [amount, setAmount] = useState('');
@@ -92,6 +103,9 @@ export function ManualTransactionForm({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (initialAccounts !== undefined) {
+      return;
+    }
     let cancelled = false;
     void (async () => {
       try {
@@ -114,7 +128,7 @@ export function ManualTransactionForm({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialAccounts]);
 
   const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
 
@@ -177,66 +191,36 @@ export function ManualTransactionForm({
     }
   };
 
-  const labelStyle: React.CSSProperties = {
-    color: theme.color.text.secondary,
-    fontSize: theme.fontSize.sm,
-    marginBottom: theme.space.xs,
-    display: 'block',
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: `${String(theme.space.sm)}px ${String(theme.space.md)}px`,
-    border: `1px solid ${theme.color.border.subtle}`,
-    borderRadius: theme.radius.md,
-    background: theme.color.surface.base,
-    color: theme.color.text.primary,
-    fontSize: theme.fontSize.md,
-    boxSizing: 'border-box',
-  };
-
+  const labelStyle = FIELD_LABEL;
+  const inputStyle = FIELD_CONTROL;
   const fieldStyle: React.CSSProperties = {
     display: 'flex',
     flexDirection: 'column',
-    gap: theme.space.xs,
+    gap: 'var(--pb-glass-space-xs)',
   };
-
-  const primaryButtonStyle = (busy: boolean): React.CSSProperties => ({
-    padding: `${String(theme.space.sm)}px ${String(theme.space.lg)}px`,
-    border: 'none',
-    borderRadius: theme.radius.md,
-    background: theme.color.accent.default,
-    color: theme.color.accent.onAccent,
-    fontSize: theme.fontSize.md,
-    cursor: busy ? 'not-allowed' : 'pointer',
-    opacity: busy ? 0.7 : 1,
-  });
 
   const errorText = error === null ? null : errorMessageId(error);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.lg }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-lg)' }}>
       {accountsLoading && (
-        <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+        <span style={MUTED_TEXT}>
           <FormattedMessage id="component.manualTransactionForm.loadingAccounts" />
         </span>
       )}
 
       {accountsError && (
-        <span
-          role="alert"
-          style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
-        >
+        <span role="alert" style={ALERT_TEXT}>
           <FormattedMessage id="component.manualTransactionForm.error.accounts" />
         </span>
       )}
 
       {!accountsLoading && !accountsError && accounts.length === 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.md }}>
-          <p style={{ margin: 0, color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-md)' }}>
+          <p style={MUTED_TEXT}>
             <FormattedMessage id="component.manualTransactionForm.cashAccount.intro" />
           </p>
-          <div style={{ display: 'flex', gap: theme.space.md, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 'var(--pb-glass-space-md)', flexWrap: 'wrap' }}>
             <div style={{ ...fieldStyle, flex: '2 1 160px' }}>
               <label htmlFor="mtf-cash-name" style={labelStyle}>
                 <FormattedMessage id="component.manualTransactionForm.cashAccount.name" />
@@ -248,6 +232,7 @@ export function ManualTransactionForm({
                 onChange={(e) => {
                   setCashName(e.target.value);
                 }}
+                className="pbg-ctl pbg-ctl-field"
                 style={inputStyle}
               />
             </div>
@@ -263,6 +248,7 @@ export function ManualTransactionForm({
                     setCashCurrency(e.target.value);
                   }
                 }}
+                className="pbg-ctl pbg-ctl-field"
                 style={inputStyle}
               >
                 {SUPPORTED_CURRENCIES.map((code) => (
@@ -274,16 +260,15 @@ export function ManualTransactionForm({
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              disabled={creatingAccount}
               onClick={() => {
                 void handleCreateAccount();
               }}
-              disabled={creatingAccount}
-              style={primaryButtonStyle(creatingAccount)}
             >
               <FormattedMessage id="component.manualTransactionForm.cashAccount.create" />
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -293,7 +278,7 @@ export function ManualTransactionForm({
           onSubmit={(e) => {
             void handleSubmit(e);
           }}
-          style={{ display: 'flex', flexDirection: 'column', gap: theme.space.md }}
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-md)' }}
         >
           <div style={fieldStyle}>
             <label htmlFor="mtf-account" style={labelStyle}>
@@ -305,6 +290,7 @@ export function ManualTransactionForm({
               onChange={(e) => {
                 setSelectedAccountId(e.target.value);
               }}
+              className="pbg-ctl pbg-ctl-field"
               style={inputStyle}
               required
             >
@@ -332,6 +318,7 @@ export function ManualTransactionForm({
               onChange={(e) => {
                 setDirection(e.target.value === 'income' ? 'income' : 'expense');
               }}
+              className="pbg-ctl pbg-ctl-field"
               style={inputStyle}
             >
               <option value="expense">
@@ -343,7 +330,7 @@ export function ManualTransactionForm({
             </select>
           </div>
 
-          <div style={{ display: 'flex', gap: theme.space.md }}>
+          <div style={{ display: 'flex', gap: 'var(--pb-glass-space-md)' }}>
             <div style={{ ...fieldStyle, flex: 2 }}>
               <label htmlFor="mtf-amount" style={labelStyle}>
                 <FormattedMessage id="component.manualTransactionForm.amount.label" />
@@ -359,6 +346,7 @@ export function ManualTransactionForm({
                 placeholder={intl.formatMessage({
                   id: 'component.manualTransactionForm.amount.placeholder',
                 })}
+                className="pbg-ctl pbg-ctl-field"
                 style={inputStyle}
                 required
               />
@@ -369,7 +357,13 @@ export function ManualTransactionForm({
               </span>
               <span
                 data-testid="mtf-currency"
-                style={{ ...inputStyle, background: 'transparent', border: 'none' }}
+                style={{
+                  ...inputStyle,
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'transparent',
+                  boxShadow: 'none',
+                }}
               >
                 {selectedAccount.currency}
               </span>
@@ -387,6 +381,7 @@ export function ManualTransactionForm({
               onChange={(e) => {
                 setOccurredOn(e.target.value);
               }}
+              className="pbg-ctl pbg-ctl-field"
               style={inputStyle}
               required
             />
@@ -403,6 +398,7 @@ export function ManualTransactionForm({
               onChange={(e) => {
                 setDescription(e.target.value);
               }}
+              className="pbg-ctl pbg-ctl-field"
               style={inputStyle}
               required
             />
@@ -419,45 +415,32 @@ export function ManualTransactionForm({
                 setNotes(e.target.value);
               }}
               rows={3}
-              style={{ ...inputStyle, resize: 'vertical' }}
+              className="pbg-ctl pbg-ctl-field"
+              style={TEXT_AREA_CONTROL}
             />
           </div>
 
-          <div style={{ display: 'flex', gap: theme.space.md, justifyContent: 'flex-end' }}>
+          <div
+            style={{ display: 'flex', gap: 'var(--pb-glass-space-md)', justifyContent: 'flex-end' }}
+          >
             {onCancel && (
-              <button
-                type="button"
-                onClick={onCancel}
-                disabled={submitting}
-                style={{
-                  padding: `${String(theme.space.sm)}px ${String(theme.space.lg)}px`,
-                  border: `1px solid ${theme.color.border.subtle}`,
-                  borderRadius: theme.radius.md,
-                  background: 'transparent',
-                  color: theme.color.text.primary,
-                  fontSize: theme.fontSize.md,
-                  cursor: 'pointer',
-                }}
-              >
+              <Button variant="secondary" disabled={submitting} onClick={onCancel}>
                 <FormattedMessage id="component.manualTransactionForm.cancel" />
-              </button>
+              </Button>
             )}
-            <button type="submit" disabled={submitting} style={primaryButtonStyle(submitting)}>
+            <Button type="submit" variant="primary" disabled={submitting}>
               {submitting ? (
                 <FormattedMessage id="component.manualTransactionForm.loading" />
               ) : (
                 <FormattedMessage id="component.manualTransactionForm.submit" />
               )}
-            </button>
+            </Button>
           </div>
         </form>
       )}
 
       {errorText !== null && (
-        <span
-          role="alert"
-          style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
-        >
+        <span role="alert" style={ALERT_TEXT}>
           <FormattedMessage id={errorText} />
         </span>
       )}
