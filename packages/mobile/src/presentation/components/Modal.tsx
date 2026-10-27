@@ -1,9 +1,6 @@
 import React from 'react';
-import { Modal as RNModal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { FormattedMessage } from 'react-intl';
-import { rnDarkTheme } from '@power-budget/design-tokens/rn';
-
-const t = rnDarkTheme;
+import { Button } from './Button.js';
+import { Sheet } from '../glass/overlays/Sheet.js';
 
 export interface MobileModalButton {
   readonly label: string;
@@ -19,6 +16,7 @@ export interface ModalProps {
   readonly footerButtons?: ReadonlyArray<MobileModalButton>;
 }
 
+/** A dialog restyled as the D7 bottom sheet; the props are the pre-glass Modal's. */
 export function Modal({
   isOpen,
   title,
@@ -27,85 +25,24 @@ export function Modal({
   footerButtons,
 }: ModalProps): React.JSX.Element {
   return (
-    <RNModal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
-      <TouchableOpacity style={styles.overlay} onPress={onClose} activeOpacity={1}>
-        <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-          <View style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
-            <TouchableOpacity onPress={onClose} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Text style={styles.close}>
-                <FormattedMessage id="common.closeIcon" defaultMessage="×" />
-              </Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.body}>{children}</View>
-          {footerButtons && footerButtons.length > 0 && (
-            <View style={styles.footer}>
-              {footerButtons.map((btn) => {
-                const btnColor =
-                  btn.variant === 'primary'
-                    ? t.colorAccentDefault
-                    : btn.variant === 'danger'
-                      ? t.colorStatusDanger
-                      : 'transparent';
-                const btnTextColor =
-                  btn.variant === 'primary' ? t.colorAccentOnAccent : t.colorTextPrimary;
-                return (
-                  <TouchableOpacity
-                    key={btn.label}
-                    onPress={btn.onPress}
-                    style={[styles.footerBtn, { backgroundColor: btnColor }]}
-                  >
-                    <Text style={[styles.footerBtnText, { color: btnTextColor }]}>{btn.label}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
-    </RNModal>
+    <Sheet isOpen={isOpen} title={title} onClose={onClose} footer={renderFooter(footerButtons)}>
+      {children}
+    </Sheet>
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sheet: {
-    backgroundColor: t.colorSurfaceRaised,
-    borderRadius: t.radiusLg,
-    padding: t.space2xl,
-    width: '88%',
-    maxWidth: 480,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: t.spaceLg,
-  },
-  title: {
-    color: t.colorTextPrimary,
-    fontSize: t.fontSizeXl,
-    fontWeight: t.fontWeightSemibold,
-    flex: 1,
-  },
-  close: { color: t.colorTextSecondary, fontSize: t.fontSizeXl },
-  body: {},
-  footer: {
-    flexDirection: 'row',
-    gap: t.spaceSm,
-    justifyContent: 'flex-end',
-    marginTop: t.spaceLg,
-  },
-  footerBtn: {
-    paddingVertical: t.spaceSm,
-    paddingHorizontal: t.spaceLg,
-    borderRadius: t.radiusMd,
-  },
-  footerBtnText: { fontSize: t.fontSizeMd, fontWeight: t.fontWeightMedium },
-});
+function renderFooter(buttons: ReadonlyArray<MobileModalButton> | undefined): React.ReactNode {
+  if (buttons === undefined || buttons.length === 0) {
+    return undefined;
+  }
+
+  return buttons.map(renderButton);
+}
+
+function renderButton(button: MobileModalButton): React.JSX.Element {
+  return (
+    <Button key={button.label} variant={button.variant ?? 'secondary'} onPress={button.onPress}>
+      {button.label}
+    </Button>
+  );
+}
