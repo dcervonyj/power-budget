@@ -15,9 +15,18 @@ const INTERESTING_CURRENCIES_KEY = 'pb_interesting_currencies';
 
 export type SaveError = 'save_failed' | 'unsupported_currency';
 
+function readStored(key: string): string | null {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    // Storage can be unavailable (private mode, non-browser runtime); defaults apply.
+    return null;
+  }
+}
+
 function readInterestingCurrencies(): string[] {
   try {
-    const raw = localStorage.getItem(INTERESTING_CURRENCIES_KEY);
+    const raw = readStored(INTERESTING_CURRENCIES_KEY);
     return raw ? (JSON.parse(raw) as string[]) : [];
   } catch {
     return [];
@@ -38,7 +47,7 @@ export class SettingsStore {
   timezone: string = '';
 
   /** Cached so screens have a currency before the profile loads. */
-  baseCurrency: string = localStorage.getItem(BASE_CURRENCY_KEY) ?? DEFAULT_BASE_CURRENCY;
+  baseCurrency: string = readStored(BASE_CURRENCY_KEY) ?? DEFAULT_BASE_CURRENCY;
   interestingCurrencies: string[] = readInterestingCurrencies();
 
   isSaving: boolean = false;

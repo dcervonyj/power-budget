@@ -1,0 +1,7 @@
+{
+  "settings.tab.appearance": "Appearance",
+  "settings.tabs.label": "Settings sections",
+  "settings.appearance.title": "Appearance",
+  "settings.appearance.description": "Choose Night, Day, or follow your device. The choice is kept on this device.",
+  "screen.auditLog.error": "Failed to load the audit log"
+}

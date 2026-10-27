@@ -2,9 +2,18 @@ import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { CURRENCIES } from '@power-budget/core';
-import { useTheme } from '../../components/ThemeContext.js';
 import { Select } from '../../components/Select.js';
 import { Button } from '../../components/Button.js';
+import { GlassPanel } from '../../glass/material/GlassPanel.js';
+import '../../glass/controls/controls.css';
+import {
+  ACTIONS_STYLE,
+  ERROR_STYLE,
+  NOTE_STYLE,
+  SECTION_STYLE,
+  SUCCESS_STYLE,
+  chipStyle,
+} from './settingsStyles.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
 
 interface LocalSelectOption {
@@ -29,7 +38,6 @@ const CURRENCY_LIST: ReadonlyArray<string> = [
 ];
 
 export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
   const [saved, setSaved] = useState(false);
 
@@ -52,8 +60,7 @@ export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): Reac
   const atMax = settingsStore.interestingCurrencies.length >= MAX_INTERESTING;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xl }}>
-      {/* Base currency */}
+    <GlassPanel material="frosted" depth={1} contentStyle={SECTION_STYLE}>
       <div style={{ maxWidth: 300 }}>
         <Select<string>
           id="settings-base-currency"
@@ -69,48 +76,39 @@ export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): Reac
         />
       </div>
 
-      {/* Interesting currencies */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
-        <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+      <div
+        role="group"
+        aria-labelledby="settings-interesting-label"
+        style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-sm)' }}
+      >
+        <span id="settings-interesting-label" style={NOTE_STYLE}>
           <FormattedMessage
             id="settings.currency.interesting"
             defaultMessage="Track additional currencies (max 5)"
           />
         </span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space.xs }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--pb-glass-space-xs)' }}>
           {CURRENCY_LIST.filter((c) => c !== settingsStore.baseCurrency).map((c) => {
             const isSelected = settingsStore.interestingCurrencies.includes(c);
-            const isDisabled = !isSelected && atMax;
+
             return (
               <button
                 key={c}
                 type="button"
-                disabled={isDisabled}
+                className="pbg-ctl"
+                disabled={!isSelected && atMax}
                 onClick={() => {
                   settingsStore.toggleInterestingCurrency(c);
                 }}
                 aria-pressed={isSelected}
-                style={{
-                  backgroundColor: isSelected
-                    ? theme.color.accent.default
-                    : theme.color.surface.raised,
-                  color: isSelected ? theme.color.accent.onAccent : theme.color.text.primary,
-                  border: `1px solid ${
-                    isSelected ? theme.color.accent.default : theme.color.border.subtle
-                  }`,
-                  borderRadius: theme.radius.pill,
-                  padding: `${theme.space.xs}px ${theme.space.sm}px`,
-                  fontSize: theme.fontSize.sm,
-                  cursor: isDisabled ? 'not-allowed' : 'pointer',
-                  opacity: isDisabled ? 0.4 : 1,
-                }}
+                style={chipStyle(isSelected)}
               >
                 {c}
               </button>
             );
           })}
         </div>
-        <span style={{ fontSize: theme.fontSize.xs, color: theme.color.text.secondary }}>
+        <span style={NOTE_STYLE}>
           <FormattedMessage
             id="settings.currency.selectedCount"
             defaultMessage="{count}/{max} selected"
@@ -119,7 +117,7 @@ export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): Reac
         </span>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space.md }}>
+      <div style={ACTIONS_STYLE}>
         <Button
           variant="primary"
           loading={settingsStore.isSaving}
@@ -130,15 +128,12 @@ export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): Reac
           <FormattedMessage id="settings.currency.save" defaultMessage="Save" />
         </Button>
         {saved && (
-          <span style={{ color: theme.color.status.success, fontSize: theme.fontSize.sm }}>
+          <span role="status" style={SUCCESS_STYLE}>
             <FormattedMessage id="common.saved" defaultMessage="Saved!" />
           </span>
         )}
         {settingsStore.saveError !== null && (
-          <span
-            role="alert"
-            style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
-          >
+          <span role="alert" style={ERROR_STYLE}>
             <FormattedMessage
               id="settings.saveError"
               defaultMessage="Could not save. Please try again."
@@ -146,6 +141,6 @@ export const SettingsCurrencyTab = observer(function SettingsCurrencyTab(): Reac
           </span>
         )}
       </div>
-    </div>
+    </GlassPanel>
   );
 });
