@@ -276,6 +276,33 @@ describe('notification dispatch against real Postgres + Redis', () => {
     expect(stored?.failedAt).toBeNull();
   });
 
+  it('a delivered send is recorded sent when a later attempt failed the row first', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const earlier = await repo.claimForDispatch(id);
+    const later = await repo.claimForDispatch(id);
+
+    await later?.markFailed();
+    await earlier?.markSent();
+
+    const stored = await row(id);
+    expect(stored?.sentAt).not.toBeNull();
+    expect(stored?.failedAt).toBeNull();
+  });
+
+  it('an earlier attempt cannot fail a row a later attempt has claimed', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const earlier = await repo.claimForDispatch(id);
+    await repo.claimForDispatch(id);
+
+    await earlier?.markFailed();
+
+    const stored = await row(id);
+    expect(stored?.failedAt).toBeNull();
+    expect(stored?.sentAt).toBeNull();
+  });
+
   it('throws NotificationBusyError while another claim holds the row', async () => {
     const ann = await insertTestUser(getDb());
     const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
