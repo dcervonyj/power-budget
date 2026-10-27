@@ -1,15 +1,12 @@
 import React, { useState } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
 import type { AuthTokensDto, LoginDto } from '@power-budget/shared-app/contract';
 import { apiClient, tokenStore } from '../../../AppProviders.js';
-import { Button, Input } from '../../components/index.js';
 import { returnPath } from '../../guards/returnPath.js';
+import { LoginView, type LoginError } from './LoginView.js';
 
-type LoginError = 'invalidCredentials' | 'invalidTotp' | 'tooManyAttempts' | 'serverError' | null;
-
-type LoginOutcome = 'requiresTotp' | Exclude<LoginError, null>;
+type LoginOutcome = 'requiresTotp' | LoginError;
 
 /** Error bodies carry a stable `code` (CLN-002/CLN-004): 403 requires_totp, 401 totp_invalid, 429 ... */
 function classifyLoginError(err: unknown): LoginOutcome {
@@ -28,7 +25,6 @@ function classifyLoginError(err: unknown): LoginOutcome {
 }
 
 export function LoginScreen(): React.JSX.Element {
-  const intl = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -37,7 +33,7 @@ export function LoginScreen(): React.JSX.Element {
   const [totp, setTotp] = useState('');
   const [showTotp, setShowTotp] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loginError, setLoginError] = useState<LoginError>(null);
+  const [loginError, setLoginError] = useState<LoginError | null>(null);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -61,83 +57,23 @@ export function LoginScreen(): React.JSX.Element {
     }
   };
 
+  const onSubmit = (e: React.FormEvent): void => {
+    void handleSubmit(e);
+  };
+
   return (
-    <div>
-      <h1>
-        <FormattedMessage id="screen.login.title" defaultMessage="Log in" />
-      </h1>
-      <form onSubmit={handleSubmit}>
-        <Input
-          id="login-email"
-          type="email"
-          label={intl.formatMessage({ id: 'screen.login.email.label', defaultMessage: 'Email' })}
-          value={email}
-          onChange={setEmail}
-        />
-        <Input
-          id="login-password"
-          type="password"
-          label={intl.formatMessage({
-            id: 'screen.login.password.label',
-            defaultMessage: 'Password',
-          })}
-          value={password}
-          onChange={setPassword}
-        />
-        {showTotp && (
-          <Input
-            id="login-totp"
-            type="text"
-            label={intl.formatMessage({
-              id: 'screen.login.totp.label',
-              defaultMessage: 'Authenticator code',
-            })}
-            value={totp}
-            onChange={setTotp}
-          />
-        )}
-        {loginError === 'invalidCredentials' && (
-          <p>
-            <FormattedMessage
-              id="screen.login.error.invalidCredentials"
-              defaultMessage="Invalid email or password."
-            />
-          </p>
-        )}
-        {loginError === 'invalidTotp' && (
-          <p>
-            <FormattedMessage
-              id="screen.login.error.invalidTotp"
-              defaultMessage="Invalid authenticator code."
-            />
-          </p>
-        )}
-        {loginError === 'tooManyAttempts' && (
-          <p role="alert">
-            <FormattedMessage
-              id="auth.error.tooManyAttempts"
-              defaultMessage="Too many attempts. Please wait a few minutes and try again."
-            />
-          </p>
-        )}
-        {loginError === 'serverError' && (
-          <p>
-            <FormattedMessage
-              id="screen.login.error.serverError"
-              defaultMessage="Something went wrong. Please try again."
-            />
-          </p>
-        )}
-        <Button type="submit" loading={isLoading}>
-          <FormattedMessage id="screen.login.submit" defaultMessage="Log in" />
-        </Button>
-      </form>
-      <Link to="/auth/magic-link">
-        <FormattedMessage id="screen.login.forgotPassword" defaultMessage="Forgot password?" />
-      </Link>
-      <Link to="/register" state={location.state}>
-        <FormattedMessage id="screen.login.createAccount" defaultMessage="Create account" />
-      </Link>
-    </div>
+    <LoginView
+      email={email}
+      password={password}
+      totp={totp}
+      showTotp={showTotp}
+      loading={isLoading}
+      error={loginError}
+      linkState={location.state}
+      onEmailChange={setEmail}
+      onPasswordChange={setPassword}
+      onTotpChange={setTotp}
+      onSubmit={onSubmit}
+    />
   );
 }
