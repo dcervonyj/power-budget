@@ -1,36 +1,40 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
+import { readApiError } from '@power-budget/shared-app';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useLocalObservable } from 'mobx-react-lite';
-import { useTheme } from '../../components/ThemeContext.js';
-import { SkeletonList } from '../../components/shared/SkeletonList.js';
-import { EmptyState } from '../../components/shared/EmptyState.js';
-import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
 import { Toast } from '../../components/shared/Toast.js';
 import {
-  TransactionFilterBar,
   toBooking,
   toMappingFilter,
+  toSource,
   type TransactionFilters,
 } from '../../components/TransactionFilterBar.js';
-import { TransactionRow } from '../../components/TransactionRow.js';
 import { BulkActionBar } from '../../components/BulkActionBar.js';
-import { Button } from '../../components/Button.js';
 import { Modal } from '../../components/Modal.js';
 import { MappingModal } from '../../components/MappingModal.js';
 import { ManualTransactionForm } from '../../components/ManualTransactionForm.js';
 import { TransactionMapModal } from '../../components/TransactionMapModal.js';
 import { TransactionDetailModal } from '../../components/TransactionDetailModal.js';
+import { TransactionListView } from './TransactionListView.js';
 import { apiClient, categoriesApi, plansApi } from '../../../AppProviders.js';
 import { fetchCategoryNames } from '../../../infrastructure/api/CategoryNames.js';
 import {
   loadPlannedItems,
   type PlannedItemLabel,
 } from '../../../application/transactions/PlannedItemLabels.js';
-import { mappingViewOf } from '../../../application/transactions/MappingView.js';
 import type { Transaction } from '../../../domain/transactions/Transaction.js';
 import type { CategoryDto, TransactionPageDto } from '@power-budget/shared-app/contract';
+import {
+  dashboardStore,
+  planDashboardStore,
+} from '../../../application/dashboard/DashboardStore.js';
+import {
+  groupByDay,
+  monthLeft,
+  sortingProgress,
+} from '../../../application/transactions/TransactionListQueryView.js';
 import {
   buildQuery,
   toTransactions,
@@ -44,7 +48,6 @@ export interface TransactionListScreenProps {
 export const TransactionListScreen = observer(function TransactionListScreen({
   detailId,
 }: TransactionListScreenProps): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -82,7 +85,6 @@ export const TransactionListScreen = observer(function TransactionListScreen({
   const [toast, setToast] = useState<string | null>(null);
   /** Bumped to reload the first page (after a bulk change, an added transaction). */
   const [reloadKey, setReloadKey] = useState(0);
-  const selectAllRef = useRef<HTMLInputElement>(null);
 
   const filters: TransactionFilters = {
     from: searchParams.get('from') ?? '',
@@ -91,7 +93,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
     status: toMappingFilter(searchParams.get('status')),
     booking: toBooking(searchParams.get('booking')),
     currency: searchParams.get('currency') ?? '',
-    source: (searchParams.get('source') ?? '') as TransactionFilters['source'],
+    source: toSource(searchParams.get('source')),
     q: searchParams.get('q') ?? '',
   };
 
@@ -131,6 +133,11 @@ export const TransactionListScreen = observer(function TransactionListScreen({
       },
       () => undefined,
     );
+  }, []);
+
+  // The month rod under the title reads the plan dashboard; without a plan it stays out.
+  useEffect(() => {
+    void dashboardStore.open().catch(() => undefined);
   }, []);
 
   // Reset and load the first page when the filters change or a reload is asked for.
@@ -298,14 +305,6 @@ export const TransactionListScreen = observer(function TransactionListScreen({
 
   const allSelected =
     transactions.length > 0 && transactions.every((tx) => selection.ids.has(tx.id));
-  const someSelected = transactions.some((tx) => selection.ids.has(tx.id));
-
-  // Sync indeterminate state on the select-all checkbox
-  useEffect(() => {
-    if (selectAllRef.current) {
-      selectAllRef.current.indeterminate = someSelected && !allSelected;
-    }
-  }, [someSelected, allSelected]);
 
   const handleSelectAll = (): void => {
     if (allSelected) {
@@ -315,139 +314,71 @@ export const TransactionListScreen = observer(function TransactionListScreen({
     }
   };
 
+  const handleConfirmSuggestion = (id: string): void => {
+    const tx = transactions.find((row) => row.id === id);
+    if (tx?.suggestedPlannedItemId == null) {
+      return;
+    }
+    void confirmSuggestion(tx, tx.suggestedPlannedItemId);
+  };
+
+  const confirmSuggestion = async (tx: Transaction, plannedItemId: string): Promise<void> => {
+    try {
+      await apiClient.patch(`/transactions/${tx.id}/mapping`, { plannedItemId });
+      setTransactions((prev) => replaceRow(prev, withMapping(tx, plannedItemId, labels)));
+    } catch (err) {
+      if (readApiError(err).status === 404) {
+        dropGoneRow(tx.id);
+
+        return;
+      }
+      setToast(
+        intl.formatMessage({
+          id: 'screen.transactionDetail.mappingError',
+          defaultMessage: 'Failed to update mapping',
+        }),
+      );
+    }
+  };
+
+  const suggestionLabelOf = (tx: Transaction): string | undefined => {
+    const id = tx.suggestedPlannedItemId;
+    if (id === null) {
+      return undefined;
+    }
+
+    return labels.get(id)?.categoryName || undefined;
+  };
+
+  const dashboard = planDashboardStore.dashboard;
+  const filtered = Object.values(filters).some((value) => value !== '');
+  const status = loading ? 'loading' : error !== null ? 'error' : 'ready';
+
   return (
-    <div
-      style={{
-        padding: theme.space['2xl'],
-        maxWidth: 1000,
-        margin: '0 auto',
-        color: theme.color.text.primary,
+    <TransactionListView
+      month={dashboard === null ? undefined : monthLeft(dashboard)}
+      filters={filters}
+      onFiltersChange={handleFiltersChange}
+      categories={categories}
+      status={status}
+      onRetry={reload}
+      groups={groupByDay(transactions)}
+      sorting={filtered ? undefined : sortingProgress(transactions)}
+      suggestionLabelOf={suggestionLabelOf}
+      selectedIds={selection.ids}
+      onToggleRow={(id) => {
+        selection.toggle(id);
       }}
+      onToggleAll={handleSelectAll}
+      onAdd={() => {
+        setIsAddOpen(true);
+      }}
+      onRowClick={handleRowClick}
+      onRowMap={handleRowMap}
+      onConfirmSuggestion={handleConfirmSuggestion}
+      loadingMore={loadingMore}
+      sentinelRef={sentinelRef}
     >
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: theme.space.md,
-          margin: `0 0 ${String(theme.space.xl)}px 0`,
-        }}
-      >
-        <h1
-          style={{
-            margin: 0,
-            fontSize: theme.fontSize['2xl'],
-            fontWeight: theme.fontWeight.semibold,
-          }}
-        >
-          <FormattedMessage id="screen.transactionList.title" defaultMessage="Transactions" />
-        </h1>
-        <Button
-          variant="primary"
-          onClick={() => {
-            setIsAddOpen(true);
-          }}
-        >
-          <FormattedMessage id="screen.transactionList.add" defaultMessage="Add transaction" />
-        </Button>
-      </div>
-
-      <TransactionFilterBar
-        filters={filters}
-        onChange={handleFiltersChange}
-        categories={categories}
-      />
-
-      {loading && <SkeletonList rows={8} rowHeight={56} />}
-
-      {error !== null && !loading && <ErrorBanner message={error} onRetry={reload} />}
-
-      {!loading && error === null && transactions.length === 0 && (
-        <EmptyState
-          icon="💸"
-          title={
-            <FormattedMessage
-              id="component.shared.empty.noTransactions"
-              defaultMessage="No transactions yet"
-            />
-          }
-        />
-      )}
-
-      {transactions.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.sm }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.space.sm,
-              paddingLeft: theme.space.sm,
-              paddingBottom: theme.space.xs,
-            }}
-          >
-            <input
-              ref={selectAllRef}
-              type="checkbox"
-              aria-label={intl.formatMessage({
-                id: 'screen.transactionList.selectAll',
-                defaultMessage: 'Select all',
-              })}
-              checked={allSelected}
-              onChange={handleSelectAll}
-            />
-            <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
-              <FormattedMessage id="screen.transactionList.selectAll" defaultMessage="Select all" />
-            </span>
-          </div>
-
-          {transactions.map((tx) => (
-            <div key={tx.id} style={{ display: 'flex', alignItems: 'center', gap: theme.space.sm }}>
-              <input
-                type="checkbox"
-                aria-label={intl.formatMessage(
-                  {
-                    id: 'screen.transactionList.selectRow',
-                    defaultMessage: 'Select transaction {id}',
-                  },
-                  { id: tx.id },
-                )}
-                checked={selection.ids.has(tx.id)}
-                onChange={() => {
-                  selection.toggle(tx.id);
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                }}
-              />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <TransactionRow
-                  transaction={tx}
-                  mapping={mappingViewOf(tx)}
-                  onClick={handleRowClick}
-                  onMap={handleRowMap}
-                />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Sentinel div triggers IntersectionObserver for infinite scroll */}
-      <div ref={sentinelRef} style={{ height: 1 }} />
-
-      {loadingMore && (
-        <p
-          style={{
-            color: theme.color.text.secondary,
-            textAlign: 'center',
-            padding: theme.space.lg,
-          }}
-        >
-          <FormattedMessage id="screen.transactionList.loadMore" defaultMessage="Load more" />
-        </p>
-      )}
-
       <BulkActionBar
         selectedIds={selection.selectedIds}
         onMapAll={() => {
@@ -519,7 +450,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
       </Modal>
 
       <Toast message={toast} onDismiss={dismissToast} />
-    </div>
+    </TransactionListView>
   );
 });
 

@@ -147,13 +147,82 @@ describe('TransactionListScreen', () => {
     routeGets();
     renderAt('/transactions');
 
-    expect(await screen.findByTestId('mapping-target')).toHaveProperty('textContent', 'Groceries');
-    expect(screen.getByText('Manual', { selector: 'span' })).toBeDefined();
-    expect(screen.getByText('Archived plan')).toBeDefined();
-    expect(screen.getByText('Suggested')).toBeDefined();
+    expect(await screen.findByText(/Groceries/)).toBeDefined();
+    expect(screen.getAllByText('Added by hand').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Archived plan/)).toBeDefined();
     expect(screen.getByText('Transfer')).toBeDefined();
-    expect(screen.queryByText('Unmapped', { selector: 'span' })).toBeNull();
+    // The filter chip and the Allegro row's tag.
+    expect(screen.getAllByText('To sort')).toHaveLength(2);
     expect(detailReads()).toEqual([]);
+  });
+
+  it('groups the rows under a heading per day', async () => {
+    routeGets();
+    renderAt('/transactions');
+
+    await screen.findByText('Biedronka');
+    expect(screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)).toContain(
+      'Wednesday, October 21',
+    );
+  });
+
+  it('counts the sorted and to-sort rows in the Sorting panel', async () => {
+    routeGets();
+    renderAt('/transactions');
+
+    await screen.findByText('Biedronka');
+    expect(screen.getByText('Sorting')).toBeDefined();
+    expect(screen.getByRole('img', { name: '2 of 3 sorted' })).toBeDefined();
+    expect(screen.getByText('2 sorted · 1 to sort')).toBeDefined();
+  });
+
+  it('hides the Sorting panel while a filter is on', async () => {
+    routeGets();
+    renderAt('/transactions?status=mapped');
+
+    await screen.findByText('Biedronka');
+    expect(screen.queryByText('Sorting')).toBeNull();
+  });
+
+  it('shows the month rod only when a plan dashboard is loaded', async () => {
+    routeGets();
+    renderAt('/transactions');
+
+    await screen.findByText('Biedronka');
+    expect(screen.queryByText(/left in/)).toBeNull();
+  });
+
+  it('shows the empty state when no transaction comes back', async () => {
+    mockGet.mockImplementation((url: string) =>
+      Promise.resolve(
+        ok(url.startsWith('/transactions?') ? { items: [], nextCursor: null, hasMore: false } : []),
+      ),
+    );
+    renderAt('/transactions');
+
+    expect(await screen.findByText('No transactions yet')).toBeDefined();
+  });
+
+  it('shows an alert with Try again when the list fails, and reloads on retry', async () => {
+    mockGet.mockImplementation((url: string) =>
+      url.startsWith('/transactions?') ? Promise.reject(apiError(500)) : Promise.resolve(ok([])),
+    );
+    renderAt('/transactions');
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Failed to load transactions');
+    routeGets();
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('Biedronka')).toBeDefined();
+  });
+
+  it('maps a row to its suggested item when Confirm is pressed', async () => {
+    routeGets();
+    mockPatch.mockResolvedValue(ok(undefined));
+    renderAt('/transactions');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Choose a category for Allegro' }));
+    expect(await screen.findByRole('dialog')).toBeDefined();
   });
 
   it('sends the mapping and booking filters to the API and keeps every returned row', async () => {
@@ -184,7 +253,9 @@ describe('TransactionListScreen', () => {
     mockPatch.mockRejectedValue(apiError(404));
     renderAt('/transactions');
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Change' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Change the category of Biedronka' }),
+    );
     fireEvent.click(await screen.findByRole('button', { name: 'Clear mapping' }));
 
     await waitFor(() => {

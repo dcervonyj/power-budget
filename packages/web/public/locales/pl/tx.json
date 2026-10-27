@@ -1,0 +1,13 @@
+{
+  "tx.list.monthLeft": "Zostało {amount} w miesiącu: {month}",
+  "tx.list.loading": "Wczytywanie transakcji",
+  "tx.list.retry": "Spróbuj ponownie",
+  "tx.filter.label": "Pokaż transakcje",
+  "tx.filter.toSort": "Do posortowania",
+  "tx.filter.more": "Więcej filtrów",
+  "tx.bulk.toolbar": "Działania dla wybranych transakcji",
+  "tx.row.change.aria": "Zmień kategorię: {title}",
+  "tx.sorting.title": "Sortowanie",
+  "tx.sorting.aria": "Posortowano {sorted} z {total}",
+  "tx.sorting.summary": "Posortowane: {sorted} · do posortowania: {toSort}"
+}
