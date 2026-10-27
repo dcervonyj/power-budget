@@ -14,12 +14,12 @@ export interface Bank {
  * provider per entry yet, so the screen keeps this short list until it does.
  */
 export const BANKS: readonly Bank[] = [
-  { id: 'pko_bp', name: 'PKO BP', provider: 'gocardless' },
-  { id: 'mbank', name: 'mBank', provider: 'gocardless' },
-  { id: 'ing', name: 'ING Bank', provider: 'gocardless' },
-  { id: 'santander', name: 'Santander', provider: 'gocardless' },
-  { id: 'millennium', name: 'Bank Millennium', provider: 'gocardless' },
-  { id: 'alior', name: 'Alior Bank', provider: 'gocardless' },
+  { id: 'PKO_BPKOPLPW', name: 'PKO BP', provider: 'gocardless' },
+  { id: 'MBANK_BREXPLPW', name: 'mBank', provider: 'gocardless' },
+  { id: 'ING_INGBPLPW', name: 'ING Bank', provider: 'gocardless' },
+  { id: 'SANTANDER_WBKPPLPP', name: 'Santander', provider: 'gocardless' },
+  { id: 'MILLENNIUM_BIGBPLPW', name: 'Bank Millennium', provider: 'gocardless' },
+  { id: 'ALIOR_ALBPPLPW', name: 'Alior Bank', provider: 'gocardless' },
   { id: 'wise', name: 'Wise', provider: 'wise_personal' },
 ];
 
