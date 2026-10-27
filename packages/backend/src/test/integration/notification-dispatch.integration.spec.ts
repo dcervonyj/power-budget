@@ -17,7 +17,10 @@ import {
   BullMQNotificationDispatchQueue,
   type DispatchNotificationJobPayload,
 } from '../../infrastructure/notifications/BullMQNotificationDispatchQueue.js';
-import { DispatchNotificationProcessor } from '../../infrastructure/notifications/workers/DispatchNotificationProcessor.js';
+import {
+  DispatchNotificationProcessor,
+  NotificationBusyError,
+} from '../../infrastructure/notifications/workers/DispatchNotificationProcessor.js';
 import { InMemoryEmailChannel } from '../doubles/InMemoryEmailChannel.js';
 
 const QUEUE_NAME = 'cln-009-notification-dispatch';
@@ -29,6 +32,8 @@ class GatedEmailChannel extends InMemoryEmailChannel {
   private readonly gate = new Promise<void>((resolve) => {
     this.releaseGate = resolve;
   });
+  private inGate = 0;
+  private readonly waiters: { count: number; resolve: () => void }[] = [];
   private enteredGate: () => void = () => undefined;
   readonly entered = new Promise<void>((resolve) => {
     this.enteredGate = resolve;
@@ -38,7 +43,25 @@ class GatedEmailChannel extends InMemoryEmailChannel {
     this.releaseGate();
   }
 
+  private notifyWaiters(): void {
+    for (const waiter of this.waiters) {
+      if (this.inGate >= waiter.count) {
+        waiter.resolve();
+      }
+    }
+  }
+
+  /** Resolves once `count` sends are waiting at the gate. */
+  entering(count: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.waiters.push({ count, resolve });
+      this.notifyWaiters();
+    });
+  }
+
   override async send(message: EmailMessage): Promise<void> {
+    this.inGate += 1;
+    this.notifyWaiters();
     this.enteredGate();
     await this.gate;
     await super.send(message);
@@ -211,7 +234,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
       processor.process(mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId } })),
     );
 
-    await email.entered;
+    await email.entering(5);
     const pool = getPool();
     expect(pool.totalCount - pool.idleCount).toBeLessThanOrEqual(5);
     email.release();
@@ -237,5 +260,41 @@ describe('notification dispatch against real Postgres + Redis', () => {
 
     expect(email.calls).toHaveLength(1);
     expect(await isSent(id)).toBe(true);
+  });
+
+  it('a late failed mark cannot overwrite a sent row', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const first = await repo.claimForDispatch(id);
+    const second = await repo.claimForDispatch(id);
+
+    await first?.markSent();
+    await second?.markFailed();
+
+    const stored = await row(id);
+    expect(stored?.sentAt).not.toBeNull();
+    expect(stored?.failedAt).toBeNull();
+  });
+
+  it('throws NotificationBusyError while another claim holds the row', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      new InMemoryEmailChannel(),
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
+    const holder = await getPool().connect();
+    await holder.query('BEGIN');
+    await holder.query('SELECT id FROM notifications_outbox WHERE id = $1 FOR UPDATE', [id]);
+
+    try {
+      await expect(
+        processor.process(mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } })),
+      ).rejects.toBeInstanceOf(NotificationBusyError);
+    } finally {
+      await holder.query('ROLLBACK');
+      holder.release();
+    }
   });
 });
