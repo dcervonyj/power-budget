@@ -1,0 +1,19 @@
+{
+  "shell.tab.overview": "Обзор",
+  "shell.tab.transactions": "Транзакции",
+  "shell.tab.toSort": "К разбору",
+  "shell.tab.plan": "План",
+  "shell.tab.add": "Добавить расход",
+  "shell.tabBar": "Главная навигация",
+  "shell.account.menu": "Меню аккаунта",
+  "shell.menu.settings": "Настройки",
+  "shell.menu.categories": "Категории",
+  "shell.menu.household": "Домохозяйство",
+  "shell.menu.banks": "Банки",
+  "shell.menu.audit": "Журнал аудита",
+  "shell.header.back": "Назад",
+  "shell.title.transaction": "Транзакция",
+  "shell.title.planEditor": "Редактировать план",
+  "shell.title.planDashboard": "План",
+  "shell.title.addBank": "Добавить банк"
+}
