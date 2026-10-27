@@ -1,25 +1,32 @@
 import React from 'react';
-import { FormattedMessage } from 'react-intl';
+import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import type { SupportedLocale } from '@power-budget/core';
 import type { OnboardingStore } from '../../../application/onboarding/OnboardingStore.js';
-import type { SupportedLocale } from '../../../AppProviders.js';
+import { isSupportedLocale } from '../../../application/onboarding/OnboardingOptions.js';
+import { RadioGroup, type RadioOption } from '../../glass/controls/RadioGroup.js';
+import { STACK_STYLE, STEP_STYLE, STEP_TITLE_STYLE, optionRowStyle } from './onboardingStyles.js';
 
 interface StepLanguageProps {
   store: OnboardingStore;
   onLocaleChange: (locale: SupportedLocale) => void;
 }
 
-const LANGUAGE_OPTIONS: { code: SupportedLocale; label: string }[] = [
-  { code: 'en', label: 'English' },
-  { code: 'uk', label: 'Українська' },
-  { code: 'ru', label: 'Русский' },
-  { code: 'pl', label: 'Polski' },
+/** Each language is named in itself, so a user who cannot read the current one still finds theirs. */
+const LANGUAGE_OPTIONS: ReadonlyArray<RadioOption<SupportedLocale>> = [
+  { value: 'en', label: 'English' },
+  { value: 'uk', label: 'Українська' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'pl', label: 'Polski' },
 ];
 
 export const StepLanguage = observer(function StepLanguage({
   store,
   onLocaleChange,
 }: StepLanguageProps): React.JSX.Element {
+  const intl = useIntl();
+  const selected = isSupportedLocale(store.selectedLanguage) ? store.selectedLanguage : 'en';
+
   function handleSelect(code: SupportedLocale): void {
     store.setLanguage(code);
     onLocaleChange(code);
@@ -27,36 +34,24 @@ export const StepLanguage = observer(function StepLanguage({
   }
 
   return (
-    <div>
-      <h2>
+    <div style={STEP_STYLE}>
+      <h1 style={STEP_TITLE_STYLE}>
         <FormattedMessage
           id="onboarding.step.language.title"
           defaultMessage="Choose your language"
         />
-      </h2>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {LANGUAGE_OPTIONS.map(({ code, label }) => (
-          <li key={code} style={{ marginBottom: '0.5rem' }}>
-            <button
-              type="button"
-              onClick={() => handleSelect(code)}
-              aria-pressed={store.selectedLanguage === code}
-              style={{
-                fontWeight: store.selectedLanguage === code ? 'bold' : 'normal',
-                padding: '0.5rem 1rem',
-                cursor: 'pointer',
-                border: store.selectedLanguage === code ? '2px solid #333' : '1px solid #ccc',
-                borderRadius: '4px',
-                background: store.selectedLanguage === code ? '#f0f0f0' : 'transparent',
-                width: '100%',
-                textAlign: 'left',
-              }}
-            >
-              {label}
-            </button>
-          </li>
-        ))}
-      </ul>
+      </h1>
+      <RadioGroup<SupportedLocale>
+        options={LANGUAGE_OPTIONS}
+        value={selected}
+        onChange={handleSelect}
+        label={intl.formatMessage({
+          id: 'onboarding.step.language.title',
+          defaultMessage: 'Choose your language',
+        })}
+        groupStyle={STACK_STYLE}
+        optionStyle={optionRowStyle}
+      />
     </div>
   );
 });

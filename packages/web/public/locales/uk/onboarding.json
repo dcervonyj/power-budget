@@ -1,0 +1,20 @@
+{
+  "onboarding.progress": "Крок {current} з {total}",
+  "onboarding.button.back": "Назад",
+  "onboarding.button.next": "Далі",
+  "onboarding.button.finish": "Готово",
+  "onboarding.button.skip": "Пропустити",
+  "onboarding.step.language.title": "Оберіть мову",
+  "onboarding.step.currency.title": "Оберіть основну валюту",
+  "onboarding.step.currency.description": "Усі суми за замовчуванням буде перераховано в цю валюту.",
+  "onboarding.step.currency.label": "Основна валюта",
+  "onboarding.step.interestingCurrencies.title": "Відстежуйте додаткові валюти",
+  "onboarding.step.interestingCurrencies.description": "Оберіть до {max} валют для відстеження поряд з основною.",
+  "onboarding.step.interestingCurrencies.maxHint": "Обрано максимум валют: {max}.",
+  "onboarding.step.bankConnect.title": "Підключіть банк",
+  "onboarding.step.bankConnect.description": "Підключіть банківські рахунки, щоб транзакції імпортувалися автоматично. Ми підтримуємо GoCardless (PSD2) і Wise.",
+  "onboarding.step.bankConnect.connectNow": "Підключити",
+  "onboarding.step.createPlan.title": "Створіть перший план",
+  "onboarding.step.createPlan.description": "План дає змогу задати цілі за доходами та витратами на період (тиждень, місяць або власний). Зіставляйте транзакції із запланованими пунктами, щоб бачити фактичні суми.",
+  "onboarding.step.createPlan.createNow": "Створити план"
+}
