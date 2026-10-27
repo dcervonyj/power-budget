@@ -8,6 +8,15 @@ import '@fontsource-variable/geist';
 import '../../design-tokens/dist/tokens.css';
 import '../../design-tokens/dist/glass.css';
 import { AppProviders } from './AppProviders.js';
+import { AppCrashFallback } from './presentation/shell/AppCrashFallback.js';
+import { reloadOnStaleChunk } from './infrastructure/reloadOnStaleChunk.js';
+
+reloadOnStaleChunk({
+  addEventListener: (type, listener) => window.addEventListener(type, listener),
+  location: window.location,
+  sessionStorage: window.sessionStorage,
+  now: () => Date.now(),
+});
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -23,19 +32,15 @@ Sentry.init({
   },
 });
 
-const SentryApp = Sentry.withErrorBoundary(
-  () => (
-    <BrowserRouter>
-      <AppProviders>
-        <App />
-      </AppProviders>
-    </BrowserRouter>
-  ),
-  { fallback: <p>An error occurred.</p> },
-);
+// The boundary sits inside AppProviders so its fallback can use translations.
+const GuardedApp = Sentry.withErrorBoundary(App, { fallback: <AppCrashFallback /> });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <SentryApp />
+    <BrowserRouter>
+      <AppProviders>
+        <GuardedApp />
+      </AppProviders>
+    </BrowserRouter>
   </React.StrictMode>,
 );
