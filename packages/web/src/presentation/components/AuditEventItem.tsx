@@ -1,7 +1,14 @@
 import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { AuditEventDto } from '@power-budget/shared-app/contract';
-import { useTheme } from './ThemeContext.js';
+import { Avatar } from '../glass/atoms/Avatar.js';
+import {
+  LINE_STYLE,
+  ROW_STYLE,
+  SMALL_STYLE,
+  TEXT_COLUMN_STYLE,
+  TITLE_STYLE,
+} from '../glass/rows/rowStyles.js';
 
 export interface AuditEventItemProps {
   readonly event: AuditEventDto;
@@ -9,60 +16,54 @@ export interface AuditEventItemProps {
   readonly currentUserId: string;
 }
 
+const ACTOR_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--pb-glass-space-sm)',
+};
+
+const META_STYLE: React.CSSProperties = {
+  ...SMALL_STYLE,
+  margin: 0,
+  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+  overflowWrap: 'anywhere',
+};
+
 /** One `GET /audit-log` event: who (user id only, no names in the API), when, what. */
 export function AuditEventItem({ event, currentUserId }: AuditEventItemProps): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
   const hasMeta = Object.keys(event.meta).length > 0;
+  const isOwn = event.actorId === currentUserId;
+  const actor = isOwn
+    ? intl.formatMessage({ id: 'component.auditLog.actor.you', defaultMessage: 'You' })
+    : intl.formatMessage({
+        id: 'component.auditLog.actor.member',
+        defaultMessage: 'Household member',
+      });
 
   return (
-    <li
-      style={{
-        borderBottom: `1px solid ${theme.color.border.subtle}`,
-        paddingBottom: theme.space.md,
-        marginBottom: theme.space.md,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginBottom: theme.space.xs,
-          flexWrap: 'wrap',
-          gap: theme.space.xs,
-        }}
-      >
-        <span style={{ color: theme.color.text.primary, fontWeight: theme.fontWeight.semibold }}>
-          {event.actorId === currentUserId ? (
-            <FormattedMessage id="component.auditLog.actor.you" defaultMessage="You" />
-          ) : (
-            <FormattedMessage
-              id="component.auditLog.actor.member"
-              defaultMessage="Household member"
-            />
-          )}
+    <li style={{ ...ROW_STYLE, gap: 'var(--pb-glass-space-xs)' }}>
+      <div style={LINE_STYLE}>
+        <span style={ACTOR_STYLE}>
+          <Avatar person={{ name: actor }} size={32} tone={isOwn ? 'primary' : 'secondary'} />
+          <span style={TITLE_STYLE}>{actor}</span>
         </span>
-        <span style={{ color: theme.color.text.secondary, fontSize: theme.fontSize.sm }}>
+        <time dateTime={event.occurredAt} style={SMALL_STYLE}>
           {intl.formatDate(event.occurredAt, { dateStyle: 'medium', timeStyle: 'short' })}
-        </span>
+        </time>
       </div>
-      <div style={{ color: theme.color.text.primary, marginBottom: hasMeta ? theme.space.xs : 0 }}>
-        {event.action}
+      <div style={{ ...TEXT_COLUMN_STYLE, gap: 'var(--pb-glass-space-xxs)' }}>
+        <span>{event.action}</span>
+        {hasMeta && (
+          <p style={META_STYLE}>
+            <FormattedMessage
+              id="component.auditLog.details"
+              defaultMessage="Details: {value}"
+              values={{ value: JSON.stringify(event.meta) }}
+            />
+          </p>
+        )}
       </div>
-      {hasMeta && (
-        <div
-          style={{
-            fontSize: theme.fontSize.sm,
-            color: theme.color.text.secondary,
-            fontFamily: 'monospace',
-          }}
-        >
-          {intl.formatMessage(
-            { id: 'component.auditLog.details', defaultMessage: 'Details: {value}' },
-            { value: JSON.stringify(event.meta) },
-          )}
-        </div>
-      )}
     </li>
   );
 }
