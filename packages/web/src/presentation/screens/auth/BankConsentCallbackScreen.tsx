@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { FormattedMessage } from 'react-intl';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../../AppProviders.js';
+import { BankConsentCallbackView } from './BankConsentCallbackView.js';
 
 export function BankConsentCallbackScreen(): React.JSX.Element {
   const navigate = useNavigate();
@@ -31,27 +31,5 @@ export function BankConsentCallbackScreen(): React.JSX.Element {
     void completeConsent();
   }, [ref, errorParam, navigate]);
 
-  if (errorParam !== null || !ref) {
-    return (
-      <div>
-        <p>
-          <FormattedMessage
-            id="screen.bankConsentCallback.error"
-            defaultMessage="Bank consent failed. Please try again."
-          />
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <p>
-        <FormattedMessage
-          id="screen.bankConsentCallback.loading"
-          defaultMessage="Completing bank connection…"
-        />
-      </p>
-    </div>
-  );
+  return <BankConsentCallbackView failed={errorParam !== null || !ref} />;
 }
