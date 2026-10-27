@@ -1,27 +1,25 @@
 export const RELOAD_FLAG_KEY = 'pb_chunk_reload';
-/** A second failure within this window after a reload is not a stale deploy; stop looping. */
-export const RELOAD_WINDOW_MS = 10_000;
 
 export interface StaleChunkTarget {
   addEventListener(type: 'vite:preloadError', listener: (event: Event) => void): void;
   location: { reload(): void };
-  now(): number;
   sessionStorage: Pick<Storage, 'getItem' | 'setItem'>;
+  /** Identifies the running build (its hashed entry URL). */
+  buildId: string;
 }
 
 /**
  * After a deploy an open tab still asks for old chunk hashes. Reload once to pick up the new
- * build; a failure right after that reload is left to the error boundary, so there is never a loop.
+ * build. The build we reloaded from is remembered until a different build runs, so a failure
+ * that survives the reload is left to the error boundary however much later it happens.
  */
 export function reloadOnStaleChunk(target: StaleChunkTarget): void {
   target.addEventListener('vite:preloadError', (event) => {
-    const now = target.now();
-    const last = Number(target.sessionStorage.getItem(RELOAD_FLAG_KEY));
-    if (now - last < RELOAD_WINDOW_MS) {
+    if (target.sessionStorage.getItem(RELOAD_FLAG_KEY) === target.buildId) {
       return;
     }
     event.preventDefault();
-    target.sessionStorage.setItem(RELOAD_FLAG_KEY, String(now));
+    target.sessionStorage.setItem(RELOAD_FLAG_KEY, target.buildId);
     target.location.reload();
   });
 }
