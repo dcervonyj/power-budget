@@ -79,7 +79,7 @@ describe('DbScope settings', () => {
     });
   });
 
-  it('writes transaction-local, escaped set_config calls', () => {
+  it('writes session-level, escaped set_config calls', () => {
     const sql = ScopedPool.settingsSql({
       kind: 'household',
       householdId: "x'; DROP TABLE users; --" as HouseholdId,
@@ -87,9 +87,17 @@ describe('DbScope settings', () => {
     });
 
     expect(sql).toBe(
-      "SELECT set_config('app.household_id', 'x''; DROP TABLE users; --', true), " +
-        `set_config('app.user_id', '${USER}', true), ` +
-        "set_config('app.rls_bypass', 'off', true)",
+      "SELECT set_config('app.household_id', 'x''; DROP TABLE users; --', false), " +
+        `set_config('app.user_id', '${USER}', false), ` +
+        "set_config('app.rls_bypass', 'off', false)",
+    );
+  });
+
+  it('resets every setting for a statement without a scope', () => {
+    expect(ScopedPool.settingsSql(null)).toBe(
+      "SELECT set_config('app.household_id', '', false), " +
+        "set_config('app.user_id', '', false), " +
+        "set_config('app.rls_bypass', 'off', false)",
     );
   });
 });
