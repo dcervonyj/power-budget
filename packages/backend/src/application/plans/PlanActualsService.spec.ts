@@ -222,4 +222,20 @@ describe('PlanActualsService', () => {
       loader.translateError(failure, { rateDate: '2026-10-20' as IsoDate, table: new Map() }),
     ).toBe(failure);
   });
+
+  it('loads the FX table once per rate date for all plans of a run-scoped reader', async () => {
+    const { service, fxRepo } = setup();
+    const scoped = service.runScoped();
+    const asOf = new Date('2026-10-20T12:00:00Z');
+
+    await scoped.read(plan(), asOf);
+    await scoped.read(plan({ id: 'plan-2' as PlanId }), asOf);
+
+    expect(fxRepo.getTable).toHaveBeenCalledTimes(1);
+
+    await service.read(plan(), asOf);
+    await service.read(plan(), asOf);
+
+    expect(fxRepo.getTable).toHaveBeenCalledTimes(3);
+  });
 });

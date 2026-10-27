@@ -103,7 +103,7 @@ describe('ClosePeriodSnapshotUseCase', () => {
       list: vi.fn(),
       update: vi.fn(),
       archive: vi.fn(),
-      findByPeriodEnd: vi.fn(),
+      findDueForClose: vi.fn(),
     };
     actualsReader = { read: vi.fn() };
     leftoverSnapshotRepo = { save: vi.fn() };

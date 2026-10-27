@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
   DEFAULT_DIGEST_TIME_ZONE,
@@ -14,6 +14,8 @@ import { BullMQNotificationDispatchQueue } from '../BullMQNotificationDispatchQu
 
 @Injectable()
 export class NotificationCronService {
+  private readonly logger = new Logger(NotificationCronService.name);
+
   constructor(
     @Inject(RunWeeklyDigestUseCase)
     private readonly weeklyDigestUseCase: RunWeeklyDigestUseCase,
@@ -28,7 +30,16 @@ export class NotificationCronService {
   /** Monday 08:00 Europe/Warsaw (not server time) — enqueue weekly digest for all household members */
   @Cron('0 8 * * 1', { name: 'weekly-digest', timeZone: DEFAULT_DIGEST_TIME_ZONE })
   async runWeeklyDigest(): Promise<void> {
-    await this.weeklyDigestUseCase.execute(new Date(), DEFAULT_DIGEST_TIME_ZONE);
+    const { skipped } = await this.weeklyDigestUseCase.execute(
+      new Date(),
+      DEFAULT_DIGEST_TIME_ZONE,
+    );
+    if (skipped.length > 0) {
+      this.logger.warn(
+        `weekly-digest skipped ${skipped.length} member(s): ` +
+          skipped.map((member) => `${member.userId} (${member.reason})`).join('; '),
+      );
+    }
     await this.relayPendingToQueue();
   }
 

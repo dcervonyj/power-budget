@@ -1,7 +1,20 @@
 import { Inject } from '@nestjs/common';
-import { and, asc, eq, gte, isNotNull, isNull, lte, or, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  eq,
+  gte,
+  isNotNull,
+  isNull,
+  lt,
+  lte,
+  notExists,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { PlanId, HouseholdId, UserId } from '@power-budget/core';
+import { PlanId, HouseholdId, UserId, type IsoDate } from '@power-budget/core';
 import type {
   PlanRepository,
   HouseholdScope,
@@ -97,12 +110,25 @@ export class DrizzlePlanRepository implements PlanRepository {
       .where(and(eq(schema.plans.id, id), eq(schema.plans.householdId, scope.householdId)));
   }
 
-  async findByPeriodEnd(date: Date): Promise<Plan[]> {
-    const dateStr = date.toISOString().slice(0, 10);
+  async findDueForClose(day: IsoDate): Promise<Plan[]> {
+    const snapshots = this.db
+      .select({ one: sql`1` })
+      .from(schema.leftoverSnapshots)
+      .where(
+        and(
+          eq(schema.leftoverSnapshots.householdId, schema.plans.householdId),
+          eq(schema.leftoverSnapshots.planId, schema.plans.id),
+          eq(schema.leftoverSnapshots.periodEnd, schema.plans.periodEnd),
+        ),
+      );
     const rows = await this.db
       .select()
       .from(schema.plans)
-      .where(and(eq(schema.plans.periodEnd, dateStr), isNull(schema.plans.archivedAt)));
+      .where(
+        and(lt(schema.plans.periodEnd, day), isNull(schema.plans.archivedAt), notExists(snapshots)),
+      )
+      .orderBy(asc(schema.plans.periodEnd), asc(schema.plans.id));
+
     return rows.map((r) => this.toEntity(r));
   }
 
