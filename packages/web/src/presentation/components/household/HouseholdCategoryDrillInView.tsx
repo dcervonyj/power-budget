@@ -19,6 +19,7 @@ export interface HouseholdCategoryDrillInViewProps {
   readonly loading: boolean;
   readonly error: HouseholdCategoryError | null;
   readonly category: HouseholdDashboardCategoryDto | null;
+  readonly onRetry?: () => void;
 }
 
 const LABEL_STYLE: React.CSSProperties = {
@@ -31,12 +32,18 @@ export function HouseholdCategoryDrillInView({
   loading,
   error,
   category,
+  onRetry,
 }: HouseholdCategoryDrillInViewProps): React.JSX.Element {
   if (loading) {
     return <SkeletonList rows={2} rowHeight={96} />;
   }
   if (error !== null) {
-    return <ErrorBanner message={<DrillInErrorText error={error} />} />;
+    return (
+      <ErrorBanner
+        message={<DrillInErrorText error={error} />}
+        onRetry={error === 'not_found' ? undefined : onRetry}
+      />
+    );
   }
   if (category === null) {
     return <div />;
