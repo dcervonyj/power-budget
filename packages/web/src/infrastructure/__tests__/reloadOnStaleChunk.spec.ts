@@ -1,9 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { reloadOnStaleChunk, RELOAD_FLAG_KEY, RELOAD_WINDOW_MS } from '../reloadOnStaleChunk.js';
+import { reloadOnStaleChunk, RELOAD_FLAG_KEY } from '../reloadOnStaleChunk.js';
 
-function setup() {
-  const clock = { value: 1_000_000 };
-  const store = new Map<string, string>();
+function setup(store = new Map<string, string>(), buildId = 'build-a') {
   const reload = vi.fn();
   let listener: (event: Event) => void = () => undefined;
   reloadOnStaleChunk({
@@ -11,17 +9,16 @@ function setup() {
       listener = fn;
     },
     location: { reload },
-    now: () => clock.value,
     sessionStorage: {
       getItem: (key) => store.get(key) ?? null,
       setItem: (key, value) => void store.set(key, value),
     },
+    buildId,
   });
 
   return {
     reload,
     store,
-    clock,
     fire: () => listener(new Event('vite:preloadError', { cancelable: true })),
   };
 }
@@ -33,10 +30,10 @@ describe('reloadOnStaleChunk', () => {
     fire();
 
     expect(reload).toHaveBeenCalledTimes(1);
-    expect(store.get(RELOAD_FLAG_KEY)).toBe('1000000');
+    expect(store.get(RELOAD_FLAG_KEY)).toBe('build-a');
   });
 
-  it('does not reload again, leaving the error to the boundary', () => {
+  it('does not reload again for the same build, however late the failure comes', () => {
     const { reload, fire } = setup();
 
     fire();
@@ -45,13 +42,22 @@ describe('reloadOnStaleChunk', () => {
     expect(reload).toHaveBeenCalledTimes(1);
   });
 
-  it('reloads again for a later deploy once the window has passed', () => {
-    const { reload, clock, fire } = setup();
+  it('does not reload after a reload that kept the same build (persistent failure)', () => {
+    const store = new Map([[RELOAD_FLAG_KEY, 'build-a']]);
+    const { reload, fire } = setup(store, 'build-a');
 
     fire();
-    clock.value += RELOAD_WINDOW_MS;
+
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('reloads again for a later deploy (different build)', () => {
+    const store = new Map([[RELOAD_FLAG_KEY, 'build-a']]);
+    const { reload, fire } = setup(store, 'build-b');
+
     fire();
 
-    expect(reload).toHaveBeenCalledTimes(2);
+    expect(reload).toHaveBeenCalledTimes(1);
+    expect(store.get(RELOAD_FLAG_KEY)).toBe('build-b');
   });
 });

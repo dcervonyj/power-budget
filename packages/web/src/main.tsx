@@ -7,6 +7,7 @@ import '@fontsource-variable/geist';
 // The package exports map only exposes JS, so the generated CSS is imported by path (built by turbo).
 import '../../design-tokens/dist/tokens.css';
 import '../../design-tokens/dist/glass.css';
+import { IntlProvider } from 'react-intl';
 import { AppProviders } from './AppProviders.js';
 import { AppCrashFallback } from './presentation/shell/AppCrashFallback.js';
 import { reloadOnStaleChunk } from './infrastructure/reloadOnStaleChunk.js';
@@ -15,7 +16,7 @@ reloadOnStaleChunk({
   addEventListener: (type, listener) => window.addEventListener(type, listener),
   location: window.location,
   sessionStorage: window.sessionStorage,
-  now: () => Date.now(),
+  buildId: import.meta.url,
 });
 
 Sentry.init({
@@ -32,15 +33,29 @@ Sentry.init({
   },
 });
 
-// The boundary sits inside AppProviders so its fallback can use translations.
+// Inner boundary: translated fallback. Outer boundary: covers provider render errors and
+// failed locale chunks, where no translations exist, so it falls back to English.
 const GuardedApp = Sentry.withErrorBoundary(App, { fallback: <AppCrashFallback /> });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
+const OuterGuard = Sentry.withErrorBoundary(
+  () => (
     <BrowserRouter>
       <AppProviders>
         <GuardedApp />
       </AppProviders>
     </BrowserRouter>
+  ),
+  {
+    fallback: (
+      <IntlProvider locale="en" defaultLocale="en" messages={{}}>
+        <AppCrashFallback />
+      </IntlProvider>
+    ),
+  },
+);
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <OuterGuard />
   </React.StrictMode>,
 );

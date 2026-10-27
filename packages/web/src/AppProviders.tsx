@@ -123,9 +123,16 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
   const [locale, setLocale] = useState<SupportedLocale>(resolveLocale);
   const [messages, setMessages] = useState<Record<string, string>>({});
 
+  const [loadError, setLoadError] = useState<unknown>(undefined);
+
   useEffect(() => {
-    void loadMessages(locale).then(setMessages);
+    loadMessages(locale).then(setMessages, setLoadError);
   }, [locale]);
+
+  if (loadError !== undefined) {
+    // Rethrown during render so the outer error boundary shows the Reload fallback.
+    throw loadError;
+  }
 
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>
