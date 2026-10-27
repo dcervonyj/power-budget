@@ -15,6 +15,7 @@ import {
   toPlanDashboard,
   toUnplannedTransaction,
 } from '../../infrastructure/api/PlanDashboardMapper.js';
+import { toDashboardOverview, type DashboardOverview } from './dashboardOverview.js';
 
 /** 404 is `not_found`; 503 fx_rate_unavailable (CLN-012) is `fx_unavailable`. */
 export type PlanDashboardError = 'not_found' | 'fx_unavailable' | 'failed';
@@ -31,6 +32,17 @@ export interface UnplannedList {
   readonly failed: boolean;
 }
 
+/** What the Overview view reads: the store, or fixed data in the gallery. */
+export interface PlanDashboardSource {
+  readonly dashboard: PlanDashboard | null;
+  readonly overview: DashboardOverview | null;
+  readonly loading: boolean;
+  readonly error: PlanDashboardError | null;
+  readonly unplannedExpenses: UnplannedList;
+  readonly unplannedIncome: UnplannedList;
+  loadMoreUnplanned(direction: LineDirection): Promise<void>;
+}
+
 const EMPTY_LIST: UnplannedList = { items: [], nextCursor: null, loading: false, failed: false };
 
 /**
@@ -38,7 +50,7 @@ const EMPTY_LIST: UnplannedList = { items: [], nextCursor: null, loading: false,
  * the item amounts in their own currency and the first page of the caller's unplanned
  * transactions. A reload keeps the shown data until the new answer arrives.
  */
-export class PlanDashboardStore {
+export class PlanDashboardStore implements PlanDashboardSource {
   planId: string | null = null;
   dashboard: PlanDashboard | null = null;
   loading = false;
@@ -56,6 +68,11 @@ export class PlanDashboardStore {
       plans: false,
       categories: false,
     });
+  }
+
+  /** Safe to spend, pace and forecast of the shown dashboard (core maths); null until loaded. */
+  get overview(): DashboardOverview | null {
+    return this.dashboard === null ? null : toDashboardOverview(this.dashboard);
   }
 
   async load(planId: string): Promise<void> {
