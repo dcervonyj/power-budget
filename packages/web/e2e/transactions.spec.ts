@@ -175,7 +175,9 @@ test.describe('manual transaction journey', () => {
       await page.evaluate((value) => {
         document.documentElement.setAttribute('data-theme', value);
       }, theme);
-      await page.screenshot({ path: info.outputPath(`transactions-${theme}.png`), fullPage: true });
+      const path = info.outputPath(`transactions-${theme}.png`);
+      await page.screenshot({ path, fullPage: true });
+      await info.attach(`transactions-${theme}`, { path, contentType: 'image/png' });
     }
   });
 

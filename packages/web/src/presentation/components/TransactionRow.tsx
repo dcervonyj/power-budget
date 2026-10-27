@@ -73,6 +73,22 @@ export function TransactionRow({
           onChooseCategory={toSort ? onMap : undefined}
         />
       </div>
+      {data.status === 'pending' && mapping.kind === 'unmapped' ? (
+        <button
+          type="button"
+          className="pbg-ctl"
+          aria-label={intl.formatMessage(
+            { id: 'glass-rows.tx.choose.aria', defaultMessage: 'Choose a category for {title}' },
+            { title: data.title },
+          )}
+          onClick={() => {
+            onMap(transaction.id);
+          }}
+          style={CHANGE_STYLE}
+        >
+          {intl.formatMessage({ id: 'tx.row.choose', defaultMessage: 'Choose' })}
+        </button>
+      ) : null}
       {mapping.kind === 'mapped' ? (
         <button
           type="button"
