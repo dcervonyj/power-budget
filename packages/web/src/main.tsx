@@ -15,10 +15,8 @@ import { reloadOnStaleChunk } from './infrastructure/reloadOnStaleChunk.js';
 reloadOnStaleChunk({
   addEventListener: (type, listener) => window.addEventListener(type, listener),
   location: window.location,
-  sessionStorage: window.sessionStorage,
-  setTimeout: (handler, ms) => window.setTimeout(handler, ms),
-  clearTimeout: (id) => window.clearTimeout(id),
-  buildId: import.meta.url,
+  sessionStorage: () => window.sessionStorage,
+  now: () => Date.now(),
 });
 
 Sentry.init({
