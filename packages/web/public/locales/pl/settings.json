@@ -1,0 +1,7 @@
+{
+  "settings.tab.appearance": "Wygląd",
+  "settings.tabs.label": "Sekcje ustawień",
+  "settings.appearance.title": "Wygląd",
+  "settings.appearance.description": "Wybierz Noc, Dzień albo ustawienie urządzenia. Wybór jest zapamiętany na tym urządzeniu.",
+  "screen.auditLog.error": "Nie udało się wczytać dziennika zdarzeń"
+}

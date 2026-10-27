@@ -1,26 +1,26 @@
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
-import { useTheme } from '../../components/ThemeContext.js';
+import { Avatar } from '../../glass/atoms/Avatar.js';
+import { GlassPanel } from '../../glass/material/GlassPanel.js';
+import {
+  ACTIONS_STYLE,
+  ERROR_STYLE,
+  FIELDS_STYLE,
+  HEADING_STYLE,
+  NOTE_STYLE,
+  SECTION_STYLE,
+  SUCCESS_STYLE,
+} from './settingsStyles.js';
 import { Input } from '../../components/Input.js';
 import { Button } from '../../components/Button.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
 
-function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word[0]?.toUpperCase() ?? '')
-    .join('');
-}
-
 export const SettingsProfileTab = observer(function SettingsProfileTab(): React.JSX.Element {
-  const theme = useTheme();
   const intl = useIntl();
   const [saved, setSaved] = useState(false);
 
-  const initials = getInitials(settingsStore.displayName) || '?';
+  const displayName = settingsStore.displayName;
 
   async function handleSave(): Promise<void> {
     await settingsStore.saveProfile();
@@ -33,51 +33,22 @@ export const SettingsProfileTab = observer(function SettingsProfileTab(): React.
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xl }}>
-      {/* Avatar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space.lg }}>
-        <div
-          aria-hidden
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            backgroundColor: theme.color.accent.default,
-            color: theme.color.accent.onAccent,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: theme.fontSize.xl,
-            fontWeight: theme.fontWeight.semibold,
-            flexShrink: 0,
-          }}
-        >
-          {initials}
-        </div>
+    <GlassPanel material="frosted" depth={1} contentStyle={SECTION_STYLE}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--pb-glass-space-lg)' }}>
+        <Avatar person={{ name: displayName }} size={64} />
         <div>
-          <div
-            style={{
-              fontSize: theme.fontSize.lg,
-              fontWeight: theme.fontWeight.semibold,
-              color: theme.color.text.primary,
-            }}
-          >
-            {settingsStore.displayName ||
+          <h2 style={HEADING_STYLE}>
+            {displayName ||
               intl.formatMessage({
                 id: 'settings.profile.displayName',
                 defaultMessage: 'Display name',
               })}
-          </div>
-          {settingsStore.email && (
-            <div style={{ fontSize: theme.fontSize.sm, color: theme.color.text.secondary }}>
-              {settingsStore.email}
-            </div>
-          )}
+          </h2>
+          {settingsStore.email && <p style={NOTE_STYLE}>{settingsStore.email}</p>}
         </div>
       </div>
 
-      {/* Fields */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.md, maxWidth: 400 }}>
+      <div style={FIELDS_STYLE}>
         <Input
           id="settings-display-name"
           label={intl.formatMessage({
@@ -119,7 +90,7 @@ export const SettingsProfileTab = observer(function SettingsProfileTab(): React.
         />
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space.md }}>
+      <div style={ACTIONS_STYLE}>
         <Button
           variant="primary"
           loading={settingsStore.isSaving}
@@ -130,15 +101,12 @@ export const SettingsProfileTab = observer(function SettingsProfileTab(): React.
           <FormattedMessage id="settings.profile.save" defaultMessage="Save changes" />
         </Button>
         {saved && (
-          <span style={{ color: theme.color.status.success, fontSize: theme.fontSize.sm }}>
+          <span role="status" style={SUCCESS_STYLE}>
             <FormattedMessage id="common.saved" defaultMessage="Saved!" />
           </span>
         )}
         {settingsStore.saveError !== null && (
-          <span
-            role="alert"
-            style={{ color: theme.color.status.danger, fontSize: theme.fontSize.sm }}
-          >
+          <span role="alert" style={ERROR_STYLE}>
             <FormattedMessage
               id="settings.saveError"
               defaultMessage="Could not save. Please try again."
@@ -146,6 +114,6 @@ export const SettingsProfileTab = observer(function SettingsProfileTab(): React.
           </span>
         )}
       </div>
-    </div>
+    </GlassPanel>
   );
 });
