@@ -76,7 +76,8 @@ test.describe('manual transaction journey', () => {
     await page.goto('/transactions');
     await expect(page.getByText('No transactions yet')).toBeVisible();
     await page.getByRole('button', { name: 'Add transaction', exact: true }).click();
-    await expect(page.getByLabel('Currency')).toHaveValue('PLN');
+    const dialog = page.getByRole('dialog', { name: 'Add Manual Transaction' });
+    await expect(dialog.getByLabel('Currency')).toHaveValue('PLN');
     await page.getByRole('button', { name: 'Create cash account' }).click();
 
     // Normal units in, exact minor units out; the currency is the account's.
@@ -85,7 +86,7 @@ test.describe('manual transaction journey', () => {
     await page.getByLabel('Description').fill('Corner shop');
     await page.getByRole('button', { name: 'Add Transaction', exact: true }).click();
 
-    await expect(page.getByRole('status')).toContainText('Transaction added.');
+    await expect(page.getByRole('status').filter({ hasText: 'Transaction added.' })).toBeVisible();
     const row = page.getByRole('group', { name: /Corner shop/ });
     await expect(row).toBeVisible();
     await expect(row.getByText('To sort')).toBeVisible();
@@ -188,9 +189,9 @@ test.describe('manual transaction journey', () => {
 
     await page.goto(`/transactions/${String(partnerTx)}`);
 
-    await expect(page.getByRole('status')).toContainText(
-      'This transaction is no longer available.',
-    );
+    await expect(
+      page.getByRole('status').filter({ hasText: 'This transaction is no longer available.' }),
+    ).toBeVisible();
     await expect(page).toHaveURL(/\/transactions$/);
     await expect(page.getByText('Partner private')).toHaveCount(0);
   });
