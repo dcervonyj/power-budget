@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { useIntl } from 'react-intl';
+import { useIntl, type IntlShape } from 'react-intl';
 import { parseLocalIsoDate } from '@power-budget/core';
 import type { RodData } from '@power-budget/shared-app';
+import type { MoneyAmount } from '../../../domain/dashboard/PlanDashboard.js';
 import { Icon } from '../../glass/atoms/Icon.js';
 import { formatAmount } from '../../i18n/formatAmount.js';
 import { Rod } from '../../glass/light/Rod.js';
@@ -163,15 +164,12 @@ function Header({ month, onAdd }: { month?: MonthLeft; onAdd: () => void }): Rea
             }}
           >
             <p style={{ ...DIM_STYLE, fontSize: 'var(--pb-glass-type-body-web)' }}>
-              {intl.formatMessage(
-                { id: 'tx.list.monthLeft', defaultMessage: '{amount} left in {month}' },
-                { amount: formatAmount(month.left, intl.locale), month: monthName },
-              )}
+              {monthSummary(month, monthName, intl)}
             </p>
             <Rod
               rod={monthRod(
                 month,
-                labels.rodAria(monthName, rodState(month), month.left, month.planned),
+                labels.rodAria(monthName, rodState(month), monthAmount(month), month.planned),
               )}
             />
           </div>
@@ -184,6 +182,30 @@ function Header({ month, onAdd }: { month?: MonthLeft; onAdd: () => void }): Rea
         })}
       </button>
     </header>
+  );
+}
+
+/** What the rod and the line show: what is left, or the positive overspend. */
+function monthAmount(month: MonthLeft): MoneyAmount {
+  if (month.left.amountMinor < 0n) {
+    return { amountMinor: -month.left.amountMinor, currency: month.left.currency };
+  }
+
+  return month.left;
+}
+
+function monthSummary(month: MonthLeft, monthName: string, intl: IntlShape): string {
+  const amount = formatAmount(monthAmount(month), intl.locale);
+  if (month.left.amountMinor < 0n) {
+    return intl.formatMessage(
+      { id: 'tx.list.monthOver', defaultMessage: 'Over by {amount} in {month}' },
+      { amount, month: monthName },
+    );
+  }
+
+  return intl.formatMessage(
+    { id: 'tx.list.monthLeft', defaultMessage: '{amount} left in {month}' },
+    { amount, month: monthName },
   );
 }
 

@@ -85,6 +85,13 @@ describe('TransactionRow', () => {
     expect(screen.queryByText('Confirm')).toBeNull();
   });
 
+  it('offers Choose on an unmapped pending row so it can still be mapped', () => {
+    const { onMap } = renderRow({ kind: 'unmapped', suggested: false }, 'pending');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a category for Biedronka' }));
+    expect(onMap).toHaveBeenCalledWith('tx-1');
+  });
+
   it('shows the suggestion and Confirm when the API proposes a known item', () => {
     const { onConfirmSuggestion } = renderRow({ kind: 'unmapped', suggested: true }, 'booked', {
       suggestionLabel: 'Groceries',
