@@ -152,4 +152,13 @@ describe('ManualTransactionForm', () => {
     );
     expect(mockPost).not.toHaveBeenCalled();
   });
+
+  it('shows the form for given accounts without asking the API, with 44 px controls', async () => {
+    render(<ManualTransactionForm initialAccounts={[account({})]} />, { wrapper });
+
+    const amount = await screen.findByLabelText('Amount');
+    expect(mockGet).not.toHaveBeenCalled();
+    expect(amount.style.minHeight).toBe('44px');
+    expect(screen.getByRole('button', { name: 'Add Transaction' })).toBeDefined();
+  });
 });
