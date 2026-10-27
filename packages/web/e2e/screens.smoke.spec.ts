@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from '@playwright/test';
+import { test, expect, type Page, type Route, type TestInfo } from '@playwright/test';
 import { FULL_STACK, STACK } from './support/stack.js';
 
 // UI-013: the plan dashboard, the household screen (invite partner) and the
@@ -287,6 +287,20 @@ async function open(page: Page, url: string): Promise<boolean> {
   }
 }
 
+/** Full-page screenshots of the current page in both D7 themes, attached to the report. */
+async function attachThemeShots(page: Page, testInfo: TestInfo, name: string): Promise<void> {
+  for (const theme of ['dark', 'light'] as const) {
+    await page.evaluate((value) => {
+      document.documentElement.setAttribute('data-theme', value);
+      document.documentElement.style.colorScheme = value;
+    }, theme);
+    await testInfo.attach(`${name}-${theme}`, {
+      body: await page.screenshot({ fullPage: true, animations: 'disabled' }),
+      contentType: 'image/png',
+    });
+  }
+}
+
 async function shot(page: Page, name: string): Promise<void> {
   if (SCREENSHOT_DIR !== undefined) {
     await page.screenshot({ path: `${SCREENSHOT_DIR}/${name}.png`, fullPage: true });
@@ -294,7 +308,9 @@ async function shot(page: Page, name: string): Promise<void> {
 }
 
 test.describe('UI-013 screens', () => {
-  test('plan dashboard shows planned vs actual, unplanned and the net @smoke', async ({ page }) => {
+  test('plan dashboard shows planned vs actual, unplanned and the net @smoke', async ({
+    page,
+  }, testInfo) => {
     await signIn(page);
     await stubApi(page, profile('user-ann', 'ann@example.com'));
     if (!(await open(page, '/plans/plan-1/dashboard'))) {
@@ -305,17 +321,21 @@ test.describe('UI-013 screens', () => {
 
     await expect(page.getByRole('heading', { name: 'October' })).toBeVisible();
     await expect(page.getByText('Data as of 21 Oct 2026')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Expenses' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Planned vs spent' })).toBeVisible();
     const groceries = page.getByRole('article', { name: 'Groceries' });
     await expect(groceries.getByText('PLN 1,400.00 of PLN 1,930.00')).toBeVisible();
     await expect(groceries.getByText('planned as €100.00')).toBeVisible();
+    // DSN-020: the D7 category row names the overspend ("Over by …") instead of "Over budget".
     await expect(
-      page.getByRole('article', { name: 'Rent' }).getByText('Over budget'),
+      page.getByRole('article', { name: 'Rent' }).getByText('Over by PLN 200.00'),
     ).toBeVisible();
     await expect(page.getByText('Allegro')).toBeVisible();
-    await expect(page.getByText('-€12.40')).toBeVisible();
+    await expect(
+      page.getByText('Wise card · Lidl Berlin').locator('xpath=ancestor::li[1]'),
+    ).toContainText(/−€\s?12\.40/);
     await expect(page.getByText('+PLN 5,221.76')).toBeVisible();
     await shot(page, 'plan-dashboard');
+    await attachThemeShots(page, testInfo, 'plan-dashboard');
   });
 
   test('the owner invites the partner from the household screen @smoke', async ({ page }) => {
