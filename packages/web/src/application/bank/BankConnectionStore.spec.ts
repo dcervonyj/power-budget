@@ -57,7 +57,6 @@ describe('BankConnectionStore', () => {
     store.resetSession();
 
     expect(store.connections).toEqual([]);
-    expect(store.expiringConnections).toEqual([]);
     expect(store.loading).toBe(false);
     expect(store.error).toBeNull();
   });
@@ -115,6 +114,16 @@ describe('BankConnectionStore', () => {
     expect(store.actionError).toBe('connect');
     expect(store.error).toBeNull();
     expect(store.connections).toHaveLength(1);
+  });
+
+  it('drops a stale action error when the connections are fetched again', async () => {
+    mockPost.mockRejectedValueOnce(new Error('403'));
+    await store.connect('gocardless', 'PKO_BPKOPLPW', 'https://app/callback');
+    mockGet.mockResolvedValueOnce(ok([CONNECTION]));
+
+    await store.fetchConnections();
+
+    expect(store.actionError).toBeNull();
   });
 
   it('returns the consent page of a reconnect', async () => {

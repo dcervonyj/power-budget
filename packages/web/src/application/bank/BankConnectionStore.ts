@@ -30,15 +30,11 @@ export class BankConnectionStore {
     makeAutoObservable<BankConnectionStore, 'session'>(this, { session: false });
   }
 
-  get expiringConnections(): BankConnection[] {
-    const threshold = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    return this.connections.filter((c) => c.expiresAt !== null && c.expiresAt < threshold);
-  }
-
   async fetchConnections(): Promise<void> {
     const session = this.session;
     this.loading = true;
     this.error = null;
+    this.actionError = null;
     try {
       const res = await apiClient.get<BankConnectionDto[]>('/bank-connections');
       this.applyConnections(session, res.data);

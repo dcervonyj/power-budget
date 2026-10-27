@@ -43,7 +43,7 @@ describe('AddBankConnectionScreen', () => {
     });
     expect(connect).toHaveBeenCalledWith(
       'gocardless',
-      'mbank',
+      'MBANK_BREXPLPW',
       'https://app.test/bank/consent/callback',
     );
   });
