@@ -1,0 +1,20 @@
+{
+  "onboarding.progress": "Шаг {current} из {total}",
+  "onboarding.button.back": "Назад",
+  "onboarding.button.next": "Далее",
+  "onboarding.button.finish": "Готово",
+  "onboarding.button.skip": "Пропустить",
+  "onboarding.step.language.title": "Выберите язык",
+  "onboarding.step.currency.title": "Выберите основную валюту",
+  "onboarding.step.currency.description": "Все суммы по умолчанию будут пересчитаны в эту валюту.",
+  "onboarding.step.currency.label": "Основная валюта",
+  "onboarding.step.interestingCurrencies.title": "Отслеживайте дополнительные валюты",
+  "onboarding.step.interestingCurrencies.description": "Выберите до {max} валют для отслеживания рядом с основной.",
+  "onboarding.step.interestingCurrencies.maxHint": "Выбрано максимум валют: {max}.",
+  "onboarding.step.bankConnect.title": "Подключите банк",
+  "onboarding.step.bankConnect.description": "Подключите банковские счета, чтобы транзакции импортировались автоматически. Мы поддерживаем GoCardless (PSD2) и Wise.",
+  "onboarding.step.bankConnect.connectNow": "Подключить",
+  "onboarding.step.createPlan.title": "Создайте первый план",
+  "onboarding.step.createPlan.description": "План позволяет задать цели по доходам и расходам на период (неделя, месяц или свой). Сопоставляйте транзакции с запланированными пунктами, чтобы видеть фактические суммы.",
+  "onboarding.step.createPlan.createNow": "Создать план"
+}

@@ -1,90 +1,81 @@
 import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { observer } from 'mobx-react-lite';
+import {
+  INTERESTING_CURRENCY_OPTIONS,
+  MAX_INTERESTING_CURRENCIES,
+} from '../../../application/onboarding/OnboardingOptions.js';
 import type { OnboardingStore } from '../../../application/onboarding/OnboardingStore.js';
+import '../../glass/controls/controls.css';
+import {
+  STEP_STYLE,
+  STEP_TEXT_STYLE,
+  STEP_TITLE_STYLE,
+  chipToggleStyle,
+} from './onboardingStyles.js';
 
 interface StepInterestingCurrenciesProps {
   store: OnboardingStore;
 }
 
-const MAX_INTERESTING = 5;
-
-const CURRENCY_OPTIONS: string[] = [
-  'USD',
-  'EUR',
-  'GBP',
-  'PLN',
-  'UAH',
-  'CHF',
-  'CZK',
-  'JPY',
-  'CAD',
-  'AUD',
-];
+const CHIPS_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 'var(--pb-glass-space-xs)',
+  margin: 0,
+  padding: 0,
+  listStyle: 'none',
+};
 
 export const StepInterestingCurrencies = observer(function StepInterestingCurrencies({
   store,
 }: StepInterestingCurrenciesProps): React.JSX.Element {
   const selected = store.interestingCurrencies;
-  const isMaxReached = selected.length >= MAX_INTERESTING;
-
-  function handleToggle(code: string): void {
-    if (selected.includes(code)) {
-      store.setInterestingCurrencies(selected.filter((c) => c !== code));
-    } else if (!isMaxReached) {
-      store.setInterestingCurrencies([...selected, code]);
-    }
-  }
-
-  const availableOptions = CURRENCY_OPTIONS.filter((c) => c !== store.baseCurrency);
+  const isMaxReached = selected.length >= MAX_INTERESTING_CURRENCIES;
+  const options = INTERESTING_CURRENCY_OPTIONS.filter((code) => code !== store.baseCurrency);
 
   return (
-    <div>
-      <h2>
+    <div style={STEP_STYLE}>
+      <h1 style={STEP_TITLE_STYLE}>
         <FormattedMessage
           id="onboarding.step.interestingCurrencies.title"
           defaultMessage="Track additional currencies"
         />
-      </h2>
-      <p>
+      </h1>
+      <p style={STEP_TEXT_STYLE}>
         <FormattedMessage
           id="onboarding.step.interestingCurrencies.description"
           defaultMessage="Select up to {max} currencies to track alongside your base currency."
-          values={{ max: MAX_INTERESTING }}
+          values={{ max: MAX_INTERESTING_CURRENCIES }}
         />
       </p>
       {isMaxReached && (
-        <p style={{ color: '#888', fontSize: '0.875rem' }}>
+        <p role="status" style={STEP_TEXT_STYLE}>
           <FormattedMessage
             id="onboarding.step.interestingCurrencies.maxHint"
             defaultMessage="Maximum {max} currencies selected."
-            values={{ max: MAX_INTERESTING }}
+            values={{ max: MAX_INTERESTING_CURRENCIES }}
           />
         </p>
       )}
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {availableOptions.map((code) => {
+      <ul style={CHIPS_STYLE}>
+        {options.map((code) => {
           const isChecked = selected.includes(code);
-          const isDisabled = !isChecked && isMaxReached;
+
           return (
-            <li key={code} style={{ marginBottom: '0.5rem' }}>
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  cursor: isDisabled ? 'not-allowed' : 'pointer',
-                  opacity: isDisabled ? 0.5 : 1,
+            <li key={code}>
+              <button
+                type="button"
+                className="pbg-ctl"
+                aria-pressed={isChecked}
+                disabled={!isChecked && isMaxReached}
+                style={chipToggleStyle(isChecked)}
+                onClick={() => {
+                  store.toggleInterestingCurrency(code);
                 }}
               >
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  disabled={isDisabled}
-                  onChange={() => handleToggle(code)}
-                />
                 {code}
-              </label>
+              </button>
             </li>
           );
         })}

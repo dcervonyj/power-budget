@@ -2,52 +2,48 @@ import React from 'react';
 import { FormattedMessage } from 'react-intl';
 import { Link } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import type { OnboardingStore } from '../../../application/onboarding/OnboardingStore.js';
+import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
+import { Button } from '../../components/Button.js';
+import '../../glass/controls/controls.css';
+import {
+  STACK_STYLE,
+  STEP_STYLE,
+  STEP_TEXT_STYLE,
+  STEP_TITLE_STYLE,
+  linkButtonStyle,
+} from './onboardingStyles.js';
 
 interface StepCreatePlanProps {
-  store: OnboardingStore;
+  onSkip: () => void;
 }
 
 export const StepCreatePlan = observer(function StepCreatePlan({
-  store,
+  onSkip,
 }: StepCreatePlanProps): React.JSX.Element {
   return (
-    <div>
-      <h2>
+    <div style={STEP_STYLE}>
+      <h1 style={STEP_TITLE_STYLE}>
         <FormattedMessage
           id="onboarding.step.createPlan.title"
           defaultMessage="Create your first plan"
         />
-      </h2>
-      <p>
+      </h1>
+      <p style={STEP_TEXT_STYLE}>
         <FormattedMessage
           id="onboarding.step.createPlan.description"
           defaultMessage="A plan lets you set income and expense targets for a period (weekly, monthly, or custom). Map your transactions to planned items to track your actuals."
         />
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
-        <Link to="/plans" style={{ textDecoration: 'none' }}>
-          <button type="button" style={{ padding: '0.5rem 1.5rem', cursor: 'pointer' }}>
-            <FormattedMessage
-              id="onboarding.step.createPlan.createNow"
-              defaultMessage="Create plan"
-            />
-          </button>
+      <div style={STACK_STYLE}>
+        <Link to={ROUTE_PATHS.plans} className="pbg-ctl" style={linkButtonStyle(true)}>
+          <FormattedMessage
+            id="onboarding.step.createPlan.createNow"
+            defaultMessage="Create plan"
+          />
         </Link>
-        <button
-          type="button"
-          onClick={() => store.skip()}
-          style={{
-            padding: '0.5rem 1.5rem',
-            cursor: 'pointer',
-            background: 'transparent',
-            border: 'none',
-            color: '#666',
-            textDecoration: 'underline',
-          }}
-        >
+        <Button variant="secondary" onClick={onSkip}>
           <FormattedMessage id="onboarding.button.skip" defaultMessage="Skip for now" />
-        </button>
+        </Button>
       </div>
     </div>
   );

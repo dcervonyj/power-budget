@@ -1,11 +1,8 @@
 import { makeAutoObservable } from 'mobx';
+import { toggleInterestingCurrency } from './OnboardingOptions.js';
 
 export type OnboardingStep =
-  | 'language'
-  | 'currency'
-  | 'interesting-currencies'
-  | 'bank-connect'
-  | 'create-plan';
+  'language' | 'currency' | 'interesting-currencies' | 'bank-connect' | 'create-plan';
 
 export class OnboardingStore {
   currentStep: OnboardingStep = 'language';
@@ -45,10 +42,15 @@ export class OnboardingStore {
 
   setBaseCurrency(currency: string): void {
     this.baseCurrency = currency;
+    this.interestingCurrencies = this.interestingCurrencies.filter((code) => code !== currency);
   }
 
   setInterestingCurrencies(currencies: string[]): void {
     this.interestingCurrencies = currencies;
+  }
+
+  toggleInterestingCurrency(code: string): void {
+    this.interestingCurrencies = toggleInterestingCurrency(this.interestingCurrencies, code);
   }
 
   next(): void {
@@ -65,7 +67,14 @@ export class OnboardingStore {
     }
   }
 
+  /** Skips an optional step; the skipped flags record what was left for later. */
   skip(): void {
+    if (this.currentStep === 'bank-connect') {
+      this.bankConnectSkipped = true;
+    }
+    if (this.currentStep === 'create-plan') {
+      this.createPlanSkipped = true;
+    }
     this.next();
   }
 
