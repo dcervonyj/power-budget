@@ -39,7 +39,7 @@ test.describe('household journey (2-user fixture)', () => {
     await page.getByRole('button', { name: 'Log in' }).click();
 
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByText('Shared groceries')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Shared groceries' })).toBeVisible();
     await expect(page.getByText(category.name, { exact: true })).toBeVisible();
   });
 
