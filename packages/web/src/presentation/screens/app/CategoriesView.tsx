@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { isCategoryEditable } from '@power-budget/shared-app';
 import type { SelectOption } from '@power-budget/shared-app';
@@ -313,6 +313,8 @@ function CategoryEditor({
 }): React.JSX.Element {
   const intl = useIntl();
   const [draftName, setDraftName] = useState(category.name);
+  // Escape blurs the field; the blur must not commit the typed value it is dropping.
+  const cancelled = useRef(false);
 
   // A rejected rename rolls the category back; keep the field in step with it.
   useEffect(() => {
@@ -320,6 +322,12 @@ function CategoryEditor({
   }, [category.name]);
 
   function commitName(): void {
+    if (cancelled.current) {
+      cancelled.current = false;
+      setDraftName(category.name);
+
+      return;
+    }
     const trimmed = draftName.trim();
     if (trimmed !== '' && trimmed !== category.name) {
       onUpdate(category, { name: trimmed });
@@ -332,7 +340,7 @@ function CategoryEditor({
     if (event.key === 'Enter') {
       event.currentTarget.blur();
     } else if (event.key === 'Escape') {
-      setDraftName(category.name);
+      cancelled.current = true;
       event.currentTarget.blur();
     }
   }

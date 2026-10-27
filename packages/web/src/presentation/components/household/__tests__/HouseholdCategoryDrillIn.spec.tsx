@@ -1,6 +1,6 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, screen } from '@testing-library/react';
 import type { HouseholdDashboardCategoryDto } from '@power-budget/shared-app/contract';
 import { HouseholdCategoryDrillInView } from '../HouseholdCategoryDrillInView.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
@@ -66,5 +66,31 @@ describe('HouseholdCategoryDrillInView', () => {
 
     expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.queryByRole('heading')).toBeNull();
+  });
+
+  it('offers Retry for a failed load but not for a missing category', () => {
+    const onRetry = vi.fn();
+    const first = renderWithProviders(
+      <HouseholdCategoryDrillInView
+        loading={false}
+        error="failed"
+        category={null}
+        onRetry={onRetry}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+
+    first.unmount();
+    renderWithProviders(
+      <HouseholdCategoryDrillInView
+        loading={false}
+        error="not_found"
+        category={null}
+        onRetry={onRetry}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: 'Retry' })).toBeNull();
   });
 });

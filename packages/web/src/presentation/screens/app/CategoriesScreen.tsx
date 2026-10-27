@@ -25,6 +25,30 @@ function replaceCategory(list: CategoryDto[], next: CategoryDto): CategoryDto[] 
   return list.map((category) => (category.id === next.id ? next : category));
 }
 
+function applyChanges(list: CategoryDto[], id: string, changes: UpdateCategoryDto): CategoryDto[] {
+  return list.map((category) => (category.id === id ? { ...category, ...changes } : category));
+}
+
+/** Puts back only the fields a rejected edit touched, so a concurrent edit of the row survives. */
+function revertChanges(
+  list: CategoryDto[],
+  original: CategoryDto,
+  changes: UpdateCategoryDto,
+): CategoryDto[] {
+  const previous: UpdateCategoryDto = {};
+  if (changes.name !== undefined) {
+    previous.name = original.name;
+  }
+  if (changes.privacy !== undefined) {
+    previous.privacy = original.privacy;
+  }
+  if (changes.archived !== undefined) {
+    previous.archived = original.archived;
+  }
+
+  return applyChanges(list, original.id, previous);
+}
+
 export function CategoriesScreen(): React.JSX.Element {
   const [categories, setCategories] = useState<CategoryDto[]>([]);
   const [loadState, setLoadState] = useState<LoadState>('loading');
@@ -49,12 +73,12 @@ export function CategoriesScreen(): React.JSX.Element {
   const update = useCallback(
     async (category: CategoryDto, changes: UpdateCategoryDto): Promise<void> => {
       setActionError(null);
-      setCategories((prev) => replaceCategory(prev, { ...category, ...changes }));
+      setCategories((prev) => applyChanges(prev, category.id, changes));
       try {
         const updated = await categoriesApi.update(category.id, changes);
         setCategories((prev) => replaceCategory(prev, updated));
       } catch (err) {
-        setCategories((prev) => replaceCategory(prev, category));
+        setCategories((prev) => revertChanges(prev, category, changes));
         setActionError(toActionError(err));
       }
     },

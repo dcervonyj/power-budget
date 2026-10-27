@@ -20,11 +20,16 @@ export const HouseholdCategoryDrillIn = observer(function HouseholdCategoryDrill
     void store.fetchCategory(householdId, planId, categoryId);
   }, [store, householdId, planId, categoryId]);
 
+  function retry(): void {
+    void store.fetchCategory(householdId, planId, categoryId);
+  }
+
   return (
     <HouseholdCategoryDrillInView
       loading={store.loading}
       error={store.error}
       category={store.category}
+      onRetry={retry}
     />
   );
 });

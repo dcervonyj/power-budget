@@ -171,11 +171,32 @@ describe('CategoriesScreen', () => {
     await screen.findByText('Hobbies');
     const input = within(editRow('Hobbies')).getByLabelText('Category name');
 
+    input.focus();
     fireEvent.change(input, { target: { value: 'Crafts' } });
     fireEvent.keyDown(input, { key: 'Escape' });
 
     expect(input).toHaveValue('Hobbies');
     expect(mockPatch).not.toHaveBeenCalled();
+  });
+
+  it('keeps a privacy change when an earlier rename on the same row is rejected', async () => {
+    mockPatch.mockRejectedValueOnce(apiError(409));
+    mockPatch.mockResolvedValueOnce(ok({ ...own, privacy: 'total_only' }));
+    renderScreen();
+    await screen.findByText('Hobbies');
+    const row = editRow('Hobbies');
+    const input = within(row).getByLabelText('Category name');
+
+    input.focus();
+    fireEvent.change(input, { target: { value: 'Rent' } });
+    input.blur();
+    fireEvent.change(row.querySelector('select')!, { target: { value: 'total_only' } });
+
+    await screen.findByRole('alert');
+    await waitFor(() => {
+      expect(within(row).getByLabelText('Category name')).toHaveValue('Hobbies');
+    });
+    expect(row.querySelector('select')).toHaveValue('total_only');
   });
 
   it('creates a category with the chosen kind', async () => {
