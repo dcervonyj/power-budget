@@ -1,0 +1,19 @@
+{
+  "plan.list.period": "{start} – {end}",
+  "plan.editor.totals.label": "Sumy planu",
+  "plan.editor.totals.income": "Przychody",
+  "plan.editor.totals.planned": "Zaplanowano",
+  "plan.editor.totals.left": "Do zaplanowania",
+  "plan.editor.totals.overIncome": "Ponad przychody",
+  "plan.editor.totals.withinIncome": "W ramach przychodów",
+  "plan.editor.totals.excluded": "{count, plural, one {# pozycja w innej walucie nie jest liczona} few {# pozycje w innych walutach nie są liczone} many {# pozycji w innych walutach nie jest liczonych} other {# pozycji w innych walutach nie jest liczonych}}",
+  "plan.editor.details.title": "Szczegóły planu",
+  "plan.editor.income.title": "Przychody",
+  "plan.editor.income.empty": "Brak zaplanowanych przychodów",
+  "plan.editor.limits.title": "Limity kategorii",
+  "plan.editor.limits.empty": "Brak limitów kategorii",
+  "plan.editor.limit.label": "Limit: {category}",
+  "plan.editor.limit.decrease": "Zmniejsz limit: {category}",
+  "plan.editor.limit.increase": "Zwiększ limit: {category}",
+  "plan.editor.addItem.title": "Dodaj pozycję"
+}
