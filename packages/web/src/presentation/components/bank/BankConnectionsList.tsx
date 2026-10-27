@@ -1,239 +1,349 @@
 import React from 'react';
-import { observer } from 'mobx-react-lite';
-import { FormattedMessage } from 'react-intl';
-import { useTheme } from '../ThemeContext.js';
+import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
+import type { BankProviderDto } from '@power-budget/shared-app/contract';
+import { consentStateOf, type ConsentState } from '../../../application/bank/ConsentRenewal.js';
+import type { BankConnection } from '../../../infrastructure/api/BankConnectionMapper.js';
+import { Icon } from '../../glass/atoms/Icon.js';
+import type { IconName } from '../../glass/atoms/iconPaths.js';
+import { StatusTag } from '../../glass/atoms/StatusTag.js';
+import { SyncChip } from '../../glass/atoms/SyncChip.js';
+import type { SyncChipState } from '../../glass/atoms/syncChipState.js';
+import { GlassPanel } from '../../glass/material/GlassPanel.js';
 import { Button } from '../Button.js';
-import type { BankConnectionStatusDto } from '@power-budget/shared-app/contract';
-import {
-  BankConnectionMapper,
-  type BankConnection,
-} from '../../../infrastructure/api/BankConnectionMapper.js';
-import type { BankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
+import { EmptyState } from '../shared/EmptyState.js';
+import { ErrorBanner } from '../shared/ErrorBanner.js';
+import { SkeletonList } from '../shared/SkeletonList.js';
 
 export interface BankConnectionsListProps {
-  store: BankConnectionStore;
-  onAddConnection: () => void;
+  readonly connections: readonly BankConnection[];
+  readonly loading: boolean;
+  /** The list could not be loaded. */
+  readonly error: boolean;
+  /** Ids with a refresh in flight. */
+  readonly refreshingIds: readonly string[];
+  readonly now: Date;
+  readonly onAddConnection: () => void;
+  readonly onReconnect: (id: string) => void;
+  readonly onRefresh: (id: string) => void;
+  readonly onRetry: () => void;
 }
 
-function statusColors(
-  status: BankConnectionStatusDto,
-  theme: ReturnType<typeof useTheme>,
-): { bg: string; color: string } {
-  switch (status) {
-    case 'active':
-      return { bg: theme.color.status.success + '33', color: theme.color.status.success };
-    case 'expired':
-      return { bg: theme.color.status.danger + '33', color: theme.color.status.danger };
-    case 'reconnect_required':
-      return { bg: theme.color.status.warning + '33', color: theme.color.status.warning };
-    case 'disconnected':
-      return { bg: theme.color.text.secondary + '22', color: theme.color.text.secondary };
+const LIST_STYLE: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+  gap: 'var(--pb-glass-space-md)',
+  listStyle: 'none',
+  margin: 0,
+  padding: 0,
+};
+
+const CARD_CONTENT_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--pb-glass-space-md)',
+  padding: 'var(--pb-glass-space-xl)',
+};
+
+const IDENTITY_STYLE: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--pb-glass-space-md)',
+};
+
+const NAME_STYLE: React.CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--pb-glass-type-heading-web)',
+  fontWeight: 600,
+  overflowWrap: 'anywhere',
+};
+
+const CAPTION_STYLE: React.CSSProperties = {
+  margin: 0,
+  fontSize: 'var(--pb-glass-type-small-web)',
+  color: 'var(--pb-glass-dim)',
+};
+
+const ACTIONS_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexWrap: 'wrap',
+  gap: 'var(--pb-glass-space-xs)',
+};
+
+export function BankConnectionsList({
+  connections,
+  loading,
+  error,
+  refreshingIds,
+  now,
+  onAddConnection,
+  onReconnect,
+  onRefresh,
+  onRetry,
+}: BankConnectionsListProps): React.JSX.Element {
+  const intl = useIntl();
+
+  if (loading && connections.length === 0) {
+    return <SkeletonList rows={3} rowHeight={120} />;
   }
-}
-
-function StatusLabel({ status }: { status: BankConnectionStatusDto }): React.JSX.Element {
-  switch (status) {
-    case 'active':
-      return <FormattedMessage id="bankConnections.status.active" defaultMessage="Active" />;
-    case 'expired':
-      return <FormattedMessage id="bankConnections.status.expired" defaultMessage="Expired" />;
-    case 'reconnect_required':
-      return (
-        <FormattedMessage
-          id="bankConnections.status.reconnectRequired"
-          defaultMessage="Reconnect needed"
-        />
-      );
-    case 'disconnected':
-      return (
-        <FormattedMessage id="bankConnections.status.disconnected" defaultMessage="Disconnected" />
-      );
+  if (error) {
+    return (
+      <ErrorBanner
+        message={
+          <FormattedMessage
+            id="bank.connections.error"
+            defaultMessage="Could not load bank connections"
+          />
+        }
+        onRetry={onRetry}
+      />
+    );
   }
-}
+  if (connections.length === 0) {
+    return (
+      <EmptyState
+        title={
+          <FormattedMessage
+            id="bank.connections.empty.title"
+            defaultMessage="No bank connections yet"
+          />
+        }
+        subtitle={
+          <FormattedMessage
+            id="bank.connections.empty.description"
+            defaultMessage="Connect your bank to sync transactions automatically."
+          />
+        }
+        action={{
+          label: (
+            <FormattedMessage id="bank.connections.empty.cta" defaultMessage="Connect a bank" />
+          ),
+          onPress: onAddConnection,
+        }}
+      />
+    );
+  }
 
-function SkeletonCard(): React.JSX.Element {
-  const theme = useTheme();
   return (
-    <div
-      style={{
-        backgroundColor: theme.color.surface.raised,
-        borderRadius: theme.radius.lg,
-        padding: theme.space.lg,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.space.sm,
-      }}
+    <ul
+      style={LIST_STYLE}
+      aria-label={intl.formatMessage({
+        id: 'bank.connections.list',
+        defaultMessage: 'Bank connections',
+      })}
     >
-      {[80, 120, 60].map((width) => (
-        <div
-          key={width}
-          style={{
-            width,
-            height: 14,
-            borderRadius: theme.radius.sm,
-            backgroundColor: theme.color.border.subtle,
-            animation: 'pulse 1.5s ease-in-out infinite',
-          }}
-        />
+      {connections.map((connection, index) => (
+        <li key={connection.id}>
+          <ConnectionCard
+            connection={connection}
+            index={index}
+            now={now}
+            refreshing={refreshingIds.includes(connection.id)}
+            onReconnect={onReconnect}
+            onRefresh={onRefresh}
+          />
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
 interface ConnectionCardProps {
-  connection: BankConnection;
-  store: BankConnectionStore;
+  readonly connection: BankConnection;
+  readonly index: number;
+  readonly now: Date;
+  readonly refreshing: boolean;
+  readonly onReconnect: (id: string) => void;
+  readonly onRefresh: (id: string) => void;
 }
 
-const ConnectionCard = observer(function ConnectionCard({
+function ConnectionCard({
   connection,
-  store,
+  index,
+  now,
+  refreshing,
+  onReconnect,
+  onRefresh,
 }: ConnectionCardProps): React.JSX.Element {
-  const theme = useTheme();
-  const { bg, color } = statusColors(connection.status, theme);
-  const needsReconnect = BankConnectionMapper.needsReconnect(connection);
+  const intl = useIntl();
+  const state = consentStateOf(connection, now);
+  const chip = chipStateOf(state, refreshing);
+  const needsReconnect = state.kind !== 'active' && state.kind !== 'disconnected';
 
   return (
-    <div
-      style={{
-        backgroundColor: theme.color.surface.raised,
-        borderRadius: theme.radius.lg,
-        padding: theme.space.lg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space.md,
-      }}
+    <GlassPanel
+      material="frosted"
+      depth={1}
+      rise={index}
+      decor={{ specular: true }}
+      contentStyle={CARD_CONTENT_STYLE}
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.xs }}>
-        <span
-          style={{
-            fontSize: theme.fontSize.lg,
-            fontWeight: theme.fontWeight.semibold,
-            color: theme.color.text.primary,
-          }}
-        >
-          {connection.bankId}
+      <div style={IDENTITY_STYLE}>
+        <span style={{ color: 'var(--pb-glass-dim)', display: 'inline-flex' }}>
+          <Icon name="bank" size={28} />
         </span>
+        <div>
+          <h2 style={NAME_STYLE}>{connection.bankId}</h2>
+          <p style={CAPTION_STYLE}>{providerLabel(intl, connection.provider)}</p>
+        </div>
       </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: theme.space.sm }}>
-        {/* Status chip */}
-        <span
-          style={{
-            fontSize: theme.fontSize.sm,
-            fontWeight: theme.fontWeight.medium,
-            padding: `${String(theme.space.xs)}px ${String(theme.space.sm)}px`,
-            borderRadius: theme.radius.pill,
-            backgroundColor: bg,
-            color,
-          }}
-        >
-          <StatusLabel status={connection.status} />
-        </span>
-
+      <div style={ACTIONS_STYLE}>
+        <StatusTag kind={tagKindOf(state)} icon={tagIconOf(state)} label={tagLabel(intl, state)} />
+        {chip !== null && <SyncChip state={chip} />}
+      </div>
+      <p style={CAPTION_STYLE}>
+        <ConsentCaption connection={connection} state={state} />
+      </p>
+      <div style={ACTIONS_STYLE}>
         {needsReconnect && (
           <Button
-            variant="secondary"
+            variant="primary"
             onClick={() => {
-              void store.reconnect(connection.id);
+              onReconnect(connection.id);
             }}
           >
-            <FormattedMessage id="bankConnections.reconnect" />
+            <FormattedMessage id="bank.connection.reconnect" defaultMessage="Reconnect" />
           </Button>
         )}
-
-        <Button
-          variant="secondary"
-          onClick={() => {
-            void store.refresh(connection.id);
-          }}
-        >
-          <FormattedMessage id="bankConnections.refresh" />
-        </Button>
+        {state.kind !== 'disconnected' && (
+          <Button
+            variant="secondary"
+            loading={refreshing}
+            onClick={() => {
+              onRefresh(connection.id);
+            }}
+          >
+            <FormattedMessage id="bank.connection.refresh" defaultMessage="Refresh now" />
+          </Button>
+        )}
       </div>
-    </div>
+    </GlassPanel>
   );
-});
+}
 
-export const BankConnectionsList = observer(function BankConnectionsList({
-  store,
-  onAddConnection,
-}: BankConnectionsListProps): React.JSX.Element {
-  const theme = useTheme();
-
-  if (store.loading) {
+function ConsentCaption({
+  connection,
+  state,
+}: {
+  connection: BankConnection;
+  state: ConsentState;
+}): React.JSX.Element | null {
+  const intl = useIntl();
+  const expiresAt = connection.expiresAt;
+  if (expiresAt === null || state.kind === 'disconnected' || state.kind === 'reconnect') {
+    return null;
+  }
+  const date = intl.formatDate(expiresAt, { dateStyle: 'medium', timeZone: 'UTC' });
+  if (state.kind === 'expired') {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.md }}>
-        <SkeletonCard />
-        <SkeletonCard />
-        <SkeletonCard />
-      </div>
+      <FormattedMessage
+        id="bank.connection.consent.expired"
+        defaultMessage="Access ended on {date}"
+        values={{ date }}
+      />
     );
   }
-
-  if (store.error !== null) {
+  if (state.kind === 'expiring') {
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: theme.space.md,
-          padding: theme.space['2xl'],
-          color: theme.color.status.danger,
-        }}
-      >
-        <p>{store.error}</p>
-        <Button
-          variant="secondary"
-          onClick={() => {
-            void store.fetchConnections();
-          }}
-        >
-          <FormattedMessage id="common.retry" defaultMessage="Retry" />
-        </Button>
-      </div>
-    );
-  }
-
-  if (store.connections.length === 0) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: theme.space.md,
-          padding: theme.space['2xl'],
-          textAlign: 'center',
-        }}
-      >
-        <p
-          style={{
-            fontSize: theme.fontSize.xl,
-            fontWeight: theme.fontWeight.semibold,
-            color: theme.color.text.primary,
-            margin: 0,
-          }}
-        >
-          <FormattedMessage id="bankConnections.empty.title" />
-        </p>
-        <p style={{ color: theme.color.text.secondary, margin: 0 }}>
-          <FormattedMessage id="bankConnections.empty.description" />
-        </p>
-        <Button variant="primary" onClick={onAddConnection}>
-          <FormattedMessage id="bankConnections.add" />
-        </Button>
-      </div>
+      <FormattedMessage
+        id="bank.connection.consent.expiring"
+        defaultMessage="Access ends on {date}, {days, plural, one {# day} other {# days}} left"
+        values={{ date, days: state.daysLeft }}
+      />
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: theme.space.md }}>
-      {store.connections.map((conn) => (
-        <ConnectionCard key={conn.id} connection={conn} store={store} />
-      ))}
-    </div>
+    <FormattedMessage
+      id="bank.connection.consent.until"
+      defaultMessage="Access valid until {date}"
+      values={{ date }}
+    />
   );
-});
+}
+
+/** Active connections carry no sync time in the API, so they show a chip only while refreshing. */
+function chipStateOf(state: ConsentState, refreshing: boolean): SyncChipState | null {
+  if (refreshing) {
+    return { kind: 'updating' };
+  }
+  switch (state.kind) {
+    case 'active':
+      return null;
+    case 'expiring':
+    case 'expired':
+    case 'reconnect':
+      return { kind: 'renew' };
+    case 'disconnected':
+      return { kind: 'stale' };
+  }
+}
+
+function tagKindOf(state: ConsentState): 'ok' | 'over' | 'neutral' {
+  switch (state.kind) {
+    case 'active':
+      return 'ok';
+    case 'expiring':
+    case 'expired':
+    case 'reconnect':
+      return 'over';
+    case 'disconnected':
+      return 'neutral';
+  }
+}
+
+function tagIconOf(state: ConsentState): IconName {
+  switch (state.kind) {
+    case 'active':
+      return 'check';
+    case 'expiring':
+      return 'clock';
+    case 'expired':
+      return 'link-off';
+    case 'reconnect':
+      return 'warning';
+    case 'disconnected':
+      return 'lock';
+  }
+}
+
+function tagLabel(intl: IntlShape, state: ConsentState): string {
+  switch (state.kind) {
+    case 'active':
+      return intl.formatMessage({
+        id: 'bank.connection.status.active',
+        defaultMessage: 'Connected',
+      });
+    case 'expiring':
+      return intl.formatMessage({
+        id: 'bank.connection.status.expiring',
+        defaultMessage: 'Renewal due',
+      });
+    case 'expired':
+      return intl.formatMessage({
+        id: 'bank.connection.status.expired',
+        defaultMessage: 'Access ended',
+      });
+    case 'reconnect':
+      return intl.formatMessage({
+        id: 'bank.connection.status.reconnect',
+        defaultMessage: 'Reconnect needed',
+      });
+    case 'disconnected':
+      return intl.formatMessage({
+        id: 'bank.connection.status.disconnected',
+        defaultMessage: 'Disconnected',
+      });
+  }
+}
+
+function providerLabel(intl: IntlShape, provider: BankProviderDto): string {
+  switch (provider) {
+    case 'gocardless':
+      return intl.formatMessage({
+        id: 'bank.provider.gocardless',
+        defaultMessage: 'Open Banking (PSD2)',
+      });
+    case 'wise_personal':
+      return intl.formatMessage({ id: 'bank.provider.wise', defaultMessage: 'Wise' });
+  }
+}

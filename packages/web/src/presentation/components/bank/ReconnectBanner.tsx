@@ -1,88 +1,96 @@
 import React, { useState } from 'react';
+import { FormattedMessage } from 'react-intl';
 import { observer } from 'mobx-react-lite';
-import { FormattedMessage, useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '../ThemeContext.js';
-import { Button } from '../Button.js';
+import {
+  connectionsToRenew,
+  consentStateOf,
+  type ConsentState,
+} from '../../../application/bank/ConsentRenewal.js';
 import type { BankConnection } from '../../../infrastructure/api/BankConnectionMapper.js';
+import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
+import { BankBanner } from './BankBanner.js';
 
-export interface ReconnectBannerProps {
-  connections: BankConnection[];
+export interface ReconnectBannerViewProps {
+  readonly name: string;
+  readonly state: ConsentState;
+  readonly onReconnect: () => void;
+  readonly onDismiss: () => void;
 }
 
+export interface ReconnectBannerProps {
+  readonly connections: readonly BankConnection[];
+  /** The clock; tests and the gallery pin it. */
+  readonly now?: Date;
+}
+
+export function ReconnectBannerView({
+  name,
+  state,
+  onReconnect,
+  onDismiss,
+}: ReconnectBannerViewProps): React.JSX.Element {
+  return (
+    <BankBanner
+      message={<ReconnectMessage name={name} state={state} />}
+      actionLabel={
+        <FormattedMessage id="bank.reconnectBanner.action" defaultMessage="Renew access" />
+      }
+      onAction={onReconnect}
+      onDismiss={onDismiss}
+    />
+  );
+}
+
+/** Store-free banner: the first connection whose consent runs out within a week or has. */
 export const ReconnectBanner = observer(function ReconnectBanner({
   connections,
+  now = new Date(),
 }: ReconnectBannerProps): React.JSX.Element | null {
-  const theme = useTheme();
-  const intl = useIntl();
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
+  const first = connectionsToRenew(connections, now)[0];
 
-  const now = Date.now();
-  const threshold = now + 7 * 24 * 60 * 60 * 1000;
-  const expiring = connections.filter(
-    (c) => c.expiresAt !== null && c.expiresAt.getTime() < threshold,
-  );
-
-  if (dismissed || expiring.length === 0) {
+  if (dismissed || first === undefined) {
     return null;
   }
 
-  const first = expiring[0]!;
-  const daysLeft = first.expiresAt
-    ? Math.max(0, Math.ceil((first.expiresAt.getTime() - now) / 86_400_000))
-    : 0;
-
   return (
-    <div
-      role="alert"
-      style={{
-        backgroundColor: theme.color.status.warning + '22',
-        borderLeft: `4px solid ${theme.color.status.warning}`,
-        borderRadius: theme.radius.md,
-        padding: `${String(theme.space.sm)}px ${String(theme.space.lg)}px`,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: theme.space.md,
-        flexWrap: 'wrap',
-        marginBottom: theme.space.lg,
+    <ReconnectBannerView
+      name={first.bankId}
+      state={consentStateOf(first, now)}
+      onReconnect={() => {
+        void navigate(ROUTE_PATHS.bankConnections);
       }}
-    >
-      <span style={{ color: theme.color.text.primary, fontSize: theme.fontSize.sm }}>
-        <FormattedMessage
-          id="bankConnections.reconnectBanner"
-          values={{ name: first.bankId, days: daysLeft }}
-        />
-      </span>
-      <div style={{ display: 'flex', gap: theme.space.sm }}>
-        <Button
-          variant="primary"
-          onClick={() => {
-            void navigate('/bank-connections');
-          }}
-        >
-          <FormattedMessage id="bankConnections.reconnect" />
-        </Button>
-        <button
-          type="button"
-          onClick={() => {
-            setDismissed(true);
-          }}
-          aria-label={intl.formatMessage({ id: 'common.dismiss', defaultMessage: 'Dismiss' })}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: theme.color.text.secondary,
-            fontSize: theme.fontSize.lg,
-            padding: 0,
-            lineHeight: 1,
-          }}
-        >
-          <FormattedMessage id="common.closeIcon" defaultMessage="×" />
-        </button>
-      </div>
-    </div>
+      onDismiss={() => {
+        setDismissed(true);
+      }}
+    />
   );
 });
+
+function ReconnectMessage({
+  name,
+  state,
+}: {
+  name: string;
+  state: ConsentState;
+}): React.JSX.Element {
+  if (state.kind === 'expiring') {
+    return (
+      <FormattedMessage
+        id="bank.reconnectBanner.expiring"
+        defaultMessage="Bank access for {name} ends in {days, plural, one {# day} other {# days}}"
+        values={{ name, days: state.daysLeft }}
+      />
+    );
+  }
+
+  return (
+    <FormattedMessage
+      id="bank.reconnectBanner.expired"
+      defaultMessage="Bank access for {name} has ended"
+      values={{ name }}
+    />
+  );
+}
