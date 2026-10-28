@@ -1,3 +1,4 @@
+import { apiClient, referenceCatalogue } from '../../composition.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { FormattedMessage, useIntl, type IntlShape } from 'react-intl';
 import { Button } from './Button.js';
@@ -13,13 +14,11 @@ import {
 } from './transactionDialogStyles.js';
 import { MoneyView } from './MoneyView.js';
 import { parseLocalIsoDate } from '@power-budget/core';
-import { apiClient } from '../../AppProviders.js';
 import { TransactionMapModal } from './TransactionMapModal.js';
 import { readApiError } from '@power-budget/shared-app';
 import type { PatchTransactionDto, TransactionDetailDto } from '@power-budget/shared-app/contract';
 import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 import type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
-import { referenceCatalogue } from '../../application/catalogue/catalogueInstance.js';
 import {
   loadPlannedItems,
   type PlannedItemCatalogue,

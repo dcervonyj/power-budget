@@ -1,7 +1,7 @@
+import { apiClient } from '../../../composition.js';
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import type { LocaleCode, RegisterDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../../AppProviders.js';
 import { RegisterView, type RegisterError } from './RegisterView.js';
 
 const SUPPORTED_LOCALES: readonly LocaleCode[] = ['en', 'uk', 'ru', 'pl'];

@@ -1,3 +1,4 @@
+import { bulkTransactionActions, referenceCatalogue } from '../../composition.js';
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { Button } from './Button.js';
@@ -11,8 +12,6 @@ import {
   optionStyle,
 } from './transactionDialogStyles.js';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
-import { bulkTransactionActions } from '../../AppProviders.js';
-import { referenceCatalogue } from '../../application/catalogue/catalogueInstance.js';
 
 export interface MappingModalProps {
   readonly isOpen: boolean;

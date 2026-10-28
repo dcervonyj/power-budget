@@ -1,3 +1,4 @@
+import { settingsStore } from '../../../composition.js';
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
@@ -14,7 +15,6 @@ import {
 } from './settingsStyles.js';
 import { Input } from '../../components/Input.js';
 import { Button } from '../../components/Button.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 
 export const SettingsProfileTab = observer(function SettingsProfileTab(): React.JSX.Element {
   const intl = useIntl();

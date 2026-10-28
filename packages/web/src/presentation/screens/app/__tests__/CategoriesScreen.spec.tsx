@@ -6,25 +6,13 @@ import { darkTheme } from '@power-budget/design-tokens';
 import type { CategoryDto } from '@power-budget/shared-app/contract';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { CategoriesScreen } from '../CategoriesScreen.js';
-import { apiClient } from '../../../../AppProviders.js';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 
-vi.mock('../../../../AppProviders.js', async () => {
-  const { CategoriesApi } = await import('@power-budget/shared-app');
-  const client = {
-    request: vi.fn(),
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  };
+const apiSpies = spyOnApiClient();
 
-  return { apiClient: client, categoriesApi: new CategoriesApi(client) };
-});
-
-const mockGet = vi.mocked(apiClient.get);
-const mockPost = vi.mocked(apiClient.post);
-const mockPatch = vi.mocked(apiClient.patch);
+const mockGet = apiSpies.get;
+const mockPost = apiSpies.post;
+const mockPatch = apiSpies.patch;
 
 function category(overrides: Partial<CategoryDto>): CategoryDto {
   return {

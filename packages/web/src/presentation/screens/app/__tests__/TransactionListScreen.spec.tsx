@@ -7,8 +7,10 @@ import { darkTheme } from '@power-budget/design-tokens';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { TransactionDetailScreen } from '../TransactionDetailScreen.js';
-import { referenceCatalogue } from '../../../../application/catalogue/catalogueInstance.js';
-import { apiClient } from '../../../../AppProviders.js';
+import { referenceCatalogue } from '../../../../composition.js';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
+
+const apiSpies = spyOnApiClient();
 
 vi.mock('../../../components/MoneyView.js', () => ({
   MoneyView: ({ amount }: { amount: { amountMinor: bigint; currency: string } }) => (
@@ -16,29 +18,8 @@ vi.mock('../../../components/MoneyView.js', () => ({
   ),
 }));
 
-vi.mock('../../../../AppProviders.js', async () => {
-  const { BulkTransactionActions } =
-    await import('../../../../application/transactions/BulkTransactionActions.js');
-  const { CategoriesApi, PlansApi } = await import('@power-budget/shared-app');
-  const client = {
-    request: vi.fn(),
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  };
-
-  return {
-    apiClient: client,
-    categoriesApi: new CategoriesApi(client),
-    plansApi: new PlansApi(client),
-    bulkTransactionActions: new BulkTransactionActions(client),
-  };
-});
-
-const mockGet = vi.mocked(apiClient.get);
-const mockPatch = vi.mocked(apiClient.patch);
+const mockGet = apiSpies.get;
+const mockPatch = apiSpies.patch;
 
 function row(id: string, overrides: Partial<TransactionListItemDto>): TransactionListItemDto {
   return {

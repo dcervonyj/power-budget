@@ -1,3 +1,4 @@
+import { apiClient, tokenStore } from '../../../composition.js';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
@@ -6,7 +7,6 @@ import type {
   ConsumeMagicLinkDto,
   RequestMagicLinkDto,
 } from '@power-budget/shared-app/contract';
-import { apiClient, tokenStore } from '../../../AppProviders.js';
 import { MagicLinkView, type MagicLinkError, type MagicLinkStage } from './MagicLinkView.js';
 
 /** What a failed consume means (CLN-004): 403 requires_totp keeps the link valid. */

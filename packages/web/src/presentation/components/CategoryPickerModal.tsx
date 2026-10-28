@@ -1,7 +1,7 @@
+import { categoriesApi } from '../../composition.js';
 import React, { useState, useEffect } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { CategoryDto } from '@power-budget/shared-app/contract';
-import { categoriesApi } from '../../AppProviders.js';
 import { useTheme } from './ThemeContext.js';
 import { Modal } from './Modal.js';
 

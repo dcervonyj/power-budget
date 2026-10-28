@@ -9,8 +9,6 @@ import { HouseholdStore } from './HouseholdStore.js';
 import { PLAN, apiError } from '../../test/dashboardFixtures.js';
 import { deferred } from '../../test/deferred.js';
 
-vi.mock('../../AppProviders.js', () => ({ householdsApi: {}, plansApi: {} }));
-
 const OWNER: HouseholdMemberResponseDto = {
   userId: 'user-ann',
   email: 'ann@example.com',

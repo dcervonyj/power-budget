@@ -1,6 +1,6 @@
+import { bankConnectionStore } from '../../../composition.js';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 import {
   banksFor,
   previousStep,

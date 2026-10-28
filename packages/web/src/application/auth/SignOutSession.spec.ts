@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Node 25+ hides jsdom's localStorage; the settings store reads it when the module loads.
+// Node 25+ hides jsdom's localStorage; the session data and the settings storage read it.
 const storage = vi.hoisted(() => {
   const items = new Map<string, string>();
   vi.stubGlobal('localStorage', {
@@ -17,18 +17,13 @@ const storage = vi.hoisted(() => {
   return items;
 });
 
-vi.mock('../../AppProviders.js', () => ({
-  apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn(), request: vi.fn() },
-  plansApi: {},
-  categoriesApi: {},
-}));
-
 import type { HttpClient, SecureTokenStore } from '@power-budget/shared-app';
 import type { PlanDto, UserProfileDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
 import { DashboardStore } from '../dashboard/DashboardStore.js';
 import { PlanDashboardStore } from '../dashboard/PlanDashboardStore.js';
 import { SettingsStore } from '../settings/SettingsStore.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
+import { LocalStorageKeyValueStore } from '../../infrastructure/storage/LocalStorageKeyValueStore.js';
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { LocalStorageSessionData } from '../../infrastructure/session/LocalStorageSessionData.js';
 import { ClientSession } from './ClientSession.js';
@@ -37,7 +32,7 @@ import { PLAN } from '../../test/dashboardFixtures.js';
 import { catalogueFor } from '../../test/referenceCatalogue.js';
 import { deferred } from '../../test/deferred.js';
 
-const mockGet = vi.mocked(apiClient.get);
+const mockGet = vi.fn();
 
 const ANNA_PRIVATE: PlanDto = {
   ...PLAN,
@@ -94,7 +89,10 @@ describe('sign-out, then another user in the same tab (FE-BUGS-01)', () => {
     planDashboard = new PlanDashboardStore(api, catalogueFor(api, { list: vi.fn() }));
     vi.spyOn(planDashboard, 'load').mockResolvedValue(undefined);
     dashboard = new DashboardStore({ list }, planDashboard);
-    settings = new SettingsStore();
+    settings = new SettingsStore(
+      { get: mockGet, post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+      new LocalStorageKeyValueStore(),
+    );
     const session = new ClientSession();
     session.register(planDashboard);
     session.register(dashboard);

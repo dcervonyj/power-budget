@@ -4,33 +4,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { MappingModal } from '../../../components/MappingModal.js';
-import { referenceCatalogue } from '../../../../application/catalogue/catalogueInstance.js';
-import { apiClient } from '../../../../AppProviders.js';
+import { referenceCatalogue } from '../../../../composition.js';
 import { darkTheme } from '@power-budget/design-tokens';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 
-vi.mock('../../../../AppProviders.js', async () => {
-  const { BulkTransactionActions } =
-    await import('../../../../application/transactions/BulkTransactionActions.js');
-  const { CategoriesApi, PlansApi } = await import('@power-budget/shared-app');
-  const client = {
-    request: vi.fn(),
-    get: vi.fn(),
-    post: vi.fn().mockResolvedValue({ status: 204, data: undefined, headers: {} }),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  };
+const apiSpies = spyOnApiClient();
 
-  return {
-    apiClient: client,
-    bulkTransactionActions: new BulkTransactionActions(client),
-    plansApi: new PlansApi(client),
-    categoriesApi: new CategoriesApi(client),
-  };
-});
-
-const mockGet = vi.mocked(apiClient.get);
-const mockPost = vi.mocked(apiClient.post);
+const mockGet = apiSpies.get;
+const mockPost = apiSpies.post;
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <IntlProvider locale="en" messages={{}}>

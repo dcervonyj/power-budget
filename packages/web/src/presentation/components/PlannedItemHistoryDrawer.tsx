@@ -1,5 +1,5 @@
+import { plansApi } from '../../composition.js';
 import React, { useEffect, useState } from 'react';
-import { plansApi } from '../../AppProviders.js';
 import type { PlannedItemVersionDto } from '@power-budget/shared-app/contract';
 import { Drawer } from './Drawer.js';
 import { PlannedItemHistoryView } from './PlannedItemHistoryView.js';

@@ -7,8 +7,6 @@ import {
   type HouseholdMemberResponseDto,
   type PlanDto,
 } from '@power-budget/shared-app/contract';
-import { householdsApi, plansApi } from '../../AppProviders.js';
-import { clientSession } from '../auth/ClientSession.js';
 
 /** A household has at most two members in the MVP: you and your partner (CLN-006). */
 export const HOUSEHOLD_MAX_MEMBERS = 2;
@@ -304,6 +302,3 @@ function classifyInviteError(err: unknown): HouseholdInviteError {
       return status === 400 ? 'invalid_email' : 'failed';
   }
 }
-
-export const householdStore = new HouseholdStore(householdsApi, plansApi);
-clientSession.register(householdStore);

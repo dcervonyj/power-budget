@@ -5,8 +5,9 @@ import {
   type HouseholdDashboardCategoryDto,
   type HouseholdDashboardResponseDto,
 } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
-import { clientSession } from '../auth/ClientSession.js';
+import type { HttpClient } from '@power-budget/shared-app';
+
+export type HouseholdCategoryHttp = Pick<HttpClient, 'get'>;
 
 /** 503 fx_rate_unavailable (CLN-012) is `fx_unavailable`. */
 export type HouseholdCategoryError = 'not_found' | 'fx_unavailable' | 'failed';
@@ -24,8 +25,11 @@ export class HouseholdCategoryStore {
   /** Bumped when the session ends, so a late answer for the previous user is dropped. */
   private session = 0;
 
-  constructor() {
-    makeAutoObservable<HouseholdCategoryStore, 'session'>(this, { session: false });
+  constructor(private readonly http: HouseholdCategoryHttp) {
+    makeAutoObservable<HouseholdCategoryStore, 'session' | 'http'>(this, {
+      session: false,
+      http: false,
+    });
   }
 
   async fetchCategory(householdId: string, planId: string, categoryId: string): Promise<void> {
@@ -34,7 +38,7 @@ export class HouseholdCategoryStore {
     this.error = null;
     this.category = null;
     try {
-      const res = await apiClient.get<HouseholdDashboardResponseDto>(
+      const res = await this.http.get<HouseholdDashboardResponseDto>(
         `/households/${householdId}/dashboard?planId=${encodeURIComponent(planId)}`,
       );
       const found = res.data.categories.find((c) => c.categoryId === categoryId);
@@ -70,6 +74,3 @@ export class HouseholdCategoryStore {
     this.loading = false;
   }
 }
-
-export const householdCategoryStore = new HouseholdCategoryStore();
-clientSession.register(householdCategoryStore);

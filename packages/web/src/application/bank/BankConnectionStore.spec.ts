@@ -1,15 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { BankConnectionDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
 import { BankConnectionStore } from './BankConnectionStore.js';
 import { deferred } from '../../test/deferred.js';
 
-vi.mock('../../AppProviders.js', () => ({
-  apiClient: { get: vi.fn(), post: vi.fn() },
-}));
-
-const mockGet = vi.mocked(apiClient.get);
-const mockPost = vi.mocked(apiClient.post);
+const mockGet = vi.fn();
+const mockPost = vi.fn();
 
 const CONNECTION: BankConnectionDto = {
   id: 'conn-anna',
@@ -37,7 +32,7 @@ describe('BankConnectionStore', () => {
   beforeEach(() => {
     mockGet.mockReset();
     mockPost.mockReset();
-    store = new BankConnectionStore();
+    store = new BankConnectionStore({ get: mockGet, post: mockPost });
   });
 
   it('reads the connections', async () => {

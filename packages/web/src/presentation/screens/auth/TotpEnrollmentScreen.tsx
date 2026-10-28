@@ -1,8 +1,8 @@
+import { apiClient } from '../../../composition.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
 import type { TotpEnrollmentDto, VerifyTotpDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../../AppProviders.js';
 import {
   TotpEnrollmentView,
   type TotpLoadError,

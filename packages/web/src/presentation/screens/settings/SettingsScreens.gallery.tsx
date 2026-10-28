@@ -1,8 +1,8 @@
+import { settingsStore } from '../../../composition.js';
 import React from 'react';
 import { runInAction } from 'mobx';
 import { MemoryRouter } from 'react-router-dom';
 import type { AuditEventDto } from '@power-budget/shared-app/contract';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 import { AmbientField } from '../../glass/material/AmbientField.js';
 import { AuditLogView, type AuditLogViewProps } from './AuditLogView.js';
 import { AppearanceView } from './SettingsAppearanceTab.js';

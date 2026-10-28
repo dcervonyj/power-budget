@@ -1,13 +1,11 @@
+import { plansApi, referenceCatalogue, settingsStore } from '../../../composition.js';
 import React, { useEffect, useState, useCallback } from 'react';
 import { useIntl } from 'react-intl';
 import { useNavigate } from 'react-router-dom';
 import { ClonePlanModal } from '../../components/ClonePlanModal.js';
 import { isSupportedCurrency, toLocalIsoDate } from '@power-budget/core';
 import type { CreatePlanDto, PlanDto } from '@power-budget/shared-app/contract';
-import { plansApi } from '../../../AppProviders.js';
 import { PlansListView } from './PlansListView.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
-import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 
 const DEFAULT_PLAN_CURRENCY = 'EUR';
 

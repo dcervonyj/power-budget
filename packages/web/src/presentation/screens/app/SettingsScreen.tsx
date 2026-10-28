@@ -1,7 +1,6 @@
+import { settingsStore, signOut } from '../../../composition.js';
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { signOut } from '../../../AppProviders.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 import { SettingsView } from '../settings/SettingsView.js';
 
 export function SettingsScreen(): React.JSX.Element {

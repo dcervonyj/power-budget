@@ -1,3 +1,4 @@
+import { householdCategoryStore, householdStore, settingsStore } from '../../../composition.js';
 import React, { useEffect } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { useSearchParams } from 'react-router-dom';
@@ -9,9 +10,6 @@ import { HouseholdCategoryDrillIn } from '../../components/household/HouseholdCa
 import { HouseholdPage } from '../../components/household/HouseholdPage.js';
 import { HouseholdMembersCard } from '../../components/household/HouseholdMembersCard.js';
 import { HouseholdAggregatesCard } from '../../components/household/HouseholdAggregatesCard.js';
-import { householdCategoryStore } from '../../../application/household/HouseholdCategoryStore.js';
-import { householdStore } from '../../../application/household/HouseholdStore.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 
 /**
  * `/household`: members and the partner invite, and the shared per-category totals of
