@@ -59,14 +59,58 @@ describe('merchantRuleKeysOf', () => {
     ]);
   });
 
-  it('still learns a key from a Wise card title', () => {
-    const keys = merchantRuleKeysOf({
+  it('learns the merchant only from a Wise card title, whatever the amount or currency', () => {
+    const pln = merchantRuleKeysOf({
       ...noCounterparty,
       description: 'Card transaction of 12.34 PLN issued by Biedronka',
     });
+    const eur = merchantRuleKeysOf({
+      ...noCounterparty,
+      description: 'card transaction of 1,234.56 EUR issued by BIEDRONKA',
+    });
 
-    expect(keys).toHaveLength(1);
-    expect(keys[0]?.pattern).toContain('biedronka');
+    expect(pln).toEqual([{ matchKind: 'merchant', pattern: 'biedronka' }]);
+    expect(eur).toEqual(pln);
+  });
+
+  it.each(['Warszawa', '', '****1234', '123456'])(
+    'never learns an amount-dependent key from a Wise card title ending in: "%s"',
+    (tail) => {
+      const small = merchantRuleKeysOf({
+        ...noCounterparty,
+        description: `Card transaction of 12.34 PLN issued by ${tail}`.trim(),
+      });
+      const large = merchantRuleKeysOf({
+        ...noCounterparty,
+        description: `Card transaction of 1,999.00 EUR issued by ${tail}`.trim(),
+      });
+
+      expect(large).toEqual(small);
+      expect(JSON.stringify(small)).not.toContain('12');
+    },
+  );
+
+  it.each([
+    ['ATM Shop', 'atm shop'],
+    ['Transfer Market', 'transfer market'],
+    ['Fee Shop', 'fee shop'],
+  ])('learns the merchant %s from a Wise card title', (merchant, pattern) => {
+    expect(
+      merchantRuleKeysOf({
+        ...noCounterparty,
+        description: `Card transaction of 12.34 PLN issued by ${merchant}`,
+      }),
+    ).toEqual([{ matchKind: 'merchant', pattern }]);
+  });
+
+  it('still treats a plain description starting with a generic word as generic', () => {
+    expect(merchantRuleKeysOf({ ...noCounterparty, description: 'Transfer Market' })).toEqual([]);
+  });
+
+  it('keeps the key of a title that is not a Wise card title', () => {
+    expect(
+      merchantRuleKeysOf({ ...noCounterparty, description: 'Card payment to Biedronka 12.34' }),
+    ).toEqual([{ matchKind: 'merchant', pattern: 'biedronka 12 34' }]);
   });
 
   it('keeps the counterparty of a transfer description', () => {

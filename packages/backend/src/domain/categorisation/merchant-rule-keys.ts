@@ -90,7 +90,8 @@ function merchantKeyOf(text: string, isDescription: boolean): string | null {
   if (key === null || key === '' || key.length > MAX_PATTERN_LENGTH) {
     return null;
   }
-  if (!isDescription) {
+  // A merchant named in a Wise card wrapper is a known merchant, not generic bank boilerplate.
+  if (!isDescription || normalised.isWiseCard) {
     return key;
   }
   if (normalised.descriptorClass === 'fee' || normalised.descriptorClass === 'atm') {
