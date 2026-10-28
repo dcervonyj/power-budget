@@ -121,7 +121,7 @@ describe('sign-out, then another user in the same tab (FE-BUGS-01)', () => {
     expect(dashboard.selectedPlanId).toBeNull();
     expect(settings.profileLoaded).toBe(false);
     expect(settings.userId).toBe('');
-    expect(settings.householdId).toBe('');
+    expect(settings.householdId).toBeNull();
     expect(settings.baseCurrency).toBe('EUR');
     expect([...storage.keys()].sort()).toEqual(['pb_locale', 'pb_theme']);
 

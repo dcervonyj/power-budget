@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { makeBankSyncJob } from '../../../test/doubles/bankSyncJob.js';
 import { mock } from 'vitest-mock-extended';
-import type { Job } from 'bullmq';
+import { UnrecoverableError, type Job } from 'bullmq';
 import type {
   BankConnectionRepository,
   BankAccountRepository,
@@ -10,6 +10,7 @@ import type {
   BankConnector,
 } from '../../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
+import { BankProviderDataError } from '../../../domain/bank/errors.js';
 import { BankSyncProcessor, type BankSyncJobPayload } from '../BankSyncProcessor.js';
 import type { BankConnection, RawTransaction } from '../../../domain/bank/entities.js';
 import {
@@ -209,6 +210,19 @@ describe('BankSyncProcessor', () => {
       ok: false,
       fetched: 0,
       error: 'Network error',
+    });
+  });
+
+  it('records failure and stops retries when the provider data is unusable', async () => {
+    connectionRepo.findById.mockResolvedValue(makeConnection());
+    connector.listAccounts.mockRejectedValue(new BankProviderDataError('no currency'));
+
+    await expect(processor.process(makeJob())).rejects.toBeInstanceOf(UnrecoverableError);
+
+    expect(syncRunRepo.finish).toHaveBeenCalledWith(SYNC_RUN_ID, {
+      ok: false,
+      fetched: 0,
+      error: 'BANK_PROVIDER_DATA: no currency',
     });
   });
 

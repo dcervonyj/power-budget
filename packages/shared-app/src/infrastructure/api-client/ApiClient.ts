@@ -238,7 +238,9 @@ export class ApiClient implements HttpClient {
 
   /** Attaches the current access token, sends, and recovers from a 401 (refresh and retry once). */
   private async send(req: PendingRequest): Promise<HttpResponse> {
-    req.epoch ??= this.sessionEpoch;
+    if (req.epoch === undefined) {
+      req.epoch = this.sessionEpoch;
+    }
     const token = this.tokenStore.getAccessToken();
     if (token) {
       req.headers['Authorization'] = bearer(token);

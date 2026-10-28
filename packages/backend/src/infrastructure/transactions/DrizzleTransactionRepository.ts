@@ -64,6 +64,7 @@ import { decodeTransactionCursor, encodeTransactionCursor } from './transactionC
 import { containsPattern } from '../database/likePattern.js';
 import {
   currencyOf,
+  insertedRow,
   isoDateTimeOf,
   oneOf,
   SUPPORTED_CURRENCY_CODES,
@@ -194,7 +195,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       })
       .returning();
 
-    return this.rows.toEntity(rows[0]!);
+    return this.rows.toEntity(insertedRow(rows, 'transaction'));
   }
 
   async findOwnedAccount(

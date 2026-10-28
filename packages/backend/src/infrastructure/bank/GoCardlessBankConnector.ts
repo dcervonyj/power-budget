@@ -17,7 +17,7 @@ import type {
   BankId,
 } from '../../domain/bank/entities.js';
 import type { Encryption } from '../../domain/auth/ports.js';
-import { BankRateLimitedError } from '../../domain/bank/errors.js';
+import { BankProviderDataError, BankRateLimitedError } from '../../domain/bank/errors.js';
 import { parseRetryAfter } from './retry-after.js';
 import { uuidv7 } from 'uuidv7';
 
@@ -189,11 +189,16 @@ export class GoCardlessBankConnector implements BankConnector {
           `/accounts/${accountId}/details/`,
         );
 
+        const currency = details.account.currency;
+        if (currency === undefined) {
+          throw new BankProviderDataError(`GoCardless account ${accountId} has no currency`);
+        }
+
         return {
           externalId: accountId,
           name: details.account.name ?? accountId,
           iban: details.account.iban ?? null,
-          currency: details.account.currency ?? 'PLN',
+          currency,
           balanceMinor: 0n,
         } satisfies RawBankAccount;
       }),

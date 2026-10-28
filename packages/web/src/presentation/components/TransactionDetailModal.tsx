@@ -23,6 +23,7 @@ import {
   loadPlannedItems,
   type PlannedItemCatalogue,
 } from '../../application/transactions/PlannedItemLabels.js';
+import { NO_LABEL } from '../../domain/display.js';
 
 export type { Transaction, TransactionMapping } from '../../domain/transactions/Transaction.js';
 
@@ -95,7 +96,7 @@ export function TransactionDetailModal({
         }
         const tx = TransactionMapper.fromDetail(res.data);
         setTransaction(tx);
-        setNotes(tx.notes ?? '');
+        setNotes(tx.notes ?? NO_LABEL);
         setMapping(tx.mapping);
         setIsTransfer(tx.isTransfer);
         setIgnored(tx.ignored);
@@ -251,7 +252,7 @@ export function TransactionDetailModal({
           ? null
           : {
               categoryName: mappedLabel?.categoryName || mapping.plannedItemId,
-              planName: mappedLabel?.planName ?? '',
+              planName: mappedLabel?.planName ?? NO_LABEL,
             }
       }
       isTransfer={isTransfer}

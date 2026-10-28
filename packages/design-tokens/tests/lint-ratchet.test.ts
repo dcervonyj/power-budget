@@ -126,4 +126,48 @@ describe('style ratchet', { timeout: 60_000 }, () => {
       );
     });
   });
+
+  describe('no non-null assertion and no `??=` in production code', () => {
+    const bang = 'export const f = (a: string | null): string => a!;\n';
+    const assign = "export function f(o: { a?: string }): void {\n  o.a ??= 'x';\n}\n";
+    const bangRule = '@typescript-eslint/no-non-null-assertion';
+
+    it.each(['backend', 'shared-app', 'web', 'mobile', 'core', 'design-tokens'])(
+      'flags a `!` and a `??=` in %s src',
+      async (pkg) => {
+        const path =
+          pkg === 'backend' ? backendFilePath : resolve(repoRoot, `packages/${pkg}/src/index.ts`);
+
+        expect(await ruleIds(bang, path)).toContain(bangRule);
+        expect(await ruleIds(assign, path)).toContain('no-restricted-syntax');
+      },
+    );
+
+    it('flags a `??=` in mobile presentation, which has its own no-restricted-syntax block', async () => {
+      const path = resolve(repoRoot, 'packages/mobile/src/presentation/App.tsx');
+
+      expect(await ruleIds(assign, path)).toContain('no-restricted-syntax');
+    });
+
+    it('exempts test files', async () => {
+      const path = resolve(repoRoot, 'packages/core/src/index.spec.ts');
+
+      expect(await ruleIds(bang, path)).not.toContain(bangRule);
+      expect(await ruleIds(assign, path)).not.toContain('no-restricted-syntax');
+    });
+  });
+
+  describe('mobile presentation keeps the CLN-036 contract-Dto selector next to the `??=` ban', () => {
+    const path = resolve(repoRoot, 'packages/mobile/src/presentation/App.tsx');
+    const call = (type: string): string =>
+      `declare const apiClient: { get<T>(url: string): T };\nexport const r = apiClient.get<${type}>('/x');\n`;
+
+    it('flags a local response type', async () => {
+      expect(await ruleIds(call('{ id: string }'), path)).toContain('no-restricted-syntax');
+    });
+
+    it('allows a contract *Dto type', async () => {
+      expect(await ruleIds(call('FooDto'), path)).not.toContain('no-restricted-syntax');
+    });
+  });
 });

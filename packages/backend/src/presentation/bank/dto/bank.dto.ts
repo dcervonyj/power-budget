@@ -39,15 +39,14 @@ export class GetCatalogQueryDto {
 }
 
 export class ReconnectBankDto {
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     description: 'OAuth redirect URI after consent',
     example: 'https://app.power-budget.test/connect/callback',
   })
-  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  redirectUri?: string;
+  redirectUri!: string;
 }
 
 export class BankAccountDto {

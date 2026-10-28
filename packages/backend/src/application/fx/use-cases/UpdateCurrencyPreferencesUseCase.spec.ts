@@ -1,7 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
 import { UpdateCurrencyPreferencesUseCase } from './UpdateCurrencyPreferencesUseCase.js';
 import { GetCurrencyPreferencesUseCase } from './GetCurrencyPreferencesUseCase.js';
-import type { CurrencyPreferencesRepository, UserCurrencyPreferences } from '../../../domain/fx/index.js';
+import type {
+  CurrencyPreferencesRepository,
+  UserCurrencyPreferences,
+} from '../../../domain/fx/index.js';
 import { UserId } from '@power-budget/core';
 
 const USER_ID = UserId.of('01936d3e-8000-7000-a000-000000000001');
