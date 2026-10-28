@@ -155,6 +155,22 @@ describe('useSettings', () => {
     expect(result.current.preference).toBe('light');
   });
 
+  it('reports a biometric failure and clears it on the next attempt', async () => {
+    mockCanUse.mockResolvedValue(true);
+    mockAuthenticate.mockRejectedValueOnce(new Error('sensor busy'));
+    const { result } = await renderHook(useSettings, { wrapper });
+    await act(async () => {
+      result.current.onBiometricChange(true);
+    });
+    expect(result.current.biometricError).toBe(true);
+
+    mockAuthenticate.mockResolvedValueOnce(true);
+    await act(async () => {
+      result.current.onBiometricChange(true);
+    });
+    expect(result.current.biometricError).toBe(false);
+  });
+
   it('enables biometrics only after a successful verification', async () => {
     mockAuthenticate.mockResolvedValue(false);
     const { result } = await renderHook(useSettings, { wrapper });

@@ -15,5 +15,6 @@
   "settings.currency.title": "Base currency",
   "settings.biometric.title": "Biometric unlock",
   "settings.biometric.description": "Ask for Face ID, fingerprint or your passcode when the app opens.",
-  "settings.biometric.reason": "Confirm to turn on biometric unlock"
+  "settings.biometric.reason": "Confirm to turn on biometric unlock",
+  "settings.biometric.error": "Could not change biometric unlock. Please try again."
 }

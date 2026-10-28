@@ -14,6 +14,7 @@ const READY: SettingsViewProps = {
   preferencesError: false,
   biometricAvailable: true,
   biometricEnabled: true,
+  biometricError: false,
   signingOut: false,
   onRetry: noop,
   onNameChange: noop,

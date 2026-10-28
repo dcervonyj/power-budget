@@ -44,6 +44,7 @@ export interface SettingsViewProps {
   readonly preferencesError: boolean;
   readonly biometricAvailable: boolean;
   readonly biometricEnabled: boolean;
+  readonly biometricError: boolean;
   readonly signingOut: boolean;
   readonly onRetry: () => void;
   readonly onNameChange: (name: string) => void;

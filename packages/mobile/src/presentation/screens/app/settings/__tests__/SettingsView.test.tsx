@@ -27,6 +27,7 @@ function props(overrides: Partial<SettingsViewProps> = {}): SettingsViewProps {
     preferencesError: false,
     biometricAvailable: true,
     biometricEnabled: false,
+    biometricError: false,
     signingOut: false,
     onRetry: jest.fn(),
     onNameChange: jest.fn(),
@@ -97,6 +98,25 @@ describe('SettingsView', () => {
     await fireEvent.press(screen.getByRole('switch', { name: 'Biometric unlock' }));
     expect(view.onBiometricChange).toHaveBeenCalledWith(true);
   });
+
+  it('shows inline feedback when changing biometric unlock failed', async () => {
+    await renderView(props({ biometricError: true }));
+
+    expect(
+      screen.getByText('Could not change biometric unlock. Please try again.'),
+    ).toBeOnTheScreen();
+  });
+
+  it.each(['loading', 'error', 'ready'] as const)(
+    'offers sign out in the %s state',
+    async (loadState) => {
+      const view = props({ loadState });
+      await renderView(view);
+
+      await fireEvent.press(screen.getByText('Sign out'));
+      expect(view.onSignOut).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('hides biometric unlock when unavailable', async () => {
     await renderView(props({ biometricAvailable: false }));
