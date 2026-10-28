@@ -175,6 +175,7 @@ function paymentOf(row: TransactionListRow): Payment {
     id: row.data.id,
     amountMinor: row.data.amountMinor,
     currency: row.data.currency,
+    day: row.day,
     suggestedPlannedItemId: row.suggestedPlannedItemId,
   };
 }

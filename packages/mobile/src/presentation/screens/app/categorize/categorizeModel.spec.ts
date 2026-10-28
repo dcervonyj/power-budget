@@ -10,6 +10,8 @@ function choice(overrides: Partial<CategoryChoice> = {}): CategoryChoice {
     plannedMinor: 70000n,
     spentMinor: 31239n,
     currency: 'PLN',
+    periodStart: '2026-10-01',
+    periodEnd: '2026-10-31',
     ...overrides,
   };
 }
@@ -19,6 +21,7 @@ function payment(overrides: Partial<Payment> = {}): Payment {
     id: 'orlen',
     amountMinor: -12930n,
     currency: 'PLN',
+    day: '2026-10-19',
     suggestedPlannedItemId: null,
     ...overrides,
   };
@@ -62,6 +65,12 @@ describe('impactOf', () => {
 
   it('shows no number for a payment in another currency than the plan', () => {
     expect(impactOf(choice(), payment({ currency: 'EUR' })).kind).toBe('foreign');
+  });
+
+  it('shows no number for a payment dated outside the plan period', () => {
+    expect(impactOf(choice(), payment({ day: '2026-09-30' })).kind).toBe('outside');
+    expect(impactOf(choice(), payment({ day: '2026-11-01' })).kind).toBe('outside');
+    expect(impactOf(choice(), payment({ day: '2026-10-31' })).kind).toBe('drain');
   });
 
   it('shows no rod for income or for an item without a planned amount', () => {
@@ -110,6 +119,19 @@ describe('withSorted', () => {
     const [result] = withSorted([choice()], sorted, picks, 'orlen');
 
     expect(result?.spentMinor).toBe(32239n);
+  });
+
+  it('ignores a confirmed payment dated outside the plan period, like the dashboard', () => {
+    const outside = payment({ id: 'old', amountMinor: -1000n, day: '2026-09-30' });
+
+    const [result] = withSorted(
+      [choice()],
+      new Map([['old', outside]]),
+      new Map([['old', 'transport']]),
+      'orlen',
+    );
+
+    expect(result?.spentMinor).toBe(31239n);
   });
 
   it('ignores payments of another currency and other categories', () => {
