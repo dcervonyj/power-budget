@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { ROUTE_PATHS } from '../../infrastructure/navigation/routePaths.js';
 
 /** Where the bank sends the user back after consent: the app's consent callback page. */

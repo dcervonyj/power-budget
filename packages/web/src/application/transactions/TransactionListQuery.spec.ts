@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildQuery, toListQuery, toTransactions } from './TransactionListQuery.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import type { TransactionFilters } from '../../presentation/components/TransactionFilterBar.js';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 

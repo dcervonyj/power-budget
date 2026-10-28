@@ -7,6 +7,7 @@ import type {
   BankProviderDto,
   BankReconnectLinkDto,
 } from '@power-budget/shared-app/contract';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import {
   BankConnectionMapper,
   type BankConnection,

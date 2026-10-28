@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import type { BankConnection } from '../../infrastructure/api/BankConnectionMapper.js';
 
 export type ConsentState =
