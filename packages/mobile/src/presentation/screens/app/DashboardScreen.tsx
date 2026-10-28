@@ -4,6 +4,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { AppTabParamList } from '../../navigation/types.js';
 import { httpOverviewApi } from '../../../infrastructure/overview/OverviewApi.js';
 import { OverviewView } from './overview/OverviewView.js';
+import { useReloadOnFocus } from './overview/useReloadOnFocus.js';
 import { useOverviewData, type OverviewTarget } from './overview/useOverviewData.js';
 
 const ACTIVE_PLAN: OverviewTarget = { kind: 'active' };
@@ -12,6 +13,7 @@ const ACTIVE_PLAN: OverviewTarget = { kind: 'active' };
 export function DashboardScreen(): React.JSX.Element {
   const navigation = useNavigation<BottomTabNavigationProp<AppTabParamList>>();
   const data = useOverviewData(httpOverviewApi, ACTIVE_PLAN);
+  useReloadOnFocus(navigation, data.reload);
 
   function openToSort(): void {
     navigation.navigate('ToSort');

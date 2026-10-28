@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import { IntlProvider } from 'react-intl';
 import type { PlanDashboardResponseDto, PlanDto } from '@power-budget/shared-app/contract';
 import { ThemeProvider } from '../../../theme/index.js';
@@ -14,6 +14,17 @@ const mockDashboard = jest.fn();
 const mockCategoriesList = jest.fn();
 const mockGet = jest.fn();
 const mockNavigate = jest.fn();
+const mockFocusListeners: (() => void)[] = [];
+const mockNavigation = {
+  navigate: (...args: unknown[]): unknown => mockNavigate(...args),
+  addListener: (_event: string, listener: () => void): (() => void) => {
+    mockFocusListeners.push(listener);
+
+    return (): void => {
+      mockFocusListeners.splice(mockFocusListeners.indexOf(listener), 1);
+    };
+  },
+};
 
 jest.mock('../../../../infrastructure/index.js', () => ({
   plansApi: {
@@ -26,7 +37,7 @@ jest.mock('../../../../infrastructure/index.js', () => ({
 }));
 
 jest.mock('@react-navigation/native', () => ({
-  useNavigation: (): unknown => ({ navigate: mockNavigate }),
+  useNavigation: (): unknown => mockNavigation,
 }));
 
 const plan = {
@@ -79,6 +90,29 @@ function answer(url: string): Promise<unknown> {
   return Promise.resolve({ data: [] });
 }
 
+/** react-navigation emits focus on mount, then on every return to the tab. */
+async function focus(): Promise<void> {
+  await act(async () => {
+    mockFocusListeners.forEach((listener) => listener());
+  });
+}
+
+async function pullToRefresh(): Promise<void> {
+  await act(async () => {
+    screen.getByTestId('overview').props.refreshControl.props.onRefresh();
+  });
+}
+
+function withActual(amountMinor: string): PlanDashboardResponseDto {
+  return {
+    ...dashboard,
+    expenseLines: dashboard.expenseLines.map((line) => ({
+      ...line,
+      actual: { amountMinor, currency: 'PLN' },
+    })),
+  };
+}
+
 async function renderScreen(): Promise<void> {
   await render(
     <ThemeProvider>
@@ -99,6 +133,7 @@ describe('DashboardScreen', () => {
     ]);
     mockGet.mockReset().mockImplementation(answer);
     mockNavigate.mockReset();
+    mockFocusListeners.length = 0;
   });
 
   it('renders a real plan dashboard response for the first active plan', async () => {
@@ -146,5 +181,61 @@ describe('DashboardScreen', () => {
     await userEvent.press(screen.getByRole('button', { name: 'Retry' }));
 
     await waitFor(() => expect(screen.getByText('Food')).toBeTruthy());
+  });
+
+  it('reloads the active plans when the tab comes back into focus after the empty state', async () => {
+    mockPlansList.mockResolvedValueOnce([]);
+    await renderScreen();
+    await focus();
+    await waitFor(() => expect(screen.getByText('No active budget plan')).toBeTruthy());
+
+    // A plan was created on the Plans tab; returning to Overview shows it.
+    await focus();
+
+    await waitFor(() => expect(screen.getByText('Food')).toBeTruthy());
+    expect(screen.queryByText('No active budget plan')).toBeNull();
+    expect(mockPlansList).toHaveBeenCalledTimes(2);
+  });
+
+  it('reloads the active plans on pull to refresh after the empty state', async () => {
+    mockPlansList.mockResolvedValueOnce([]);
+    await renderScreen();
+    await waitFor(() => expect(screen.getByText('No active budget plan')).toBeTruthy());
+
+    await pullToRefresh();
+
+    await waitFor(() => expect(screen.getByText('Food')).toBeTruthy());
+    expect(mockPlansList).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not reload on the first focus, which is the mount', async () => {
+    await renderScreen();
+    await focus();
+
+    await waitFor(() => expect(screen.getByText('Food')).toBeTruthy());
+    expect(mockPlansList).toHaveBeenCalledTimes(1);
+    expect(mockDashboard).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the newer answer when an older one for the same plan lands last', async () => {
+    let resolveFirst: (value: PlanDashboardResponseDto) => void = () => undefined;
+    mockDashboard
+      .mockReturnValueOnce(
+        new Promise<PlanDashboardResponseDto>((resolve) => {
+          resolveFirst = resolve;
+        }),
+      )
+      .mockResolvedValueOnce(withActual('150000'));
+    await renderScreen();
+    await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(1));
+
+    await pullToRefresh();
+    await waitFor(() => expect(screen.getByText(/Over by .*500\.00/)).toBeTruthy());
+    await act(async () => {
+      resolveFirst(withActual('110000'));
+    });
+
+    expect(screen.getByText(/Over by .*500\.00/)).toBeTruthy();
+    expect(screen.queryByText(/Over by .*100\.00/)).toBeNull();
   });
 });
