@@ -132,4 +132,12 @@ describe('SettingsView', () => {
 
     expect(screen.getByTestId('settings-loading')).toBeOnTheScreen();
   });
+
+  it('offers currency choices when no base currency is set yet', async () => {
+    const view = props({ baseCurrency: null });
+    await renderView(view);
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'EUR' }));
+    expect(view.onCurrencyChange).toHaveBeenCalledWith('EUR');
+  });
 });

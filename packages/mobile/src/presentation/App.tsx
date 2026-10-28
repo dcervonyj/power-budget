@@ -1,17 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import type { LinkingOptions } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { IntlProvider } from 'react-intl';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getLocales } from 'expo-localization';
 import { RootNavigator } from './navigation/RootNavigator.js';
-import {
-  loadMessages,
-  LocaleResolver,
-  LOCALE_STORAGE_KEY,
-} from '../infrastructure/locale/index.js';
-import type { SupportedLocale } from '../infrastructure/locale/index.js';
+import { LocaleProvider } from './LocaleProvider.js';
 import type { RootStackParamList } from './navigation/types.js';
 import { tokenStore } from '../infrastructure/index.js';
 import { AuthGate } from './AuthGate.js';
@@ -23,8 +16,6 @@ import {
   toStatusBarStyle,
   useGlass,
 } from './theme/index.js';
-
-const resolver = new LocaleResolver();
 
 function loadStoredTokens(): Promise<void> {
   return tokenStore.load();
@@ -80,31 +71,16 @@ function ThemedNavigation(): React.JSX.Element {
 }
 
 export function App(): React.JSX.Element {
-  const [locale, setLocale] = useState<SupportedLocale>(() =>
-    resolver.resolve(getDeviceLanguage()),
-  );
-  const [messages, setMessages] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    void AsyncStorage.getItem(LOCALE_STORAGE_KEY)
-      .then((stored) => {
-        const resolved = resolver.resolve(getDeviceLanguage(), stored);
-        setLocale(resolved);
-        return loadMessages(resolved);
-      })
-      .then(setMessages);
-  }, []);
-
   return (
     <ThemeProvider>
       <FontGate>
-        <IntlProvider locale={locale} messages={messages} defaultLocale="en">
+        <LocaleProvider deviceLanguage={getDeviceLanguage()}>
           <AuthGate loadTokens={loadStoredTokens}>
             <BiometricGate>
               <ThemedNavigation />
             </BiometricGate>
           </AuthGate>
-        </IntlProvider>
+        </LocaleProvider>
       </FontGate>
     </ThemeProvider>
   );
