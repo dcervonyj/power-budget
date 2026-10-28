@@ -1,6 +1,7 @@
 import { BankAccountId } from '@power-budget/core';
 import type { CurrencyCode, HouseholdId, UserId } from '@power-budget/core';
 import type { ManualAccount } from '../../../domain/bank/entities.js';
+import type { IdGenerator } from '../../../domain/shared/ports.js';
 import type { AccountRepository } from '../../../domain/bank/ports.js';
 
 export interface CreateManualAccountInput {
@@ -14,13 +15,13 @@ export interface CreateManualAccountInput {
 export class CreateManualAccountUseCase {
   constructor(
     private readonly accountRepo: AccountRepository,
-    private readonly generateId: () => string,
+    private readonly ids: IdGenerator,
   ) {}
 
   execute(input: CreateManualAccountInput): Promise<ManualAccount> {
     return this.accountRepo.createManual(
       {
-        id: BankAccountId.of(this.generateId()),
+        id: BankAccountId.of(this.ids.next()),
         householdId: input.householdId,
         ownerUserId: input.userId,
         name: input.name.trim(),

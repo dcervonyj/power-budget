@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_CONFIG, type AppConfig } from '../../config/AppConfig.js';
+import { SystemModule, CLOCK } from '../system/SystemModule.js';
+import type { Clock } from '../../domain/shared/ports.js';
 import { QueueModule } from '../queue/queue.module.js';
 import { PlansModule } from '../plans/PlansModule.js';
 import { DrizzlePlanRepository } from '../plans/DrizzlePlanRepository.js';
@@ -20,7 +22,7 @@ import { RunReconnectRemindersUseCase } from '../../application/notifications/us
  * reconnect-reminder and outbox-relay crons. Imported by WorkerModule only.
  */
 @Module({
-  imports: [QueueModule, NotificationsModule, PlansModule],
+  imports: [QueueModule, NotificationsModule, PlansModule, SystemModule],
   providers: [
     {
       provide: ResendEmailChannel,
@@ -46,18 +48,23 @@ import { RunReconnectRemindersUseCase } from '../../application/notifications/us
         DrizzleNotificationRepository,
         EnqueueNotificationUseCase,
         PlanActualsWeeklyDigestSummaryReader,
+        CLOCK,
       ],
       useFactory: (
         repo: DrizzleNotificationRepository,
         enqueue: EnqueueNotificationUseCase,
         summaries: PlanActualsWeeklyDigestSummaryReader,
-      ) => new RunWeeklyDigestUseCase(repo, enqueue, summaries),
+        clock: Clock,
+      ) => new RunWeeklyDigestUseCase(repo, enqueue, summaries, clock),
     },
     {
       provide: RunReconnectRemindersUseCase,
-      inject: [DrizzleNotificationRepository, EnqueueNotificationUseCase],
-      useFactory: (repo: DrizzleNotificationRepository, enqueue: EnqueueNotificationUseCase) =>
-        new RunReconnectRemindersUseCase(repo, enqueue),
+      inject: [DrizzleNotificationRepository, EnqueueNotificationUseCase, CLOCK],
+      useFactory: (
+        repo: DrizzleNotificationRepository,
+        enqueue: EnqueueNotificationUseCase,
+        clock: Clock,
+      ) => new RunReconnectRemindersUseCase(repo, enqueue, clock),
     },
     {
       provide: DispatchNotificationProcessor,

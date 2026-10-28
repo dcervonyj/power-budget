@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { uuidv7 } from 'uuidv7';
+import { SystemModule, CLOCK, ID_GENERATOR } from '../../infrastructure/system/SystemModule.js';
+import type { Clock, IdGenerator } from '../../domain/shared/ports.js';
 import { BankModule } from '../../infrastructure/bank/BankModule.js';
 import { AuditModule, REDACTING_AUDIT_LOGGER } from '../../infrastructure/audit/AuditModule.js';
 import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
@@ -25,7 +26,7 @@ import { BankController } from './BankController.js';
 import { AccountsController } from './AccountsController.js';
 
 @Module({
-  imports: [BankModule, AuditModule, AuthModule],
+  imports: [BankModule, AuditModule, AuthModule, SystemModule],
   controllers: [BankController, AccountsController],
   providers: [
     {
@@ -34,12 +35,14 @@ import { AccountsController } from './AccountsController.js';
         DrizzleBankConnectionRepository,
         InMemoryBankConnectorRegistry,
         DrizzleTotpSecretRepository,
+        ID_GENERATOR,
       ],
       useFactory: (
         repo: DrizzleBankConnectionRepository,
         reg: InMemoryBankConnectorRegistry,
         totpRepo: DrizzleTotpSecretRepository,
-      ) => new InitiateBankConnectionUseCase(repo, reg, totpRepo),
+        ids: IdGenerator,
+      ) => new InitiateBankConnectionUseCase(repo, reg, totpRepo, ids),
     },
     {
       provide: CompleteBankConsentUseCase,
@@ -64,12 +67,14 @@ import { AccountsController } from './AccountsController.js';
         DrizzleBankConnectionRepository,
         InMemoryBankConnectorRegistry,
         REDACTING_AUDIT_LOGGER,
+        CLOCK,
       ],
       useFactory: (
         repo: DrizzleBankConnectionRepository,
         reg: InMemoryBankConnectorRegistry,
         audit: AuditLogger,
-      ) => new DisconnectBankUseCase(repo, reg, audit),
+        clock: Clock,
+      ) => new DisconnectBankUseCase(repo, reg, audit, clock),
     },
     {
       provide: ReconnectBankUseCase,
@@ -98,8 +103,9 @@ import { AccountsController } from './AccountsController.js';
     },
     {
       provide: CreateManualAccountUseCase,
-      inject: [DrizzleAccountRepository],
-      useFactory: (repo: DrizzleAccountRepository) => new CreateManualAccountUseCase(repo, uuidv7),
+      inject: [DrizzleAccountRepository, ID_GENERATOR],
+      useFactory: (repo: DrizzleAccountRepository, ids: IdGenerator) =>
+        new CreateManualAccountUseCase(repo, ids),
     },
   ],
 })
