@@ -1,3 +1,4 @@
+import type { NotificationEventId } from '@power-budget/core';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 import {
@@ -146,7 +147,7 @@ export class DispatchNotificationProcessor extends WorkerHost {
   }
 
   /** A row that is still pending but could not be claimed is held by another claim; retry, it may crash. */
-  private async assertNoLongerPending(outboxId: string): Promise<void> {
+  private async assertNoLongerPending(outboxId: NotificationEventId): Promise<void> {
     const current = await this.outbox.findById(outboxId);
     if (current !== null && current.sentAt === null && current.failedAt === null) {
       throw new NotificationBusyError(outboxId);

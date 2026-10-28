@@ -1,3 +1,4 @@
+import type { NotificationEventId } from '@power-budget/core';
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type {
@@ -12,7 +13,7 @@ import {
 import type { RunReconnectRemindersUseCase } from '../../../application/notifications/use-cases/RunReconnectRemindersUseCase.js';
 import { NotificationCronService } from './NotificationCronService.js';
 
-function makeService(pendingIds: string[]): {
+function makeService(pendingIds: NotificationEventId[]): {
   service: NotificationCronService;
   digest: ReturnType<typeof mock<RunWeeklyDigestUseCase>>;
   queue: ReturnType<typeof mock<NotificationDispatchQueue>>;
@@ -32,7 +33,10 @@ function makeService(pendingIds: string[]): {
 
 describe('NotificationCronService', () => {
   it('schedules each pending outbox row once', async () => {
-    const { service, queue } = makeService(['n-1', 'n-2']);
+    const { service, queue } = makeService([
+      'n-1' as NotificationEventId,
+      'n-2' as NotificationEventId,
+    ]);
 
     await service.relayOutbox();
 
@@ -40,7 +44,11 @@ describe('NotificationCronService', () => {
   });
 
   it('keeps scheduling the remaining rows when one schedule fails', async () => {
-    const { service, queue } = makeService(['n-1', 'n-2', 'n-3']);
+    const { service, queue } = makeService([
+      'n-1' as NotificationEventId,
+      'n-2' as NotificationEventId,
+      'n-3' as NotificationEventId,
+    ]);
     queue.schedule.mockRejectedValueOnce(new Error('Queue unavailable'));
 
     await expect(service.relayOutbox()).resolves.toBeUndefined();

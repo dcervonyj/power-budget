@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId, UserId, BankConnectionId } from '@power-budget/core';
 import type { ExpiringConnectionRow } from '../../../../domain/notifications/entities.js';
 import type { NotificationRepository } from '../../../../domain/notifications/ports.js';
 import { EnqueueNotificationUseCase } from '../EnqueueNotificationUseCase.js';
@@ -7,7 +7,7 @@ import { RunReconnectRemindersUseCase } from '../RunReconnectRemindersUseCase.js
 import { FixedClock } from '../../../../test/doubles/FixedClock.js';
 
 const CONNECTION: ExpiringConnectionRow = {
-  connectionId: 'conn-1',
+  connectionId: 'conn-1' as BankConnectionId,
   householdId: 'hh-1' as HouseholdId,
   userId: 'user-1' as UserId,
   email: 'a@example.com',

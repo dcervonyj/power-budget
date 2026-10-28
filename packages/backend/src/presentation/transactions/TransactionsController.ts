@@ -35,6 +35,7 @@ import {
   type IdNamespace,
 } from '@power-budget/core';
 import {
+  BankAccountNotFoundError,
   PlannedItemNotFoundError,
   TransactionNotFoundError,
 } from '../../domain/transactions/errors.js';
@@ -204,7 +205,7 @@ export class TransactionsController {
       accountId: brandOrNotFound(
         BankAccountId,
         dto.accountId,
-        () => new NotFoundException('Account not found'),
+        () => new BankAccountNotFoundError(),
       ),
       occurredOn: this.dateOf(dto.occurredOn),
       amountMinor: BigInt(dto.amountMinor),
@@ -384,13 +385,12 @@ export class TransactionsController {
     if (!rawPlannedItemId) {
       return;
     }
+    // Transaction ids first: a foreign batch answers transaction_not_found before a bad planned item id is looked at.
+    const transactionIds = dto.ids.map((txId) => this.transactionIdOf(txId));
     const plannedItemId = this.plannedItemIdOf(rawPlannedItemId);
 
     await this.bulkMapTransactions.execute({
-      mappings: dto.ids.map((txId) => ({
-        transactionId: this.transactionIdOf(txId),
-        plannedItemId,
-      })),
+      mappings: transactionIds.map((transactionId) => ({ transactionId, plannedItemId })),
       by: user.userId,
       householdId: user.householdId,
       planId: STUB_PLAN_ID,
@@ -410,7 +410,13 @@ export class TransactionsController {
   }
 
   private dateOf(raw: string): IsoDate {
-    if (!IsoDate.isValid(raw)) {
+    // Round-trip through Date: a calendar check, so 2024-02-31 and 2024-13-45 are both rejected.
+    const parsed = new Date(`${raw}T00:00:00.000Z`);
+    if (
+      !IsoDate.isValid(raw) ||
+      Number.isNaN(parsed.getTime()) ||
+      !parsed.toISOString().startsWith(raw)
+    ) {
       throw new BadRequestException(`${raw} is not a calendar date`);
     }
 

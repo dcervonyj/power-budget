@@ -35,6 +35,7 @@ import type {
   HouseholdId,
   HouseholdInviteId,
   LeftoverSnapshotId,
+  MerchantRuleId,
   NotificationEventId,
   PlanId,
   PlannedItemId,
@@ -829,7 +830,7 @@ export const liveSignals = pgTable(
 export const merchantRules = pgTable(
   'merchant_rules',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<MerchantRuleId>().primaryKey(),
     householdId: uuid('household_id')
       .$type<HouseholdId>()
       .notNull()

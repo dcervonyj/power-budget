@@ -99,6 +99,38 @@ describe('TransactionsController ids (HTTP)', () => {
     expect(res.statusCode).toBe(400);
   });
 
+  it.each(['2024-02-31', '2024-13-45'])(
+    'GET /transactions?from=%s answers 400, not 500',
+    async (from) => {
+      const res = await app.inject({
+        method: 'GET',
+        url: `/transactions?from=${from}`,
+        headers: headers(),
+      });
+
+      expect(res.statusCode).toBe(400);
+      expect(list.execute).not.toHaveBeenCalled();
+    },
+  );
+
+  it('POST /transactions answers 404 bank_account_not_found for an account id the core type rejects', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/transactions',
+      headers: headers(),
+      payload: {
+        accountId: NIL_ID,
+        occurredOn: '2024-06-15',
+        amountMinor: '100',
+        currency: 'PLN',
+        description: 'x',
+      },
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe('bank_account_not_found');
+  });
+
   it('POST /transactions/bulk answers 404 for a planned item id the core type rejects', async () => {
     const res = await app.inject({
       method: 'POST',
@@ -108,6 +140,7 @@ describe('TransactionsController ids (HTTP)', () => {
     });
 
     expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe('planned_item_not_found');
     expect(bulkMap.execute).not.toHaveBeenCalled();
   });
 });
