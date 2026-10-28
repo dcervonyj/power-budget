@@ -1,4 +1,4 @@
-import type { CurrencyCode, FxRate as CoreFxRate } from '@power-budget/core';
+import type { UserId, CurrencyCode, FxRate as CoreFxRate } from '@power-budget/core';
 
 export type { FxRateSource } from '@power-budget/core';
 
@@ -8,7 +8,7 @@ export type FxRate = CoreFxRate;
 export type NewFxRate = Omit<FxRate, 'id'>;
 
 export interface UserCurrencyPreferences {
-  readonly userId: string;
+  readonly userId: UserId;
   readonly baseCurrency: CurrencyCode;
   readonly interestingCurrencies: readonly CurrencyCode[];
 }

@@ -7,6 +7,7 @@ import type {
   PlannedItemId,
   TransactionId,
   UserId,
+  MerchantRuleId,
 } from '@power-budget/core';
 import type { MerchantRule } from '../../../domain/categorisation/entities.js';
 import type {
@@ -42,7 +43,7 @@ function bank(counterpartyName: string): Transaction['bank'] {
 
 function rule(overrides: Partial<MerchantRule> = {}): MerchantRule {
   return {
-    id: 'rule-1',
+    id: 'rule-1' as MerchantRuleId,
     householdId,
     ownerUserId: userId,
     matchKind: 'merchant',

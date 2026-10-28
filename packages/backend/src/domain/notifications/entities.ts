@@ -1,4 +1,11 @@
-import type { HouseholdId, IsoDate, Money, UserId } from '@power-budget/core';
+import type {
+  BankConnectionId,
+  NotificationEventId,
+  HouseholdId,
+  IsoDate,
+  Money,
+  UserId,
+} from '@power-budget/core';
 import type { LocaleCode } from '../auth/entities.js';
 
 export type NotificationKind =
@@ -14,7 +21,7 @@ export const SECRET_PAYLOAD_KEYS: readonly string[] = ['link', 'token'];
 export const MAX_DISPATCH_ATTEMPTS = 5;
 
 export interface NotificationOutboxRow {
-  readonly id: string;
+  readonly id: NotificationEventId;
   readonly householdId: HouseholdId | null;
   /** Null for an address-only recipient (an invitee without an account). */
   readonly recipientUserId: UserId | null;
@@ -94,7 +101,7 @@ export interface HouseholdMemberRow {
 }
 
 export interface ExpiringConnectionRow {
-  readonly connectionId: string;
+  readonly connectionId: BankConnectionId;
   readonly householdId: HouseholdId;
   readonly userId: UserId;
   readonly email: string;

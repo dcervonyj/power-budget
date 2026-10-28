@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, PlannedItemId, UserId } from '@power-budget/core';
+import type { HouseholdId, PlannedItemId, UserId, MerchantRuleId } from '@power-budget/core';
 import { IsoDate, Money } from '@power-budget/core';
 import { SuggestFromMerchantRulesUseCase } from './SuggestFromMerchantRulesUseCase.js';
 import type { MerchantRule } from '../../domain/categorisation/entities.js';
@@ -43,7 +43,7 @@ function useCaseWith(
 ): SuggestFromMerchantRulesUseCase {
   const rules = mock<MerchantRuleRepository>();
   rules.findMatching.mockResolvedValue([
-    mock<MerchantRule>({ id: 'r1', alwaysAsk: false, hits, planKindPref: null }),
+    mock<MerchantRule>({ id: 'r1' as MerchantRuleId, alwaysAsk: false, hits, planKindPref: null }),
   ]);
   const items = mock<PlannedItemResolver>();
   items.resolveActive.mockResolvedValue(resolved === null ? null : { plannedItemId: resolved });

@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import type { CurrencyCode } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
 import { ListAccountsUseCase } from '../../application/bank/use-cases/ListAccountsUseCase.js';
@@ -67,8 +66,7 @@ export class AccountsController {
       userId: user.userId,
       householdId: user.householdId,
       name: dto.name,
-      // Validated against CURRENCIES by the DTO.
-      currency: dto.currency as CurrencyCode,
+      currency: dto.currency,
     });
 
     return toAccountDto(account);

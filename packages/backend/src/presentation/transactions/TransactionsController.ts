@@ -12,6 +12,8 @@ import {
   HttpStatus,
   UseGuards,
   NotFoundException,
+  BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,15 +24,22 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { ApiQueryFrom } from '../http/ApiQueryFrom.js';
-import type {
+import {
   BankAccountId,
   CategoryId,
-  CurrencyCode,
   IsoDate,
   PlannedItemId,
   PlanId,
   TransactionId,
+  type Brand,
+  type IdNamespace,
 } from '@power-budget/core';
+import {
+  BankAccountNotFoundError,
+  PlannedItemNotFoundError,
+  TransactionNotFoundError,
+} from '../../domain/transactions/errors.js';
+import { brandOrNotFound } from '../http/brandedIds.js';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
 import {
@@ -59,6 +68,8 @@ import {
   toTransactionPageDto,
 } from './dto/transaction-response.dto.js';
 
+// The nil UUID is no valid id for the core id types, and this stub is what the use cases get until plans are wired in.
+// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no PlanId constructor accepts the nil UUID
 const STUB_PLAN_ID = '00000000-0000-0000-0000-000000000000' as PlanId;
 
 // Domain errors (TRANSACTION_NOT_FOUND, ALREADY_MAPPED, ...) are mapped to HTTP
@@ -69,14 +80,23 @@ const STUB_PLAN_ID = '00000000-0000-0000-0000-000000000000' as PlanId;
 @UseGuards(JwtAuthGuard)
 export class TransactionsController {
   constructor(
+    @Inject(ListTransactionsUseCase)
     private readonly listTransactions: ListTransactionsUseCase,
+    @Inject(GetTransactionUseCase)
     private readonly getTransaction: GetTransactionUseCase,
+    @Inject(AddManualTransactionUseCase)
     private readonly addManualTransaction: AddManualTransactionUseCase,
+    @Inject(MapTransactionUseCase)
     private readonly mapTransaction: MapTransactionUseCase,
+    @Inject(BulkMapTransactionsUseCase)
     private readonly bulkMapTransactions: BulkMapTransactionsUseCase,
+    @Inject(BulkActOnTransactionsUseCase)
     private readonly bulkActOnTransactions: BulkActOnTransactionsUseCase,
+    @Inject(MarkAsTransferUseCase)
     private readonly markAsTransfer: MarkAsTransferUseCase,
+    @Inject(UnmarkTransferUseCase)
     private readonly unmarkTransfer: UnmarkTransferUseCase,
+    @Inject(PatchTransactionUseCase)
     private readonly patchTransaction: PatchTransactionUseCase,
   ) {}
 
@@ -102,19 +122,27 @@ export class TransactionsController {
       return { items: [], nextCursor: null, hasMore: false };
     }
 
+    // An id no row can carry matches nothing, like any other unknown id.
+    if (
+      !this.isKnownShape(BankAccountId, query.accountId) ||
+      !this.isKnownShape(CategoryId, query.categoryId)
+    ) {
+      return { items: [], nextCursor: null, hasMore: false };
+    }
+
     const page = await this.listTransactions.execute({
       query: {
         householdId: user.householdId,
         ownerUserId: user.userId,
-        accountId: query.accountId as BankAccountId | undefined,
-        dateFrom: query.from as IsoDate | undefined,
-        dateTo: query.to as IsoDate | undefined,
+        accountId: this.optionalId(BankAccountId, query.accountId),
+        dateFrom: this.optionalDate(query.from),
+        dateTo: this.optionalDate(query.to),
         search: query.q,
         unmappedOnly: query.unmappedOnly,
         mapped: query.mapped,
         transfer: query.transfer,
         status: query.status,
-        categoryId: query.categoryId as CategoryId | undefined,
+        categoryId: this.optionalId(CategoryId, query.categoryId),
         currency: query.currency,
         source: query.source,
         cursor: query.cursor,
@@ -145,7 +173,7 @@ export class TransactionsController {
     }
 
     const detail = await this.getTransaction.execute(
-      id as TransactionId,
+      this.transactionIdOf(id),
       user.householdId,
       user.userId,
     );
@@ -174,11 +202,14 @@ export class TransactionsController {
     const created = await this.addManualTransaction.execute({
       householdId: user.householdId,
       userId: user.userId,
-      accountId: dto.accountId as BankAccountId,
-      occurredOn: dto.occurredOn,
+      accountId: brandOrNotFound(
+        BankAccountId,
+        dto.accountId,
+        () => new BankAccountNotFoundError(),
+      ),
+      occurredOn: this.dateOf(dto.occurredOn),
       amountMinor: BigInt(dto.amountMinor),
-      // Validated against CURRENCIES by the DTO.
-      currency: dto.currency as CurrencyCode,
+      currency: dto.currency,
       description: dto.description,
       merchant: dto.merchant ?? null,
       notes: dto.notes ?? null,
@@ -212,8 +243,7 @@ export class TransactionsController {
       throw new NotFoundException('No household');
     }
 
-    // Transaction ids are not validated as v7 here, like the other routes of this controller.
-    const transactionId = id as TransactionId;
+    const transactionId = this.transactionIdOf(id);
     await this.patchTransaction.execute({
       transactionId,
       householdId: user.householdId,
@@ -250,8 +280,8 @@ export class TransactionsController {
     }
 
     await this.mapTransaction.execute({
-      transactionId: id as TransactionId,
-      plannedItemId: (dto.plannedItemId as PlannedItemId) ?? null,
+      transactionId: this.transactionIdOf(id),
+      plannedItemId: dto.plannedItemId === null ? null : this.plannedItemIdOf(dto.plannedItemId),
       by: user.userId,
       householdId: user.householdId,
       planId: STUB_PLAN_ID,
@@ -280,8 +310,11 @@ export class TransactionsController {
     }
 
     await this.markAsTransfer.execute({
-      transactionId: id as TransactionId,
-      counterpartId: (dto.counterpartTransactionId as TransactionId | undefined) ?? null,
+      transactionId: this.transactionIdOf(id),
+      counterpartId:
+        dto.counterpartTransactionId === undefined || dto.counterpartTransactionId === null
+          ? null
+          : this.transactionIdOf(dto.counterpartTransactionId),
       by: user.userId,
       householdId: user.householdId,
     });
@@ -307,7 +340,7 @@ export class TransactionsController {
     }
 
     await this.unmarkTransfer.execute({
-      transactionId: id as TransactionId,
+      transactionId: this.transactionIdOf(id),
       householdId: user.householdId,
       userId: user.userId,
     });
@@ -340,7 +373,7 @@ export class TransactionsController {
     if (dto.op !== 'map') {
       await this.bulkActOnTransactions.execute({
         action: dto.op,
-        transactionIds: dto.ids.map((txId) => txId as TransactionId),
+        transactionIds: dto.ids.map((txId) => this.transactionIdOf(txId)),
         by: user.userId,
         householdId: user.householdId,
       });
@@ -348,20 +381,65 @@ export class TransactionsController {
       return;
     }
 
-    const plannedItemId = dto.payload?.['plannedItemId'] as string | undefined as
-      PlannedItemId | undefined;
-    if (!plannedItemId) {
+    const rawPlannedItemId = dto.payload?.['plannedItemId'];
+    if (!rawPlannedItemId) {
       return;
     }
 
+    // The use case brands the planned item id after its ownership check, so a foreign batch answers
+    // transaction_not_found before a malformed planned item id is looked at.
     await this.bulkMapTransactions.execute({
       mappings: dto.ids.map((txId) => ({
-        transactionId: txId as TransactionId,
-        plannedItemId,
+        transactionId: this.transactionIdOf(txId),
+        plannedItemId: typeof rawPlannedItemId === 'string' ? rawPlannedItemId : '',
       })),
       by: user.userId,
       householdId: user.householdId,
       planId: STUB_PLAN_ID,
     });
+  }
+
+  private transactionIdOf(raw: string): TransactionId {
+    return brandOrNotFound(TransactionId, raw, () => new TransactionNotFoundError());
+  }
+
+  private plannedItemIdOf(raw: unknown): PlannedItemId {
+    return brandOrNotFound(
+      PlannedItemId,
+      typeof raw === 'string' ? raw : '',
+      () => new PlannedItemNotFoundError(),
+    );
+  }
+
+  private dateOf(raw: string): IsoDate {
+    // Round-trip through Date: a calendar check, so 2024-02-31 and 2024-13-45 are both rejected.
+    const parsed = new Date(`${raw}T00:00:00.000Z`);
+    if (
+      !IsoDate.isValid(raw) ||
+      Number.isNaN(parsed.getTime()) ||
+      !parsed.toISOString().startsWith(raw)
+    ) {
+      throw new BadRequestException(`${raw} is not a calendar date`);
+    }
+
+    return IsoDate.of(raw);
+  }
+
+  private optionalDate(raw: string | undefined): IsoDate | undefined {
+    return raw === undefined ? undefined : this.dateOf(raw);
+  }
+
+  private optionalId<B extends string>(
+    namespace: IdNamespace<B>,
+    raw: string | undefined,
+  ): Brand<string, B> | undefined {
+    return raw === undefined ? undefined : namespace.of(raw);
+  }
+
+  private isKnownShape<B extends string>(
+    namespace: IdNamespace<B>,
+    raw: string | undefined,
+  ): boolean {
+    return raw === undefined || namespace.isValid(raw);
   }
 }

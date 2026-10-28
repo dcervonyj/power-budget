@@ -1,4 +1,4 @@
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { NotificationEventId, HouseholdId, UserId } from '@power-budget/core';
 import type {
   ExpiringConnectionRow,
   HouseholdMemberRow,
@@ -40,7 +40,7 @@ export interface NotificationOutbox {
 }
 
 export interface NotificationRepository {
-  findById(id: string): Promise<NotificationOutboxRow | null>;
+  findById(id: NotificationEventId): Promise<NotificationOutboxRow | null>;
   findPendingBatch(limit: number): Promise<NotificationOutboxRow[]>;
   /**
    * Claims a pending row (sent_at and failed_at unset) in one short transaction:
@@ -49,7 +49,7 @@ export interface NotificationRepository {
    * send happens outside any transaction; the provider idempotency key covers
    * two attempts that overlap.
    */
-  claimForDispatch(id: string): Promise<NotificationClaim | null>;
+  claimForDispatch(id: NotificationEventId): Promise<NotificationClaim | null>;
   listAllHouseholdMembers(): Promise<HouseholdMemberRow[]>;
   findExpiringConnections(thresholdDate: Date): Promise<ExpiringConnectionRow[]>;
   setEmailBouncing(email: string): Promise<void>;
@@ -60,7 +60,7 @@ export interface NotificationRepository {
 
 /** Schedules the delivery of one outbox row (BullMQ in production). */
 export interface NotificationDispatchQueue {
-  schedule(outboxId: string): Promise<void>;
+  schedule(outboxId: NotificationEventId): Promise<void>;
 }
 
 export interface EmailMessage {

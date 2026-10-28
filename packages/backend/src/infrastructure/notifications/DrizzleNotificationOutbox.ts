@@ -65,7 +65,7 @@ export class DrizzleNotificationOutbox implements NotificationOutbox {
     await this.scheduleInserted(inserted);
   }
 
-  private async scheduleInserted(inserted: readonly { id: string }[]): Promise<void> {
+  private async scheduleInserted(inserted: readonly { id: NotificationEventId }[]): Promise<void> {
     for (const row of inserted) {
       await this.scheduleNow(row.id);
     }
@@ -76,7 +76,7 @@ export class DrizzleNotificationOutbox implements NotificationOutbox {
    * already committed, so a Redis failure here only delays the delivery until
    * the relay picks the row up.
    */
-  private async scheduleNow(outboxId: string): Promise<void> {
+  private async scheduleNow(outboxId: NotificationEventId): Promise<void> {
     try {
       await this.dispatchQueue.schedule(outboxId);
     } catch (err) {

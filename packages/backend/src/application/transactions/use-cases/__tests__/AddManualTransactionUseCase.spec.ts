@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import { BankAccountId, HouseholdId, UserId } from '@power-budget/core';
+import { BankAccountId, HouseholdId, IsoDate, UserId } from '@power-budget/core';
 import type { Transaction } from '../../../../domain/transactions/entities.js';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import {
@@ -18,7 +18,7 @@ const input = {
   householdId: HOUSEHOLD,
   userId: USER,
   accountId: ACCOUNT,
-  occurredOn: '2026-10-21',
+  occurredOn: IsoDate.of('2026-10-21'),
   amountMinor: -1250n,
   currency: 'PLN' as const,
   description: 'Bakery',
