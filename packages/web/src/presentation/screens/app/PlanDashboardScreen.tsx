@@ -1,10 +1,9 @@
+import { appShellStore, planDashboardStore } from '../../../composition.js';
 import React, { useCallback, useEffect } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { Link, useParams } from 'react-router-dom';
 import { PlanDashboardView } from '../../components/plan-dashboard/PlanDashboardView.js';
-import { planDashboardStore } from '../../../application/dashboard/DashboardStore.js';
-import { appShellStore } from '../../../application/shell/appShellStore.js';
 import { useVisiblePolling } from '../../hooks/useVisiblePolling.js';
 import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
 import { OVERVIEW_CONTAINER_STYLE } from '../../components/plan-dashboard/overviewStyles.js';

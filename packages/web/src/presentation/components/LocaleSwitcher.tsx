@@ -1,6 +1,7 @@
+import { apiClient, tokenStore } from '../../composition.js';
 import React, { useContext } from 'react';
 import type { UpdateLocaleDto } from '@power-budget/shared-app/contract';
-import { LocaleContext, apiClient, tokenStore } from '../../AppProviders.js';
+import { LocaleContext } from '../../AppProviders.js';
 import type { SupportedLocale } from '../../AppProviders.js';
 import { LocaleSelect } from '../shell/LocaleSelect.js';
 

@@ -11,8 +11,6 @@ import { HouseholdAggregatesCard } from '../HouseholdAggregatesCard.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import { PLAN, apiError } from '../../../../test/dashboardFixtures.js';
 
-vi.mock('../../../../AppProviders.js', () => ({ householdsApi: {}, plansApi: {} }));
-
 const OWNER: HouseholdMemberResponseDto = {
   userId: 'user-ann',
   email: 'ann@example.com',

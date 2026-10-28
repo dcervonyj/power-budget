@@ -1,8 +1,8 @@
+import { apiClient } from '../../composition.js';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
 import type { MinorUnitAmount } from '@power-budget/core';
 import { formatMoneyParts } from '@power-budget/shared-app';
-import { apiClient } from '../../AppProviders.js';
 import { fetchAndCacheRates, getCachedRates } from '../../infrastructure/fx/FxRateCache.js';
 import type { FxRateTable } from '../../infrastructure/fx/FxRateCache.js';
 import { toSupportedLocale } from '../i18n/supportedLocale.js';

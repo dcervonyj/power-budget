@@ -1,8 +1,7 @@
+import { apiClient, settingsStore } from '../../../composition.js';
 import React, { useCallback, useEffect, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import type { AuditEventDto, AuditPageDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../../AppProviders.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 import { AuditLogView } from '../settings/AuditLogView.js';
 
 export const AuditLogScreen = observer(function AuditLogScreen(): React.JSX.Element {

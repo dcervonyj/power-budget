@@ -4,26 +4,13 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { BulkActionBar } from '../../../components/BulkActionBar.js';
-import { apiClient } from '../../../../AppProviders.js';
 import { darkTheme } from '@power-budget/design-tokens';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 
-vi.mock('../../../../AppProviders.js', async () => {
-  const { BulkTransactionActions } =
-    await import('../../../../application/transactions/BulkTransactionActions.js');
-  const client = {
-    request: vi.fn(),
-    get: vi.fn().mockResolvedValue({ status: 200, data: [], headers: {} }),
-    post: vi.fn().mockResolvedValue({ status: 204, data: undefined, headers: {} }),
-    put: vi.fn(),
-    patch: vi.fn().mockResolvedValue({ status: 200, data: undefined, headers: {} }),
-    delete: vi.fn(),
-  };
+const apiSpies = spyOnApiClient();
 
-  return { apiClient: client, bulkTransactionActions: new BulkTransactionActions(client) };
-});
-
-const mockPost = vi.mocked(apiClient.post);
-const mockPatch = vi.mocked(apiClient.patch);
+const mockPost = apiSpies.post;
+const mockPatch = apiSpies.patch;
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <IntlProvider locale="en" messages={{}}>

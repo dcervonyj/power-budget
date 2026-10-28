@@ -1,3 +1,4 @@
+import { categoriesApi, referenceCatalogue } from '../../../composition.js';
 import React, { useCallback, useEffect, useState } from 'react';
 import { readApiError } from '@power-budget/shared-app';
 import type {
@@ -5,9 +6,7 @@ import type {
   CategoryKindDto,
   UpdateCategoryDto,
 } from '@power-budget/shared-app/contract';
-import { categoriesApi } from '../../../AppProviders.js';
 import { CategoriesView, type CategoryActionError } from './CategoriesView.js';
-import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 
 type LoadState = 'loading' | 'idle' | 'error';
 

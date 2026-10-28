@@ -1,24 +1,18 @@
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { settingsStore } from '../../../../composition.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import { THEME_STORAGE_KEY } from '../../../theme/themePreference.js';
 import { stubLocalStorage } from '../../../theme/__tests__/matchMediaStub.js';
 import { SettingsScreen } from '../../app/SettingsScreen.js';
 import { SettingsAppearanceTab } from '../SettingsAppearanceTab.js';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  signOut: { execute: vi.fn() },
-  apiClient: { get: vi.fn(), patch: vi.fn(), post: vi.fn(), delete: vi.fn() },
-  tokenStore: { getAccessToken: vi.fn(() => null) },
-  LocaleContext: React.createContext({ locale: 'en', setLocale: vi.fn() }),
-}));
-vi.mock('../../../../application/settings/SettingsStore.js', () => ({
-  settingsStore: { loadProfile: vi.fn() },
-}));
+const loadProfile = vi.spyOn(settingsStore, 'loadProfile');
 
 describe('SettingsScreen appearance', () => {
   beforeEach(() => {
+    loadProfile.mockResolvedValue(undefined);
     stubLocalStorage();
     document.documentElement.removeAttribute('data-theme');
   });

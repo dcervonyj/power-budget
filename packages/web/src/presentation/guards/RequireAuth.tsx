@@ -1,6 +1,6 @@
+import { tokenStore } from '../../composition.js';
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { tokenStore } from '../../AppProviders.js';
 
 export function RequireAuth(): React.JSX.Element {
   const location = useLocation();

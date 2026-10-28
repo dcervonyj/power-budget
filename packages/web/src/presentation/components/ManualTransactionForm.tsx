@@ -1,3 +1,4 @@
+import { apiClient } from '../../composition.js';
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import {
@@ -13,7 +14,6 @@ import type {
   CreateManualAccountDto,
   TransactionDto,
 } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
 import { Button } from './Button.js';
 import {
   ALERT_TEXT,

@@ -1,7 +1,7 @@
+import { bankConnectionStore } from '../../../composition.js';
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
-import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 import { consentRedirectUri, goToConsent } from '../../../application/bank/consentRedirect.js';
 import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
 import { BankConnectionsView } from '../../components/bank/BankConnectionsView.js';

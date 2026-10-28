@@ -1,10 +1,7 @@
 import { makeAutoObservable } from 'mobx';
 import type { PlansApi } from '@power-budget/shared-app';
 import type { PlanDto } from '@power-budget/shared-app/contract';
-import { plansApi } from '../../AppProviders.js';
-import { referenceCatalogue } from '../catalogue/catalogueInstance.js';
-import { clientSession } from '../auth/ClientSession.js';
-import { PlanDashboardStore } from './PlanDashboardStore.js';
+import type { PlanDashboardStore } from './PlanDashboardStore.js';
 
 export type DashboardPlans = Pick<PlansApi, 'list'>;
 
@@ -123,8 +120,3 @@ function findPlan(plans: readonly PlanDto[], planId: string | null): PlanDto | u
 function isPersonalMonthly(plan: PlanDto): boolean {
   return plan.type === 'personal' && plan.periodKind === 'monthly';
 }
-
-export const planDashboardStore = new PlanDashboardStore(plansApi, referenceCatalogue);
-export const dashboardStore = new DashboardStore(plansApi, planDashboardStore);
-clientSession.register(planDashboardStore);
-clientSession.register(dashboardStore);

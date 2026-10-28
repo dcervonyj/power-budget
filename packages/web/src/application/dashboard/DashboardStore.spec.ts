@@ -6,8 +6,6 @@ import { PLAN } from '../../test/dashboardFixtures.js';
 import { catalogueFor } from '../../test/referenceCatalogue.js';
 import { deferred } from '../../test/deferred.js';
 
-vi.mock('../../AppProviders.js', () => ({ plansApi: {}, categoriesApi: {} }));
-
 const personal: PlanDto = { ...PLAN, id: 'plan-personal', type: 'personal' };
 const weekly: PlanDto = { ...PLAN, id: 'plan-weekly', type: 'personal', periodKind: 'weekly' };
 

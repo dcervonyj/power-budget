@@ -1,8 +1,8 @@
+import { bankConnectionStore } from '../../../composition.js';
 import React, { useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { useNavigate } from 'react-router-dom';
-import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
 import { BankBanner } from './BankBanner.js';
 
