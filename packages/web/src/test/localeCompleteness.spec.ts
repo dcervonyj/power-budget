@@ -16,8 +16,53 @@ function load(path: string): Catalog {
   return JSON.parse(readFileSync(path, 'utf8'));
 }
 
+const BRANCHING_ARGUMENT = /^\s*(\w+)\s*,\s*(?:plural|select|selectordinal)\s*,(.*)$/s;
+const PLAIN_ARGUMENT = /^\s*(\w+)\s*(?:,|$)/;
+
+// Contents of the top-level {...} groups of a message, braces stripped.
+function topLevelGroups(
+  text: string,
+  index = 0,
+  depth = 0,
+  start = 0,
+  groups: string[] = [],
+): string[] {
+  if (index >= text.length) {
+    return groups;
+  }
+  const char = text[index];
+  const opens = char === '{';
+  const closes = char === '}' && depth > 0;
+  const closesGroup = closes && depth === 1;
+
+  return topLevelGroups(
+    text,
+    index + 1,
+    depth + (opens ? 1 : 0) - (closes ? 1 : 0),
+    opens && depth === 0 ? index + 1 : start,
+    closesGroup ? [...groups, text.slice(start, index)] : groups,
+  );
+}
+
+// Argument names of an ICU message. Plural/select branch bodies are scanned for nested
+// arguments only; their text (in any script) is never mistaken for an argument.
+function collectPlaceholders(message: string): string[] {
+  return topLevelGroups(message).flatMap((group) => {
+    const branching = BRANCHING_ARGUMENT.exec(group);
+
+    if (branching) {
+      return [
+        branching[1] || '',
+        ...topLevelGroups(branching[2] || '').flatMap(collectPlaceholders),
+      ];
+    }
+
+    return [PLAIN_ARGUMENT.exec(group)?.[1] || ''].filter(Boolean);
+  });
+}
+
 function placeholders(message: string): string[] {
-  return [...new Set([...message.matchAll(/\{\s*(\w+)/g)].map((match) => match[1] || ''))].sort();
+  return [...new Set(collectPlaceholders(message))].sort();
 }
 
 function assertCatalogsMatch(feature: string, catalogs: LocalizedCatalogs): void {
@@ -92,5 +137,28 @@ describe.each(CATALOG_DIRS)('locale catalogs in %s', (directory) => {
         ru: { 'glass-fixture.message': 'Fixture' },
       }),
     ).toThrow();
+  });
+});
+
+describe('placeholders', () => {
+  it('ignores one-word ASCII plural branches', () => {
+    expect(placeholders('{count, plural, one {item} other {items}}')).toEqual(['count']);
+  });
+
+  it('ignores one-word Polish and Cyrillic branches', () => {
+    expect(placeholders('{count, plural, one {Wybrano} few {Вибрано} other {Выбрано #}}')).toEqual([
+      'count',
+    ]);
+  });
+
+  it('ignores select branches but finds arguments nested in them', () => {
+    expect(placeholders('{kind, select, income {Income} other {Spent {amount}}}')).toEqual([
+      'amount',
+      'kind',
+    ]);
+  });
+
+  it('finds plain arguments', () => {
+    expect(placeholders('Map {count} for {name}, {n, number}')).toEqual(['count', 'n', 'name']);
   });
 });

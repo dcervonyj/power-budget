@@ -2,17 +2,12 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+const LOCALES = ['en', 'pl', 'uk', 'ru'] as const;
 const SOURCE_DIRECTORY = resolve(process.cwd(), 'src');
 const LOCALES_DIRECTORY = resolve(process.cwd(), 'public/locales');
 const MESSAGE_ID_PATTERN =
   /\bid\s*(?:=\s*\{?\s*|:\s*)["']([A-Za-z][A-Za-z0-9]*(?:\.[A-Za-z0-9-]+)+)["']/g;
 const TEST_FILE_PATTERN = /(?:\.(?:spec|test)\.tsx?$)|(?:\.d\.ts$)/;
-
-// Ids with an inline defaultMessage render through the fallback, so only ids that
-// rely on the bundle alone must exist there.
-function hasDefaultMessage(source: string, index: number): boolean {
-  return source.slice(Math.max(0, index - 150), index + 300).includes('defaultMessage');
-}
 
 function readMessageIds(directory: string): Set<string> {
   const messageIds = new Set<string>();
@@ -34,7 +29,7 @@ function readMessageIds(directory: string): Set<string> {
       for (const match of source.matchAll(MESSAGE_ID_PATTERN)) {
         const [, messageId] = match;
 
-        if (messageId !== undefined && !hasDefaultMessage(source, match.index)) {
+        if (messageId !== undefined) {
           messageIds.add(messageId);
         }
       }
@@ -44,19 +39,19 @@ function readMessageIds(directory: string): Set<string> {
   return messageIds;
 }
 
-function readEnglishMessageIds(): Set<string> {
+function readLocaleMessageIds(locale: string): Set<string> {
   const messageIds = new Set<string>();
   const legacyMessages: Record<string, string> = JSON.parse(
-    readFileSync(resolve(LOCALES_DIRECTORY, 'en.json'), 'utf8'),
+    readFileSync(resolve(LOCALES_DIRECTORY, `${locale}.json`), 'utf8'),
   );
 
   for (const messageId of Object.keys(legacyMessages)) {
     messageIds.add(messageId);
   }
 
-  for (const fileName of readdirSync(resolve(LOCALES_DIRECTORY, 'en'))) {
+  for (const fileName of readdirSync(resolve(LOCALES_DIRECTORY, locale))) {
     const featureMessages: Record<string, string> = JSON.parse(
-      readFileSync(resolve(LOCALES_DIRECTORY, 'en', fileName), 'utf8'),
+      readFileSync(resolve(LOCALES_DIRECTORY, locale, fileName), 'utf8'),
     );
 
     for (const messageId of Object.keys(featureMessages)) {
@@ -67,11 +62,14 @@ function readEnglishMessageIds(): Set<string> {
   return messageIds;
 }
 
-describe('English message coverage', () => {
+// Every literal id used in source must exist in all four locales, whether or not the
+// call site carries a defaultMessage: the default is English only, so an id missing
+// from pl/uk/ru silently shows English to those users.
+describe.each(LOCALES)('%s message coverage', (locale) => {
   it('contains every literal message id referenced in source', () => {
-    const englishMessageIds = readEnglishMessageIds();
+    const localeMessageIds = readLocaleMessageIds(locale);
     const missingMessageIds = [...readMessageIds(SOURCE_DIRECTORY)].filter(
-      (messageId) => !englishMessageIds.has(messageId),
+      (messageId) => !localeMessageIds.has(messageId),
     );
 
     expect(missingMessageIds).toEqual([]);

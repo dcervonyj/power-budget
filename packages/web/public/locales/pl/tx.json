@@ -9,5 +9,7 @@
   "tx.row.change.aria": "Zmień kategorię: {title}",
   "tx.sorting.title": "Sortowanie",
   "tx.sorting.aria": "Posortowano {sorted} z {total}",
-  "tx.sorting.summary": "Posortowane: {sorted} · do posortowania: {toSort}"
+  "tx.sorting.summary": "Posortowane: {sorted} · do posortowania: {toSort}",
+  "tx.list.monthOver": "Przekroczono o {amount} w miesiącu: {month}",
+  "tx.row.choose": "Wybierz"
 }
