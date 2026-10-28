@@ -1,10 +1,10 @@
+import { SyncRunId } from '@power-budget/core';
 import { uuidv7 } from 'uuidv7';
-import type { SyncRunId } from '@power-budget/core';
 import type { SyncRunRepository } from '../../domain/bank/ports.js';
 
 export class StubSyncRunRepository implements SyncRunRepository {
   async start(): Promise<SyncRunId> {
-    return uuidv7() as SyncRunId;
+    return SyncRunId.of(uuidv7());
   }
 
   async finish(): Promise<void> {

@@ -1,3 +1,4 @@
+import { NotificationEventId } from '@power-budget/core';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type {
@@ -30,7 +31,7 @@ export class DrizzleNotificationOutbox implements NotificationOutbox {
     const inserted = await this.db
       .insert(schema.notificationsOutbox)
       .values({
-        id: this.ids.next(),
+        id: NotificationEventId.of(this.ids.next()),
         householdId: notification.householdId ?? null,
         recipientUserId: notification.recipientUserId,
         kind: notification.kind,
@@ -48,7 +49,7 @@ export class DrizzleNotificationOutbox implements NotificationOutbox {
     const inserted = await this.db
       .insert(schema.notificationsOutbox)
       .values({
-        id: this.ids.next(),
+        id: NotificationEventId.of(this.ids.next()),
         householdId: notification.householdId,
         recipientUserId: null,
         recipientEmail: notification.email.toLowerCase(),

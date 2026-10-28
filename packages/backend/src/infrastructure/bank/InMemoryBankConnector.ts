@@ -1,3 +1,4 @@
+import { EncryptedString } from '@power-budget/core';
 import type {
   BankProvider,
   BankCatalogEntry,
@@ -13,7 +14,7 @@ import type {
   FetchBalancesInput,
   FetchTransactionsInput,
 } from '../../domain/bank/ports.js';
-import type { BankConnectionId, EncryptedString } from '@power-budget/core';
+import type { BankConnectionId } from '@power-budget/core';
 
 export interface InMemoryBankClock {
   now(): Date;
@@ -95,7 +96,7 @@ export class InMemoryBankConnector implements BankConnector {
     callbackPayload: Record<string, string>;
   }): Promise<{ consentToken: EncryptedString; expiresAt: Date | null }> {
     return {
-      consentToken: `inmem-token:${input.externalConsentRef}` as EncryptedString,
+      consentToken: EncryptedString.of(`inmem-token:${input.externalConsentRef}`),
       expiresAt: new Date(this.clock.now().getTime() + CONSENT_DAYS * DAY_MS),
     };
   }

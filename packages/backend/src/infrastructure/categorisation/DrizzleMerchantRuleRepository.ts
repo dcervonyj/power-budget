@@ -2,10 +2,9 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { uuidv7 } from 'uuidv7';
-import type { CategoryId, HouseholdId, PlanType, TransactionId, UserId } from '@power-budget/core';
+import type { HouseholdId, UserId } from '@power-budget/core';
 import type {
   MerchantCorrection,
-  MerchantMatchKind,
   MerchantRule,
   MerchantRuleKey,
 } from '../../domain/categorisation/entities.js';
@@ -104,17 +103,17 @@ export class DrizzleMerchantRuleRepository implements MerchantRuleRepository {
   private toRule(row: schema.SelectMerchantRule): MerchantRule {
     return {
       id: row.id,
-      householdId: row.householdId as HouseholdId,
-      ownerUserId: row.ownerUserId as UserId | null,
-      matchKind: row.matchKind as MerchantMatchKind,
+      householdId: row.householdId,
+      ownerUserId: row.ownerUserId,
+      matchKind: row.matchKind,
       pattern: row.pattern,
-      categoryId: row.categoryId as CategoryId,
-      planKindPref: row.planKindPref as PlanType | null,
+      categoryId: row.categoryId,
+      planKindPref: row.planKindPref,
       alwaysAsk: row.alwaysAsk,
       hits: row.hits,
       lastHitAt: row.lastHitAt,
-      createdFromTx: row.createdFromTx as TransactionId | null,
-      createdBy: row.createdBy as UserId,
+      createdFromTx: row.createdFromTx,
+      createdBy: row.createdBy,
     };
   }
 }

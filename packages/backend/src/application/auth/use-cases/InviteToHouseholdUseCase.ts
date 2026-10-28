@@ -15,6 +15,7 @@ import { MAX_HOUSEHOLD_MEMBERS } from '../../../domain/auth/invariants.js';
 import type { HouseholdAccess } from '../services/HouseholdAccess.js';
 import type { HouseholdInviteMailer } from '../services/HouseholdInviteMailer.js';
 import { toHouseholdInviteView, type HouseholdInviteView } from './HouseholdInviteView.js';
+import { HouseholdInviteId } from '@power-budget/core';
 
 export interface InviteToHouseholdInput {
   readonly inviterUserId: UserId;
@@ -53,7 +54,7 @@ export class InviteToHouseholdUseCase {
     const token = this.mailer.issueToken(now);
     const invite = await this.inviteRepo.replaceOpen(
       {
-        id: uuidv7(),
+        id: HouseholdInviteId.of(uuidv7()),
         householdId: input.householdId,
         email,
         tokenHash: token.tokenHash,

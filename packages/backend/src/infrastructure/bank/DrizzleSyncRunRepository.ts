@@ -1,8 +1,9 @@
-import { randomUUID } from 'node:crypto';
+import { SyncRunId } from '@power-budget/core';
+import { uuidv7 } from 'uuidv7';
 import { Inject } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { BankConnectionId, SyncRunId } from '@power-budget/core';
+import type { BankConnectionId } from '@power-budget/core';
 import type { SyncRunRepository, SyncRunStartOptions } from '../../domain/bank/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
@@ -11,7 +12,7 @@ export class DrizzleSyncRunRepository implements SyncRunRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
   async start(connectionId: BankConnectionId, options: SyncRunStartOptions): Promise<SyncRunId> {
-    const id = randomUUID() as SyncRunId;
+    const id = SyncRunId.of(uuidv7());
     await this.db.insert(schema.syncRuns).values({
       id,
       connectionId,

@@ -90,6 +90,22 @@ interface ConsentPayload {
   accounts: string[];
 }
 
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function isConsentPayload(value: unknown): value is ConsentPayload {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'requisitionId' in value &&
+    typeof value.requisitionId === 'string' &&
+    'accounts' in value &&
+    Array.isArray(value.accounts) &&
+    value.accounts.every(isString)
+  );
+}
+
 // ── Connector implementation ─────────────────────────────────────────────────
 
 export class GoCardlessBankConnector implements BankConnector {
@@ -247,7 +263,12 @@ export class GoCardlessBankConnector implements BankConnector {
   private async decodeConsent(consent: EncryptedString): Promise<ConsentPayload> {
     const raw = await this.encryption.decrypt(consent);
 
-    return JSON.parse(raw) as ConsentPayload;
+    const payload: unknown = JSON.parse(raw);
+    if (!isConsentPayload(payload)) {
+      throw new Error('GoCardless consent payload is malformed');
+    }
+
+    return payload;
   }
 
   private toRawTransaction(
@@ -369,14 +390,17 @@ export class GoCardlessBankConnector implements BankConnector {
     }
 
     if (response.status === 204) {
+      // `T` is `void` for calls without a body; there is no value to build for a generic return type.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return undefined as T;
     }
 
     const contentType = response.headers.get('content-type');
     if (contentType === null || !contentType.includes('application/json')) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no body to parse, same as the 204 case
       return undefined as T;
     }
 
-    return response.json() as Promise<T>;
+    return response.json();
   }
 }

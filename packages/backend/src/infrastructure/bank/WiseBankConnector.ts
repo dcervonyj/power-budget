@@ -211,7 +211,7 @@ export class WiseBankConnector implements BankConnector {
       throw new Error(`Wise API error: ${response.status} ${response.statusText} for ${path}`);
     }
 
-    return response.json() as Promise<T>;
+    return response.json();
   }
 
   private send(apiToken: string, path: string): Promise<Response> {

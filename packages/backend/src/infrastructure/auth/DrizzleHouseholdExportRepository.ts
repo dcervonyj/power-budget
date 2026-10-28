@@ -69,10 +69,10 @@ export class DrizzleHouseholdExportRepository implements HouseholdExportReposito
 
   private toEntity(row: schema.SelectHouseholdExport): HouseholdExport {
     return {
-      id: row.id as HouseholdExportId,
-      householdId: row.householdId as HouseholdId,
-      requestedByUserId: row.requestedByUserId as UserId,
-      status: row.status as HouseholdExport['status'],
+      id: row.id,
+      householdId: row.householdId,
+      requestedByUserId: row.requestedByUserId,
+      status: row.status,
       downloadUrl: row.downloadUrl ?? null,
       expiresAt: row.expiresAt ?? null,
       createdAt: row.createdAt,

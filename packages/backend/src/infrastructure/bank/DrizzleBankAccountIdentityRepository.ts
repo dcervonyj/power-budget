@@ -49,6 +49,6 @@ export class DrizzleBankAccountIdentityRepository implements BankAccountIdentity
       );
     const id = rows[0]?.id;
 
-    return id === undefined ? null : (id as BankAccountId);
+    return id === undefined ? null : id;
   }
 }

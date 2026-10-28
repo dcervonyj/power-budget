@@ -71,7 +71,7 @@ export class DrizzleHouseholdPurgeRepository implements HouseholdPurgeRepository
       .orderBy(asc(schema.households.deleteScheduledAt))
       .limit(limit);
 
-    return rows.map((row) => row.id as HouseholdId);
+    return rows.map((row) => row.id);
   }
 
   async purge(householdId: HouseholdId, now: Date): Promise<HouseholdPurgeResult | null> {
@@ -111,7 +111,7 @@ export class DrizzleHouseholdPurgeRepository implements HouseholdPurgeRepository
 
     const deletedUserIds = await this.deleteOrphanedUsers(
       tx,
-      members.map((member) => member.userId as UserId),
+      members.map((member) => member.userId),
     );
 
     return { householdId, deletedUserIds };
