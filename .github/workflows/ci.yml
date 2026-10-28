@@ -125,7 +125,7 @@ jobs:
     # and a production build of the web app. Then the k6 gate hits the same backend.
     name: E2E (Playwright + k6, real backend)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -182,8 +182,10 @@ jobs:
         run: pnpm exec playwright install-deps chromium
         working-directory: packages/web
 
+      # DSN-050: the a11y-stack project (axe and keyboard pass on the real pages) reuses the
+      # backend, the web build and the browser this job already set up.
       - name: Playwright e2e against the real backend
-        run: pnpm exec playwright test --project=chromium
+        run: pnpm exec playwright test --project=chromium --project=a11y-stack
         working-directory: packages/web
         env:
           TEST_ENV: e2e
@@ -261,7 +263,7 @@ jobs:
     # locally, so the committed baselines match. Bump the tag with @playwright/test.
     name: Visual (web gallery)
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     container:
       image: mcr.microsoft.com/playwright:v1.64.1-noble
 
@@ -290,6 +292,13 @@ jobs:
 
       - name: Playwright visual project
         run: pnpm exec playwright test --project=visual
+        working-directory: packages/web
+        env:
+          PW_VISUAL: '1'
+
+      # DSN-050: axe, rendered-text contrast and the keyboard pass on every gallery entry, both themes.
+      - name: Playwright a11y project
+        run: pnpm exec playwright test --project=a11y
         working-directory: packages/web
         env:
           PW_VISUAL: '1'
