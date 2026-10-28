@@ -20,7 +20,8 @@ export type TotpSecretId = Brand<string, 'TotpSecretId'>;
 export const TotpSecretId = defineId('TotpSecretId');
 
 export type HouseholdInviteId = Brand<string, 'HouseholdInviteId'>;
-export const HouseholdInviteId = defineId('HouseholdInviteId');
+// Ids come from a ParseUUIDPipe (any UUID version): a non-v7 id must reach the use case and 404, not throw.
+export const HouseholdInviteId = defineId('HouseholdInviteId', { anyUuidVersion: true });
 
 export type MagicLinkTokenId = Brand<string, 'MagicLinkTokenId'>;
 export const MagicLinkTokenId = defineId('MagicLinkTokenId');
