@@ -14,6 +14,9 @@ function toRegisterError(error: unknown): RegisterError {
     case 'tooManyAttempts':
     case 'emailInUse':
       return failure;
+    case 'invalidCredentials':
+    case 'invalidTotp':
+    case 'other':
     default:
       return 'serverError';
   }

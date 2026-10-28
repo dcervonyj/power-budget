@@ -35,6 +35,7 @@ export function BiometricGate({ children }: Props): React.JSX.Element {
       const canUse = await biometricUnlockService.canUseBiometrics();
       if (!canUse) {
         setInitState('ready');
+
         return;
       }
 
@@ -46,6 +47,7 @@ export function BiometricGate({ children }: Props): React.JSX.Element {
       if (raw === null) {
         // First launch with biometrics available → show opt-in
         setInitState('opt-in');
+
         return;
       }
 
