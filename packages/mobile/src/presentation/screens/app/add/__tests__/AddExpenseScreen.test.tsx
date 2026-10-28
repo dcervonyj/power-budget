@@ -469,4 +469,77 @@ describe('AddExpenseScreen', () => {
     expect(screen.queryByText('Saved, but not added to Groceries yet.')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Retry category' })).toBeNull();
   });
+
+  it('R3-F1: reopening a partly saved expense keeps the totals it was saved against', async () => {
+    const first = await saveWithFailedMapping();
+    const before = screen.getByText(/Safe to spend today is now/).props.children;
+    await act(async () => first.unmount());
+    mockDashboard.mockResolvedValue({ ...DASHBOARD, unplannedExpenses: money('43000') });
+
+    await renderAdd(<AddExpenseScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText('Saved, but not added to Groceries yet.')).toBeTruthy(),
+    );
+    expect(screen.getByText(/Safe to spend today is now/).props.children).toEqual(before);
+  });
+
+  it('R3-F2: a refresh that drops the selected category falls back to a valid one that Save uses', async () => {
+    const listeners: Array<(state: string) => void> = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener);
+
+      return { remove: jest.fn() };
+    });
+    mockCategoriesList.mockResolvedValue([
+      { id: 'cat-groceries', name: 'Groceries' },
+      { id: 'cat-dining', name: 'Dining' },
+    ]);
+    const [groceriesLine] = DASHBOARD.expenseLines;
+    mockDashboard.mockResolvedValueOnce({
+      ...DASHBOARD,
+      expenseLines: [
+        ...DASHBOARD.expenseLines,
+        { ...groceriesLine, plannedItemId: 'item-dining', categoryId: 'cat-dining' },
+      ],
+    });
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Dining' })).toBeTruthy());
+    await userEvent.setup().press(screen.getByRole('radio', { name: 'Dining' }));
+    mockCategoriesList.mockResolvedValue([{ id: 'cat-groceries', name: 'Groceries' }]);
+
+    await act(async () => {
+      listeners.forEach((listener) => {
+        listener('active');
+      });
+    });
+
+    await waitFor(() => expect(screen.queryByRole('radio', { name: 'Dining' })).toBeNull());
+    expect(screen.getByRole('radio', { name: 'Groceries' })).toBeChecked();
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    expect(mockPost).toHaveBeenCalledWith(
+      '/transactions',
+      expect.objectContaining({ description: 'Groceries' }),
+    );
+  });
+
+  it('R3-F3: retrying a failed refresh after Undo keeps the amount Undo kept', async () => {
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    mockDashboard.mockRejectedValueOnce(new Error('offline'));
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() =>
+      expect(screen.getByText('Could not refresh your plan. Try again.')).toBeTruthy(),
+    );
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    expect(screen.getByRole('button', { name: /^Add PLN 5\.00/ })).toBeTruthy();
+  });
 });
