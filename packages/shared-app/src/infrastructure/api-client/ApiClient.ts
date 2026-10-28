@@ -1,12 +1,13 @@
-import axios, {
-  type AxiosError,
-  type AxiosInstance,
-  type AxiosResponse,
-  type InternalAxiosRequestConfig,
-} from 'axios';
 import type { HttpClient, HttpRequest, HttpResponse } from './HttpClient.js';
 import type { SecureTokenStore } from '../tokens/SecureTokenStore.js';
 import { readApiError } from './ApiError.js';
+import {
+  BAD_STATUS_CODE,
+  HttpError,
+  NETWORK_CODE,
+  TIMEOUT_CODE,
+  type HttpErrorResponse,
+} from './HttpError.js';
 
 interface RefreshResponse {
   accessToken: string;
@@ -23,8 +24,19 @@ interface SessionTokens {
   refreshToken: string;
 }
 
-/** `_epoch` is the session id the request started under; it survives the retry. */
-type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean; _epoch?: number };
+/** `epoch` is the session id the request started under; it survives the retry. */
+interface PendingRequest {
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body: unknown;
+  retried: boolean;
+  timeoutMs: number;
+  epoch: number | undefined;
+}
+
+type RequestBody = NonNullable<RequestInit['body']>;
+type FetchFn = (input: string, init: RequestInit) => Promise<Response>;
 
 /** The refresh answered 201 (the pair to store), or another tab's pair was adopted. */
 type RefreshOutcome =
@@ -48,12 +60,11 @@ const REFRESH_PATH = '/auth/refresh';
 const UNAUTHORIZED = 401;
 const REVOKE_TIMEOUT_MS = 5000;
 const SESSION_REJECTED_STATUSES: readonly number[] = [400, 401];
+const SUCCESS_STATUS_LIMIT = 300;
+const ABSOLUTE_OR_PROTOCOL_RELATIVE = /^([a-z][a-z0-9+.-]*:)?\/\//i;
 const ABSOLUTE_URL_ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/]+/i;
 
 export class ApiClient implements HttpClient {
-  private readonly _axios: AxiosInstance;
-  /** No interceptors and no client state: used for the revocation of a captured pair only. */
-  private readonly _bare: AxiosInstance;
   private signingOut = false;
   private refreshInFlight = false;
   private refreshQueue: QueuedRequest[] = [];
@@ -66,30 +77,25 @@ export class ApiClient implements HttpClient {
   private storageChain: Promise<unknown> = Promise.resolve();
 
   constructor(
-    baseURL: string,
+    private readonly baseURL: string,
     private readonly tokenStore: SecureTokenStore,
     private readonly onUnauthenticated?: () => void,
     private readonly raceTiming: RefreshRaceTiming = DEFAULT_REFRESH_RACE_TIMING,
-  ) {
-    this._axios = axios.create({ baseURL });
-    this._bare = axios.create({ baseURL, timeout: REVOKE_TIMEOUT_MS });
-    this._axios.interceptors.request.use(this.attachAccessToken.bind(this));
-    this._axios.interceptors.response.use(undefined, this.handleResponseError.bind(this));
-  }
+    private readonly fetchFn: FetchFn = defaultFetch,
+  ) {}
 
   async request<T = unknown>(req: HttpRequest): Promise<HttpResponse<T>> {
-    const response = await this._axios.request<T>({
+    const response = await this.send({
       url: req.url,
       method: req.method,
-      ...(req.headers ? { headers: req.headers } : {}),
-      data: req.body,
+      headers: { ...req.headers },
+      body: req.body,
+      retried: false,
+      timeoutMs: req.timeoutMs ?? 0,
+      epoch: undefined,
     });
 
-    return {
-      status: response.status,
-      data: response.data,
-      headers: Object.fromEntries(Object.entries(response.headers).map(([k, v]) => [k, String(v)])),
-    };
+    return { status: response.status, data: castBody<T>(response.data), headers: response.headers };
   }
 
   async get<T = unknown>(url: string, headers?: Record<string, string>): Promise<HttpResponse<T>> {
@@ -198,7 +204,7 @@ export class ApiClient implements HttpClient {
 
   private async refreshThenLogout(refreshToken: string): Promise<void> {
     try {
-      const { data } = await this._bare.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
+      const { data } = await this.sendBare<RefreshResponse>(REFRESH_PATH, { refreshToken }, {});
       await this.postLogout(data.accessToken, data.refreshToken);
     } catch {
       // Revocation is best effort; the local session is already gone.
@@ -206,28 +212,89 @@ export class ApiClient implements HttpClient {
   }
 
   private async postLogout(accessToken: string | null, refreshToken: string): Promise<void> {
-    await this._bare.post(
+    await this.sendBare(
       '/auth/logout',
       { refreshToken },
-      accessToken ? { headers: { Authorization: bearer(accessToken) } } : {},
+      accessToken ? { Authorization: bearer(accessToken) } : {},
     );
   }
 
-  private attachAccessToken(config: RetryableConfig): InternalAxiosRequestConfig {
-    config._epoch ??= this.sessionEpoch;
-    const token = this.tokenStore.getAccessToken();
-    if (token) {
-      config.headers.Authorization = bearer(token);
-    }
-
-    return config;
+  /** No token header, no refresh and no client state: the revocation of a captured pair only. */
+  private sendBare<T>(
+    url: string,
+    body: unknown,
+    headers: Record<string, string>,
+  ): Promise<HttpResponse<T>> {
+    return this.transport<T>({
+      url,
+      method: 'POST',
+      headers,
+      body,
+      retried: false,
+      timeoutMs: REVOKE_TIMEOUT_MS,
+      epoch: undefined,
+    });
   }
 
-  private async handleResponseError(error: unknown): Promise<AxiosResponse> {
-    if (!axios.isAxiosError(error) || error.response?.status !== 401 || !error.config) {
+  /** Attaches the current access token, sends, and recovers from a 401 (refresh and retry once). */
+  private async send(req: PendingRequest): Promise<HttpResponse> {
+    req.epoch ??= this.sessionEpoch;
+    const token = this.tokenStore.getAccessToken();
+    if (token) {
+      req.headers['Authorization'] = bearer(token);
+    }
+    try {
+      return await this.transport(req);
+    } catch (error) {
+      return this.handleResponseError(error, req);
+    }
+  }
+
+  /** One fetch call; `timeoutMs` 0 means no timeout. Non-2xx answers and failures become HttpError. */
+  private async transport<T>(req: PendingRequest): Promise<HttpResponse<T>> {
+    const timeoutMs = req.timeoutMs;
+    const controller = new AbortController();
+    const timer =
+      timeoutMs > 0 ? setTimeout(controller.abort.bind(controller), timeoutMs) : undefined;
+    try {
+      const response = await this.fetchFn(this.resolveUrl(req.url), {
+        method: req.method,
+        headers: requestHeaders(req),
+        ...requestBody(req.body),
+        signal: controller.signal,
+      });
+      const data = await readBody(response);
+      if (response.status < 200 || response.status >= SUCCESS_STATUS_LIMIT) {
+        throw httpStatusError(req, { status: response.status, data });
+      }
+
+      return {
+        status: response.status,
+        data: castBody<T>(data),
+        headers: responseHeaders(response),
+      };
+    } catch (error) {
+      throw toHttpError(error, req, controller.signal.aborted);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  private resolveUrl(url: string): string {
+    if (ABSOLUTE_OR_PROTOCOL_RELATIVE.test(url)) {
+      return url;
+    }
+
+    return `${this.baseURL.replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`;
+  }
+
+  private async handleResponseError(
+    error: unknown,
+    originalRequest: PendingRequest,
+  ): Promise<HttpResponse> {
+    if (!(error instanceof HttpError) || error.response?.status !== UNAUTHORIZED) {
       throw error;
     }
-    const originalRequest: RetryableConfig = error.config;
     // A 401 from /auth/* is an answer (wrong password, invalid TOTP code, dead
     // refresh token), not an expired access token. Refreshing on it would queue
     // the refresh call behind itself and hang every request (audit H24).
@@ -236,7 +303,7 @@ export class ApiClient implements HttpClient {
     }
     // An answer to a request of an earlier session says nothing about the current one: it must not
     // refresh, retry or end the session of a later login.
-    const epoch = originalRequest._epoch ?? this.sessionEpoch;
+    const epoch = originalRequest.epoch ?? this.sessionEpoch;
     if (epoch !== this.sessionEpoch) {
       throw error;
     }
@@ -244,14 +311,14 @@ export class ApiClient implements HttpClient {
     if (this.signingOut) {
       throw error;
     }
-    if (originalRequest._retry) {
+    if (originalRequest.retried) {
       await this.endSessionOf(epoch);
       throw error;
     }
     // Another tab (they share the token store) may have refreshed while this
     // request was in flight: its token is valid, and our refresh token is spent.
     const storedToken = this.tokenStore.getAccessToken();
-    if (storedToken && originalRequest.headers.Authorization !== bearer(storedToken)) {
+    if (storedToken && originalRequest.headers['Authorization'] !== bearer(storedToken)) {
       return this.retry(originalRequest, storedToken);
     }
     if (this.refreshInFlight) {
@@ -264,15 +331,15 @@ export class ApiClient implements HttpClient {
   }
 
   private async refreshAndRetry(
-    originalRequest: RetryableConfig,
-    originalError: AxiosError,
-  ): Promise<AxiosResponse> {
+    originalRequest: PendingRequest,
+    originalError: HttpError,
+  ): Promise<HttpResponse> {
     const accessToken = await this.refreshTokens(originalError);
 
     return this.retry(originalRequest, accessToken);
   }
 
-  private async refreshTokens(originalError: AxiosError): Promise<string> {
+  private async refreshTokens(originalError: HttpError): Promise<string> {
     this.refreshInFlight = true;
     try {
       const accessToken = await this.obtainAccessToken(originalError);
@@ -287,7 +354,7 @@ export class ApiClient implements HttpClient {
     }
   }
 
-  private async obtainAccessToken(originalError: AxiosError): Promise<string> {
+  private async obtainAccessToken(originalError: HttpError): Promise<string> {
     const epoch = this.sessionEpoch;
     const refreshToken = this.tokenStore.getRefreshToken();
     if (!refreshToken) {
@@ -326,7 +393,7 @@ export class ApiClient implements HttpClient {
 
   private async requestRefresh(refreshToken: string, epoch: number): Promise<RefreshOutcome> {
     try {
-      const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
+      const { data } = await this.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
 
       return { kind: 'rotated', tokens: data };
     } catch (refreshError) {
@@ -394,11 +461,11 @@ export class ApiClient implements HttpClient {
     }
   }
 
-  private retry(originalRequest: RetryableConfig, token: string): Promise<AxiosResponse> {
-    originalRequest._retry = true;
-    originalRequest.headers.Authorization = bearer(token);
+  private retry(originalRequest: PendingRequest, token: string): Promise<HttpResponse> {
+    originalRequest.retried = true;
+    originalRequest.headers['Authorization'] = bearer(token);
 
-    return this._axios(originalRequest);
+    return this.send(originalRequest);
   }
 
   /** Ends the session only if it is still the one the caller's request or refresh started under. */
@@ -436,4 +503,86 @@ function delay(ms: number): Promise<void> {
 
 function bearer(token: string): string {
   return `Bearer ${token}`;
+}
+
+function defaultFetch(input: string, init: RequestInit): Promise<Response> {
+  return globalThis.fetch(input, init);
+}
+
+function requestHeaders(req: PendingRequest): Headers {
+  const headers = new Headers(req.headers);
+  if (isJsonBody(req.body) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  return headers;
+}
+
+function isJsonBody(body: unknown): boolean {
+  return body !== undefined && body !== null && typeof body !== 'string' && !isRawBody(body);
+}
+
+function isRawBody(body: unknown): body is RequestBody {
+  return (
+    (typeof FormData !== 'undefined' && body instanceof FormData) ||
+    (typeof Blob !== 'undefined' && body instanceof Blob) ||
+    body instanceof URLSearchParams ||
+    body instanceof ArrayBuffer
+  );
+}
+
+function requestBody(body: unknown): { body?: RequestBody } {
+  if (body === undefined || body === null) {
+    return {};
+  }
+  if (typeof body === 'string' || isRawBody(body)) {
+    return { body };
+  }
+
+  return { body: JSON.stringify(body) };
+}
+
+/** JSON when the body parses as JSON (what axios did by default), else the text, '' when empty. */
+async function readBody(response: Response): Promise<unknown> {
+  const text = await response.text();
+  try {
+    return text === '' ? '' : JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+/** The body is whatever the server sent; the caller names the shape it expects, as with axios. */
+function castBody<T>(data: unknown): T {
+  return data as T;
+}
+
+function responseHeaders(response: Response): Record<string, string> {
+  const headers: Record<string, string> = {};
+  response.headers.forEach(function collect(value, key) {
+    headers[key] = value;
+  });
+
+  return headers;
+}
+
+function httpStatusError(req: PendingRequest, response: HttpErrorResponse): HttpError {
+  return new HttpError(
+    `HTTP ${response.status}`,
+    BAD_STATUS_CODE,
+    { url: req.url, method: req.method },
+    response,
+  );
+}
+
+function toHttpError(error: unknown, req: PendingRequest, aborted: boolean): HttpError {
+  if (error instanceof HttpError) {
+    return error;
+  }
+  const request = { url: req.url, method: req.method };
+  if (aborted) {
+    return new HttpError('Request timed out', TIMEOUT_CODE, request);
+  }
+
+  return new HttpError('Network Error', NETWORK_CODE, request);
 }
