@@ -1,3 +1,4 @@
+import { SequentialIdGenerator } from '../../../../test/doubles/SequentialIdGenerator.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
@@ -53,7 +54,12 @@ describe('InitiateBankConnectionUseCase', () => {
     connectionRepo = mock<BankConnectionRepository>();
     registry = mock<BankConnectorRegistry>();
     totpSecretRepo = mock<TotpSecretRepository>();
-    useCase = new InitiateBankConnectionUseCase(connectionRepo, registry, totpSecretRepo);
+    useCase = new InitiateBankConnectionUseCase(
+      connectionRepo,
+      registry,
+      totpSecretRepo,
+      new SequentialIdGenerator(),
+    );
   });
 
   it('creates a new connection and returns consentUrl and connectionId', async () => {
@@ -85,9 +91,10 @@ describe('InitiateBankConnectionUseCase', () => {
     });
 
     expect(result.consentUrl).toBe('https://mock.gocardless.test/consent?ref=ref-abc');
-    expect(result.connectionId).toBeDefined();
+    expect(result.connectionId).toBe(SequentialIdGenerator.idAt(1));
     expect(connectionRepo.create).toHaveBeenCalledOnce();
     const [created] = connectionRepo.create.mock.calls[0]!;
+    expect(created.id).toBe(SequentialIdGenerator.idAt(1));
     expect(created.bankId).toBe('PKO_PLPKOPPLPW');
     expect(created.provider).toBe('gocardless');
     expect(created.externalConsentRef).toBe('ref-abc');

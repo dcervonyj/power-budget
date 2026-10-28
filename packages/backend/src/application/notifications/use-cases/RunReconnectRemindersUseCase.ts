@@ -1,3 +1,4 @@
+import type { Clock } from '../../../domain/shared/ports.js';
 import type { NotificationRepository } from '../../../domain/notifications/ports.js';
 import type { EnqueueNotificationUseCase } from './EnqueueNotificationUseCase.js';
 
@@ -7,9 +8,11 @@ export class RunReconnectRemindersUseCase {
   constructor(
     private readonly notificationRepo: NotificationRepository,
     private readonly enqueueNotification: EnqueueNotificationUseCase,
+    private readonly clock: Clock,
   ) {}
 
-  async execute(now: Date = new Date()): Promise<void> {
+  async execute(): Promise<void> {
+    const now = this.clock.now();
     for (const days of REMINDER_WINDOWS_DAYS) {
       const threshold = new Date(now);
       threshold.setDate(threshold.getDate() + days + 1);
