@@ -40,6 +40,8 @@
   "tx.list.moreError": "Не вдалося завантажити більше транзакцій.",
   "tx.detail.pickerError": "Не вдалося завантажити категорії.",
   "tx.detail.categoryError": "Не вдалося завантажити категорію цієї транзакції.",
+  "tx.detail.optionExpense": "{planName} · Витрата",
+  "tx.detail.optionIncome": "{planName} · Дохід",
   "tx.detail.transferUnresolved": "Не вдалося підтвердити статус переказу.",
   "tx.list.reloadError": "Не вдалося оновити транзакції. Те, що ви бачите, може бути застарілим.",
   "tx.list.monthError": "Не вдалося завантажити підсумок місяця.",

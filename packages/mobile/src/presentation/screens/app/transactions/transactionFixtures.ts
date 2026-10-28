@@ -114,8 +114,13 @@ export const LIST_PROPS: TransactionListViewProps = {
 };
 
 export const OPTIONS: readonly PlannedItemOption[] = [
-  { plannedItemId: 'item-groceries', planName: 'October', categoryName: 'Groceries' },
-  { plannedItemId: 'item-fuel', planName: 'October', categoryName: 'Fuel' },
+  {
+    plannedItemId: 'item-groceries',
+    direction: 'expense',
+    planName: 'October',
+    categoryName: 'Groceries',
+  },
+  { plannedItemId: 'item-fuel', direction: 'expense', planName: 'October', categoryName: 'Fuel' },
 ];
 
 export const DETAIL: TransactionView = {

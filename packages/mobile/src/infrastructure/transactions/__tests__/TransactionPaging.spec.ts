@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 import { loadAllPages } from '../TransactionPaging.js';
 import { SerialQueue } from '../SerialQueue.js';
-import { findCategoryName } from '../PlannedItemCategories.js';
+import {
+  categoryNameByItem,
+  findCategoryName,
+  loadPlannedItemOptions,
+} from '../PlannedItemCategories.js';
 
 function item(id: string): TransactionListItemDto {
   return { id } as TransactionListItemDto;
@@ -57,6 +61,34 @@ describe('SerialQueue', () => {
 
     await expect(failed).rejects.toThrow('boom');
     await expect(next).resolves.toBe('ok');
+  });
+});
+
+describe('loadPlannedItemOptions', () => {
+  it('offers income items next to expense items, so income can be mapped', async () => {
+    const plansApi = {
+      list: () => Promise.resolve([{ id: 'p1', name: 'October' }]),
+      listItems: () =>
+        Promise.resolve([
+          { id: 'i-exp', categoryId: 'c-exp', direction: 'expense' },
+          { id: 'i-inc', categoryId: 'c-inc', direction: 'income' },
+        ]),
+    };
+    const categoriesApi = {
+      list: () =>
+        Promise.resolve([
+          { id: 'c-exp', name: 'Food' },
+          { id: 'c-inc', name: 'Salary' },
+        ]),
+    };
+
+    const options = await loadPlannedItemOptions(plansApi as never, categoriesApi as never);
+
+    expect(options.map((option) => [option.plannedItemId, option.direction])).toEqual([
+      ['i-exp', 'expense'],
+      ['i-inc', 'income'],
+    ]);
+    expect(categoryNameByItem(options).get('i-inc')).toBe('Salary');
   });
 });
 
