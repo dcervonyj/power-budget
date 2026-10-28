@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { Test } from '@nestjs/testing';
 import type { DynamicModule, INestApplication, Provider, Type } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { APP_CONFIG, parseAppConfig } from '../../config/AppConfig.js';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fastify';
 import * as jwt from 'jsonwebtoken';
@@ -40,12 +40,17 @@ export class HttpTestApp {
 }
 
 export async function createHttpTestApp(options: HttpTestAppOptions): Promise<HttpTestApp> {
-  const env = { NODE_ENV: 'test', JWT_SECRET: HTTP_TEST_JWT_SECRET, ...options.env };
+  const env = {
+    NODE_ENV: 'test',
+    JWT_SECRET: HTTP_TEST_JWT_SECRET,
+    KEK_BASE64: Buffer.alloc(32).toString('base64'),
+    ...options.env,
+  };
   const moduleRef = await Test.createTestingModule({
     imports: options.imports ?? [],
     controllers: options.controllers,
     providers: [
-      { provide: ConfigService, useValue: new ConfigService(env) },
+      { provide: APP_CONFIG, useValue: parseAppConfig(env, 'api') },
       // Same global ValidationPipe as AppModule. Note: vitest (esbuild) emits no
       // decorator metadata, so DTO bodies are only validated where the pipe gets
       // an explicit metatype; full DTO validation is covered by test:integration.

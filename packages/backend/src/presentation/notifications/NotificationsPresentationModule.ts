@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_CONFIG, type AppConfig } from '../../config/AppConfig.js';
 import { NotificationsModule } from '../../infrastructure/notifications/NotificationsModule.js';
 import { DrizzleNotificationRepository } from '../../infrastructure/notifications/DrizzleNotificationRepository.js';
 import { RecordEmailBounceUseCase } from '../../application/notifications/use-cases/RecordEmailBounceUseCase.js';
@@ -7,7 +7,7 @@ import { SvixWebhookVerifier } from '../../infrastructure/notifications/SvixWebh
 import { NotificationsController } from './NotificationsController.js';
 
 @Module({
-  imports: [NotificationsModule, ConfigModule],
+  imports: [NotificationsModule],
   controllers: [NotificationsController],
   providers: [
     {
@@ -17,9 +17,9 @@ import { NotificationsController } from './NotificationsController.js';
     },
     {
       provide: SvixWebhookVerifier,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        new SvixWebhookVerifier(config.get<string>('RESEND_WEBHOOK_SECRET')),
+      inject: [APP_CONFIG],
+      useFactory: (config: AppConfig) =>
+        new SvixWebhookVerifier(config.resendWebhookSecret ?? undefined),
     },
   ],
 })

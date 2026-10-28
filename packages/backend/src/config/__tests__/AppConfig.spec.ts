@@ -69,12 +69,43 @@ describe('parseAppConfig', () => {
     expect(message).toContain('KEK_BASE64 must be 32 random bytes');
   });
 
-  it('does not require JWT_SECRET for the worker', () => {
-    expect(problemsOf({ KEK_BASE64: KEK }, 'worker')).toBe('');
+  it('requires JWT_SECRET for the worker too (its auth module issues tokens)', () => {
+    expect(problemsOf({ KEK_BASE64: KEK }, 'worker')).toContain('JWT_SECRET is not set');
+  });
+
+  it('treats empty and blank values as unset: defaults for optional, errors for required', () => {
+    const config = parseAppConfig({ ...VALID, DATABASE_URL: '', REDIS_URL: '   ' }, 'api');
+
+    expect(config.databaseUrl).toBe(
+      'postgresql://power_budget:power_budget@localhost:5432/power_budget',
+    );
+    expect(config.redisUrl).toBe('redis://localhost:6379');
+    expect(problemsOf({ ...VALID, JWT_SECRET: '', KEK_BASE64: '  ' }, 'api')).toContain(
+      'JWT_SECRET is not set',
+    );
+  });
+
+  it('never echoes URL or secret values in errors', () => {
+    const message = problemsOf(
+      {
+        ...VALID,
+        DATABASE_URL: 'postgres://app:hunter2-secret@bad host/db',
+        REDIS_URL: 'redis://:redis-secret@bad host',
+        JWT_SECRET: 'jwt-secret-short',
+        KEK_BASE64: 'kek-secret',
+      },
+      'api',
+    );
+
+    expect(message).toContain('DATABASE_URL must be a valid URL.');
+    expect(message).toContain('REDIS_URL must be a valid URL.');
+    for (const leaked of ['hunter2', 'redis-secret', 'jwt-secret-short', 'kek-secret']) {
+      expect(message).not.toContain(leaked);
+    }
   });
 
   it('requires RESEND_API_KEY for a deployed worker only', () => {
-    const deployed = { KEK_BASE64: KEK, NODE_ENV: 'production' };
+    const deployed = { KEK_BASE64: KEK, JWT_SECRET: JWT, NODE_ENV: 'production' };
 
     expect(problemsOf(deployed, 'worker')).toContain('RESEND_API_KEY is required');
     expect(problemsOf({ ...deployed, RESEND_API_KEY: 're_x' }, 'worker')).toBe('');

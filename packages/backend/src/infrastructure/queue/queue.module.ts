@@ -1,15 +1,14 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_CONFIG } from '../../config/AppConfig.js';
 import { ALL_QUEUES } from './queue.constants';
 import { buildQueueConnectionOptions } from './redis-connection.js';
 
 @Module({
   imports: [
     BullModule.forRootAsync({
-      imports: [ConfigModule],
       useFactory: buildQueueConnectionOptions,
-      inject: [ConfigService],
+      inject: [APP_CONFIG],
     }),
     ...ALL_QUEUES.map((name) => BullModule.registerQueue({ name })),
   ],

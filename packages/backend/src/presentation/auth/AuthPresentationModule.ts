@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { Redis } from 'ioredis';
 import { AuthModule } from '../../infrastructure/auth/AuthModule.js';
@@ -60,7 +59,6 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
 @Module({
   imports: [
     AuthModule,
-    ConfigModule,
     // Per-IP and per-account limits on the credential endpoints, counted in Redis (audit H4).
     ThrottlerModule.forRootAsync({
       imports: [AuthModule],
