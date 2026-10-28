@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { HouseholdId, TransactionId } from '@power-budget/core';
+import type { HouseholdId, TransactionId, UserId } from '@power-budget/core';
 import { DrizzleTransactionRepository } from '../DrizzleTransactionRepository.js';
 import { NO_BANK_DETAILS } from '../../../domain/transactions/entities.js';
 
@@ -18,6 +18,8 @@ const BASE_ROW = {
   bank: NO_BANK_DETAILS,
   ignored: false,
 };
+
+const OWNER = '00000000-0000-7000-8000-000000000001' as UserId;
 
 describe('DrizzleTransactionRepository', () => {
   it('returns null when findById gets no rows', async () => {
@@ -56,7 +58,7 @@ describe('DrizzleTransactionRepository', () => {
     const mockDb = { execute: vi.fn().mockResolvedValue({ rows: [{ id: 'a' }] }) };
 
     const repo = new DrizzleTransactionRepository(mockDb as never);
-    const created = await repo.insertBankBatch([bankRow('a', 'e1'), bankRow('b', 'e2')]);
+    const created = await repo.insertBankBatch([bankRow('a', 'e1'), bankRow('b', 'e2')], OWNER);
 
     expect(created).toBe(1);
     expect(mockDb.execute).toHaveBeenCalledTimes(1);
@@ -65,7 +67,10 @@ describe('DrizzleTransactionRepository', () => {
   it('insertBankBatch runs no statement for an empty batch', async () => {
     const mockDb = { execute: vi.fn() };
 
-    const created = await new DrizzleTransactionRepository(mockDb as never).insertBankBatch([]);
+    const created = await new DrizzleTransactionRepository(mockDb as never).insertBankBatch(
+      [],
+      OWNER,
+    );
 
     expect(created).toBe(0);
     expect(mockDb.execute).not.toHaveBeenCalled();
