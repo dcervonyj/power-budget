@@ -71,3 +71,19 @@ pnpm -F @power-budget/backend start:dev &
 # 5. View results
 k6 run tests/perf/dashboard.k6.js --out json=tests/perf/results.json
 ```
+
+## GET /transactions gate (CLN-060)
+
+`dashboard.k6.js` also gates `GET /transactions` (first page of 50, and `unmappedOnly`) when it
+runs with `K6_EMAIL` / `K6_PASSWORD`: the user from `pnpm -F @power-budget/backend db:seed:k6`
+(5,000 transactions with the SYNC-001 v2 columns, 70% mapped, 2 years of dates). CI always runs it.
+
+Threshold: p95 < 150 ms (`K6_TRANSACTIONS_P95_MS` overrides), p99 < 800 ms. Measured locally
+(docker Postgres 16 / Redis 7, backend from `scripts/e2e-backend.sh`, k6 1.3.0, 5 VUs, 20 s,
+3 runs): first page p95 13.3-15.0 ms, `unmappedOnly` p95 15.7-17.6 ms, dashboard p95 14.8-15.5 ms.
+150 ms is about 9x the local figure: room for a shared 2-vCPU runner running the API, the worker
+and Postgres next to k6, tight enough to catch a plan regression on 5,000 rows (PERF-01/PERF-03
+scale with history). Tighten once the CI history (artifact `k6-results`) has ~10 runs.
+
+Each CI run appends its p95 values to `perf-history/history.jsonl` (restored from the Actions
+cache, saved again, and uploaded as the `k6-history` artifact); the job summary shows the last 10.
