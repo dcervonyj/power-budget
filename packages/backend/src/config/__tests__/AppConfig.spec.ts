@@ -80,6 +80,38 @@ describe('parseAppConfig', () => {
     expect(problemsOf(blank, 'worker')).toContain('JWT_SECRET is not set');
   });
 
+  it('uses secrets byte-for-byte while rejecting blank ones', () => {
+    const padded = ` ${JWT} `;
+    const config = parseAppConfig({ ...VALID, JWT_SECRET: padded, KEK_BASE64: ` ${KEK}\n` }, 'api');
+
+    expect(config.jwtSecret).toBe(padded);
+    expect(config.kekBase64).toBe(` ${KEK}\n`);
+  });
+
+  it('checks the URL scheme per service without echoing values', () => {
+    const message = problemsOf(
+      {
+        ...VALID,
+        DATABASE_URL: 'https://app:pw-secret@db.example.com/x',
+        REDIS_URL: 'http://:redis-pw@cache',
+        APP_BASE_URL: 'ftp://example.com',
+      },
+      'api',
+    );
+
+    expect(message).toContain('DATABASE_URL must use one of the schemes: postgres: postgresql:');
+    expect(message).toContain('REDIS_URL must use one of the schemes: redis: rediss:');
+    expect(message).toContain('APP_BASE_URL must use one of the schemes: http: https:');
+    expect(message).not.toContain('pw-secret');
+    expect(message).not.toContain('redis-pw');
+    expect(
+      problemsOf(
+        { ...VALID, DATABASE_URL: 'postgres://u:p@h/db', REDIS_URL: 'rediss://h:6379' },
+        'api',
+      ),
+    ).toBe('');
+  });
+
   it('treats empty and blank values as unset: defaults for optional, errors for required', () => {
     const config = parseAppConfig({ ...VALID, DATABASE_URL: '', REDIS_URL: '   ' }, 'api');
 
