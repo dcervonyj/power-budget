@@ -96,7 +96,7 @@ const layerLintBlocks = [
   ),
 ];
 
-// TEMPORARY allow-list (CLN-061): files that already violate a layer rule when the rule landed (29 files).
+// TEMPORARY allow-list (CLN-061): files that already violate a layer rule when the rule landed (27 files).
 // No code was moved. Each entry must be fixed and removed in follow-up tickets (move the import behind a port,
 // inject IdGenerator/Clock instead of uuidv7/node:crypto, relocate shared types out of presentation, split
 // mappers out of infrastructure). Do NOT add entries here: new violations must fail lint.
@@ -114,8 +114,6 @@ const LAYER_ALLOW_LIST = [
   'packages/backend/src/application/auth/use-cases/RequestMagicLinkUseCase.spec.ts',
   'packages/backend/src/application/auth/use-cases/RequestMagicLinkUseCase.ts',
   'packages/backend/src/application/bank/use-cases/__tests__/CompleteBankConsentUseCase.spec.ts',
-  'packages/backend/src/application/bank/use-cases/InitiateBankConnectionUseCase.ts',
-  'packages/backend/src/application/notifications/use-cases/EnqueueNotificationUseCase.ts',
   'packages/backend/src/application/plans/use-cases/ClosePeriodSnapshotUseCase.spec.ts',
   'packages/backend/src/domain/transactions/idempotent-ingest.ts',
   'packages/backend/src/infrastructure/sentry/__tests__/SentryExceptionFilter.spec.ts',
