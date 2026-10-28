@@ -28,6 +28,8 @@ export interface ToSortState {
   readonly choicesStatus: LoadStatus;
   /** The last refresh of the categories failed: the balances in the previews may be out of date. */
   readonly choicesStale: boolean;
+  /** Confirmed payments whose effect the loaded balances already include. */
+  readonly choicesCover: ReadonlySet<string>;
   readonly sheet: SheetState | undefined;
   readonly busyIds: Set<string>;
   readonly retry: () => void;
@@ -52,10 +54,13 @@ export function useToSort(): ToSortState {
   const [choices, setChoices] = useState<readonly CategoryChoice[]>([]);
   const [choicesStatus, setChoicesStatus] = useState<LoadStatus>('loading');
   const [choicesStale, setChoicesStale] = useState(false);
+  const [choicesCover, setChoicesCover] = useState<ReadonlySet<string>>(new Set());
   const [sheet, setSheet] = useState<SheetState | undefined>(undefined);
   // Payments sorted in the sheet stay out of the list until a load newer than the change shows them.
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
   const busyIds = useRef(new Set<string>());
+  const confirmed = useRef(new Set<string>());
+  const coverRef = useRef<ReadonlySet<string>>(new Set());
   const changes = useRef(0);
   const listRequest = useRef(0);
   const choicesRequest = useRef(0);
@@ -100,9 +105,13 @@ export function useToSort(): ToSortState {
     try {
       // Writes still on their way change the balances: read after them, like the list does.
       await writeQueue.run(() => Promise.resolve());
+      // Every confirmed payment is written by now, so these balances already include it.
+      const covered = new Set(confirmed.current);
       const loaded = await loadChoices();
       if (request === choicesRequest.current) {
         setChoices(loaded);
+        coverRef.current = covered;
+        setChoicesCover(covered);
         setChoicesStatus('ready');
         setChoicesStale(false);
       }
@@ -161,18 +170,28 @@ export function useToSort(): ToSortState {
 
   const onConfirmed = useCallback((transactionId: string): void => {
     changes.current += 1;
+    confirmed.current.add(transactionId);
     setHidden((previous) => new Set(previous).add(transactionId));
   }, []);
 
-  const onUndone = useCallback((transactionId: string): void => {
-    changes.current += 1;
-    setHidden((previous) => new Set([...previous].filter((id) => id !== transactionId)));
-  }, []);
+  const onUndone = useCallback(
+    (transactionId: string): void => {
+      changes.current += 1;
+      confirmed.current.delete(transactionId);
+      setHidden((previous) => new Set([...previous].filter((id) => id !== transactionId)));
+      if (coverRef.current.has(transactionId)) {
+        // The loaded balances still count this payment: read them again, after the undo.
+        void loadCategories(true);
+      }
+    },
+    [loadCategories],
+  );
 
   const refresh = useCallback((): void => {
     setRefreshing(true);
     void loadList(true);
-  }, [loadList]);
+    void loadCategories(true);
+  }, [loadList, loadCategories]);
 
   const reload = useCallback((): void => {
     void loadList(true);
@@ -197,6 +216,7 @@ export function useToSort(): ToSortState {
     choices,
     choicesStatus,
     choicesStale,
+    choicesCover,
     sheet,
     busyIds: busyIds.current,
     retry,

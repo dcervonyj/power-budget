@@ -12,6 +12,8 @@ export interface CategorizeSessionInput {
   readonly queue: readonly TransactionListRow[];
   readonly startIndex: number;
   readonly choices: readonly CategoryChoice[];
+  /** Payments the choices' balances already include; the preview must not add them again. */
+  readonly choicesCover?: ReadonlySet<string>;
   /** Writes the mapping (null clears it); resolves once the server has it. */
   readonly write: (transactionId: string, plannedItemId: string | null) => Promise<void>;
   /** Ids whose write is on its way; shared with the container so a reopened sheet skips them. */
@@ -59,12 +61,16 @@ export function useCategorizeSession(input: CategorizeSessionInput): CategorizeS
   const phase: PaymentPhase =
     (row === undefined ? undefined : phases.get(row.data.id)) ?? 'choosing';
   const sortedPayments = useMemo(() => donePayments(input.queue, phases), [input.queue, phases]);
+  const uncovered = useMemo(
+    () => withoutCovered(sortedPayments, input.choicesCover),
+    [sortedPayments, input.choicesCover],
+  );
   const options = useMemo(
     () =>
       payment === undefined
         ? []
-        : choicesFor(withSorted(input.choices, sortedPayments, picks, payment.id), payment),
-    [input.choices, sortedPayments, picks, payment],
+        : choicesFor(withSorted(input.choices, uncovered, picks, payment.id), payment),
+    [input.choices, uncovered, picks, payment],
   );
   const pickedId =
     payment === undefined ? undefined : (picks.get(payment.id) ?? payment.suggestedPlannedItemId);
@@ -191,4 +197,15 @@ function donePayments(
   });
 
   return new Map(done.map((row) => [row.data.id, paymentOf(row)]));
+}
+
+function withoutCovered(
+  payments: ReadonlyMap<string, Payment>,
+  covered: ReadonlySet<string> | undefined,
+): ReadonlyMap<string, Payment> {
+  if (covered === undefined) {
+    return payments;
+  }
+
+  return new Map([...payments].filter(([id]) => !covered.has(id)));
 }
