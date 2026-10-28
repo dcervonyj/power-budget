@@ -22,6 +22,7 @@ const NEWER: PlanDashboardDto = { ...DASHBOARD, asOf: '2026-10-22' };
 
 const REFRESH_DEBOUNCE = 250;
 const REFRESH_RETRY = 1000;
+const LOAD_RETRY = 2000;
 
 async function advance(ms: number): Promise<void> {
   await vi.advanceTimersByTimeAsync(ms);
@@ -247,41 +248,67 @@ describe('PlanDashboardStore polling and reference data', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('retries a failed first load on later ticks with backoff, one at a time, and shows the data', async () => {
+  it('retries a failed first load by its own timer, not by a tick, and shows the data', async () => {
     plans.dashboard.mockRejectedValueOnce(new Error('down'));
     await store.load('plan-1');
     expect(store.error).toBe('failed');
     plans.dashboard.mockClear();
+    plans.get.mockClear();
 
+    const before = requestCount();
     await store.poll('plan-1');
-    expect(plans.dashboard).not.toHaveBeenCalled();
+    await store.poll('plan-1');
+    expect(requestCount() - before).toBe(0);
 
-    const slow = deferred<PlanDashboardDto>();
-    plans.dashboard.mockReturnValueOnce(slow.promise);
-    const retry = store.poll('plan-1');
-    await store.poll('plan-1');
-    expect(plans.dashboard).toHaveBeenCalledOnce();
-    slow.resolve(DASHBOARD);
-    await retry;
+    await advance(LOAD_RETRY);
 
     expect(store.error).toBeNull();
     expect(store.dashboard).not.toBeNull();
+    expect(plans.dashboard).toHaveBeenCalledOnce();
     expect(plans.unplanned).toHaveBeenCalled();
   });
 
-  it('backs off longer after a second failed load retry', async () => {
+  it('backs off longer after each failed retry', async () => {
     plans.dashboard.mockRejectedValue(new Error('down'));
     await store.load('plan-1');
     plans.dashboard.mockClear();
 
-    await store.poll('plan-1');
-    await store.poll('plan-1');
+    await advance(LOAD_RETRY);
     expect(plans.dashboard).toHaveBeenCalledTimes(1);
-    await store.poll('plan-1');
-    await store.poll('plan-1');
+    await advance(LOAD_RETRY);
     expect(plans.dashboard).toHaveBeenCalledTimes(1);
-    await store.poll('plan-1');
+    await advance(LOAD_RETRY);
     expect(plans.dashboard).toHaveBeenCalledTimes(2);
+  });
+
+  it('waits while the tab is hidden and retries when it is visible again', async () => {
+    plans.dashboard.mockRejectedValueOnce(new Error('down'));
+    await store.load('plan-1');
+    plans.dashboard.mockClear();
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+
+    await advance(LOAD_RETRY * 3);
+    expect(plans.dashboard).not.toHaveBeenCalled();
+
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    });
+    await advance(LOAD_RETRY);
+    expect(plans.dashboard).toHaveBeenCalledOnce();
+    expect(store.dashboard).not.toBeNull();
+  });
+
+  it('stops retrying when the plan switched or the session ended', async () => {
+    plans.dashboard.mockRejectedValueOnce(new Error('down'));
+    await store.load('plan-1');
+    plans.dashboard.mockClear();
+
+    store.resetSession();
+    await advance(LOAD_RETRY * 10);
+
+    expect(plans.dashboard).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('does nothing on a tick when no load was ever started or it did not fail', async () => {

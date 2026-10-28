@@ -36,8 +36,9 @@ const REFERENCE_DEBOUNCE_MS = 250;
 /** A failed reference read is tried again after 1 s, 2 s, 4 s ... up to 30 s. */
 const REFERENCE_RETRY_MS = 1000;
 const MAX_REFERENCE_RETRY_MS = 30_000;
-/** Ticks a failed full load waits before a tick tries it again: 1, 2, 4, 8, 8, ... */
-const MAX_LOAD_BACKOFF_TICKS = 8;
+/** A failed full load is tried again after 2 s, 4 s, 8 s ... up to 60 s, by its own timer. */
+const LOAD_RETRY_MS = 2000;
+const MAX_LOAD_RETRY_MS = 60_000;
 
 export type PlanDashboardReference = Pick<
   ReferenceCatalogue,
@@ -74,8 +75,8 @@ const EMPTY_LIST: UnplannedList = { items: [], nextCursor: null, loading: false,
  * sends one dashboard request per tick and never loads. The reference data (plan, items, category
  * names from the shared catalogue): read by `load`; when a read failed, or the catalogue is
  * invalidated by a local change, a separate refresh (debounced, one at a time, own retry timer with
- * backoff) replaces the fallback. Ticks send no reference request. A tick retries a failed full
- * load (with backoff). The unplanned pages the user loaded stay as they are.
+ * backoff) replaces the fallback. Ticks send no reference request. A failed full load is retried
+ * by its own timer (backoff, paused while the tab is hidden), never by a tick. The unplanned pages the user loaded stay as they are.
  */
 export class PlanDashboardStore implements PlanDashboardSource {
   planId: string | null = null;
@@ -99,7 +100,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
   private referenceFailures = 0;
   private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private loadFailures = 0;
-  private loadSkipTicks = 0;
+  private loadRetryTimer: ReturnType<typeof setTimeout> | null = null;
   /** Bumped by every load and by sign-out: an answer of an older one is dropped. */
   private token = 0;
   private polling = false;
@@ -119,7 +120,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
       | 'referenceFailures'
       | 'refreshTimer'
       | 'loadFailures'
-      | 'loadSkipTicks'
+      | 'loadRetryTimer'
       | 'token'
       | 'polling'
     >(this, {
@@ -133,7 +134,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
       referenceFailures: false,
       refreshTimer: false,
       loadFailures: false,
-      loadSkipTicks: false,
+      loadRetryTimer: false,
       token: false,
       polling: false,
     });
@@ -153,9 +154,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.polling = false;
     this.refreshing = false;
     this.cancelRefreshTimer();
+    this.cancelLoadRetry();
     if (planId !== this.planId) {
       this.loadFailures = 0;
-      this.loadSkipTicks = 0;
       this.planId = planId;
       this.reference = null;
       this.lastDto = null;
@@ -178,7 +179,6 @@ export class PlanDashboardStore implements PlanDashboardSource {
       this.applyReference(reference);
       this.applyDashboard(planId, token, toPlanDashboard(dto, reference.data));
       this.loadFailures = 0;
-      this.loadSkipTicks = 0;
       this.scheduleRefreshIfNeeded(planId, REFERENCE_RETRY_MS);
       await Promise.all([this.loadUnplanned('expense', null), this.loadUnplanned('income', null)]);
     } catch (err) {
@@ -189,16 +189,14 @@ export class PlanDashboardStore implements PlanDashboardSource {
   /**
    * One dashboard request while a dashboard is shown, and nothing else: reference data is never
    * read here. Skipped while a load or another poll is in flight and for a plan that is not shown;
-   * a failed poll keeps the shown data. When the last load failed and nothing is shown, a tick
-   * retries the full load after a backoff of 1, 2, 4, 8 ticks (one at a time).
+   * a failed poll keeps the shown data. With nothing shown (the load failed) it does nothing: the
+   * load is retried by its own timer.
    */
   async poll(planId: string): Promise<void> {
     if (planId !== this.planId || this.loading || this.polling) {
       return;
     }
     if (this.dashboard === null) {
-      await this.retryFailedLoad(planId);
-
       return;
     }
     const token = this.token;
@@ -223,8 +221,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.polling = false;
     this.refreshing = false;
     this.cancelRefreshTimer();
+    this.cancelLoadRetry();
     this.loadFailures = 0;
-    this.loadSkipTicks = 0;
     this.reference = null;
     this.lastDto = null;
     this.planId = null;
@@ -307,16 +305,37 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.applyDashboard(planId, token, toPlanDashboard(dto, reference));
   }
 
-  private async retryFailedLoad(planId: string): Promise<void> {
-    if (this.error === null) {
+  /** After a failed load: the next try comes by timer, not by a poll tick. */
+  private scheduleLoadRetry(planId: string): void {
+    this.cancelLoadRetry();
+    const delay = Math.min(LOAD_RETRY_MS * 2 ** (this.loadFailures - 1), MAX_LOAD_RETRY_MS);
+    this.loadRetryTimer = setTimeout(() => {
+      this.loadRetryTimer = null;
+      this.retryLoad(planId, delay);
+    }, delay);
+  }
+
+  /** A hidden tab waits; a plan that is no longer shown or a load that works needs no retry. */
+  private retryLoad(planId: string, delay: number): void {
+    if (planId !== this.planId || this.error === null || this.loading) {
       return;
     }
-    if (this.loadSkipTicks > 0) {
-      this.loadSkipTicks -= 1;
+    if (document.visibilityState === 'hidden') {
+      this.loadRetryTimer = setTimeout(() => {
+        this.loadRetryTimer = null;
+        this.retryLoad(planId, delay);
+      }, delay);
 
       return;
     }
-    await this.load(planId);
+    void this.load(planId);
+  }
+
+  private cancelLoadRetry(): void {
+    if (this.loadRetryTimer !== null) {
+      clearTimeout(this.loadRetryTimer);
+      this.loadRetryTimer = null;
+    }
   }
 
   private onCatalogueChanged(): void {
@@ -409,7 +428,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.error = error;
     this.loading = false;
     this.loadFailures += 1;
-    this.loadSkipTicks = Math.min(2 ** (this.loadFailures - 1), MAX_LOAD_BACKOFF_TICKS);
+    this.scheduleLoadRetry(planId);
   }
 
   /** A late answer for a plan that is no longer shown is dropped. */
