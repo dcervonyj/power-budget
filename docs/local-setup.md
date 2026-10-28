@@ -26,6 +26,14 @@ pnpm dev:db:up
 | `pnpm dev:db:reset` | **Destructive** — remove volumes and start fresh               |
 | `pnpm dev:db:logs`  | Tail logs from all infrastructure containers                   |
 
+## Running the dev servers
+
+```bash
+pnpm dev
+```
+
+`pnpm dev` first builds `core`, `shared-app` and `design-tokens` (turbo `dev` depends on `^build`, so no prior `pnpm build` is needed), then starts watchers: `tsup --watch` for `core` and `shared-app`, `tsc -b --watch` for `design-tokens`, `nest start --watch` for the backend and Vite for web. Workspace packages always resolve through `dist/`, so edits in `core` or `shared-app` are rebuilt automatically and reach the running web app and backend. The backend needs `.env` (see below) with `JWT_SECRET` and `KEK_BASE64`, otherwise it logs a config error and waits. Mobile is started separately with `pnpm -F @power-budget/mobile start`. Rationale: `docs/mvp/ARCHITECTURE.md` section 4.
+
 ## Environment variables
 
 Copy `.env.example` to `.env`. Never commit `.env`.

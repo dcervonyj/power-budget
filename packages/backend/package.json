@@ -5,6 +5,7 @@
   "scripts": {
     "build": "nest build",
     "start": "node dist/src/main.js",
+    "dev": "nest start --watch",
     "start:dev": "nest start --watch",
     "start:worker": "node dist/src/worker.main.js",
     "lint": "eslint src --ext .ts",
