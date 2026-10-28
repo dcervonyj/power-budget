@@ -56,13 +56,21 @@ function onePage(...items: TransactionListItemDto[]): TransactionPageDto {
   return { items, nextCursor: null, hasMore: false };
 }
 
-function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
-  const holder: { resolve: (value: T) => void } = { resolve: () => undefined };
-  const promise = new Promise<T>((resolve) => {
+function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (error: Error) => void;
+} {
+  const holder: { resolve: (value: T) => void; reject: (error: Error) => void } = {
+    resolve: () => undefined,
+    reject: () => undefined,
+  };
+  const promise = new Promise<T>((resolve, reject) => {
     holder.resolve = resolve;
+    holder.reject = reject;
   });
 
-  return { promise, resolve: holder.resolve };
+  return { promise, resolve: holder.resolve, reject: holder.reject };
 }
 
 beforeEach(() => {
@@ -217,5 +225,28 @@ describe('useTransactionList supporting loads', () => {
     await act(async () => result.current.retrySupport());
 
     await waitFor(() => expect(result.current.categoriesFailed).toBe(false));
+  });
+
+  it('lets only the newest of two overlapping category retries decide', async () => {
+    page.mockResolvedValue(onePage(item('a', false, 'item-1')));
+    jest.mocked(categoriesApi.list).mockResolvedValue([]);
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const older = deferred<never>();
+    const newer = deferred<never[]>();
+    jest
+      .mocked(categoriesApi.list)
+      .mockReturnValueOnce(older.promise)
+      .mockReturnValueOnce(newer.promise);
+    await act(async () => {
+      result.current.retrySupport();
+      result.current.retrySupport();
+    });
+    await act(async () => newer.resolve([]));
+    await waitFor(() => expect(result.current.categoriesFailed).toBe(false));
+    await act(async () => older.reject(new Error('late failure')));
+
+    expect(result.current.categoriesFailed).toBe(false);
   });
 });

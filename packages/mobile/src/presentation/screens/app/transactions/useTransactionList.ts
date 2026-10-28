@@ -81,6 +81,7 @@ export function useTransactionList(): TransactionListState {
   const [reloadFailed, setReloadFailed] = useState(false);
   // Reloads can overlap (focus, pull to refresh, retry); only the newest answer may be applied.
   const listRequest = useRef(0);
+  const categoriesRequest = useRef(0);
   const monthRequest = useRef(0);
 
   const loadFirstPage = useCallback(async (keepOnError: boolean): Promise<void> => {
@@ -136,11 +137,19 @@ export function useTransactionList(): TransactionListState {
   }, []);
 
   const loadCategories = useCallback(async (): Promise<void> => {
+    categoriesRequest.current += 1;
+    const request = categoriesRequest.current;
     try {
-      setCategoryOfItem(categoryNameByItem(await loadPlannedItemOptions(plansApi, categoriesApi)));
-      setCategoriesFailed(false);
+      const options = await loadPlannedItemOptions(plansApi, categoriesApi);
+      // Retries can overlap; only the newest answer may set the names or the error.
+      if (request === categoriesRequest.current) {
+        setCategoryOfItem(categoryNameByItem(options));
+        setCategoriesFailed(false);
+      }
     } catch {
-      setCategoriesFailed(true);
+      if (request === categoriesRequest.current) {
+        setCategoriesFailed(true);
+      }
     }
   }, []);
 
