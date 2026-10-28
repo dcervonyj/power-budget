@@ -26,6 +26,7 @@
   "add.another": "Dodaj kolejny",
   "add.today": "Wróć do Dziś",
   "add.empty.noPlan": "Brak aktywnego planu",
+  "add.error.refresh": "Nie udało się odświeżyć planu. Spróbuj ponownie.",
   "add.error.load": "Nie udało się wczytać planu. Spróbuj ponownie.",
   "add.error.save": "Nie udało się zapisać wydatku. Spróbuj ponownie.",
   "add.error.undo": "Nie udało się cofnąć wydatku. Spróbuj ponownie."

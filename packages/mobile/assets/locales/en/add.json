@@ -26,6 +26,7 @@
   "add.another": "Add another",
   "add.today": "Back to Today",
   "add.empty.noPlan": "No active plan",
+  "add.error.refresh": "Could not refresh your plan. Try again.",
   "add.error.load": "Could not load your plan. Try again.",
   "add.error.save": "Could not save the expense. Try again.",
   "add.error.undo": "Could not undo the expense. Try again."

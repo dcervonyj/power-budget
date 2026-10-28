@@ -160,7 +160,7 @@ describe('AddExpenseScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Tabs', { screen: 'Dashboard' });
   });
 
-  it('retries only the mapping after it failed, without posting a duplicate', async () => {
+  it('F1: retries only the mapping after it failed, without posting a duplicate', async () => {
     mockPatch.mockRejectedValueOnce(new Error('offline'));
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
@@ -180,7 +180,7 @@ describe('AddExpenseScreen', () => {
     });
   });
 
-  it('reloads the dashboard on Add another so the next figures include the saved expense', async () => {
+  it('F2: Add another reloads the dashboard so the next figures include the saved expense', async () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
@@ -193,7 +193,7 @@ describe('AddExpenseScreen', () => {
     await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(2));
   });
 
-  it('refreshes the date and dashboard when the app becomes active after midnight', async () => {
+  it('F3: app becoming active after midnight refreshes the date and dashboard', async () => {
     const listeners: Array<(state: string) => void> = [];
     jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
       listeners.push(listener);
@@ -220,6 +220,65 @@ describe('AddExpenseScreen', () => {
       '/transactions',
       expect.objectContaining({ occurredOn: '2026-10-23' }),
     );
+    jest.useRealTimers();
+  });
+
+  it('F4: locks amount and category edits after a mapping failure until the mapping completes', async () => {
+    mockPatch.mockRejectedValueOnce(new Error('offline'));
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() =>
+      expect(screen.getByText('Could not save the expense. Try again.')).toBeTruthy(),
+    );
+
+    await typeAmount(['7']);
+    await userEvent.setup().press(screen.getByRole('radio', { name: 'Unplanned' }));
+
+    expect(screen.getByTestId('add-amount')).toHaveTextContent('5');
+    expect(screen.getByRole('radio', { name: 'Groceries' })).toBeChecked();
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPatch).toHaveBeenLastCalledWith('/transactions/tx-1/mapping', {
+      plannedItemId: 'item-groceries',
+    });
+  });
+
+  it('F5: Add another shows the refresh failure and keeps the saved state instead of editing on stale totals', async () => {
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    mockDashboard.mockRejectedValueOnce(new Error('offline'));
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Add another' }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Could not refresh your plan. Try again.')).toBeTruthy(),
+    );
+    expect(screen.getByText('Added')).toBeTruthy();
+    expect(screen.queryByRole('radio', { name: 'Groceries' })).toBeNull();
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Add another' }));
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    expect(screen.queryByText('Could not refresh your plan. Try again.')).toBeNull();
+  });
+
+  it('F6: date and dashboard refresh at midnight while the screen stays active', async () => {
+    jest.useFakeTimers({ now: new Date(2026, 9, 22, 23, 50), advanceTimers: true });
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByText('Oct 22')).toBeTruthy());
+    expect(mockDashboard).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      jest.setSystemTime(new Date(2026, 9, 23, 0, 0, 1));
+      jest.advanceTimersByTime(11 * 60 * 1000);
+    });
+
+    await waitFor(() => expect(screen.getByText('Oct 23')).toBeTruthy());
+    expect(mockDashboard).toHaveBeenCalledTimes(2);
     jest.useRealTimers();
   });
 });
