@@ -73,6 +73,23 @@ describe('merchantRuleKeysOf', () => {
     expect(eur).toEqual(pln);
   });
 
+  it.each(['Warszawa', '', '****1234', '123456'])(
+    'never learns an amount-dependent key from a Wise card title ending in: "%s"',
+    (tail) => {
+      const small = merchantRuleKeysOf({
+        ...noCounterparty,
+        description: `Card transaction of 12.34 PLN issued by ${tail}`.trim(),
+      });
+      const large = merchantRuleKeysOf({
+        ...noCounterparty,
+        description: `Card transaction of 1,999.00 EUR issued by ${tail}`.trim(),
+      });
+
+      expect(large).toEqual(small);
+      expect(JSON.stringify(small)).not.toContain('12');
+    },
+  );
+
   it('keeps the key of a title that is not a Wise card title', () => {
     expect(
       merchantRuleKeysOf({ ...noCounterparty, description: 'Card payment to Biedronka 12.34' }),
