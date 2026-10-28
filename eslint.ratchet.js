@@ -14,8 +14,12 @@ function isRatcheted(pkg) {
       JSON.parse(fs.readFileSync(path.join(PACKAGES_DIR, pkg, 'package.json'), 'utf8'))
         .eslintRatchet === true
     );
-  } catch {
-    return false;
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return false;
+    }
+
+    throw error;
   }
 }
 
@@ -30,6 +34,8 @@ const TYPE_AWARE_IGNORES = [
   '**/e2e-web/**',
   '**/playwright.config.ts',
 ];
+
+const HELPER_NAME = 'Helpers?$';
 
 const styleRules = {
   curly: ['error', 'all'],
@@ -50,10 +56,31 @@ const styleRules = {
       },
     },
   ],
-  // No *Helper names for any identifier (CLAUDE.md "Naming").
+  // No *Helper names and no `I` interface prefix. Declarations only: imports, object-literal keys and
+  // third-party property names (FormHelperText, isHelperVisible) are not checked. File names are not enforced.
+  // One entry per selector: the most specific entry wins, so the interface entry carries both patterns.
   '@typescript-eslint/naming-convention': [
     'error',
-    { selector: 'default', format: null, custom: { regex: 'Helper', match: false } },
+    {
+      selector: [
+        'class',
+        'typeAlias',
+        'enum',
+        'typeParameter',
+        'function',
+        'variable',
+        'parameter',
+        'classMethod',
+        'classProperty',
+      ],
+      format: null,
+      custom: { regex: HELPER_NAME, match: false },
+    },
+    {
+      selector: 'interface',
+      format: null,
+      custom: { regex: `^I[A-Z]|${HELPER_NAME}`, match: false },
+    },
   ],
   // `@typescript-eslint/no-restricted-imports` is a separate rule id, so it does not clash with the per-layer
   // `no-restricted-imports` config (CLN-061). Use `lodash-es` only.
@@ -71,24 +98,34 @@ const typeAwareRules = {
 };
 
 /**
- * Blocks for one package. `prefix` is the path of the package relative to the config file's directory:
- * `packages/<pkg>/` from the root config, '' from a package-local config.
- * @param {string} prefix
+ * Ratchet blocks for the config file that lives in `baseDir`. ESLint matches `files` relative to the config
+ * file's directory, so the root config passes the repo root (`packages/<pkg>/**`) and a package-local config
+ * passes its own directory (`**`). Each config file calls this once; nobody re-spreads another config's blocks.
+ * @param {string} baseDir
  * @returns {import('eslint').Linter.FlatConfig[]}
  */
+function ratchetBlocks(baseDir) {
+  return RATCHET_PACKAGES.flatMap((pkg) => {
+    const relative = path.relative(baseDir, path.join(PACKAGES_DIR, pkg));
+
+    return relative.startsWith('..') ? [] : ratchetFor(relative === '' ? '' : `${relative}/`);
+  });
+}
+
 function ratchetFor(prefix) {
   const files = [`${prefix}**/*.ts`, `${prefix}**/*.tsx`];
 
   return [
     { files, rules: styleRules },
+    // Same file set as the type-aware parser block in eslint.base.js, so the rule only runs where type info exists.
     { files, ignores: TYPE_AWARE_IGNORES, rules: typeAwareRules },
   ];
 }
 
-/** Root config: every enabled package (packages with their own config re-apply via `ratchetFor('')`). */
-const ratchetBlocks = RATCHET_PACKAGES.flatMap((pkg) => ratchetFor(`packages/${pkg}/`));
-
-/** For a package-local config: enabled only when the package is listed. */
-const ratchetForPackage = (pkg) => (RATCHET_PACKAGES.includes(pkg) ? ratchetFor('') : []);
-
-module.exports = { RATCHET_PACKAGES, ratchetBlocks, ratchetForPackage, styleRules, typeAwareRules };
+module.exports = {
+  RATCHET_PACKAGES,
+  TYPE_AWARE_IGNORES,
+  ratchetBlocks,
+  styleRules,
+  typeAwareRules,
+};

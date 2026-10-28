@@ -1,11 +1,11 @@
 // @ts-check
-const rootConfig = require('../../eslint.config.js');
-const { ratchetForPackage } = require('../../eslint.ratchet.js');
+const rootConfig = require('../../eslint.base.js');
+const { ratchetBlocks } = require('../../eslint.ratchet.js');
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
   ...rootConfig,
-  ...ratchetForPackage('core'),
+  ...ratchetBlocks(__dirname),
   {
     files: ['src/**/*.ts'],
     rules: {
