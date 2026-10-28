@@ -75,8 +75,46 @@ import { TransactionRowMapper } from './TransactionRowMapper.js';
 const transferAsA = alias(schema.transfers, 'transfer_as_a');
 const transferAsB = alias(schema.transfers, 'transfer_as_b');
 
-/** Rows per bank-ingest INSERT, so one statement stays far below Postgres' 65535 parameter cap. */
-const BANK_INSERT_CHUNK = 500;
+/**
+ * The bank-ingest insert columns with their SQL types. The batch travels as ONE jsonb parameter
+ * read with jsonb_to_recordset, so a batch of any size is one statement with one bind parameter
+ * (a multi-row VALUES list would hit Postgres' 65535 parameter cap).
+ */
+const BANK_INSERT_COLUMNS: readonly (readonly [string, string])[] = [
+  ['id', 'uuid'],
+  ['household_id', 'uuid'],
+  ['account_id', 'uuid'],
+  ['external_id', 'text'],
+  ['occurred_on', 'date'],
+  ['amount_minor', 'bigint'],
+  ['currency', 'text'],
+  ['description', 'text'],
+  ['merchant', 'text'],
+  ['source', 'text'],
+  ['source_kind', 'text'],
+  ['status', 'text'],
+  ['ignored', 'boolean'],
+  ['booking_date', 'date'],
+  ['value_date', 'date'],
+  ['transaction_at', 'timestamptz'],
+  ['counterparty_name', 'text'],
+  ['counterparty_iban_hash', 'text'],
+  ['remittance', 'text'],
+  ['mcc', 'text'],
+  ['bank_tx_code', 'text'],
+  ['entry_reference', 'text'],
+  ['fingerprint', 'text'],
+  ['original_amount_minor', 'bigint'],
+  ['original_currency', 'text'],
+];
+
+function columnName(column: readonly [string, string]): string {
+  return column[0];
+}
+
+function columnDefinition(column: readonly [string, string]): string {
+  return `${column[0]} ${column[1]}`;
+}
 
 /** LIMIT that never cuts rows; it only stops the planner from merging the subquery (see `pageOf`). */
 const PLANNER_FENCE = Number.MAX_SAFE_INTEGER;
@@ -105,18 +143,22 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
   async insertBankBatch(inputs: readonly NewTransaction[]): Promise<number> {
-    let created = 0;
-    for (let start = 0; start < inputs.length; start += BANK_INSERT_CHUNK) {
-      const chunk = inputs.slice(start, start + BANK_INSERT_CHUNK);
-      const inserted = await this.db
-        .insert(schema.transactions)
-        .values(chunk.map(this.toBankInsert, this))
-        .onConflictDoNothing()
-        .returning({ id: schema.transactions.id });
-      created += inserted.length;
+    if (inputs.length === 0) {
+      return 0;
     }
 
-    return created;
+    const payload = JSON.stringify(inputs.map(this.toBankInsert, this), this.jsonValueOf);
+    const result = await this.db.execute(sql`
+      INSERT INTO transactions (${sql.raw(BANK_INSERT_COLUMNS.map(columnName).join(', '))})
+      SELECT ${sql.raw(BANK_INSERT_COLUMNS.map(columnName).join(', '))}
+      FROM jsonb_to_recordset(${payload}::jsonb) AS batch(${sql.raw(
+        BANK_INSERT_COLUMNS.map(columnDefinition).join(', '),
+      )})
+      ON CONFLICT DO NOTHING
+      RETURNING id
+    `);
+
+    return result.rows.length;
   }
 
   async insertManual(input: NewManualTransaction): Promise<Transaction> {
@@ -686,8 +728,42 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     ];
   }
 
-  private toBankInsert(input: NewTransaction): typeof schema.transactions.$inferInsert {
-    return this.rows.toInsert(input);
+  /** The insert row keyed by SQL column name, as jsonb_to_recordset reads it. */
+  private toBankInsert(input: NewTransaction): Record<string, unknown> {
+    const row = this.rows.toInsert(input);
+
+    return {
+      id: row.id,
+      household_id: row.householdId,
+      account_id: row.accountId,
+      external_id: row.externalId,
+      occurred_on: row.occurredOn,
+      amount_minor: row.amountMinor,
+      currency: row.currency,
+      description: row.description,
+      merchant: row.merchant,
+      source: row.source,
+      source_kind: row.sourceKind,
+      status: row.status,
+      ignored: row.ignored,
+      booking_date: row.bookingDate,
+      value_date: row.valueDate,
+      transaction_at: row.transactionAt,
+      counterparty_name: row.counterpartyName,
+      counterparty_iban_hash: row.counterpartyIbanHash,
+      remittance: row.remittance,
+      mcc: row.mcc,
+      bank_tx_code: row.bankTxCode,
+      entry_reference: row.entryReference,
+      fingerprint: row.fingerprint,
+      original_amount_minor: row.originalAmountMinor,
+      original_currency: row.originalCurrency,
+    };
+  }
+
+  /** bigint is not JSON: send it as a decimal string, which the bigint column casts back. */
+  private jsonValueOf(_key: string, value: unknown): unknown {
+    return typeof value === 'bigint' ? value.toString() : value;
   }
 
   private toListItem(row: ListRow): TransactionListItem {
