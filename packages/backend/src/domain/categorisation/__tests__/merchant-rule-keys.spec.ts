@@ -92,6 +92,7 @@ describe('merchantRuleKeysOf', () => {
 
   it.each([
     ['ATM Shop', 'atm shop'],
+    ['Transfer Market', 'transfer market'],
     ['Fee Shop', 'fee shop'],
   ])('learns the merchant %s from a Wise card title', (merchant, pattern) => {
     expect(
@@ -100,6 +101,10 @@ describe('merchantRuleKeysOf', () => {
         description: `Card transaction of 12.34 PLN issued by ${merchant}`,
       }),
     ).toEqual([{ matchKind: 'merchant', pattern }]);
+  });
+
+  it('still treats a plain description starting with a generic word as generic', () => {
+    expect(merchantRuleKeysOf({ ...noCounterparty, description: 'Transfer Market' })).toEqual([]);
   });
 
   it('keeps the key of a title that is not a Wise card title', () => {
