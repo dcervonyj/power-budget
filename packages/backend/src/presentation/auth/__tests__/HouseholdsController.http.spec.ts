@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { Provider } from '@nestjs/common';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId, UserId, HouseholdInviteId } from '@power-budget/core';
 import type { EncryptedString } from '@power-budget/core';
 import type {
   HouseholdRepository,
@@ -44,7 +44,7 @@ const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;
 const ALICE_HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
 const BOB_HOUSEHOLD = '01900000-0000-7000-8000-0000000000b1' as HouseholdId;
 
-const INVITE_ID = '01900000-0000-7000-8000-0000000000c1';
+const INVITE_ID = '01900000-0000-7000-8000-0000000000c1' as HouseholdInviteId;
 
 interface InviteUseCaseMocks {
   readonly invite: ReturnType<typeof mock<InviteToHouseholdUseCase>>;

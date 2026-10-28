@@ -1,3 +1,4 @@
+import type { NotificationEventId } from '@power-budget/core';
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { Job, Queue } from 'bullmq';
@@ -11,7 +12,7 @@ describe('BullMQNotificationDispatchQueue', () => {
     const queue = mock<Queue<DispatchNotificationJobPayload>>();
     queue.add.mockResolvedValue(mock<Job<DispatchNotificationJobPayload>>());
 
-    await new BullMQNotificationDispatchQueue(queue).schedule('n-1');
+    await new BullMQNotificationDispatchQueue(queue).schedule('n-1' as NotificationEventId);
 
     expect(queue.add.mock.calls).toEqual([
       [

@@ -1,8 +1,9 @@
+import type { HouseholdInviteId } from '@power-budget/core';
 import type { HouseholdInvite } from '../../../domain/auth/entities.js';
 
 /** What the owner sees of an open invite. Never the token or its hash. */
 export interface HouseholdInviteView {
-  readonly id: string;
+  readonly id: HouseholdInviteId;
   readonly email: string;
   readonly status: 'pending' | 'expired';
   readonly expiresAt: Date;

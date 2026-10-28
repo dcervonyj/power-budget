@@ -7,6 +7,7 @@ import type {
   PlannedItemId,
   TransactionId,
   UserId,
+  MerchantRuleId,
 } from '@power-budget/core';
 
 export type MerchantMatchKind = 'merchant' | 'counterparty_iban_hash' | 'descriptor_regex';
@@ -19,7 +20,7 @@ export interface MerchantRuleKey {
 
 /** `merchant_rules` (plan-banking.md §1.13): what the user taught the app about a merchant. */
 export interface MerchantRule extends MerchantRuleKey {
-  readonly id: string;
+  readonly id: MerchantRuleId;
   readonly householdId: HouseholdId;
   readonly ownerUserId: UserId | null;
   readonly categoryId: CategoryId;

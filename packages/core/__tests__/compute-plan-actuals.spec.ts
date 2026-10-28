@@ -88,6 +88,7 @@ function makeEurPlnTable(): FxRateTable {
     source: 'ecb',
     fetchedAt: id('2024-01-31T16:30:00Z'),
   });
+
   return m;
 }
 

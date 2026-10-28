@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { uuidv7 } from 'uuidv7';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { MerchantRuleId, type HouseholdId, type UserId } from '@power-budget/core';
 import type {
   MerchantCorrection,
   MerchantRule,
@@ -28,7 +28,7 @@ export class DrizzleMerchantRuleRepository implements MerchantRuleRepository {
       .insert(t)
       .values(
         correction.keys.map((key) => ({
-          id: uuidv7(),
+          id: MerchantRuleId.of(uuidv7()),
           householdId: correction.householdId,
           ownerUserId: correction.ownerUserId,
           matchKind: key.matchKind,
