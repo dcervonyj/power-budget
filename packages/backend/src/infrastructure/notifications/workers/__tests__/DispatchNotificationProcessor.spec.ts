@@ -28,20 +28,19 @@ describe('DispatchNotificationProcessor', () => {
   let processor: DispatchNotificationProcessor;
 
   beforeEach(async () => {
-    outbox = new InMemoryNotificationRepository();
+    const queuedIds = ['n-1', 'n-2'];
+    outbox = new InMemoryNotificationRepository({ next: () => queuedIds.shift() ?? 'n-extra' });
     email = new InMemoryEmailChannel();
     processor = new DispatchNotificationProcessor(outbox, email, new KindRenderer());
     outbox.addUser(ANN, { email: 'ann@example.com', displayName: 'Ann', locale: 'pl' });
     outbox.addUser(BOB, { email: 'bob@example.com', displayName: 'Bob', locale: 'en' });
     await outbox.enqueue({
-      id: 'n-1',
       recipientUserId: ANN,
       kind: 'over_budget',
       dedupeKey: 'k-1',
       payload: { name: 'Ann' },
     });
     await outbox.enqueue({
-      id: 'n-2',
       recipientUserId: BOB,
       kind: 'magic_link',
       dedupeKey: 'k-2',
@@ -81,7 +80,7 @@ describe('DispatchNotificationProcessor', () => {
   });
 
   it('sends an address-only invite in its stored locale and scrubs the link (CLN-006)', async () => {
-    outbox.enqueueToAddress({
+    outbox.seedAddressRow({
       id: 'n-3',
       kind: 'household_invite',
       dedupeKey: 'k-3',
@@ -104,7 +103,7 @@ describe('DispatchNotificationProcessor', () => {
   });
 
   it('defaults an address-only row without a locale to English', async () => {
-    outbox.enqueueToAddress({
+    outbox.seedAddressRow({
       id: 'n-4',
       kind: 'household_invite',
       dedupeKey: 'k-4',
@@ -119,7 +118,7 @@ describe('DispatchNotificationProcessor', () => {
   });
 
   it('drops a row that has neither a user nor an address', async () => {
-    outbox.enqueueToAddress({
+    outbox.seedAddressRow({
       id: 'n-5',
       kind: 'household_invite',
       dedupeKey: 'k-5',

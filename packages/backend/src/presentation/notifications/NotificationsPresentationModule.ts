@@ -4,6 +4,7 @@ import { NotificationsModule } from '../../infrastructure/notifications/Notifica
 import { DrizzleNotificationRepository } from '../../infrastructure/notifications/DrizzleNotificationRepository.js';
 import { RecordEmailBounceUseCase } from '../../application/notifications/use-cases/RecordEmailBounceUseCase.js';
 import { SvixWebhookVerifier } from '../../infrastructure/notifications/SvixWebhookVerifier.js';
+import { RESEND_WEBHOOK_VERIFIER } from './webhook-tokens.js';
 import { NotificationsController } from './NotificationsController.js';
 
 @Module({
@@ -16,7 +17,7 @@ import { NotificationsController } from './NotificationsController.js';
       useFactory: (repo: DrizzleNotificationRepository) => new RecordEmailBounceUseCase(repo),
     },
     {
-      provide: SvixWebhookVerifier,
+      provide: RESEND_WEBHOOK_VERIFIER,
       inject: [APP_CONFIG],
       useFactory: (config: AppConfig) =>
         new SvixWebhookVerifier(config.resendWebhookSecret ?? undefined),

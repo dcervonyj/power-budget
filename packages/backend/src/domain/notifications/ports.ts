@@ -2,8 +2,9 @@ import type { HouseholdId, UserId } from '@power-budget/core';
 import type {
   ExpiringConnectionRow,
   HouseholdMemberRow,
+  NewAddressNotification,
   NewNotificationOutbox,
-  NotificationOutbox,
+  NotificationOutboxRow,
   WeeklyDigestSummary,
 } from './entities.js';
 
@@ -21,17 +22,26 @@ export interface ClaimedRecipient {
  * short statement. Both marks strip the secret payload keys (SECRET_PAYLOAD_KEYS).
  */
 export interface NotificationClaim {
-  readonly notification: NotificationOutbox;
+  readonly notification: NotificationOutboxRow;
   /** The user behind `notification.recipientUserId`; null for an address-only row or a missing user. */
   readonly recipient: ClaimedRecipient | null;
   markSent(): Promise<void>;
   markFailed(): Promise<void>;
 }
 
-export interface NotificationRepository {
+/**
+ * The one way to write a notification: inserts the outbox row (a repeated dedupe
+ * key is a no-op) and schedules its delivery right away. A scheduling failure
+ * never fails the call: the outbox relay cron picks the row up.
+ */
+export interface NotificationOutbox {
   enqueue(notification: NewNotificationOutbox): Promise<void>;
-  findById(id: string): Promise<NotificationOutbox | null>;
-  findPendingBatch(limit: number): Promise<NotificationOutbox[]>;
+  enqueueToAddress(notification: NewAddressNotification): Promise<void>;
+}
+
+export interface NotificationRepository {
+  findById(id: string): Promise<NotificationOutboxRow | null>;
+  findPendingBatch(limit: number): Promise<NotificationOutboxRow[]>;
   /**
    * Claims a pending row (sent_at and failed_at unset) in one short transaction:
    * counts the attempt and reads the recipient, then commits. Returns null when

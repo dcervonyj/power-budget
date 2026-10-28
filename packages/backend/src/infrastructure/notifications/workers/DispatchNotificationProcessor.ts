@@ -2,7 +2,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 import {
   MAX_DISPATCH_ATTEMPTS,
-  type NotificationOutbox,
+  type NotificationOutboxRow,
 } from '../../../domain/notifications/entities.js';
 import type {
   NotificationRepository,
@@ -16,7 +16,7 @@ import {
 } from '../../queue/queue.constants.js';
 import type { DispatchNotificationJobPayload } from '../BullMQNotificationDispatchQueue.js';
 
-export const SUBJECT_BY_KIND: Record<NotificationOutbox['kind'], string> = {
+export const SUBJECT_BY_KIND: Record<NotificationOutboxRow['kind'], string> = {
   over_budget: 'Over Budget Alert — Power Budget',
   weekly_digest: 'Your Weekly Budget Summary — Power Budget',
   reconnect_reminder: 'Bank Connection Expiring — Power Budget',

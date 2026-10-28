@@ -4,7 +4,7 @@ import type {
   NotificationDispatchQueue,
   NotificationRepository,
 } from '../../../domain/notifications/ports.js';
-import type { NotificationOutbox } from '../../../domain/notifications/entities.js';
+import type { NotificationOutboxRow } from '../../../domain/notifications/entities.js';
 import {
   DEFAULT_DIGEST_TIME_ZONE,
   type RunWeeklyDigestUseCase,
@@ -21,7 +21,9 @@ function makeService(pendingIds: string[]): {
   digest.execute.mockResolvedValue({ skipped: [] });
   const reminders = mock<RunReconnectRemindersUseCase>();
   const repo = mock<NotificationRepository>();
-  repo.findPendingBatch.mockResolvedValue(pendingIds.map((id) => mock<NotificationOutbox>({ id })));
+  repo.findPendingBatch.mockResolvedValue(
+    pendingIds.map((id) => mock<NotificationOutboxRow>({ id })),
+  );
   const queue = mock<NotificationDispatchQueue>();
   queue.schedule.mockResolvedValue(undefined);
 

@@ -12,7 +12,8 @@ import {
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { FastifyRequest } from 'fastify';
 import { RecordEmailBounceUseCase } from '../../application/notifications/use-cases/RecordEmailBounceUseCase.js';
-import { SvixWebhookVerifier } from '../../infrastructure/notifications/SvixWebhookVerifier.js';
+import type { WebhookHeaders, WebhookSignatureVerifier } from '../../domain/shared/ports.js';
+import { RESEND_WEBHOOK_VERIFIER } from './webhook-tokens.js';
 import { WebhookAcceptedDto } from './dto/webhook-response.dto.js';
 
 /**
@@ -33,8 +34,8 @@ export class NotificationsController {
   constructor(
     @Inject(RecordEmailBounceUseCase)
     private readonly recordEmailBounce: RecordEmailBounceUseCase,
-    @Inject(SvixWebhookVerifier)
-    private readonly webhookVerifier: SvixWebhookVerifier,
+    @Inject(RESEND_WEBHOOK_VERIFIER)
+    private readonly webhookVerifier: WebhookSignatureVerifier,
   ) {}
 
   /**
@@ -50,16 +51,10 @@ export class NotificationsController {
   @ApiResponse({ status: 401, description: 'Missing or invalid webhook signature' })
   async handleBounce(
     @Req() req: RawBodyRequest<FastifyRequest>,
-    @Headers('svix-id') svixId: string | undefined,
-    @Headers('svix-timestamp') svixTimestamp: string | undefined,
-    @Headers('svix-signature') svixSignature: string | undefined,
+    @Headers() headers: WebhookHeaders,
     @Body() body: BounceWebhookBody | null | undefined,
   ): Promise<WebhookAcceptedDto> {
-    const signed = this.webhookVerifier.verify(req.rawBody, {
-      id: svixId,
-      timestamp: svixTimestamp,
-      signature: svixSignature,
-    });
+    const signed = this.webhookVerifier.verify(req.rawBody, headers);
     if (!signed) {
       throw new UnauthorizedException('Invalid webhook signature');
     }
