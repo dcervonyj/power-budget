@@ -148,6 +148,13 @@
       "when": 1793151092550,
       "tag": "0020_cln-051_rls_initplan",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793171417800,
+      "tag": "0021_ai-003_merchant_rules",
+      "breakpoints": true
     }
   ]
 }

@@ -248,10 +248,15 @@ describe('Integration: partner privacy of transactions and connection accounts (
          VALUES ($1, $2, $3, 'Shared', 'household', 'monthly', '2026-10-01', '2026-10-31', 'PLN')`,
         [planId, ann.householdId, ann.userId],
       );
+      const categoryId = uuidv7();
+      await getPool().query(
+        `INSERT INTO categories (id, household_id, name) VALUES ($1, $2, 'Food')`,
+        [categoryId, ann.householdId],
+      );
       await getPool().query(
         `INSERT INTO planned_items (id, plan_id, household_id, category_id, direction, amount_minor, currency)
          VALUES ($1, $2, $3, $4, 'expense', 5000, 'PLN')`,
-        [itemId, planId, ann.householdId, uuidv7()],
+        [itemId, planId, ann.householdId, categoryId],
       );
 
       return itemId;

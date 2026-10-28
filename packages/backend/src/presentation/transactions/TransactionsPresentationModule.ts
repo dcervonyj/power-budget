@@ -4,6 +4,10 @@ import { TransactionsModule } from '../../infrastructure/transactions/Transactio
 import { DrizzleMappingRepository } from '../../infrastructure/transactions/DrizzleMappingRepository.js';
 import { DrizzleTransactionRepository } from '../../infrastructure/transactions/DrizzleTransactionRepository.js';
 import { DrizzleTransferRepository } from '../../infrastructure/transactions/DrizzleTransferRepository.js';
+import { CategorisationModule } from '../../infrastructure/categorisation/CategorisationModule.js';
+import { DrizzleMerchantRuleRepository } from '../../infrastructure/categorisation/DrizzleMerchantRuleRepository.js';
+import { DrizzlePlannedItemResolver } from '../../infrastructure/categorisation/DrizzlePlannedItemResolver.js';
+import { LearnMerchantRuleUseCase } from '../../application/categorisation/LearnMerchantRuleUseCase.js';
 import { AddManualTransactionUseCase } from '../../application/transactions/use-cases/AddManualTransactionUseCase.js';
 import { BulkActOnTransactionsUseCase } from '../../application/transactions/use-cases/BulkActOnTransactionsUseCase.js';
 import { BulkMapTransactionsUseCase } from '../../application/transactions/use-cases/BulkMapTransactionsUseCase.js';
@@ -16,7 +20,7 @@ import { UnmarkTransferUseCase } from '../../application/transactions/use-cases/
 import { TransactionsController } from './TransactionsController.js';
 
 @Module({
-  imports: [TransactionsModule],
+  imports: [TransactionsModule, CategorisationModule],
   controllers: [TransactionsController],
   providers: [
     {
@@ -40,13 +44,25 @@ import { TransactionsController } from './TransactionsController.js';
         new AddManualTransactionUseCase(txRepo, uuidv7),
     },
     {
+      provide: LearnMerchantRuleUseCase,
+      inject: [DrizzleMerchantRuleRepository, DrizzlePlannedItemResolver],
+      useFactory: (rules: DrizzleMerchantRuleRepository, items: DrizzlePlannedItemResolver) =>
+        new LearnMerchantRuleUseCase(rules, items, () => new Date()),
+    },
+    {
       provide: MapTransactionUseCase,
-      inject: [DrizzleTransactionRepository, DrizzleMappingRepository, DrizzleTransferRepository],
+      inject: [
+        DrizzleTransactionRepository,
+        DrizzleMappingRepository,
+        DrizzleTransferRepository,
+        LearnMerchantRuleUseCase,
+      ],
       useFactory: (
         txRepo: DrizzleTransactionRepository,
         mappingRepo: DrizzleMappingRepository,
         transferRepo: DrizzleTransferRepository,
-      ) => new MapTransactionUseCase(txRepo, mappingRepo, transferRepo),
+        merchantMemory: LearnMerchantRuleUseCase,
+      ) => new MapTransactionUseCase(txRepo, mappingRepo, transferRepo, merchantMemory),
     },
     {
       provide: BulkMapTransactionsUseCase,
