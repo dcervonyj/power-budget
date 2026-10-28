@@ -1,18 +1,100 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { FormattedMessage } from 'react-intl';
+import React, { useMemo } from 'react';
+import { View } from 'react-native';
+import { useIntl } from 'react-intl';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { parseLocalIsoDate } from '@power-budget/core';
+import { apiClient, categoriesApi, plansApi } from '../../../infrastructure/index.js';
+import type { AppStackParamList } from '../../navigation/types.js';
+import { makeStyles } from '../../theme/index.js';
+import { EmptyState } from '../../glass/overlays/EmptyState.js';
+import { ErrorBanner } from '../../glass/overlays/ErrorBanner.js';
+import { Skeleton } from '../../glass/overlays/Skeleton.js';
+import { AddExpenseApi } from './add/AddExpenseApi.js';
+import { AddExpenseView } from './add/AddExpenseView.js';
+import { useAddExpense } from './add/useAddExpense.js';
+import type { AddExpenseGateway } from './add/useAddExpense.js';
 
-/** Placeholder: the real screen replaces this file. */
+const useStyles = makeStyles((glass) => ({
+  centered: { flex: 1, padding: glass.space.lg, gap: glass.space.md, justifyContent: 'center' },
+}));
+
+/** Add expense: loads the plan, categories and accounts, then hands everything to the View. */
 export function AddExpenseScreen(): React.JSX.Element {
+  const styles = useStyles();
+  const intl = useIntl();
+  const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
+  const sources = useMemo(createSources, []);
+  const state = useAddExpense(sources);
+  const { load } = state;
+
+  if (load.kind === 'loading') {
+    return (
+      <View style={styles.centered}>
+        <Skeleton height={96} />
+        <Skeleton height={160} />
+      </View>
+    );
+  }
+  if (load.kind === 'failed') {
+    return (
+      <View style={styles.centered}>
+        <ErrorBanner
+          message={intl.formatMessage({
+            id: 'add.error.load',
+            defaultMessage: 'Could not load your plan. Try again.',
+          })}
+          onRetry={state.reload}
+        />
+      </View>
+    );
+  }
+  if (load.kind === 'no-plan') {
+    return (
+      <View style={styles.centered}>
+        <EmptyState
+          title={intl.formatMessage({ id: 'add.empty.noPlan', defaultMessage: 'No active plan' })}
+        />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      <Text>
-        <FormattedMessage id="shell.tab.add" defaultMessage="Add expense" />
-      </Text>
-    </View>
+    <AddExpenseView
+      plan={load.data.plan}
+      currency={load.data.currency}
+      dateLabel={intl.formatDate(parseLocalIsoDate(state.today), {
+        day: 'numeric',
+        month: 'short',
+      })}
+      typed={state.typed}
+      categories={load.data.categories}
+      categoryId={state.categoryId}
+      accounts={load.data.accounts}
+      accountId={state.accountId}
+      status={state.status}
+      error={state.error}
+      onTypedChange={state.setTyped}
+      onCategoryChange={state.setCategoryId}
+      onAccountChange={state.setAccountId}
+      onSave={state.save}
+      onUndo={state.undo}
+      onAddAnother={state.addAnother}
+      onBackToToday={() => {
+        navigation.navigate('Tabs', { screen: 'Dashboard' });
+      }}
+    />
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-});
+function createSources(): AddExpenseGateway {
+  const api = new AddExpenseApi(apiClient);
+
+  return {
+    activePlans: () => plansApi.list('active'),
+    dashboard: (planId) => plansApi.dashboard(planId),
+    categories: () => categoriesApi.list(),
+    accounts: () => api.accounts(),
+    api,
+  };
+}
