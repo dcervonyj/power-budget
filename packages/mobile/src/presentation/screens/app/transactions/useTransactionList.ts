@@ -89,6 +89,8 @@ export function useTransactionList(): TransactionListState {
     const request = listRequest.current;
     const startedAt = clock.current;
     try {
+      // Writes still on their way (also from the detail screen) land first, or this read is stale.
+      await writeQueue.run(() => Promise.resolve());
       const loaded = await loadAllPages(fetchPage);
       if (request !== listRequest.current) {
         return;
@@ -221,6 +223,17 @@ export function useTransactionList(): TransactionListState {
     [loadMonth],
   );
 
+  // After a failed write the row is whatever the server says, not a guess from the last tap.
+  const reconcile = useCallback(
+    (id: string): void => {
+      setApplied((previous) => withoutId(previous, id));
+      setUndone((previous) => withoutId(previous, id));
+      setConfirmed((previous) => withoutKey(previous, id));
+      void loadFirstPage(true);
+    },
+    [loadFirstPage],
+  );
+
   const confirm = useCallback(
     (id: string): void => {
       const row = rows.find((candidate) => candidate.data.id === id);
@@ -232,12 +245,11 @@ export function useTransactionList(): TransactionListState {
       setConfirmed((previous) => new Map(previous).set(id, row));
       void setMapping(row, row.suggestedPlannedItemId).then((saved) => {
         if (!saved) {
-          setApplied((previous) => withoutId(previous, id));
-          setConfirmed((previous) => withoutKey(previous, id));
+          reconcile(id);
         }
       });
     },
-    [rows, setMapping],
+    [rows, setMapping, reconcile],
   );
 
   const undo = useCallback(
@@ -251,12 +263,11 @@ export function useTransactionList(): TransactionListState {
       setConfirmed((previous) => withoutKey(previous, id));
       void setMapping(row, null).then((saved) => {
         if (!saved) {
-          setApplied((previous) => new Set(previous).add(id));
-          setUndone((previous) => withoutId(previous, id));
+          reconcile(id);
         }
       });
     },
-    [rows, setMapping],
+    [rows, setMapping, reconcile],
   );
 
   const refresh = useCallback((): void => {

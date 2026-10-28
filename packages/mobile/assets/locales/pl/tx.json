@@ -39,6 +39,7 @@
   "tx.detail.sourceManual": "Dodana ręcznie",
   "tx.list.moreError": "Nie udało się wczytać kolejnych transakcji.",
   "tx.detail.pickerError": "Nie udało się wczytać kategorii.",
+  "tx.detail.categoryError": "Nie udało się wczytać kategorii tej transakcji.",
   "tx.list.reloadError": "Nie udało się odświeżyć transakcji. To, co widzisz, może być nieaktualne.",
   "tx.list.monthError": "Nie udało się wczytać podsumowania miesiąca.",
   "tx.list.categoriesError": "Nie udało się wczytać kategorii, więc nie można potwierdzić sugestii.",

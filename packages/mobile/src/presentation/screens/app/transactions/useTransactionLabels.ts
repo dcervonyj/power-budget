@@ -42,6 +42,7 @@ export interface TransactionLabels {
   pickerTitle(): string;
   pickerEmpty(): string;
   pickerError(): string;
+  categoryError(): string;
   statusTransfer(): string;
   statusToSort(): string;
   sourceBank(): string;
@@ -151,6 +152,8 @@ export function useTransactionLabels(): TransactionLabels {
     saveError: () => text('tx.detail.saveError', 'Could not save.'),
     mappingError: () => text('tx.detail.mappingError', 'Could not change the category.'),
     pickerTitle: () => text('tx.detail.pickerTitle', 'Choose a category'),
+    categoryError: () =>
+      text('tx.detail.categoryError', 'Could not load the category of this transaction.'),
     pickerError: () => text('tx.detail.pickerError', 'Could not load the categories.'),
     pickerEmpty: () =>
       text('tx.detail.pickerEmpty', 'No expense categories in an active plan yet.'),

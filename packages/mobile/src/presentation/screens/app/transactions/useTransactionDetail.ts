@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { categoriesApi, plansApi } from '../../../../infrastructure/index.js';
 import {
   findCategoryName,
@@ -24,6 +24,9 @@ export interface TransactionDetailState {
   readonly failure: 'save' | 'mapping' | null;
   readonly retry: () => void;
   readonly retryOptions: () => void;
+  /** The category of the mapped item could not be looked up. */
+  readonly categoryFailed: boolean;
+  readonly retryCategory: () => void;
   readonly openPicker: () => void;
   readonly closePicker: () => void;
   readonly pickItem: (plannedItemId: string) => void;
@@ -41,6 +44,8 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
   const [options, setOptions] = useState<readonly PlannedItemOption[]>([]);
   const [optionsStatus, setOptionsStatus] = useState<OptionsStatus>('loading');
   const [resolved, setResolved] = useState<{ id: string; name: string } | undefined>(undefined);
+  const [categoryFailed, setCategoryFailed] = useState(false);
+  const categoryRequest = useRef(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -81,15 +86,32 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
   );
 
   // The picker lists active plans only; a mapping into an archived plan is resolved on its own.
+  const lookUpCategory = useCallback(async (plannedItemId: string): Promise<void> => {
+    categoryRequest.current += 1;
+    const request = categoryRequest.current;
+    try {
+      const name = await findCategoryName(plansApi, categoriesApi, plannedItemId);
+      // Lookups can overlap (a retry, a changed mapping); only the newest may answer.
+      if (request === categoryRequest.current) {
+        setResolved(name === undefined ? undefined : { id: plannedItemId, name });
+        setCategoryFailed(false);
+      }
+    } catch {
+      if (request === categoryRequest.current) {
+        setCategoryFailed(true);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (mappedId === undefined || inOptions !== undefined || optionsStatus === 'loading') {
+      categoryRequest.current += 1;
+      setCategoryFailed(false);
+
       return;
     }
-    void findCategoryName(plansApi, categoriesApi, mappedId).then(
-      (name) => setResolved(name === undefined ? undefined : { id: mappedId, name }),
-      () => undefined,
-    );
-  }, [mappedId, inOptions, optionsStatus]);
+    void lookUpCategory(mappedId);
+  }, [mappedId, inOptions, optionsStatus, lookUpCategory]);
 
   const changeMapping = useCallback(
     async (plannedItemId: string | null): Promise<void> => {
@@ -138,16 +160,15 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
   );
 
   const saveNotes = useCallback((): void => {
-    const trimmed = notes.trim();
+    // The text stays as entered; only an all-blank note counts as no note.
+    const saved = notes.trim() === '' ? null : notes;
     setSaving(true);
     void transactionsGateway
-      .setNotes(transactionId, trimmed === '' ? null : trimmed)
+      .setNotes(transactionId, saved)
       .then(
         () =>
           setTransaction((previous) =>
-            previous === undefined
-              ? previous
-              : { ...previous, notes: trimmed === '' ? null : trimmed },
+            previous === undefined ? previous : { ...previous, notes: saved },
           ),
         () => setFailure('save'),
       )
@@ -173,6 +194,12 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
     saving,
     failure,
     retry,
+    categoryFailed,
+    retryCategory: useCallback((): void => {
+      if (mappedId !== undefined) {
+        void lookUpCategory(mappedId);
+      }
+    }, [mappedId, lookUpCategory]),
     retryOptions: useCallback((): void => void loadOptions(), [loadOptions]),
     openPicker: useCallback((): void => setPickerOpen(true), []),
     closePicker: useCallback((): void => setPickerOpen(false), []),
