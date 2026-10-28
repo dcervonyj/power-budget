@@ -16,7 +16,7 @@ describe('transaction cursor', () => {
     expect(() => decodeTransactionCursor(raw)).toThrow(InvalidCursorError);
   });
 
-  it.each(['2026-02-30', '2026-04-31', '2025-02-29', '2026-13-01'])(
+  it.each(['0000-01-01', '10000-01-01', '2026-02-30', '2026-04-31', '2025-02-29', '2026-13-01'])(
     'rejects the impossible calendar date %s',
     (date) => {
       const bad = Buffer.from(`${date}|${ID}`).toString('base64url');
