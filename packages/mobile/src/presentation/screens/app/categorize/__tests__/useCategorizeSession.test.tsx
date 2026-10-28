@@ -32,7 +32,10 @@ async function setup(overrides: Partial<CategorizeSessionInput> = {}) {
     onUndone,
     ...overrides,
   };
-  const hook = await renderHook(() => useCategorizeSession(input));
+  const hook = await renderHook(
+    (extra: Partial<CategorizeSessionInput>) => useCategorizeSession({ ...input, ...extra }),
+    { initialProps: {} },
+  );
 
   return { ...hook, calls, write, onConfirmed, onUndone, input };
 }
@@ -199,6 +202,25 @@ describe('useCategorizeSession', () => {
     await settle(calls[0], 'resolve');
     await act(() => result.current.next());
     await act(() => result.current.pick('item-transport'));
+
+    const after = result.current.options.find((o) => o.plannedItemId === 'item-transport');
+    expect(after?.spentMinor).toBe(31239n + 12930n);
+  });
+
+  it('does not add a confirmed payment again once the loaded balances include it', async () => {
+    const { result, calls, rerender } = await setup({ queue: [ORLEN, ZABKA], startIndex: 0 });
+    await act(() => result.current.confirm());
+    await settle(calls[0], 'resolve');
+    await act(() => result.current.next());
+    await act(() => result.current.pick('item-transport'));
+    const added = result.current.options.find((o) => o.plannedItemId === 'item-transport');
+    expect(added?.spentMinor).toBe(31239n + 12930n);
+
+    // A retry reloaded balances that already count the confirmed payment.
+    const reloaded = CHOICES.map((c) =>
+      c.plannedItemId === 'item-transport' ? { ...c, spentMinor: c.spentMinor + 12930n } : c,
+    );
+    await rerender({ choices: reloaded, choicesCover: new Set([ORLEN.data.id]) });
 
     const after = result.current.options.find((o) => o.plannedItemId === 'item-transport');
     expect(after?.spentMinor).toBe(31239n + 12930n);

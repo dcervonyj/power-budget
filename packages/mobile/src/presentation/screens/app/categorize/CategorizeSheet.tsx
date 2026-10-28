@@ -9,6 +9,7 @@ export interface CategorizeSheetProps {
   readonly choices: readonly CategoryChoice[];
   readonly choicesStatus: LoadStatus;
   readonly choicesStale: boolean;
+  readonly choicesCover?: ReadonlySet<string>;
   readonly onRetryChoices: () => void;
   readonly busyIds: Set<string>;
   readonly write: (transactionId: string, plannedItemId: string | null) => Promise<void>;
@@ -24,6 +25,7 @@ export function CategorizeSheet(props: CategorizeSheetProps): React.JSX.Element 
     queue: props.sheet.queue,
     startIndex: props.sheet.startIndex,
     choices: props.choices,
+    choicesCover: props.choicesCover,
     write: props.write,
     busyIds: props.busyIds,
     onConfirmed: props.onConfirmed,

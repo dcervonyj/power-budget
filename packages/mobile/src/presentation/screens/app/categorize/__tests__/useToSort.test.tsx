@@ -272,6 +272,75 @@ describe('useToSort', () => {
     expect(ids(result.current.rows)).toEqual(['a', 'b']);
   });
 
+  it('marks a confirmed payment as included once a reload read after its write', async () => {
+    page.mockResolvedValue(onePage(item('a', false), item('b', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    expect(result.current.choicesCover.has('a')).toBe(false);
+
+    await act(async () => result.current.onConfirmed('a'));
+    expect(result.current.choicesCover.has('a')).toBe(false);
+
+    await act(async () => result.current.retryChoices());
+
+    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(true));
+  });
+
+  it('reads the balances again when a payment they include is undone', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    await act(async () => result.current.onConfirmed('a'));
+    await act(async () => result.current.retryChoices());
+    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(true));
+    plans.mockClear();
+
+    await act(async () => result.current.onUndone('a'));
+
+    await waitFor(() => expect(plans).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(false));
+  });
+
+  it('flags the balances as possibly stale when the reload on close fails', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    await act(async () => result.current.open());
+
+    plans.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => result.current.close());
+
+    await waitFor(() => expect(result.current.choicesStale).toBe(true));
+    expect(result.current.choicesStatus).toBe('ready');
+  });
+
+  it('shows the error, not stale balances, when the retry of stale balances fails too', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    plans.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(result.current.choicesStale).toBe(true));
+
+    plans.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => result.current.retryChoices());
+
+    await waitFor(() => expect(result.current.choicesStatus).toBe('error'));
+    expect(result.current.choicesStale).toBe(false);
+  });
+
+  it('flags the balances as possibly stale when a pull to refresh fails to reload them', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+
+    plans.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => result.current.refresh());
+
+    await waitFor(() => expect(result.current.choicesStale).toBe(true));
+    expect(result.current.choicesStatus).toBe('ready');
+  });
+
   it('closes the sheet and reloads the list, so a sorted payment is gone for good', async () => {
     page.mockResolvedValueOnce(onePage(item('a', false), item('b', false)));
     const { result } = await renderHook(() => useToSort());
