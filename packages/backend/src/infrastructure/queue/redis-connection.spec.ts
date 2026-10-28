@@ -1,7 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { parseAppConfig } from '../../config/AppConfig.js';
 import { Redis } from 'ioredis';
-import { buildQueueConnectionOptions } from './redis-connection.js';
+import {
+  buildQueueConnectionOptions,
+  closeSharedQueueConnections,
+  getSharedQueueConnection,
+} from './redis-connection.js';
 
 const UPSTASH_URL = 'rediss://default:s3cret@eu1-example-12345.upstash.io:6379';
 
@@ -22,18 +26,30 @@ function parsedByIoredis(url: string): Redis {
 }
 
 describe('buildQueueConnectionOptions', () => {
-  afterEach(() => {
+  afterEach(async () => {
+    await closeSharedQueueConnections();
     while (clients.length > 0) {
       clients.pop()?.disconnect();
     }
   });
 
-  it('passes the full REDIS_URL through instead of rebuilding host/port', () => {
+  it('hands BullMQ one shared ioredis connection built from the full REDIS_URL', () => {
     const options = buildQueueConnectionOptions(
       parseAppConfig({ ...BASE_ENV, REDIS_URL: UPSTASH_URL }, 'api'),
     );
 
-    expect(options).toEqual({ connection: { url: UPSTASH_URL } });
+    expect(options.connection).toBeInstanceOf(Redis);
+    expect(options.connection).toBe(getSharedQueueConnection(UPSTASH_URL));
+    expect(getSharedQueueConnection(UPSTASH_URL).options.maxRetriesPerRequest).toBeNull();
+    expect(getSharedQueueConnection(UPSTASH_URL).options.tls).toBeDefined();
+  });
+
+  it('returns the same connection for repeated builds (API and worker contexts share it)', () => {
+    const config = parseAppConfig({ ...BASE_ENV, REDIS_URL: UPSTASH_URL }, 'api');
+
+    expect(buildQueueConnectionOptions(config).connection).toBe(
+      buildQueueConnectionOptions(config).connection,
+    );
   });
 
   it('keeps TLS, username and password of a rediss:// (Upstash) URL', () => {
@@ -57,6 +73,6 @@ describe('buildQueueConnectionOptions', () => {
   it('falls back to local Redis when REDIS_URL is unset', () => {
     const options = buildQueueConnectionOptions(parseAppConfig(BASE_ENV, 'api'));
 
-    expect(options).toEqual({ connection: { url: 'redis://localhost:6379' } });
+    expect(options.connection).toBe(getSharedQueueConnection('redis://localhost:6379'));
   });
 });

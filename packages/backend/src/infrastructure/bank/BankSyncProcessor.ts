@@ -10,7 +10,7 @@ import type {
   BankConnectorRegistry,
 } from '../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
-import { QUEUE_BANK_SYNC } from '../queue/queue.constants.js';
+import { QUEUE_BANK_SYNC, WORKER_DRAIN_DELAY_SECONDS } from '../queue/queue.constants.js';
 import { bullmqBackoffStrategy } from '../queue/retry-config.js';
 
 export interface BankSyncJobPayload {
@@ -24,6 +24,7 @@ export interface BankSyncJobPayload {
 
 @Processor(QUEUE_BANK_SYNC, {
   concurrency: 2,
+  drainDelay: WORKER_DRAIN_DELAY_SECONDS,
   settings: { backoffStrategy: bullmqBackoffStrategy },
 })
 export class BankSyncProcessor extends WorkerHost {
