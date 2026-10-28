@@ -107,7 +107,13 @@ const DIRECTORY_RATCHETS = {
   // A cast with no other way gets a one-line `eslint-disable-next-line` with the reason.
   backend: [
     {
-      files: ['src/infrastructure/**/*.ts'],
+      files: [
+        'src/infrastructure/**/*.ts',
+        'src/application/**/*.ts',
+        'src/presentation/**/*.ts',
+        'src/domain/**/*.ts',
+        'src/worker/**/*.ts',
+      ],
       ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**'],
       rules: {
         '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],

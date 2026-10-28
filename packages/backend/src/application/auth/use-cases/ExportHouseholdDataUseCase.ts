@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { uuidv7 } from 'uuidv7';
-import type { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
+import { HouseholdExportId, type HouseholdId, type UserId } from '@power-budget/core';
 import type {
   HouseholdExportRepository,
   HouseholdExportQueuePort,
@@ -23,7 +23,7 @@ export class ExportHouseholdDataUseCase {
   ) {}
 
   async execute(input: ExportHouseholdDataInput): Promise<ExportHouseholdDataOutput> {
-    const exportId = uuidv7() as HouseholdExportId;
+    const exportId = HouseholdExportId.of(uuidv7());
 
     await this.exportRepo.create({
       id: exportId,

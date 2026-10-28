@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { uuidv7 } from 'uuidv7';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import { HouseholdId, type UserId } from '@power-budget/core';
 import type { Household, NewHousehold } from '../../../domain/auth/entities.js';
 import type { HouseholdRepository, UserRepository } from '../../../domain/auth/ports.js';
 import { AlreadyInHouseholdError } from '../../../domain/auth/errors.js';
@@ -23,7 +23,7 @@ export class CreateHouseholdUseCase {
       throw new AlreadyInHouseholdError();
     }
 
-    const householdId = uuidv7() as HouseholdId;
+    const householdId = HouseholdId.of(uuidv7());
     const newHousehold: NewHousehold = {
       id: householdId,
       name: input.name,
