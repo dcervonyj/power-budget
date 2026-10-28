@@ -7,9 +7,8 @@ import {
   type NotificationOutbox,
 } from '../../domain/notifications/entities.js';
 import type {
+  ClaimedRecipient,
   NotificationClaim,
-  NotificationClaimHandler,
-  NotificationClaimOutcome,
   NotificationRepository,
 } from '../../domain/notifications/ports.js';
 
@@ -40,6 +39,7 @@ class InMemoryNotificationClaim implements NotificationClaim {
   constructor(
     private readonly row: StoredNotification,
     readonly notification: NotificationOutbox,
+    readonly recipient: ClaimedRecipient | null,
   ) {}
 
   async markSent(): Promise<void> {
@@ -62,7 +62,6 @@ class InMemoryNotificationClaim implements NotificationClaim {
 export class InMemoryNotificationRepository implements NotificationRepository {
   private readonly _outbox: StoredNotification[] = [];
   private readonly users = new Map<string, UserRecord>();
-  private readonly claimed = new Set<string>();
 
   /** Expose stored notifications as the read-only domain type. */
   get outbox(): NotificationOutbox[] {
@@ -126,23 +125,19 @@ export class InMemoryNotificationRepository implements NotificationRepository {
     return this._outbox.filter((n) => this.isPending(n)).slice(0, limit);
   }
 
-  async claimForDispatch<R>(
-    id: string,
-    handler: NotificationClaimHandler<R>,
-  ): Promise<NotificationClaimOutcome<R>> {
+  async claimForDispatch(id: string): Promise<NotificationClaim | null> {
     const row = this._outbox.find((n) => n.id === id);
-    if (row === undefined || !this.isPending(row) || this.claimed.has(id)) {
-      return { status: 'unavailable' };
+    if (row === undefined || !this.isPending(row)) {
+      return null;
     }
-    this.claimed.add(id);
-    try {
-      row.attempts += 1;
-      const claim = new InMemoryNotificationClaim(row, { ...row, payload: { ...row.payload } });
+    row.attempts += 1;
+    const user = row.recipientUserId === null ? undefined : this.users.get(row.recipientUserId);
+    const recipient =
+      user === undefined
+        ? null
+        : { email: user.email, locale: user.locale, emailBouncing: user.emailBouncing };
 
-      return { status: 'claimed', result: await handler.handle(claim) };
-    } finally {
-      this.claimed.delete(id);
-    }
+    return new InMemoryNotificationClaim(row, { ...row, payload: { ...row.payload } }, recipient);
   }
 
   async listAllHouseholdMembers(): Promise<HouseholdMemberRow[]> {

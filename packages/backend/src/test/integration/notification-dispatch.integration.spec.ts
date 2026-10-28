@@ -6,7 +6,7 @@ import { mock } from 'vitest-mock-extended';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import type { UserId } from '@power-budget/core';
-import { getDb, resetState, startContainers, stopContainers } from './setup.js';
+import { getDb, getPool, resetState, startContainers, stopContainers } from './setup.js';
 import { insertTestUser } from './test-helpers.js';
 import * as schema from '../../../drizzle/schema.js';
 import type { NotificationKind } from '../../domain/notifications/entities.js';
@@ -32,6 +32,8 @@ class GatedEmailChannel extends InMemoryEmailChannel {
   private readonly gate = new Promise<void>((resolve) => {
     this.releaseGate = resolve;
   });
+  private inGate = 0;
+  private readonly waiters: { count: number; resolve: () => void }[] = [];
   private enteredGate: () => void = () => undefined;
   readonly entered = new Promise<void>((resolve) => {
     this.enteredGate = resolve;
@@ -41,7 +43,25 @@ class GatedEmailChannel extends InMemoryEmailChannel {
     this.releaseGate();
   }
 
+  private notifyWaiters(): void {
+    for (const waiter of this.waiters) {
+      if (this.inGate >= waiter.count) {
+        waiter.resolve();
+      }
+    }
+  }
+
+  /** Resolves once `count` sends are waiting at the gate. */
+  entering(count: number): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.waiters.push({ count, resolve });
+      this.notifyWaiters();
+    });
+  }
+
   override async send(message: EmailMessage): Promise<void> {
+    this.inGate += 1;
+    this.notifyWaiters();
     this.enteredGate();
     await this.gate;
     await super.send(message);
@@ -178,25 +198,130 @@ describe('notification dispatch against real Postgres + Redis', () => {
     expect(stored?.payload).toEqual({});
   });
 
-  it('a second dispatcher cannot claim a row while the first one is sending it', async () => {
+  it('holds no connection while the email is being sent', async () => {
     const ann = await insertTestUser(getDb());
     const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
     const email = new GatedEmailChannel();
-    const renderer = new MjmlTemplateRenderer(TEMPLATE_DIR);
-    const first = new DispatchNotificationProcessor(repo, email, renderer);
-    const second = new DispatchNotificationProcessor(repo, email, renderer);
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      email,
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
     const job = mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
 
-    const firstRun = first.process(job);
+    const run = processor.process(job);
     await email.entered;
-    await expect(second.process(job)).rejects.toBeInstanceOf(NotificationBusyError);
+    const pool = getPool();
+    expect(pool.totalCount - pool.idleCount).toBe(0);
     email.release();
-    await firstRun;
+    await run;
+
+    expect(await isSent(id)).toBe(true);
+  });
+
+  it('5 concurrent jobs use at most 5 connections', async () => {
+    const ann = await insertTestUser(getDb());
+    const ids = await Promise.all(
+      Array.from({ length: 5 }, () => enqueue(ann.id, 'over_budget', { name: 'Ann' })),
+    );
+    const email = new GatedEmailChannel();
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      email,
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
+    const runs = ids.map((outboxId) =>
+      processor.process(mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId } })),
+    );
+
+    await email.entering(5);
+    const pool = getPool();
+    expect(pool.totalCount - pool.idleCount).toBeLessThanOrEqual(5);
+    email.release();
+    await Promise.all(runs);
+
+    expect(pool.totalCount).toBeLessThanOrEqual(5);
+    expect((await Promise.all(ids.map((id) => isSent(id)))).every(Boolean)).toBe(true);
+  });
+
+  it('a duplicate job after the first committed is a no-op', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const email = new InMemoryEmailChannel();
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      email,
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
+    const job = mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
+
+    await processor.process(job);
+    await processor.process(job);
 
     expect(email.calls).toHaveLength(1);
     expect(await isSent(id)).toBe(true);
-    // After the first commit, a late duplicate job is a no-op.
-    await expect(second.process(job)).resolves.toBeUndefined();
-    expect(email.calls).toHaveLength(1);
+  });
+
+  it('a late failed mark cannot overwrite a sent row', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const first = await repo.claimForDispatch(id);
+    const second = await repo.claimForDispatch(id);
+
+    await first?.markSent();
+    await second?.markFailed();
+
+    const stored = await row(id);
+    expect(stored?.sentAt).not.toBeNull();
+    expect(stored?.failedAt).toBeNull();
+  });
+
+  it('a delivered send is recorded sent when a later attempt failed the row first', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const earlier = await repo.claimForDispatch(id);
+    const later = await repo.claimForDispatch(id);
+
+    await later?.markFailed();
+    await earlier?.markSent();
+
+    const stored = await row(id);
+    expect(stored?.sentAt).not.toBeNull();
+    expect(stored?.failedAt).toBeNull();
+  });
+
+  it('an earlier attempt cannot fail a row a later attempt has claimed', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const earlier = await repo.claimForDispatch(id);
+    await repo.claimForDispatch(id);
+
+    await earlier?.markFailed();
+
+    const stored = await row(id);
+    expect(stored?.failedAt).toBeNull();
+    expect(stored?.sentAt).toBeNull();
+  });
+
+  it('throws NotificationBusyError while another claim holds the row', async () => {
+    const ann = await insertTestUser(getDb());
+    const id = await enqueue(ann.id, 'over_budget', { name: 'Ann' });
+    const processor = new DispatchNotificationProcessor(
+      repo,
+      new InMemoryEmailChannel(),
+      new MjmlTemplateRenderer(TEMPLATE_DIR),
+    );
+    const holder = await getPool().connect();
+    await holder.query('BEGIN');
+    await holder.query('SELECT id FROM notifications_outbox WHERE id = $1 FOR UPDATE', [id]);
+
+    try {
+      await expect(
+        processor.process(mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } })),
+      ).rejects.toBeInstanceOf(NotificationBusyError);
+    } finally {
+      await holder.query('ROLLBACK');
+      holder.release();
+    }
   });
 });

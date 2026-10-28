@@ -7,10 +7,7 @@ import { MAX_DISPATCH_ATTEMPTS } from '../../../../domain/notifications/entities
 import { InMemoryNotificationRepository } from '../../../../test/doubles/InMemoryNotificationRepository.js';
 import { InMemoryEmailChannel } from '../../../../test/doubles/InMemoryEmailChannel.js';
 import type { DispatchNotificationJobPayload } from '../../BullMQNotificationDispatchQueue.js';
-import {
-  DispatchNotificationProcessor,
-  NotificationBusyError,
-} from '../DispatchNotificationProcessor.js';
+import { DispatchNotificationProcessor } from '../DispatchNotificationProcessor.js';
 
 const ANN = '01900000-0000-7000-8000-0000000000a1' as UserId;
 const BOB = '01900000-0000-7000-8000-0000000000b1' as UserId;
@@ -192,21 +189,5 @@ describe('DispatchNotificationProcessor', () => {
     await processor.process(jobFor('missing'));
 
     expect(email.calls).toHaveLength(1);
-  });
-
-  it('throws NotificationBusyError while another dispatcher holds the row', async () => {
-    const holder = new DispatchNotificationProcessor(outbox, email, new KindRenderer());
-    let release: () => void = () => undefined;
-    const held = outbox.claimForDispatch('n-1', {
-      handle: () =>
-        new Promise<void>((resolve) => {
-          release = resolve;
-        }),
-    });
-
-    await expect(holder.process(jobFor('n-1'))).rejects.toBeInstanceOf(NotificationBusyError);
-
-    release();
-    await held;
   });
 });
