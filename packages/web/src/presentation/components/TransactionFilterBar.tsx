@@ -360,15 +360,14 @@ export function toBooking(value: string | null): TransactionFilters['booking'] {
 }
 
 /**
- * URL and select values; `gocardless` and `wise` are the old options. `gocardless` always meant
- * every bank row, `wise` reads as the Wise provider it was named after.
+ * URL and select values. The old options `gocardless` and `wise` always returned every bank row, so
+ * their links keep that meaning; the providers have their own values (`wise_webhook`, ...).
  */
 export function toSource(value: string | null): TransactionFilters['source'] {
   switch (value) {
     case 'gocardless':
-      return 'bank_sync';
     case 'wise':
-      return 'wise_webhook';
+      return 'bank_sync';
     case 'bank_sync':
     case 'enable_banking':
     case 'wise_webhook':

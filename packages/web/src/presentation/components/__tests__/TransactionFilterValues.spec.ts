@@ -9,9 +9,9 @@ describe('toSource', () => {
     ['wise_webhook', 'wise_webhook'],
     ['pko_email', 'pko_email'],
     ['iko_push', 'iko_push'],
-    // Old options: GoCardless always meant every bank row; Wise reads as the Wise provider.
+    // Old options: both always returned every bank row, and their links keep that (review F3).
     ['gocardless', 'bank_sync'],
-    ['wise', 'wise_webhook'],
+    ['wise', 'bank_sync'],
     ['manual', 'manual'],
     ['paypal', ''],
     [null, ''],

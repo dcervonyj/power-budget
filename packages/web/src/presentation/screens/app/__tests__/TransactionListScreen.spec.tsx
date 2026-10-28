@@ -191,12 +191,23 @@ describe('TransactionListScreen', () => {
     // The fixture rows are PLN and manual: the API filtered, the page drops nothing (PERF-07).
     expect(await screen.findByText('Biedronka')).toBeDefined();
     expect(mockGet.mock.calls.map((call) => call[0])).toContain(
-      '/transactions?categoryId=cat-1&currency=EUR&source=wise_webhook&limit=50',
+      '/transactions?categoryId=cat-1&currency=EUR&source=bank_sync&limit=50',
     );
-    // Every provider can be picked; the old `wise` link selects the Wise provider (review F2).
+    // Every provider can be picked (review F2); an old `wise` link still means every bank row (F3).
     for (const name of ['Bank', 'Enable Banking', 'Wise', 'PKO email', 'IKO push', 'Manual']) {
       expect(screen.getByRole('option', { name })).toBeDefined();
     }
+    expect(screen.getByRole('option', { name: 'Bank' })).toHaveProperty('selected', true);
+  });
+
+  it('sends the Wise provider for its own value and selects it (review F2/F3)', async () => {
+    routeGets();
+    renderAt('/transactions?source=wise_webhook');
+
+    await screen.findByText('Biedronka');
+    expect(mockGet.mock.calls.map((call) => call[0])).toContain(
+      '/transactions?source=wise_webhook&limit=50',
+    );
     expect(screen.getByRole('option', { name: 'Wise' })).toHaveProperty('selected', true);
   });
 
