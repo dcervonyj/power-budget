@@ -62,13 +62,10 @@ const MAX_PORT = 65535;
 export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
   const problems: string[] = [];
   const nodeEnv = text(env['NODE_ENV']) ?? 'development';
-  const jwtSecret = attempt(
-    () => resolveJwtSecret(secret(env['JWT_SECRET']) ?? undefined, nodeEnv),
-    '',
-    problems,
-  );
+  // Every rule runs on the trimmed copy; the original value is what gets used.
+  const jwtSecret = attempt(() => resolveSecret(env['JWT_SECRET'], nodeEnv), '', problems);
   const kekBase64 = secret(env['KEK_BASE64']) ?? '';
-  if (Buffer.from(kekBase64, 'base64').length !== KEK_BYTES) {
+  if (Buffer.from(text(env['KEK_BASE64']) ?? '', 'base64').length !== KEK_BYTES) {
     problems.push(
       `KEK_BASE64 must be ${KEK_BYTES} random bytes, base64-encoded (for example \`openssl rand -base64 32\`).`,
     );
@@ -160,6 +157,12 @@ function attempt<T, F>(run: () => T, fallback: F, problems: string[]): T | F {
 
 function toBullet(problem: string): string {
   return `  - ${problem}`;
+}
+
+function resolveSecret(raw: string | undefined, nodeEnv: string): string {
+  const validated = resolveJwtSecret(text(raw) ?? undefined, nodeEnv);
+
+  return secret(raw) ?? validated;
 }
 
 /** A secret is validated on its trimmed copy but used byte-for-byte as given. */
