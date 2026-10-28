@@ -8,6 +8,7 @@ import type {
   SettingsCurrency,
   SettingsLoadState,
   SettingsLocale,
+  SettingsProfile,
   SettingsSaveState,
   SettingsViewProps,
 } from './settingsTypes.js';
@@ -144,11 +145,10 @@ export function useSettings(): SettingsViewProps {
 
   return {
     loadState,
-    email: profile?.email ?? '',
+    profile: loadState === 'ready' ? toViewProfile(profile) : null,
     nameDraft,
     nameSave,
     preference,
-    locale: profile?.locale ?? 'en',
     baseCurrency: profile?.baseCurrency ?? null,
     preferencesError,
     biometricAvailable,
@@ -188,4 +188,8 @@ async function readBiometrics(
   } catch {
     setAvailable(false);
   }
+}
+
+function toViewProfile(profile: UserProfileDto | null): SettingsProfile | null {
+  return profile === null ? null : { email: profile.email, locale: profile.locale };
 }

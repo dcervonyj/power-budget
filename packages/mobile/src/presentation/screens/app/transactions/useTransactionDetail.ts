@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../../domain/display.js';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { categoriesApi, plansApi } from '../../../../infrastructure/index.js';
 import {
@@ -68,7 +69,7 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
           ? { ...view, isTransfer: previous.isTransfer }
           : view,
       );
-      setNotes(view.notes ?? '');
+      setNotes(view.notes ?? NO_LABEL);
       setStatus('ready');
     } catch {
       setStatus('error');

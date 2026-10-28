@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../../domain/display.js';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import type { MinorUnitAmount } from '@power-budget/core';
@@ -235,7 +236,7 @@ function Option({
       role="radio"
       accessibilityLabel={labels.optionAria(
         showPlan ? `${option.name}, ${option.planName}` : option.name,
-        detailText ?? '',
+        detailText ?? NO_LABEL,
         suggested,
       )}
       aria-checked={picked}
@@ -340,7 +341,7 @@ function ConfirmedPanel({
 }): React.JSX.Element {
   const styles = useStyles();
   const busy = session.phase === 'undoing';
-  const name = session.picked?.name ?? '';
+  const name = session.picked?.name ?? NO_LABEL;
   const impact = session.impact;
 
   return (

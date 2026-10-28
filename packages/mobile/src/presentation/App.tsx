@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE } from '../domain/locale.js';
 import React, { useMemo } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import type { LinkingOptions } from '@react-navigation/native';
@@ -61,7 +62,7 @@ function currentSessionId(): number {
 }
 
 function getDeviceLanguage(): string {
-  return getLocales()[0]?.languageCode ?? 'en';
+  return getLocales()[0]?.languageCode ?? DEFAULT_LOCALE;
 }
 
 function ThemedNavigation(): React.JSX.Element {

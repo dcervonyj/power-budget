@@ -269,6 +269,7 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       }
       setSaveError(text('plan.error.itemUpdate', 'Could not update the item.'));
     } finally {
+      // Kept: the entry was set to at least 1 when this save was queued.
       pendingSaves.current.set(itemId, (pendingSaves.current.get(itemId) ?? 1) - 1);
     }
   }
@@ -443,6 +444,7 @@ function toRowModel(
 
   return {
     id: item.id,
+    // Kept: the list includes archived categories, so a miss is a deleted category; the id keeps the row identifiable.
     name: categories.find((category) => category.id === item.categoryId)?.name ?? item.categoryId,
     direction: item.direction,
     amountMinor: item.amount.amountMinor,

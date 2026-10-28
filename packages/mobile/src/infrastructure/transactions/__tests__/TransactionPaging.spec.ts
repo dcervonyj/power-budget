@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 import { loadAllPages } from '../TransactionPaging.js';
 import { SerialQueue } from '../SerialQueue.js';
+import { UnknownCategoryError } from '../../../domain/categoryName.js';
 import {
   categoryNameByItem,
   findCategoryName,
@@ -65,6 +66,18 @@ describe('SerialQueue', () => {
 });
 
 describe('loadPlannedItemOptions', () => {
+  it('rejects a planned item whose category the list lacks', async () => {
+    const plansApi = {
+      list: () => Promise.resolve([{ id: 'p1', name: 'October' }]),
+      listItems: () => Promise.resolve([{ id: 'i1', categoryId: 'c-gone', direction: 'expense' }]),
+    };
+    const categoriesApi = { list: () => Promise.resolve([]) };
+
+    await expect(loadPlannedItemOptions(plansApi as never, categoriesApi as never)).rejects.toThrow(
+      UnknownCategoryError,
+    );
+  });
+
   it('offers income items next to expense items, so income can be mapped', async () => {
     const plansApi = {
       list: () => Promise.resolve([{ id: 'p1', name: 'October' }]),

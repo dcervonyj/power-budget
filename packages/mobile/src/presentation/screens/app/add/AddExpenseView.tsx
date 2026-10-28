@@ -1,3 +1,4 @@
+import { NO_LABEL, NO_SELECTION } from '../../../../domain/display.js';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useIntl } from 'react-intl';
@@ -36,7 +37,7 @@ export interface AddExpenseViewProps {
   readonly categories: readonly CategoryOption[];
   readonly categoryId: string;
   readonly accounts: readonly AccountOption[];
-  readonly accountId: string;
+  readonly accountId: string | null;
   readonly status: AddExpenseStatus;
   /** Message of the last failed save or undo; null when there was none. */
   /** The expense is saved but its category could not be attached; it waits in To sort. */
@@ -382,7 +383,7 @@ function Pickers(props: AddExpenseViewProps): React.JSX.Element {
           <FilterChips
             label={intl.formatMessage({ id: 'add.account.group', defaultMessage: 'Account' })}
             options={props.accounts.map((option) => ({ value: option.id, label: option.name }))}
-            value={props.accountId}
+            value={props.accountId ?? NO_SELECTION}
             onChange={props.onAccountChange}
             disabled={saving}
           />
@@ -401,7 +402,7 @@ function KeypadBlock(props: KeypadBlockProps): React.JSX.Element {
   const intl = useIntl();
   const empty = props.amountMinor <= 0n;
   const label = submitLabel(props, intl, empty);
-  const ready = !empty && props.category !== null && props.accountId !== '';
+  const ready = !empty && props.category !== null && props.accountId !== null;
 
   return (
     <Keypad
@@ -464,7 +465,7 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
           <Text style={styles.savedLine}>
             {intl.formatMessage(
               { id: 'add.saved.line', defaultMessage: '{amount} · {category}' },
-              { amount, category: props.category?.name ?? '' },
+              { amount, category: props.category?.name ?? NO_LABEL },
             )}
           </Text>
           {props.unsorted ? (
@@ -475,7 +476,7 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
                     id: 'add.saved.unsorted',
                     defaultMessage: 'Saved, but not added to {category} yet.',
                   },
-                  { category: props.category?.name ?? '' },
+                  { category: props.category?.name ?? NO_LABEL },
                 )}
               </Text>
               <Button variant="secondary" onPress={props.onRetryCategory} disabled={refreshing}>

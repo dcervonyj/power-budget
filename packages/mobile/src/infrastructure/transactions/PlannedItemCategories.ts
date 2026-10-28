@@ -1,3 +1,4 @@
+import { requireCategoryName } from '../../domain/categoryName.js';
 import type { CategoriesApi, PlansApi } from '@power-budget/shared-app';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
 
@@ -41,7 +42,7 @@ async function optionsOf(
     plannedItemId: item.id,
     direction: item.direction,
     planName: plan.name,
-    categoryName: names.get(item.categoryId) ?? '',
+    categoryName: requireCategoryName(names, item.categoryId),
   }));
 }
 

@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { d7Model, pln } from '../overviewFixtures.js';
+import { UnknownCategoryError } from '../../../../../domain/categoryName.js';
+import { D7_DASHBOARD, d7Model, pln } from '../overviewFixtures.js';
+import { toOverviewModel } from '../overviewModel.js';
 
 describe('toOverviewModel (D7 spec month, 22 Oct 2026)', () => {
+  it('rejects an expense line whose category the list lacks', () => {
+    expect(() => toOverviewModel(D7_DASHBOARD, 'October', new Map())).toThrow(UnknownCategoryError);
+  });
+
   it('adds unplanned to spent and keeps the rest as left', () => {
     const model = d7Model();
 
