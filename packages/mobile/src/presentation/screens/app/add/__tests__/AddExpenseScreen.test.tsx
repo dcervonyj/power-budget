@@ -281,4 +281,64 @@ describe('AddExpenseScreen', () => {
     expect(mockDashboard).toHaveBeenCalledTimes(2);
     jest.useRealTimers();
   });
+
+  it('R1-F1: a refresh while Saved does not count the saved expense twice', async () => {
+    const listeners: Array<(state: string) => void> = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener);
+
+      return { remove: jest.fn() };
+    });
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['8', '4']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 84\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    const before = screen.getByText(/Safe to spend today is now/).props.children;
+    mockDashboard.mockResolvedValue({
+      ...DASHBOARD,
+      totalActualExpenses: money('661340'),
+      expenseLines: [
+        { ...DASHBOARD.expenseLines[0], actual: money('123264'), remaining: money('96736') },
+      ],
+    });
+
+    await act(async () => {
+      listeners.forEach((listener) => {
+        listener('active');
+      });
+    });
+
+    await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(2));
+    expect(screen.getByText(/Safe to spend today is now/).props.children).toEqual(before);
+    expect(screen.getByTestId('add-category-line')).toHaveTextContent(/1,051\.36 → PLN 967\.36/);
+  });
+
+  it('R1-F2: Undo locks Add another until it completes, then refreshes the totals', async () => {
+    let finishUndo: () => void = () => undefined;
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    mockPatch.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishUndo = () => {
+            resolve({ data: {} });
+          };
+        }),
+    );
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Undo' }));
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Add another' }));
+
+    expect(mockDashboard).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Added')).toBeTruthy();
+    await act(async () => {
+      finishUndo();
+    });
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    expect(mockDashboard).toHaveBeenCalledTimes(2);
+  });
 });

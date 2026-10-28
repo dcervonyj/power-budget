@@ -50,6 +50,6 @@ export interface AddImpact {
 
 /**
  * `retry`: the transaction exists but its mapping failed, so edits are locked until it maps.
- * `refreshing`: Add another is waiting for fresh totals.
+ * `refreshing`: Add another is waiting for fresh totals. `undoing`: Undo is in flight.
  */
-export type AddExpenseStatus = 'editing' | 'saving' | 'retry' | 'saved' | 'refreshing';
+export type AddExpenseStatus = 'editing' | 'saving' | 'retry' | 'saved' | 'refreshing' | 'undoing';

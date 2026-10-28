@@ -118,7 +118,8 @@ export function AddExpenseView(props: AddExpenseViewProps): React.JSX.Element {
     props.plan === null || category === null
       ? null
       : computeImpact(props.plan, category, amountMinor);
-  const editing = props.status !== 'saved' && props.status !== 'refreshing';
+  const editing =
+    props.status !== 'saved' && props.status !== 'refreshing' && props.status !== 'undoing';
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -433,7 +434,7 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
   const styles = useStyles();
   const intl = useIntl();
   const amount = money({ amountMinor: props.amountMinor, currency: props.currency }, intl);
-  const refreshing = props.status === 'refreshing';
+  const refreshing = props.status === 'refreshing' || props.status === 'undoing';
 
   return (
     <View style={styles.actions}>
