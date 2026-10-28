@@ -8,7 +8,7 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { LightMyRequestResponse } from 'fastify';
 import { startContainers, stopContainers, resetState, getDb, getPool } from './setup.js';
 import { createTestApp } from './app.js';
-import { InMemoryEmailChannel, type SentEmail } from '../doubles/InMemoryEmailChannel.js';
+import { InMemoryEmailChannel } from '../doubles/InMemoryEmailChannel.js';
 import { DrizzleNotificationRepository } from '../../infrastructure/notifications/DrizzleNotificationRepository.js';
 import { MjmlTemplateRenderer } from '../../infrastructure/notifications/MjmlTemplateRenderer.js';
 import { DispatchNotificationProcessor } from '../../infrastructure/notifications/workers/DispatchNotificationProcessor.js';
@@ -101,11 +101,13 @@ describe('Integration: partner privacy of transactions and connection accounts (
         mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: row.id } }),
       );
     }
-    const mail = email.sent[email.sent.length - 1] as SentEmail;
-    const token = INVITE_LINK.exec(mail.html)?.[1];
-    expect(token).toBeDefined();
+    const mail = email.sent.at(-1);
+    const token = mail === undefined ? undefined : INVITE_LINK.exec(mail.html)?.[1];
+    if (token === undefined) {
+      throw new Error('No invite link was emailed');
+    }
 
-    return token as string;
+    return token;
   }
 
   /** Ann registers, invites Bob by email, Bob registers and accepts the emailed link. */

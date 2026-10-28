@@ -92,12 +92,7 @@ describe('CompleteBankConsentUseCase', () => {
     expect(connectionRepo.updateConsent).toHaveBeenCalledWith(MALLORY_CONN, MALLORY_TOKEN, null, {
       householdId: MALLORY_HOUSEHOLD,
     });
-    expect(connectionRepo.updateConsent).not.toHaveBeenCalledWith(
-      ALICE_CONN,
-      MALLORY_TOKEN,
-      null,
-      expect.anything(),
-    );
+    expect(connectionRepo.updateConsent).toHaveBeenCalledTimes(1);
     expect(connectionRepo.markActive).toHaveBeenCalledWith(MALLORY_CONN, {
       householdId: MALLORY_HOUSEHOLD,
     });

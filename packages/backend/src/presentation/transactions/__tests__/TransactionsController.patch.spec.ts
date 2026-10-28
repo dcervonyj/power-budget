@@ -15,10 +15,10 @@ import type { AuthenticatedUser } from '../../auth/decorators/CurrentUser.js';
 import { PatchTransactionDto } from '../dto/transactions.dto.js';
 
 const TX_ID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b';
-const user = {
+const user: AuthenticatedUser = {
   userId: UserId.of('01900000-9dff-7fe4-8508-52c20c8876f6'),
   householdId: HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6'),
-} as unknown as AuthenticatedUser;
+};
 
 describe('TransactionsController.patch', () => {
   it('passes notes: null through so the note is cleared', async () => {

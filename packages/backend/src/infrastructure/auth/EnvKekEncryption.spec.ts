@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { EncryptedString } from '@power-budget/core';
 import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 // A valid 32-byte key (base64-encoded)
@@ -45,7 +46,7 @@ describe('EnvKekEncryption', () => {
   it('throws on tampered ciphertext', async () => {
     const enc = new EnvKekEncryption(VALID_KEK);
     const ct = await enc.encrypt('secret');
-    const tampered = (ct.slice(0, -2) + 'ZZ') as typeof ct;
+    const tampered = EncryptedString.of(ct.slice(0, -2) + 'ZZ');
 
     await expect(enc.decrypt(tampered)).rejects.toThrow();
   });

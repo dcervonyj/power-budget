@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { getTableConfig, type PgTable } from 'drizzle-orm/pg-core';
+import { is } from 'drizzle-orm';
+import { getTableConfig, PgTable } from 'drizzle-orm/pg-core';
 import * as schema from '../../../drizzle/schema.js';
 import {
   HOUSEHOLD_PURGE_EXEMPT_TABLES,
@@ -7,11 +8,7 @@ import {
 } from './DrizzleHouseholdPurgeRepository.js';
 
 function isTable(value: unknown): value is PgTable {
-  try {
-    return getTableConfig(value as PgTable).name.length > 0;
-  } catch {
-    return false;
-  }
+  return is(value, PgTable) && getTableConfig(value).name.length > 0;
 }
 
 function referencedTables(table: PgTable): string[] {

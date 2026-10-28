@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import {
+  BankAccountId,
   CategoryId,
   HouseholdId,
   IsoDate,
@@ -18,6 +19,7 @@ import type { NewTransaction, Transaction } from '../../../domain/transactions/e
 import { LearnMerchantRuleUseCase } from '../LearnMerchantRuleUseCase.js';
 import { SuggestFromMerchantRulesUseCase } from '../SuggestFromMerchantRulesUseCase.js';
 import { testUuid } from '../../../test/doubles/testUuid.js';
+import { makeTransaction } from '../../../test/doubles/transactions.js';
 
 const householdId = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
 const userId = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
@@ -62,7 +64,13 @@ function rule(overrides: Partial<MerchantRule> = {}): MerchantRule {
 
 function newTx(occurredOn: string, overrides: Partial<NewTransaction> = {}): NewTransaction {
   return {
+    id: TransactionId.of(testUuid('new-tx')),
     householdId,
+    accountId: BankAccountId.of(testUuid('acc-1')),
+    externalId: null,
+    source: 'bank_sync',
+    sourceKind: null,
+    status: 'booked',
     occurredOn: IsoDate.of(occurredOn),
     amount: { amountMinor: -4500n, currency: 'PLN' },
     description: 'Biedronka',
@@ -70,7 +78,7 @@ function newTx(occurredOn: string, overrides: Partial<NewTransaction> = {}): New
     ignored: false,
     bank: bank('Biedronka'),
     ...overrides,
-  } as unknown as NewTransaction;
+  };
 }
 
 describe('LearnMerchantRuleUseCase', () => {
@@ -78,12 +86,12 @@ describe('LearnMerchantRuleUseCase', () => {
   let items: ReturnType<typeof mock<PlannedItemResolver>>;
   let useCase: LearnMerchantRuleUseCase;
   const warn = vi.fn();
-  const transaction = {
+  const transaction = makeTransaction({
     id: TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f'),
     description: 'Biedronka',
     merchant: null,
     bank: bank('Biedronka'),
-  } as unknown as Transaction;
+  });
 
   beforeEach(() => {
     rules = mock<MerchantRuleRepository>();

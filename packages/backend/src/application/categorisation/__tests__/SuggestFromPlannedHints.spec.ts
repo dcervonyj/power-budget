@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import {
+  BankAccountId,
   CategoryId,
   HouseholdId,
   IsoDate,
@@ -10,7 +11,7 @@ import {
 } from '@power-budget/core';
 import type { HintedPlannedItem } from '../../../domain/categorisation/entities.js';
 import type { PlannedHintReader } from '../../../domain/categorisation/ports.js';
-import type { NewTransaction } from '../../../domain/transactions/entities.js';
+import { NO_BANK_DETAILS, type NewTransaction } from '../../../domain/transactions/entities.js';
 import { SuggestFromPlannedHintsUseCase } from '../SuggestFromPlannedHintsUseCase.js';
 import { testUuid } from '../../../test/doubles/testUuid.js';
 
@@ -39,16 +40,19 @@ function row(overrides: Partial<NewTransaction> = {}): NewTransaction {
   return {
     id: TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f'),
     householdId,
-    accountId: 'acc-1',
+    accountId: BankAccountId.of(testUuid('acc-1')),
     externalId: 'e-1',
+    source: 'bank_sync',
+    sourceKind: null,
+    status: 'booked',
     occurredOn: IsoDate.of('2026-10-05'),
     amount: { amountMinor: -340000n, currency: 'PLN' },
     description: 'Czynsz',
     merchant: 'Landlord Sp. z o.o.',
     ignored: false,
-    bank: { counterpartyName: 'Landlord' },
+    bank: { ...NO_BANK_DETAILS, counterpartyName: 'Landlord' },
     ...overrides,
-  } as NewTransaction;
+  };
 }
 
 function useCase(items: readonly HintedPlannedItem[]): SuggestFromPlannedHintsUseCase {

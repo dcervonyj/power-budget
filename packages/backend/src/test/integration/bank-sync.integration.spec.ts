@@ -1,7 +1,7 @@
 import 'reflect-metadata';
+import { makeBankSyncJob } from '../doubles/bankSyncJob.js';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
-import type { Job } from 'bullmq';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BankConnectionId, HouseholdId, IsoDate, UserId } from '@power-budget/core';
@@ -170,7 +170,7 @@ function runJob(since?: string): Promise<void> {
   };
 
   return runInDbScope({ kind: 'household', householdId, userId }, () =>
-    processor.process({ data: payload } as Job<BankSyncJobPayload>),
+    processor.process(makeBankSyncJob(payload)),
   );
 }
 

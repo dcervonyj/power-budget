@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { ISO_UTC_PATTERN, UUID_PATTERN } from './test-helpers.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { uuidv7 } from 'uuidv7';
 import { startContainers, stopContainers, resetState, getPool } from './setup.js';
@@ -91,7 +92,7 @@ describe('Plans, categories and preferences API (real app)', () => {
       [userId],
     );
     const id = rows.rows[0]?.household_id;
-    expect(id).toEqual(expect.any(String));
+    expect(id).toMatch(UUID_PATTERN);
 
     return id ?? '';
   }
@@ -313,7 +314,7 @@ describe('Plans, categories and preferences API (real app)', () => {
       expect(history.statusCode).toBe(200);
       expect(history.json()).toEqual([
         {
-          id: expect.any(String),
+          id: expect.stringMatching(UUID_PATTERN),
           plannedItemId: item.id,
           before: {
             amount: { amountMinor: '150000', currency: 'PLN' },
@@ -322,7 +323,7 @@ describe('Plans, categories and preferences API (real app)', () => {
           },
           after: { amount: { amountMinor: '9007199254740993', currency: 'PLN' }, note: 'more' },
           changedBy: anna.userId,
-          changedAt: expect.any(String),
+          changedAt: expect.stringMatching(ISO_UTC_PATTERN),
           reason: 'raise',
         },
       ]);

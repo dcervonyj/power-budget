@@ -99,7 +99,8 @@ describe('AddPlannedItemUseCase', () => {
 
     await useCase().execute({ ...input, matchHint });
 
-    expect(itemRepo.add).toHaveBeenCalledWith(expect.objectContaining({ matchHint }));
+    expect(itemRepo.add).toHaveBeenCalledTimes(1);
+    expect(itemRepo.add.mock.calls[0]?.[0].matchHint).toEqual(matchHint);
   });
 
   it('rejects an unknown or archived category', async () => {

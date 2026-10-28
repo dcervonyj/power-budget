@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
+import { HouseholdId, UserId } from '@power-budget/core';
+import { testUuid } from '../../test/doubles/testUuid.js';
 import { HouseholdInvariants } from './invariants.js';
 
 describe('HouseholdInvariants', () => {
   const mockMembership = {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    householdId: 'hh-1' as any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    userId: 'u-1' as any,
+    householdId: HouseholdId.of(testUuid('hh-1')),
+    userId: UserId.of(testUuid('u-1')),
     role: 'member' as const,
     joinedAt: new Date(),
   };

@@ -25,10 +25,8 @@ describe('EcbFxRateProvider', () => {
 
     const rates = await provider.fetchForDate(IsoDate.of('2026-10-19'));
 
-    expect(rates).toEqual(
-      ['USD', 'CZK', 'DKK', 'GBP', 'PLN', 'SEK', 'CHF', 'NOK'].map((quote) =>
-        expect.objectContaining({ baseCurrency: 'EUR', quoteCurrency: quote }),
-      ),
+    expect(rates.map((rate) => [rate.baseCurrency, rate.quoteCurrency])).toEqual(
+      ['USD', 'CZK', 'DKK', 'GBP', 'PLN', 'SEK', 'CHF', 'NOK'].map((quote) => ['EUR', quote]),
     );
     expect(rates.find((r) => r.quoteCurrency === 'PLN')).toEqual({
       baseCurrency: 'EUR',
