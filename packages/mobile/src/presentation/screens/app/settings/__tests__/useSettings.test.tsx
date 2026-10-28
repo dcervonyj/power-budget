@@ -23,8 +23,8 @@ jest.mock('../../../../LocaleProvider.js', () => ({
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
 const mockInvalidate = jest.fn();
-const mockPost = jest.fn();
-const mockRefreshToken = jest.fn();
+const mockRevoke = jest.fn();
+let mockSessionId = 1;
 const mockCanUse = jest.fn();
 const mockIsEnabled = jest.fn();
 const mockSetEnabled = jest.fn();
@@ -35,10 +35,12 @@ jest.mock('../../../../../infrastructure/index.js', () => ({
   apiClient: {
     get: (url: string): Promise<unknown> => mockGet(url),
     patch: (url: string, body: unknown): Promise<unknown> => mockPatch(url, body),
-    post: (url: string, body: unknown): Promise<unknown> => mockPost(url, body),
+    revokeSession: (): Promise<void> => mockRevoke(),
+    get sessionId(): number {
+      return mockSessionId;
+    },
     invalidateSession: (): Promise<void> => mockInvalidate(),
   },
-  tokenStore: { getRefreshToken: (): string | null => mockRefreshToken() },
   biometricUnlockService: {
     canUseBiometrics: (): Promise<boolean> => mockCanUse(),
     isBiometricEnabled: (): Promise<boolean> => mockIsEnabled(),
@@ -70,8 +72,8 @@ function wrapper({ children }: { readonly children: React.ReactNode }): React.JS
 }
 
 beforeEach(() => {
-  mockPost.mockReset().mockResolvedValue({ data: {} });
-  mockRefreshToken.mockReset().mockReturnValue('refresh-1');
+  mockRevoke.mockReset().mockResolvedValue(undefined);
+  mockSessionId = 1;
   mockSetLocale.mockReset();
   mockGet.mockReset().mockResolvedValue({ data: PROFILE });
   mockPatch
@@ -135,7 +137,7 @@ describe('useSettings', () => {
       result.current.onLocaleChange('pl');
     });
     expect(mockPatch).toHaveBeenCalledWith('/users/me', { locale: 'pl' });
-    expect(mockSetLocale).toHaveBeenCalledWith('pl', 'user');
+    expect(mockSetLocale).toHaveBeenCalledWith('pl', 'user', 1);
 
     mockPatch.mockRejectedValue(new Error('500'));
     await act(async () => {
@@ -225,7 +227,7 @@ describe('useSettings', () => {
     await waitFor(() => {
       expect(result.current.loadState).toBe('ready');
     });
-    expect(mockSetLocale).toHaveBeenCalledWith('pl', 'server');
+    expect(mockSetLocale).toHaveBeenCalledWith('pl', 'server', 1);
   });
 
   it('reports the server locale as the server source even when it matches', async () => {
@@ -234,34 +236,55 @@ describe('useSettings', () => {
     await waitFor(() => {
       expect(result.current.loadState).toBe('ready');
     });
-    expect(mockSetLocale).toHaveBeenCalledWith('en', 'server');
+    expect(mockSetLocale).toHaveBeenCalledWith('en', 'server', 1);
   });
 
-  it('revokes the refresh token on /auth/logout before ending the session', async () => {
+  it('revokes the refresh token before ending the session', async () => {
     const { result } = await renderHook(useSettings, { wrapper });
     await act(async () => {
       result.current.onSignOut();
     });
 
-    expect(mockPost).toHaveBeenCalledWith('/auth/logout', { refreshToken: 'refresh-1' });
-    expect(mockPost.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(mockRevoke).toHaveBeenCalledTimes(1);
+    expect(mockRevoke.mock.invocationCallOrder[0]).toBeLessThan(
       mockInvalidate.mock.invocationCallOrder[0] ?? 0,
     );
   });
 
-  it('still ends the session when the revoke fails', async () => {
-    mockPost.mockRejectedValue(new Error('offline'));
+  it('drops saves that are still queued when the user signs out', async () => {
+    let releaseFirst: () => void = () => undefined;
+    mockPatch.mockReset().mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseFirst = () => {
+            resolve({ data: { ...PROFILE, baseCurrency: 'EUR' } });
+          };
+        }),
+    );
+    mockInvalidate.mockImplementation(() => {
+      mockSessionId += 1;
+
+      return Promise.resolve();
+    });
     const { result } = await renderHook(useSettings, { wrapper });
+    await waitFor(() => {
+      expect(result.current.loadState).toBe('ready');
+    });
+    await act(async () => {
+      result.current.onCurrencyChange('EUR');
+      result.current.onCurrencyChange('USD');
+    });
     await act(async () => {
       result.current.onSignOut();
     });
-
-    await waitFor(() => {
-      expect(mockInvalidate).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      releaseFirst();
     });
+
+    expect(mockPatch).toHaveBeenCalledTimes(1);
   });
 
-  it('drops saves that are still queued when the user signs out', async () => {
+  it('drops saves that are still queued when the session expires', async () => {
     let releaseFirst: () => void = () => undefined;
     mockPatch.mockReset().mockImplementationOnce(
       () =>
@@ -279,9 +302,7 @@ describe('useSettings', () => {
       result.current.onCurrencyChange('EUR');
       result.current.onCurrencyChange('USD');
     });
-    await act(async () => {
-      result.current.onSignOut();
-    });
+    mockSessionId = 2;
     await act(async () => {
       releaseFirst();
     });
