@@ -102,6 +102,7 @@ export function Input({
       {error && (
         <span
           id={errorId}
+          role="alert"
           style={{ color: 'var(--pb-glass-over)', fontSize: 'var(--pb-glass-type-small-web)' }}
         >
           {error}
