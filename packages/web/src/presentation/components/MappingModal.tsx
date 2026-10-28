@@ -11,8 +11,8 @@ import {
   optionStyle,
 } from './transactionDialogStyles.js';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
-import { apiClient, bulkTransactionActions, plansApi } from '../../AppProviders.js';
-import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
+import { bulkTransactionActions } from '../../AppProviders.js';
+import { referenceCatalogue } from '../../application/catalogue/catalogueInstance.js';
 
 export interface MappingModalProps {
   readonly isOpen: boolean;
@@ -52,7 +52,7 @@ export function MappingModal({
     setPlansLoading(true);
     void (async () => {
       try {
-        const fetched = await plansApi.list('active');
+        const fetched = await referenceCatalogue.activePlans();
         setPlans(fetched);
         setSelectedPlanId(fetched[0]?.id ?? null);
       } finally {
@@ -72,8 +72,8 @@ export function MappingModal({
     void (async () => {
       try {
         const [fetched, names] = await Promise.all([
-          plansApi.listItems(selectedPlanId),
-          fetchCategoryNames(apiClient),
+          referenceCatalogue.items(selectedPlanId),
+          referenceCatalogue.categoryNames(),
         ]);
         setItems(fetched);
         setCategoryNames(names);

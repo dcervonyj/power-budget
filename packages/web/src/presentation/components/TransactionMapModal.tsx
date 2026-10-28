@@ -8,7 +8,7 @@ import { MoneyView } from './MoneyView.js';
 import { apiClient, plansApi } from '../../AppProviders.js';
 import { toSupportedLocale } from '../i18n/supportedLocale.js';
 import { formatAmount } from '../i18n/formatAmount.js';
-import { fetchCategoryNames } from '../../infrastructure/api/CategoryNames.js';
+import { referenceCatalogue } from '../../application/catalogue/catalogueInstance.js';
 import {
   loadPlannedItems,
   suggestedFirst,
@@ -77,7 +77,7 @@ export function TransactionMapModal({
     let cancelled = false;
     void (async () => {
       try {
-        const catalogue = await loadPlannedItems(plansApi, () => fetchCategoryNames(apiClient));
+        const catalogue = await loadPlannedItems(referenceCatalogue);
         if (!cancelled) {
           setOptions(suggestedFirst(catalogue.options, transaction.suggestedPlannedItemId));
         }
