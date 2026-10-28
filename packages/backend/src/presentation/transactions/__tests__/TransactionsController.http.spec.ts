@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId, TransactionId, UserId } from '@power-budget/core';
 import { TransactionsController } from '../TransactionsController.js';
 import { AddManualTransactionUseCase } from '../../../application/transactions/use-cases/AddManualTransactionUseCase.js';
 import { BulkActOnTransactionsUseCase } from '../../../application/transactions/use-cases/BulkActOnTransactionsUseCase.js';
@@ -11,6 +11,11 @@ import { MapTransactionUseCase } from '../../../application/transactions/use-cas
 import { MarkAsTransferUseCase } from '../../../application/transactions/use-cases/MarkAsTransferUseCase.js';
 import { PatchTransactionUseCase } from '../../../application/transactions/use-cases/PatchTransactionUseCase.js';
 import { UnmarkTransferUseCase } from '../../../application/transactions/use-cases/UnmarkTransferUseCase.js';
+import type {
+  MappingRepository,
+  TransactionRepository,
+} from '../../../domain/transactions/ports.js';
+import type { LearnMerchantRuleUseCase } from '../../../application/categorisation/LearnMerchantRuleUseCase.js';
 import { TransactionNotFoundError } from '../../../domain/transactions/errors.js';
 import {
   bearerFor,
@@ -28,13 +33,22 @@ describe('TransactionsController ids (HTTP)', () => {
   let app: HttpTestApp;
   let list: ReturnType<typeof mock<ListTransactionsUseCase>>;
   let get: ReturnType<typeof mock<GetTransactionUseCase>>;
-  let bulkMap: ReturnType<typeof mock<BulkMapTransactionsUseCase>>;
+  let owned: string[];
+  let mappingRepo: ReturnType<typeof mock<MappingRepository>>;
   let unmark: ReturnType<typeof mock<UnmarkTransferUseCase>>;
 
   beforeEach(async () => {
     list = mock<ListTransactionsUseCase>();
     get = mock<GetTransactionUseCase>();
-    bulkMap = mock<BulkMapTransactionsUseCase>();
+    owned = [];
+    mappingRepo = mock<MappingRepository>();
+    const txRepo = mock<TransactionRepository>();
+    txRepo.findOwnedIds.mockImplementation(async () => owned as TransactionId[]);
+    const bulkMap = new BulkMapTransactionsUseCase(
+      txRepo,
+      mappingRepo,
+      mock<LearnMerchantRuleUseCase>(),
+    );
     unmark = mock<UnmarkTransferUseCase>();
     get.execute.mockRejectedValue(new TransactionNotFoundError());
     unmark.execute.mockRejectedValue(new TransactionNotFoundError());
@@ -131,7 +145,22 @@ describe('TransactionsController ids (HTTP)', () => {
     expect(res.json().code).toBe('bank_account_not_found');
   });
 
-  it('POST /transactions/bulk answers 404 for a planned item id the core type rejects', async () => {
+  it('POST /transactions/bulk answers transaction_not_found for foreign ids even when the planned item id is malformed', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/transactions/bulk',
+      headers: headers(),
+      payload: { op: 'map', ids: [V4_ID], payload: { plannedItemId: NIL_ID } },
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(res.json().code).toBe('transaction_not_found');
+    expect(mappingRepo.bulkSet).not.toHaveBeenCalled();
+  });
+
+  it('POST /transactions/bulk answers planned_item_not_found for own ids and a malformed planned item id', async () => {
+    owned = [V4_ID];
+
     const res = await app.inject({
       method: 'POST',
       url: '/transactions/bulk',
@@ -141,6 +170,6 @@ describe('TransactionsController ids (HTTP)', () => {
 
     expect(res.statusCode).toBe(404);
     expect(res.json().code).toBe('planned_item_not_found');
-    expect(bulkMap.execute).not.toHaveBeenCalled();
+    expect(mappingRepo.bulkSet).not.toHaveBeenCalled();
   });
 });
