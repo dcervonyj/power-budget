@@ -1,4 +1,3 @@
-import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { discoverGalleryEntryIds } from './discoverEntries.js';
 
@@ -8,6 +7,7 @@ const VIEWPORTS = [
   { name: 'mobile', width: 390, height: 844 },
 ] as const;
 
+// DSN-050: the axe check of every entry moved to the a11y project (e2e/a11y/gallery/axe.spec.ts).
 const entryIds = discoverGalleryEntryIds();
 
 async function openEntry(page: Page, entry: string, theme: string): Promise<void> {
@@ -42,19 +42,4 @@ for (const viewport of VIEWPORTS) {
       }
     }
   });
-}
-
-for (const entry of entryIds) {
-  for (const theme of THEMES) {
-    test(`axe ${entry} ${theme}`, async ({ page }) => {
-      await openEntry(page, entry, theme);
-
-      const { violations } = await new AxeBuilder({ page }).analyze();
-      const blocking = violations.filter(
-        (violation) => violation.impact === 'serious' || violation.impact === 'critical',
-      );
-
-      expect(blocking.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
-    });
-  }
 }

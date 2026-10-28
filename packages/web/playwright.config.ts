@@ -8,8 +8,10 @@ import { FULL_STACK, STACK } from './e2e/support/stack.js';
 // @smoke specs run, against whatever serves BASE_URL (e.g. `pnpm dev`).
 const smokeGrep = FULL_STACK ? undefined : /smoke/;
 
-// DSN-011: `PW_VISUAL=1` runs only the `visual` project against the gallery build
-// (no backend). `pnpm test:visual` sets it inside the pinned Playwright docker image.
+// DSN-011: `PW_VISUAL=1` runs only the gallery projects (`visual`, DSN-050 `a11y`) against the
+// gallery build (no backend). `pnpm test:visual` sets it inside the pinned Playwright docker image.
+// DSN-050: the `a11y-stack` project (axe and keyboard pass on the real app pages) needs the e2e
+// stack like `chromium` does: `pnpm test:a11y:stack`.
 const VISUAL = process.env['PW_VISUAL'] === '1';
 const GALLERY_URL = 'http://localhost:4174';
 // The docker image mounts the host node_modules (no Linux native vite binaries), so there
@@ -18,6 +20,9 @@ const GALLERY_SERVER_COMMAND =
   process.env['VISUAL_STATIC'] === '1'
     ? 'node e2e/visual/serve-static.mjs'
     : 'pnpm exec vite preview --mode gallery --port 4174 --strictPort';
+
+// Gallery specs (visual, a11y/gallery) never run in the stack projects; a11y/stack has its own.
+const NON_STACK_SPECS = /(visual|a11y)\//;
 
 export default defineConfig({
   testDir: './e2e',
@@ -76,25 +81,35 @@ export default defineConfig({
           use: { ...devices['Desktop Chrome'], reducedMotion: 'reduce' },
           expect: { toHaveScreenshot: { maxDiffPixelRatio: 0.01 } },
         },
+        {
+          name: 'a11y',
+          testMatch: /a11y\/gallery\/.*\.spec\.ts/,
+          use: { ...devices['Desktop Chrome'], reducedMotion: 'reduce' },
+        },
       ]
     : [
         {
           name: 'chromium',
           use: { ...devices['Desktop Chrome'] },
           grep: smokeGrep,
-          testIgnore: /visual\//,
+          testIgnore: NON_STACK_SPECS,
         },
         {
           name: 'firefox',
           use: { ...devices['Desktop Firefox'] },
           grep: smokeGrep,
-          testIgnore: /visual\//,
+          testIgnore: NON_STACK_SPECS,
         },
         {
           name: 'webkit',
           use: { ...devices['Desktop Safari'] },
           grep: smokeGrep,
-          testIgnore: /visual\//,
+          testIgnore: NON_STACK_SPECS,
+        },
+        {
+          name: 'a11y-stack',
+          testMatch: /a11y\/stack\/.*\.spec\.ts/,
+          use: { ...devices['Desktop Chrome'], reducedMotion: 'reduce' },
         },
       ],
 });

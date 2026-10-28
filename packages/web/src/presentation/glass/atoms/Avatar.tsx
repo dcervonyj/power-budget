@@ -27,6 +27,11 @@ export function initialsOf(name: string): string {
   return words.slice(0, MAX_INITIALS).map(firstLetter).join('').toLocaleUpperCase();
 }
 
+const AVATAR_PRIMARY_FILL =
+  'linear-gradient(var(--pb-glass-accent-tint), var(--pb-glass-accent-tint)), var(--pb-glass-base)';
+const AVATAR_NEUTRAL_FILL =
+  'linear-gradient(var(--pb-glass-fill2), var(--pb-glass-fill2)), var(--pb-glass-base)';
+
 /** Round avatar: photo when given, initials otherwise. Named for assistive tech. */
 export function Avatar({
   person,
@@ -48,7 +53,9 @@ export function Avatar({
         height: size,
         borderRadius: '50%',
         overflow: 'hidden',
-        background: primary ? 'var(--pb-glass-accent-tint)' : 'var(--pb-glass-fill2)',
+        // The tint sits on the solid page base: initials stay AA over whatever glass, ring or
+        // second avatar is behind the disc (DSN-050).
+        background: primary ? AVATAR_PRIMARY_FILL : AVATAR_NEUTRAL_FILL,
         boxShadow: primary
           ? 'inset 0 0 0 1px var(--pb-glass-accent-edge)'
           : 'inset 0 0 0 1px var(--pb-glass-edge)',
