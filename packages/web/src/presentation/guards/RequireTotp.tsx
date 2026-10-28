@@ -9,5 +9,6 @@ function isTotpVerified(): boolean {
 export function RequireTotp() {
   // Real logic in WEB-003 — for now treat missing as "not required"
   void isTotpVerified();
+
   return <Outlet />;
 }

@@ -76,6 +76,7 @@ describe('MappingModal', () => {
       if (url === '/categories?includeArchived=true') {
         return Promise.resolve({ status: 200, data: mockCategories, headers: {} });
       }
+
       return Promise.resolve({ status: 200, data: [], headers: {} });
     });
   });

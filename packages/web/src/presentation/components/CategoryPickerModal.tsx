@@ -25,7 +25,9 @@ export function CategoryPickerModal({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || categoriesProp !== undefined) return;
+    if (!isOpen || categoriesProp !== undefined) {
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     // Archived categories are not offered (GET /categories leaves them out).
@@ -42,6 +44,7 @@ export function CategoryPickerModal({
         }
       },
     );
+
     return () => {
       cancelled = true;
     };
