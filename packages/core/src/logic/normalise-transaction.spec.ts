@@ -152,6 +152,56 @@ describe('normaliseTransaction extraction', () => {
     expect(normaliseTransaction('Card payment to Lidl').counterparty).toBeNull();
   });
 
+  it.each([
+    'Card transaction of 12.34 PLN issued by Biedronka',
+    'card transaction of 1,234.56 EUR issued by BIEDRONKA',
+    'Card transaction of 1 234,56 USD issued by Biedronka',
+    'Card transaction of 7 PLN issued by Biedronka',
+  ])('takes the merchant of a Wise card title: %s', (title) => {
+    const result = normaliseTransaction(title);
+
+    expect(result.merchant).toBe(title.slice(title.indexOf('by ') + 3));
+    expect(result.merchantKey).toBe('biedronka');
+  });
+
+  it('strips a processor prefix behind the Wise card wrapper', () => {
+    expect(
+      normaliseTransaction('Card transaction of 12.34 PLN issued by PayU Biedronka').merchantKey,
+    ).toBe('biedronka');
+  });
+
+  it.each([
+    ['ATM Shop', 'atm shop', 'card'],
+    ['Transfer Market', 'transfer market', 'card'],
+    ['Card Corner', 'card corner', 'unclassified'],
+    ['Fee Shop', 'fee shop', 'card'],
+    ['BLIK Cafe', 'cafe', 'blik_merchant'],
+    ['PayU Biedronka', 'biedronka', 'payu'],
+  ])('classifies only the merchant of a Wise card title: %s', (merchant, key, descriptorClass) => {
+    const result = normaliseTransaction(`Card transaction of 12.34 PLN issued by ${merchant}`);
+
+    expect(result.merchantKey).toBe(key);
+    expect(result.descriptorClass).toBe(descriptorClass);
+  });
+
+  it('flags only Wise card titles', () => {
+    expect(normaliseTransaction('Card transaction of 1 PLN issued by Lidl').isWiseCard).toBe(true);
+    expect(normaliseTransaction('Card payment to Lidl').isWiseCard).toBe(false);
+  });
+
+  it.each([
+    ['city only', 'Warszawa', 'warszawa'],
+    ['empty remainder', '', ''],
+    ['mask only', '****1234', ''],
+    ['number only', '123456', ''],
+  ])('keeps a Wise card title key amount-independent: %s', (_name, tail, key) => {
+    const small = normaliseTransaction(`Card transaction of 12.34 PLN issued by ${tail}`.trim());
+    const large = normaliseTransaction(`Card transaction of 1,999.00 EUR issued by ${tail}`.trim());
+
+    expect(small.merchantKey ?? '').toBe(key);
+    expect(large.merchantKey ?? '').toBe(key);
+  });
+
   it('strips card masks and times from the merchant', () => {
     expect(normaliseTransaction('Card payment to Lidl ****1234 14:32').merchant).toBe('Lidl');
   });

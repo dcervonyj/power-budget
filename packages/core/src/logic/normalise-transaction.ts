@@ -16,6 +16,8 @@ export interface NormalisedTransaction {
   readonly counterparty: string | null;
   readonly descriptorClass: DescriptorClass;
   readonly descriptionKey: string;
+  /** True when the text was a Wise card title and `merchant` is the issuer named in it. */
+  readonly isWiseCard: boolean;
 }
 
 const DIACRITICS: Readonly<Record<string, string>> = {
@@ -40,6 +42,11 @@ const DIACRITICS: Readonly<Record<string, string>> = {
 /** Keyword end: next char is not a letter or digit (JS \b is ASCII-only). */
 const END = String.raw`(?![\p{L}\d])`;
 
+// Wise: "Card transaction of 12.34 PLN issued by Biedronka", "1,234.56" and "1 234,56" amounts.
+const WISE_CARD_PREFIX = toPrefixPattern(
+  `card transaction of\\s+[-+]?\\d[\\d\\s.,'\u2019]*?\\s*\\p{L}{3}\\s+issued by${END}\\s*`,
+);
+
 const MERCHANT_PREFIXES: readonly RegExp[] = [
   `(?:card payment to|card purchase at|p[łl]atno[śs][ćc] kart[ąa]|transakcja kart[ąa])${END}[\\s*:-]*`,
   `(?:payu|przelewy24|p24)${END}[\\s*:-]*`,
@@ -48,6 +55,9 @@ const MERCHANT_PREFIXES: readonly RegExp[] = [
   `(?:wyp[łl]ata got[óo]wki|cash withdrawal)${END}(?:\\s+(?:bankomat|atm)${END})?\\s*`,
   `(?:op[łl]ata|prowizja|fee|charge)${END}[\\s*:-]*`,
 ].map(toPrefixPattern);
+
+/** Card / processor prefixes: the cash and fee prefixes are payment types, not processors. */
+const PROCESSOR_PREFIXES: readonly RegExp[] = MERCHANT_PREFIXES.slice(0, 4);
 
 function toPrefixPattern(source: string): RegExp {
   return new RegExp(`^${source}`, 'iu');
@@ -101,9 +111,11 @@ export function normaliseText(value: string): string {
  */
 export function normaliseTransaction(rawDescription: string): NormalisedTransaction {
   const description = collapseWhitespace(rawDescription);
-  const descriptorClass = classify(description);
-  const counterparty = extractCounterparty(description, descriptorClass);
-  const merchant = extractMerchant(description, descriptorClass, counterparty);
+  const isWiseCard = WISE_CARD_PREFIX.test(description);
+  const subject = isWiseCard ? description.replace(WISE_CARD_PREFIX, '') : description;
+  const descriptorClass = isWiseCard ? classifyWiseMerchant(subject) : classify(subject);
+  const counterparty = extractCounterparty(subject, descriptorClass);
+  const merchant = extractMerchant(subject, descriptorClass, counterparty, isWiseCard);
 
   return {
     merchant,
@@ -111,7 +123,24 @@ export function normaliseTransaction(rawDescription: string): NormalisedTransact
     counterparty,
     descriptorClass,
     descriptionKey: normaliseText(description),
+    isWiseCard,
   };
+}
+
+/**
+ * The wrapper says the row is a card purchase, so a merchant NAME that contains a payment-type
+ * word ("ATM Shop", "Transfer Market", "Fee Shop") stays a card merchant; only the payment
+ * processor (PayU, Przelewy24, BLIK, Allegro) is still recognised.
+ */
+function classifyWiseMerchant(merchant: string): DescriptorClass {
+  const descriptorClass = classify(merchant);
+  const isPaymentTypeWord =
+    descriptorClass === 'atm' ||
+    descriptorClass === 'fee' ||
+    descriptorClass === 'transfer' ||
+    descriptorClass === 'blik_p2p';
+
+  return isPaymentTypeWord ? 'card' : descriptorClass;
 }
 
 function collapseWhitespace(value: string): string {
@@ -193,12 +222,14 @@ function extractMerchant(
   description: string,
   descriptorClass: DescriptorClass,
   counterparty: string | null,
+  isWiseCard: boolean,
 ): string | null {
   if (descriptorClass === 'transfer' || descriptorClass === 'blik_p2p') {
     return counterparty;
   }
 
-  const merchant = stripTrailingMetadata(stripFirstPrefix(description));
+  const prefixes = isWiseCard ? PROCESSOR_PREFIXES : MERCHANT_PREFIXES;
+  const merchant = stripTrailingMetadata(stripFirstPrefix(description, prefixes));
 
   return merchant.length === 0 ? null : merchant;
 }
@@ -210,8 +241,8 @@ function cutAtTitle(rest: string): string {
   return name.length === 0 ? rest : name;
 }
 
-function stripFirstPrefix(description: string): string {
-  for (const prefix of MERCHANT_PREFIXES) {
+function stripFirstPrefix(description: string, prefixes: readonly RegExp[]): string {
+  for (const prefix of prefixes) {
     if (prefix.test(description)) {
       return keepPrefixWhenNothingFollows(description, description.replace(prefix, ''));
     }
