@@ -37,6 +37,14 @@ export const TRANSACTION_SOURCE_KINDS = [
 ] as const;
 export type TransactionSourceKind = (typeof TRANSACTION_SOURCE_KINDS)[number];
 
+/**
+ * The `source` filter of `GET /transactions`: `bank_sync` and `manual` match the row's `source`
+ * (every bank row, whichever provider or none, and manual rows); a provider value matches the
+ * SYNC-001 `source_kind`, which bank rows ingested before it do not carry.
+ */
+export const TRANSACTION_SOURCE_FILTERS = ['bank_sync', ...TRANSACTION_SOURCE_KINDS] as const;
+export type TransactionSourceFilter = (typeof TRANSACTION_SOURCE_FILTERS)[number];
+
 /** What proposed the suggested planned item or category (plan-banking.md §1.13). */
 export const SUGGESTION_SOURCES = [
   'transfer_rule',
@@ -296,6 +304,10 @@ export interface TransactionQuery {
   /** `true`: only transfers (not ignored); `false`: only rows that are not part of a transfer. */
   readonly transfer?: boolean;
   readonly status?: TransactionStatus;
+  /** Only rows mapped to a planned item of this category. */
+  readonly categoryId?: CategoryId;
+  readonly currency?: CurrencyCode;
+  readonly source?: TransactionSourceFilter;
   /** Opaque keyset cursor returned as `nextCursor` by the previous page. */
   readonly cursor?: string;
   readonly limit?: number;

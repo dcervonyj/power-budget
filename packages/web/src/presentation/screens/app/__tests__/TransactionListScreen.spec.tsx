@@ -184,6 +184,17 @@ describe('TransactionListScreen', () => {
     expect(screen.queryByText('Sorting')).toBeNull();
   });
 
+  it('sends category, currency and source to the API and keeps every row it returns', async () => {
+    routeGets();
+    renderAt('/transactions?category=cat-1&currency=eur&source=wise');
+
+    // The fixture rows are PLN and manual: the API filtered, the page drops nothing (PERF-07).
+    expect(await screen.findByText('Biedronka')).toBeDefined();
+    expect(mockGet.mock.calls.map((call) => call[0])).toContain(
+      '/transactions?categoryId=cat-1&currency=EUR&source=bank_sync&limit=50',
+    );
+  });
+
   it('shows the month rod only when a plan dashboard is loaded', async () => {
     routeGets();
     renderAt('/transactions');

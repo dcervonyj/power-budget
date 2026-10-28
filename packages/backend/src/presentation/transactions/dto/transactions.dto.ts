@@ -17,9 +17,11 @@ import {
   Min,
   ValidateIf,
 } from 'class-validator';
-import { CURRENCIES } from '@power-budget/core';
+import { CURRENCIES, type CurrencyCode } from '@power-budget/core';
 import {
+  TRANSACTION_SOURCE_FILTERS,
   TRANSACTION_STATUSES,
+  type TransactionSourceFilter,
   type TransactionStatus,
 } from '../../../domain/transactions/entities.js';
 import {
@@ -104,6 +106,33 @@ export class ListTransactionsQueryDto {
   @IsOptional()
   @IsIn([...TRANSACTION_STATUSES])
   status?: TransactionStatus;
+
+  @ApiPropertyOptional({
+    type: String,
+    description: 'Only transactions mapped to a planned item of this category (`GET /categories`)',
+  })
+  @IsOptional()
+  @IsUUID()
+  categoryId?: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: CURRENCY_CODES,
+    description: 'Only transactions in this currency (ISO 4217)',
+  })
+  @IsOptional()
+  @IsIn(CURRENCY_CODES)
+  currency?: CurrencyCode;
+
+  @ApiPropertyOptional({
+    type: String,
+    enum: [...TRANSACTION_SOURCE_FILTERS],
+    description:
+      'Where the rows came from. `bank_sync`: every bank row, whichever provider; `manual`: manual rows; `enable_banking`, `wise_webhook`, `pko_email`, `iko_push`: rows of that provider (bank rows synced before SYNC-001 carry none and match only `bank_sync`)',
+  })
+  @IsOptional()
+  @IsIn([...TRANSACTION_SOURCE_FILTERS])
+  source?: TransactionSourceFilter;
 
   @ApiPropertyOptional({
     type: String,
