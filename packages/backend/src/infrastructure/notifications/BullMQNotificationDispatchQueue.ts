@@ -1,6 +1,7 @@
 import type { JobsOptions, Queue } from 'bullmq';
 import { MAX_DISPATCH_ATTEMPTS } from '../../domain/notifications/entities.js';
 import type { NotificationDispatchQueue } from '../../domain/notifications/ports.js';
+import { boundedEnqueue } from '../queue/bounded-enqueue.js';
 
 export interface DispatchNotificationJobPayload {
   readonly outboxId: string;
@@ -20,7 +21,10 @@ export class BullMQNotificationDispatchQueue implements NotificationDispatchQueu
   ) {}
 
   async schedule(outboxId: string): Promise<void> {
-    await this.queue.add('dispatch', { outboxId }, this.jobOptions(outboxId));
+    await boundedEnqueue(
+      this.queue.add('dispatch', { outboxId }, this.jobOptions(outboxId)),
+      `dispatch of notification ${outboxId}`,
+    );
   }
 
   private jobOptions(outboxId: string): JobsOptions {
