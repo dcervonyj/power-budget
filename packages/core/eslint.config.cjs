@@ -1,9 +1,11 @@
 // @ts-check
-const rootConfig = require('../../eslint.config.js');
+const rootConfig = require('../../eslint.base.js');
+const { ratchetBlocks } = require('../../eslint.ratchet.js');
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
   ...rootConfig,
+  ...ratchetBlocks(__dirname),
   {
     files: ['src/**/*.ts'],
     rules: {
@@ -11,7 +13,10 @@ module.exports = [
         'error',
         {
           paths: [
-            { name: 'react', message: 'core is framework-agnostic — no React (ARCHITECTURE.md §4).' },
+            {
+              name: 'react',
+              message: 'core is framework-agnostic — no React (ARCHITECTURE.md §4).',
+            },
             { name: 'react-dom', message: 'core is framework-agnostic — no React.' },
             { name: 'react-native', message: 'core is framework-agnostic — no React Native.' },
             { name: 'express', message: 'core has no I/O — no Express.' },

@@ -106,7 +106,11 @@ export class GoCardlessBankConnector implements BankConnector { ... }
 export class EcbFxRateProvider implements FxRateProvider { ... }
 ```
 
-Use case classes: `RegisterUser`, `LoginWithPassword`, `MapTransaction`, `GetPlanDashboard` (verb-noun, no "UseCase" suffix).
+Use case classes are named `<VerbNoun>UseCase` (`RegisterUserUseCase`, `LoginWithPasswordUseCase`, `MapTransactionUseCase`, `GetPlanDashboardUseCase`); the file name equals the class name. The suffix is the convention because every existing use case already carries it; do not rename them.
+
+Never name a class, function, variable, parameter, type or property `*Helper` / `*Helpers`; name it by what it does. Interfaces carry no `I` prefix.
+
+Lint-enforced style (errors, `eslint.ratchet.js`): `curly` (always braces), a blank line before `return`, `@typescript-eslint/switch-exhaustiveness-check` (list every union member as a `case`; a `default` alone does not count; for a closed union end with `default: return assertNever(x)`), `@typescript-eslint/member-ordering` (fields, constructor, public, protected, private methods), the `*Helper` / `I`-prefix naming ban, and no `lodash` import (use `lodash-es`). A package opts in with `"eslintRatchet": true` in its package.json once it is green; every package is expected to opt in.
 
 ## Branded ID types
 
