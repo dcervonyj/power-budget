@@ -80,6 +80,7 @@ export function AddExpenseScreen(): React.JSX.Element {
       onSave={state.save}
       onUndo={state.undo}
       onAddAnother={state.addAnother}
+      onRetryRefresh={state.retryRefresh}
       onBackToToday={() => {
         navigation.navigate('Tabs', { screen: 'Dashboard' });
       }}
