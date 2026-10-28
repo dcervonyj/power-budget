@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { createIntl, defineMessages } from 'react-intl';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { createIntl, defineMessages, IntlProvider } from 'react-intl';
+import { SyncChip } from '../presentation/glass/atoms/SyncChip.js';
 import enShell from '../../public/locales/en/glass-atoms.json';
 
 // Run by vitest.noparser.config.ts: the ICU parser is aliased to its no-parser build, as in production.
@@ -40,4 +43,21 @@ describe('formatting without the ICU parser', () => {
 
     expect(intl.formatMessage({ id: 'raw' }, { name: 'Ann' })).not.toBe('Hello Ann');
   });
+
+  it.each([
+    ['owner' as const, 'Your bank updated 25 minutes ago'],
+    ['partner' as const, "Partner's bank updated 5 hours ago"],
+  ])(
+    'renders the %s bank-age chip as text, not as raw ICU (CLN-074d visual regression)',
+    (viewer, copy) => {
+      const ageMinutes = viewer === 'owner' ? 25 : 300;
+      const html = renderToStaticMarkup(
+        <IntlProvider locale="en" messages={{}}>
+          <SyncChip state={{ kind: 'bank-age', ageMinutes }} viewer={viewer} />
+        </IntlProvider>,
+      );
+
+      expect(html.replaceAll('&#x27;', "'")).toContain(copy);
+    },
+  );
 });
