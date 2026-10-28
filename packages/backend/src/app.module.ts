@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { AppConfigModule } from './config/app-config.module.js';
 import { HealthModule } from './health/health.module';
 import { AuthPresentationModule } from './presentation/auth/AuthPresentationModule.js';
 import { TransactionsPresentationModule } from './presentation/transactions/TransactionsPresentationModule.js';
@@ -16,7 +16,7 @@ import { validationPipeProvider } from './presentation/http/validation.js';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    AppConfigModule.forRole('api'),
     HealthModule,
     AuthPresentationModule,
     TransactionsPresentationModule,
