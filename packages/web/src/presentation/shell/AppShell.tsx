@@ -28,11 +28,11 @@ export const AppShell = observer(function AppShell(): React.JSX.Element {
     setSigningOut(true);
     // CLN-034: revokes the refresh token, clears the tokens and resets every session store.
     await signOut.execute();
-    navigate(ROUTE_PATHS.login, { replace: true });
+    void navigate(ROUTE_PATHS.login, { replace: true });
   }
 
   function openBanks(): void {
-    navigate(ROUTE_PATHS.bankConnections);
+    void navigate(ROUTE_PATHS.bankConnections);
   }
 
   return (

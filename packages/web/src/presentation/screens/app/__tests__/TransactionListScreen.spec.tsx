@@ -353,7 +353,11 @@ describe('TransactionListScreen', () => {
         'This transaction is no longer available.',
       );
     });
-    expect(screen.queryByRole('dialog')).toBeNull();
+    // react-router 7 applies navigate() in a React transition, so the route (and the dialog
+    // with it) changes a tick after the toast is set.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).toBeNull();
+    });
     expect(screen.getByText('Biedronka')).toBeDefined();
   });
 });

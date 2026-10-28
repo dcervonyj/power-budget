@@ -51,7 +51,7 @@ export function MagicLinkScreen(): React.JSX.Element {
           : { token: linkToken };
         const res = await apiClient.post<AuthTokensDto>('/auth/magic-link/consume', body);
         await tokenStore.setTokens(res.data.accessToken, res.data.refreshToken);
-        navigate('/dashboard');
+        void navigate('/dashboard');
       } catch (err) {
         const outcome = classifyConsumeError(err);
         if (outcome === 'requiresTotp') {

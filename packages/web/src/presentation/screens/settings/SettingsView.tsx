@@ -1,6 +1,7 @@
 import React from 'react';
 import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { NavLink } from 'react-router-dom';
+import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
 import { Button } from '../../components/Button.js';
 import '../../glass/controls/controls.css';
 import { HEADER_STYLE, PAGE_STYLE, TITLE_STYLE } from '../app/planStyles.js';
@@ -27,11 +28,11 @@ interface SettingsTabLink {
 
 // No notifications tab: the API has no notification-preferences endpoint yet.
 const TABS: readonly SettingsTabLink[] = [
-  { to: 'profile', label: TAB_MESSAGES.profile },
-  { to: 'appearance', label: TAB_MESSAGES.appearance },
-  { to: 'locale', label: TAB_MESSAGES.locale },
-  { to: 'currency', label: TAB_MESSAGES.currency },
-  { to: 'data', label: TAB_MESSAGES.data },
+  { to: ROUTE_PATHS.settingsProfile, label: TAB_MESSAGES.profile },
+  { to: ROUTE_PATHS.settingsAppearance, label: TAB_MESSAGES.appearance },
+  { to: ROUTE_PATHS.settingsLocale, label: TAB_MESSAGES.locale },
+  { to: ROUTE_PATHS.settingsCurrency, label: TAB_MESSAGES.currency },
+  { to: ROUTE_PATHS.settingsData, label: TAB_MESSAGES.data },
 ];
 
 const NAV_STYLE: React.CSSProperties = {

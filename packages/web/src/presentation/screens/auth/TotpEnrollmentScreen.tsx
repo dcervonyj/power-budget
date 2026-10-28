@@ -59,7 +59,7 @@ export function TotpEnrollmentScreen(): React.JSX.Element {
     try {
       const body: VerifyTotpDto = { code };
       await apiClient.post('/auth/totp/verify', body);
-      navigate('/dashboard');
+      void navigate('/dashboard');
     } catch (err: unknown) {
       setVerifyError(classifyVerifyError(err));
     } finally {
