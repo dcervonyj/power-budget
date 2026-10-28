@@ -1,5 +1,4 @@
 import React from 'react';
-import * as Sentry from '@sentry/react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { App } from './presentation/App.js';
@@ -11,38 +10,30 @@ import { AppProviders } from './AppProviders.js';
 import { StaticCrashFallback } from './presentation/shell/StaticCrashFallback.js';
 import { AppCrashFallback } from './presentation/shell/AppCrashFallback.js';
 import { staleChunkRecovery } from './infrastructure/lazyChunk.js';
+import { ReportingErrorBoundary, sentryReporter } from './infrastructure/errorReporting/index.js';
 
 staleChunkRecovery.install();
 
-Sentry.init({
-  dsn: import.meta.env.VITE_SENTRY_DSN,
-  integrations: [Sentry.browserTracingIntegration()],
-  tracesSampleRate: 0.1,
-  beforeSend(event) {
-    if (event.user) {
-      delete event.user['email'];
-      delete event.user['ip_address'];
-    }
-
-    return event;
-  },
-});
+void sentryReporter.start(import.meta.env.VITE_SENTRY_DSN);
 
 // Inner boundary: translated fallback. Outer boundary: covers provider render errors and
 // failed locale chunks, where react-intl is unavailable, so it uses a small static string table.
-const GuardedApp = Sentry.withErrorBoundary(App, { fallback: <AppCrashFallback /> });
+const reportError = (error: unknown): void => sentryReporter.capture(error);
 
-const OuterGuard = Sentry.withErrorBoundary(
-  () => (
+const GuardedApp = (): React.JSX.Element => (
+  <ReportingErrorBoundary fallback={<AppCrashFallback />} onError={reportError}>
+    <App />
+  </ReportingErrorBoundary>
+);
+
+const OuterGuard = (): React.JSX.Element => (
+  <ReportingErrorBoundary fallback={<StaticCrashFallback />} onError={reportError}>
     <BrowserRouter>
       <AppProviders>
         <GuardedApp />
       </AppProviders>
     </BrowserRouter>
-  ),
-  {
-    fallback: <StaticCrashFallback />,
-  },
+  </ReportingErrorBoundary>
 );
 
 ReactDOM.createRoot(document.getElementById('root')!).render(

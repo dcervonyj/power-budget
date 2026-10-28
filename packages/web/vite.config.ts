@@ -57,6 +57,8 @@ export default defineConfig(({ mode }) => {
         : {}),
     },
     resolve: {
+      // One MobX instance: workspace packages must not bring their own copy.
+      dedupe: ['mobx', 'mobx-react-lite', 'react', 'react-dom'],
       alias: {
         '@web': path.resolve(__dirname, './src'),
       },
