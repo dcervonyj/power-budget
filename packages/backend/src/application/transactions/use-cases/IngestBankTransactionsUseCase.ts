@@ -1,15 +1,10 @@
 import type { BankAccountId, HouseholdId, IsoDate, Money } from '@power-budget/core';
 import { TransactionId, isSupportedCurrency } from '@power-budget/core';
-import type {
-  TransactionRepository,
-  MappingRepository,
-  MappingSuggestionPort,
-} from '../../../domain/transactions/ports.js';
+import type { TransactionRepository } from '../../../domain/transactions/ports.js';
 import type {
   BankTransactionDetails,
   IngestHashInput,
   NewTransaction,
-  TransactionMapping,
 } from '../../../domain/transactions/entities.js';
 import type { RawAmount, RawTransaction } from '../../../domain/bank/entities.js';
 import { IdempotentIngest } from '../../../domain/transactions/idempotent-ingest.js';
@@ -25,17 +20,23 @@ export interface IngestBankTransactionsInput {
 export class IngestBankTransactionsUseCase {
   constructor(
     private readonly transactionRepo: TransactionRepository,
-    private readonly mappingRepo: MappingRepository,
-    private readonly suggestionPort: MappingSuggestionPort,
     private readonly generateId: () => string,
   ) {}
 
   async execute(input: IngestBankTransactionsInput): Promise<void> {
     const seen = new Map<string, number>();
+    const batch: NewTransaction[] = [];
     for (const raw of input.rawTransactions) {
       if (this.isIngestedStatus(raw)) {
-        await this.ingestOne(raw, input.accountId, input.householdId, seen);
+        const newTx = this.toNewTransaction(raw, input.accountId, input.householdId, seen);
+        if (newTx !== null) {
+          batch.push(newTx);
+        }
       }
+    }
+
+    if (batch.length > 0) {
+      await this.transactionRepo.insertBankBatch(batch);
     }
   }
 
@@ -60,15 +61,15 @@ export class IngestBankTransactionsUseCase {
     }
   }
 
-  private async ingestOne(
+  private toNewTransaction(
     raw: RawTransaction,
     accountId: BankAccountId,
     householdId: HouseholdId,
     seen: Map<string, number>,
-  ): Promise<void> {
+  ): NewTransaction | null {
     const occurredOn = this.economicDate(raw);
     if (occurredOn === null) {
-      return;
+      return null;
     }
 
     const id = TransactionId.of(this.generateId());
@@ -86,7 +87,7 @@ export class IngestBankTransactionsUseCase {
     const currency = raw.currency.trim().toUpperCase();
     const supported = isSupportedCurrency(currency);
 
-    const newTx: NewTransaction = {
+    return {
       id,
       householdId,
       accountId,
@@ -103,26 +104,6 @@ export class IngestBankTransactionsUseCase {
       bank: this.bankDetailsOf(raw),
       ignored: !supported,
     };
-
-    const { id: txId, created } = await this.transactionRepo.upsertByExternalId(newTx);
-    if (!created || !supported) {
-      return;
-    }
-
-    const tx = await this.transactionRepo.findById(txId, { householdId });
-    if (tx === null) {
-      return;
-    }
-
-    const recentMappings = await this.fetchRecentMappings();
-    const suggestedItemId = this.suggestionPort.suggest(tx, recentMappings);
-    if (suggestedItemId !== null) {
-      await this.transactionRepo.patch(
-        txId,
-        { suggestedPlannedItemId: suggestedItemId },
-        { householdId },
-      );
-    }
   }
 
   /**
@@ -168,10 +149,6 @@ export class IngestBankTransactionsUseCase {
     }
 
     return { amountMinor: amount.amountMinor, currency: amount.currency };
-  }
-
-  private async fetchRecentMappings(): Promise<TransactionMapping[]> {
-    return [];
   }
 
   /** The economic date (plan-banking.md §1.10): the transaction date, else booking, else value. */
