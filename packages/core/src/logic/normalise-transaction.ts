@@ -218,7 +218,10 @@ function cutAtTitle(rest: string): string {
 function stripFirstPrefix(description: string): string {
   // The Wise wrapper hides the real descriptor: "... issued by PayU Biedronka" strips like "PayU Biedronka".
   if (WISE_CARD_PREFIX.test(description)) {
-    return stripFirstPrefix(description.replace(WISE_CARD_PREFIX, ''));
+    return keepPrefixWhenNothingFollows(
+      description,
+      stripFirstPrefix(description.replace(WISE_CARD_PREFIX, '')),
+    );
   }
 
   for (const prefix of MERCHANT_PREFIXES) {
