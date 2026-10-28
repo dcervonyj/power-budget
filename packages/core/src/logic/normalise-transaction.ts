@@ -54,6 +54,9 @@ const MERCHANT_PREFIXES: readonly RegExp[] = [
   `(?:op[łl]ata|prowizja|fee|charge)${END}[\\s*:-]*`,
 ].map(toPrefixPattern);
 
+/** Card / processor prefixes: the cash and fee prefixes are payment types, not processors. */
+const PROCESSOR_PREFIXES: readonly RegExp[] = MERCHANT_PREFIXES.slice(0, 4);
+
 function toPrefixPattern(source: string): RegExp {
   return new RegExp(`^${source}`, 'iu');
 }
@@ -106,9 +109,11 @@ export function normaliseText(value: string): string {
  */
 export function normaliseTransaction(rawDescription: string): NormalisedTransaction {
   const description = collapseWhitespace(rawDescription);
-  const descriptorClass = classify(description);
-  const counterparty = extractCounterparty(description, descriptorClass);
-  const merchant = extractMerchant(description, descriptorClass, counterparty);
+  const isWiseCard = WISE_CARD_PREFIX.test(description);
+  const subject = isWiseCard ? description.replace(WISE_CARD_PREFIX, '') : description;
+  const descriptorClass = isWiseCard ? classifyWiseMerchant(subject) : classify(subject);
+  const counterparty = extractCounterparty(subject, descriptorClass);
+  const merchant = extractMerchant(subject, descriptorClass, counterparty, isWiseCard);
 
   return {
     merchant,
@@ -117,6 +122,22 @@ export function normaliseTransaction(rawDescription: string): NormalisedTransact
     descriptorClass,
     descriptionKey: normaliseText(description),
   };
+}
+
+/**
+ * The wrapper says the row is a card purchase, so a merchant NAME that contains a payment-type
+ * word ("ATM Shop", "Transfer Market", "Fee Shop") stays a card merchant; only the payment
+ * processor (PayU, Przelewy24, BLIK, Allegro) is still recognised.
+ */
+function classifyWiseMerchant(merchant: string): DescriptorClass {
+  const descriptorClass = classify(merchant);
+  const isPaymentTypeWord =
+    descriptorClass === 'atm' ||
+    descriptorClass === 'fee' ||
+    descriptorClass === 'transfer' ||
+    descriptorClass === 'blik_p2p';
+
+  return isPaymentTypeWord ? 'card' : descriptorClass;
 }
 
 function collapseWhitespace(value: string): string {
@@ -198,12 +219,14 @@ function extractMerchant(
   description: string,
   descriptorClass: DescriptorClass,
   counterparty: string | null,
+  isWiseCard: boolean,
 ): string | null {
   if (descriptorClass === 'transfer' || descriptorClass === 'blik_p2p') {
     return counterparty;
   }
 
-  const merchant = stripTrailingMetadata(stripFirstPrefix(description));
+  const prefixes = isWiseCard ? PROCESSOR_PREFIXES : MERCHANT_PREFIXES;
+  const merchant = stripTrailingMetadata(stripFirstPrefix(description, prefixes));
 
   return merchant.length === 0 ? null : merchant;
 }
@@ -215,14 +238,8 @@ function cutAtTitle(rest: string): string {
   return name.length === 0 ? rest : name;
 }
 
-function stripFirstPrefix(description: string): string {
-  // The Wise wrapper hides the real descriptor: "... issued by PayU Biedronka" strips like "PayU Biedronka".
-  if (WISE_CARD_PREFIX.test(description)) {
-    // Never fall back to the full title: it carries the amount, so every purchase would key differently.
-    return stripFirstPrefix(description.replace(WISE_CARD_PREFIX, ''));
-  }
-
-  for (const prefix of MERCHANT_PREFIXES) {
+function stripFirstPrefix(description: string, prefixes: readonly RegExp[]): string {
+  for (const prefix of prefixes) {
     if (prefix.test(description)) {
       return keepPrefixWhenNothingFollows(description, description.replace(prefix, ''));
     }
