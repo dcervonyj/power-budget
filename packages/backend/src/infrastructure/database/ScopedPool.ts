@@ -31,11 +31,18 @@ type QueryCallback = (error: Error | undefined, result?: unknown) => void;
  * The scope is resolved when `query`/`connect` is called, not when pg hands the connection out,
  * so a caller queued behind a busy pool keeps its own scope.
  *
+ * The cache is only sound because the settings are written on an idle connection (autocommit),
+ * so no later ROLLBACK can undo them. ScopedPool therefore follows the transaction status
+ * Postgres reports with every ReadyForQuery: a connection released inside a transaction (open or
+ * failed) is destroyed together with its cached settings, and a checkout never writes settings on
+ * a connection that is not idle.
+ *
  * Invariant: nothing else writes these settings at session level. Transaction-local writes
  * (`set_config(..., true)`, e.g. refresh_plan_actuals) revert to the session value and are fine.
  */
 export class ScopedPool {
   private readonly appliedSql = new WeakMap<PoolClient, string>();
+  private readonly transactions = new TransactionStatusTracker();
 
   constructor(
     private readonly pool: Pool,
@@ -181,6 +188,13 @@ export class ScopedPool {
 
   private async checkout(scope: DbScope | null): Promise<PoolClient> {
     const client: PoolClient = await Reflect.apply(pg.Pool.prototype.connect, this.pool, []);
+    this.transactions.follow(client);
+    client.release = new GuardedRelease(
+      client,
+      client.release,
+      this.transactions,
+      this.appliedSql,
+    ).bound();
     try {
       await this.applyScope(client, scope);
     } catch (error) {
@@ -194,11 +208,72 @@ export class ScopedPool {
 
   private async applyScope(client: PoolClient, scope: DbScope | null): Promise<void> {
     const sql = ScopedPool.settingsSql(scope);
+    if (!this.transactions.isIdle(client)) {
+      throw new Error('ScopedPool: refusing a connection that is inside a transaction');
+    }
     if (this.appliedSql.get(client) === sql) {
       return;
     }
     this.appliedSql.delete(client);
     await client.query(sql);
     this.appliedSql.set(client, sql);
+  }
+}
+
+/**
+ * Records the transaction status of each connection from Postgres' ReadyForQuery message:
+ * 'I' idle, 'T' inside a transaction block, 'E' inside a failed transaction block.
+ * A connection it cannot follow counts as not idle, so it is never reused with cached settings.
+ */
+class TransactionStatusTracker {
+  private readonly statuses = new WeakMap<PoolClient, string>();
+
+  follow(client: PoolClient): void {
+    if (this.statuses.has(client) || !(client instanceof pg.Client)) {
+      return;
+    }
+    // pg hands out a connection only between statements, so a newly followed one is idle.
+    this.statuses.set(client, 'I');
+    client.connection.on('readyForQuery', this.record.bind(this, client));
+  }
+
+  isIdle(client: PoolClient): boolean {
+    return this.statuses.get(client) === 'I';
+  }
+
+  private record(client: PoolClient, message: unknown): void {
+    if (typeof message === 'object' && message !== null && 'status' in message) {
+      this.statuses.set(client, String(message.status));
+    }
+  }
+}
+
+/** Destroys a connection given back inside a transaction, and forgets its settings. */
+class GuardedRelease {
+  constructor(
+    private readonly client: PoolClient,
+    private readonly release: (error?: Error | boolean) => void,
+    private readonly transactions: TransactionStatusTracker,
+    private readonly appliedSql: WeakMap<PoolClient, string>,
+  ) {}
+
+  bound(): (error?: Error | boolean) => void {
+    return this.run.bind(this);
+  }
+
+  private run(error?: Error | boolean): void {
+    const reason = error || this.unusableReason();
+    if (reason) {
+      this.appliedSql.delete(this.client);
+    }
+    this.release(reason || undefined);
+  }
+
+  private unusableReason(): Error | false {
+    if (this.transactions.isIdle(this.client)) {
+      return false;
+    }
+
+    return new Error('ScopedPool: connection released inside a transaction');
   }
 }
