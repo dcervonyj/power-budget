@@ -16,8 +16,10 @@ describe('AddExpenseApi', () => {
   it('posts the expense as a negative integer string, then maps it to the planned item', async () => {
     const http = new RecordingHttpClient();
     http.respondWith({ id: 'tx-1' }, {});
+    const api = new AddExpenseApi(http);
 
-    const created = await new AddExpenseApi(http).add(EXPENSE);
+    const created = await api.create(EXPENSE);
+    await api.map(created.id, 'item-groceries');
 
     expect(created.id).toBe('tx-1');
     expect(http.calls).toEqual([
@@ -44,7 +46,7 @@ describe('AddExpenseApi', () => {
     const http = new RecordingHttpClient();
     http.respondWith({ id: 'tx-2' });
 
-    await new AddExpenseApi(http).add({ ...EXPENSE, plannedItemId: null });
+    await new AddExpenseApi(http).create({ ...EXPENSE, plannedItemId: null });
 
     expect(http.calls.map((call) => call.method)).toEqual(['POST']);
   });
@@ -53,7 +55,7 @@ describe('AddExpenseApi', () => {
     const http = new RecordingHttpClient();
     http.respondWith({ id: 'tx-3' });
 
-    await new AddExpenseApi(http).add({
+    await new AddExpenseApi(http).create({
       ...EXPENSE,
       spentMinor: 9007199254740993n,
       plannedItemId: null,

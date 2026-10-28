@@ -1,5 +1,6 @@
 import React from 'react';
-import { screen, userEvent, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
+import { act, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type {
   AccountDto,
   PlanDashboardResponseDto,
@@ -157,5 +158,68 @@ describe('AddExpenseScreen', () => {
     await userEvent.setup().press(screen.getByRole('button', { name: 'Back to Today' }));
 
     expect(mockNavigate).toHaveBeenCalledWith('Tabs', { screen: 'Dashboard' });
+  });
+
+  it('retries only the mapping after it failed, without posting a duplicate', async () => {
+    mockPatch.mockRejectedValueOnce(new Error('offline'));
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() =>
+      expect(screen.getByText('Could not save the expense. Try again.')).toBeTruthy(),
+    );
+
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPatch).toHaveBeenCalledTimes(2);
+    expect(mockPatch).toHaveBeenLastCalledWith('/transactions/tx-1/mapping', {
+      plannedItemId: 'item-groceries',
+    });
+  });
+
+  it('reloads the dashboard on Add another so the next figures include the saved expense', async () => {
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    expect(mockDashboard).toHaveBeenCalledTimes(1);
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Add another' }));
+
+    await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(2));
+  });
+
+  it('refreshes the date and dashboard when the app becomes active after midnight', async () => {
+    const listeners: Array<(state: string) => void> = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener);
+
+      return { remove: jest.fn() };
+    });
+    jest.useFakeTimers({ now: new Date(2026, 9, 22, 23, 50), advanceTimers: true });
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+
+    jest.setSystemTime(new Date(2026, 9, 23, 0, 10));
+    await act(async () => {
+      listeners.forEach((listener) => {
+        listener('active');
+      });
+    });
+    await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByText('Oct 23')).toBeTruthy());
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    expect(mockPost).toHaveBeenCalledWith(
+      '/transactions',
+      expect.objectContaining({ occurredOn: '2026-10-23' }),
+    );
+    jest.useRealTimers();
   });
 });
