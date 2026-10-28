@@ -193,7 +193,7 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       );
       expect(seen.rows.map((r) => r.id).sort()).toEqual([A.txId, A.liveTxId].sort());
 
-      // Same (single) pooled connection, no scope: the transaction-local setting is gone.
+      // Same (single) pooled connection, no scope: ScopedPool resets the settings.
       const after = await appPool.query('SELECT id FROM transactions');
       expect(after.rows).toHaveLength(0);
     });

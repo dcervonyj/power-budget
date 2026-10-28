@@ -3,7 +3,7 @@ import type { HouseholdId, UserId } from '@power-budget/core';
 
 /**
  * The tenancy context a database statement runs under. The ScopedPool turns it into the
- * transaction-local Postgres settings the RLS policies read (migration 0008_rls_tenancy):
+ * session-level Postgres settings of the pooled connection that the RLS policies read (migration 0008_rls_tenancy):
  *
  * - `household`: an authenticated request of a household member. RLS shows that household only.
  * - `user`: an authenticated request of a user without a household. Household rows are hidden.
@@ -15,7 +15,7 @@ export type DbScope =
   | { readonly kind: 'user'; readonly userId: UserId }
   | { readonly kind: 'system'; readonly reason: string };
 
-/** The values written with `set_config(name, value, true)` at the start of every transaction. */
+/** The values written with `set_config(name, value, false)` when a connection is checked out for a scope. */
 export interface DbScopeSettings {
   readonly householdId: string;
   readonly userId: string;
