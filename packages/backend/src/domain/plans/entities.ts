@@ -7,6 +7,7 @@ import type {
   UserId,
   CategoryId,
   Money,
+  PlannedItemMatchHint,
   IsoDate,
   IsoDateTime,
 } from '@power-budget/core';
@@ -53,6 +54,7 @@ export interface PlannedItem {
   readonly direction: PlannedDirection;
   readonly amount: Money;
   readonly note: string | null;
+  readonly matchHint: PlannedItemMatchHint | null;
   readonly createdAt: IsoDateTime;
   readonly updatedAt: IsoDateTime;
 }
@@ -65,11 +67,14 @@ export interface NewPlannedItem {
   readonly direction: PlannedDirection;
   readonly amount: Money;
   readonly note?: string | null;
+  readonly matchHint?: PlannedItemMatchHint | null;
 }
 
 export interface PlannedItemPatch {
   readonly amount?: Money;
   readonly note?: string | null;
+  /** null clears the hint. */
+  readonly matchHint?: PlannedItemMatchHint | null;
 }
 
 export interface PlannedItemVersion {

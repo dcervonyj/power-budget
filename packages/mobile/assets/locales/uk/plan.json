@@ -54,5 +54,14 @@
   "plan.archive.body": "Ви впевнені, що хочете архівувати цей план?",
   "plan.archive.cancel": "Скасувати",
   "plan.archive.confirm": "Архівувати",
-  "plan.error.categories": "Не вдалося завантажити категорії."
+  "plan.error.categories": "Не вдалося завантажити категорії.",
+  "plan.matchHint.title": "Підказка для зіставлення",
+  "plan.matchHint.description": "Допомагає автоматично зіставляти банківські транзакції з цією позицією.",
+  "plan.matchHint.counterparty": "Контрагент містить",
+  "plan.matchHint.amount": "Очікувана сума",
+  "plan.matchHint.tolerance": "Допуск суми (±)",
+  "plan.matchHint.dayOfMonth": "День місяця",
+  "plan.matchHint.dayWindow": "Вікно днів (± днів)",
+  "plan.matchHint.save": "Зберегти підказку",
+  "plan.matchHint.invalid": "Перевірте виділені поля підказки. Допуск потребує суми, а вікно днів потребує дня."
 }

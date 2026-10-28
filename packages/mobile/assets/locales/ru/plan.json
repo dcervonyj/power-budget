@@ -54,5 +54,14 @@
   "plan.archive.body": "Вы уверены, что хотите архивировать этот план?",
   "plan.archive.cancel": "Отмена",
   "plan.archive.confirm": "Архивировать",
-  "plan.error.categories": "Не удалось загрузить категории."
+  "plan.error.categories": "Не удалось загрузить категории.",
+  "plan.matchHint.title": "Подсказка для сопоставления",
+  "plan.matchHint.description": "Помогает автоматически сопоставлять банковские транзакции с этой позицией.",
+  "plan.matchHint.counterparty": "Контрагент содержит",
+  "plan.matchHint.amount": "Ожидаемая сумма",
+  "plan.matchHint.tolerance": "Допуск суммы (±)",
+  "plan.matchHint.dayOfMonth": "День месяца",
+  "plan.matchHint.dayWindow": "Окно дней (± дней)",
+  "plan.matchHint.save": "Сохранить подсказку",
+  "plan.matchHint.invalid": "Проверьте выделенные поля подсказки. Допуск требует суммы, а окно дней требует дня."
 }

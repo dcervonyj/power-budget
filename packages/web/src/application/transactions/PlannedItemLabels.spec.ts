@@ -25,6 +25,7 @@ function item(id: string, planId: string, categoryId: string): PlannedItemDto {
     direction: 'expense',
     amount: { amountMinor: '100', currency: 'EUR' },
     note: null,
+    matchHint: null,
     createdAt: '2026-10-01T00:00:00.000Z',
     updatedAt: '2026-10-01T00:00:00.000Z',
   };

@@ -78,6 +78,7 @@ export class ClonePlanFromPreviousUseCase {
       direction: item.direction,
       amount: item.amount,
       note: item.note,
+      matchHint: item.matchHint,
     };
   }
 }

@@ -47,6 +47,7 @@ export function makeItem(overrides: Partial<PlannedItem> = {}): PlannedItem {
     direction: 'expense',
     amount: { amountMinor: 150000n, currency: 'PLN' },
     note: null,
+    matchHint: null,
     createdAt: IsoDateTime.of('2026-10-01T00:00:00.000Z'),
     updatedAt: IsoDateTime.of('2026-10-01T00:00:00.000Z'),
     ...overrides,
