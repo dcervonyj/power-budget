@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE, languageOf } from '../../domain/locale.js';
 export type SupportedLocale = 'en' | 'uk' | 'ru' | 'pl';
 
 const SUPPORTED: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
@@ -15,8 +16,10 @@ export class LocaleResolver {
     if (stored && (SUPPORTED as readonly string[]).includes(stored)) {
       return stored as SupportedLocale;
     }
-    const lang = deviceLanguageCode.split('-')[0] ?? 'en';
+    const lang = languageOf(deviceLanguageCode);
 
-    return (SUPPORTED as readonly string[]).includes(lang) ? (lang as SupportedLocale) : 'en';
+    return (SUPPORTED as readonly string[]).includes(lang)
+      ? (lang as SupportedLocale)
+      : DEFAULT_LOCALE;
   }
 }
