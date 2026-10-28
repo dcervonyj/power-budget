@@ -40,6 +40,7 @@ const DEFAULT_REFRESH_RACE_TIMING: RefreshRaceTiming = { waitMs: 3000, pollMs: 1
 const AUTH_PATH_PREFIX = '/auth/';
 const REFRESH_PATH = '/auth/refresh';
 const UNAUTHORIZED = 401;
+const REVOKE_TIMEOUT_MS = 5000;
 const SESSION_REJECTED_STATUSES: readonly number[] = [400, 401];
 const ABSOLUTE_URL_ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/]+/i;
 
@@ -129,17 +130,35 @@ export class ApiClient implements HttpClient {
   }
 
   /**
-   * Revokes the refresh token on the server (best effort, never throws). /auth/logout needs a valid
-   * access token, so an expired one is refreshed first and the logout retried with the new pair.
+   * Revokes the refresh token on the server (best effort, never throws, bounded by a timeout so a
+   * stalled request cannot block the local sign-out). A refresh already in flight is awaited first
+   * so the token that ends up current is the one revoked. /auth/logout needs a valid access token,
+   * so an expired one is refreshed first and the logout retried with the new pair.
    */
   async revokeSession(): Promise<void> {
+    await Promise.race([this.revokeBestEffort(), delay(REVOKE_TIMEOUT_MS)]);
+  }
+
+  private async revokeBestEffort(): Promise<void> {
     try {
+      await this.settleRefreshInFlight();
       await this.postLogout();
     } catch (error) {
       if (readApiError(error).status !== UNAUTHORIZED) {
         return;
       }
       await this.refreshThenLogout();
+    }
+  }
+
+  private async settleRefreshInFlight(): Promise<void> {
+    if (!this.refreshInFlight) {
+      return;
+    }
+    try {
+      await this.waitForRefresh();
+    } catch {
+      // A failed refresh leaves the stored pair as it was; revoke whatever is current.
     }
   }
 

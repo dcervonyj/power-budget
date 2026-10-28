@@ -1,5 +1,5 @@
 import axios, { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClient, type RefreshRaceTiming } from '../ApiClient.js';
 import { readApiError } from '../ApiError.js';
 import type { SecureTokenStore } from '../../tokens/SecureTokenStore.js';
@@ -503,6 +503,50 @@ describe('ApiClient token refresh', () => {
     await expect(client.revokeSession()).resolves.toBeUndefined();
 
     expect(seen.filter((request) => request.url === '/auth/refresh')).toHaveLength(0);
+  });
+
+  it('revokes the token that ends up current when a refresh is in flight', async () => {
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      return { status: 201, data: { accessToken: 'new-access', refreshToken: 'new-refresh' } };
+    };
+    routes['/auth/logout'] = () => ({ status: 204, data: {} });
+    const client = createClient();
+
+    const pending = withinGuard(client.get('/transactions'));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await client.revokeSession();
+    await pending;
+
+    const logout = seen.filter((request) => request.url === '/auth/logout');
+    expect(logout).toHaveLength(1);
+    expect(logout[0]?.body).toEqual({ refreshToken: 'new-refresh' });
+  });
+
+  it('stops waiting for a stalled revocation so the local sign-out can go on', async () => {
+    vi.useFakeTimers();
+    try {
+      routes['/auth/logout'] = () => new Promise<RouteResult>(() => undefined);
+      const client = createClient();
+      let settled = false;
+
+      const revoking = client.revokeSession().then(() => {
+        settled = true;
+      });
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(settled).toBe(false);
+      await vi.advanceTimersByTimeAsync(2000);
+      await revoking;
+      await client.invalidateSession();
+
+      expect(settled).toBe(true);
+      expect(store.access).toBeNull();
+      expect(store.refresh).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('bumps the session id on sign-out and on expiry', async () => {

@@ -125,7 +125,8 @@ export function useSettings(): SettingsViewProps {
   async function signOut(): Promise<void> {
     setSigningOut(true);
     try {
-      await apiClient.revokeSession();
+      // Revocation is bounded and best effort; local tokens are cleared whatever its outcome.
+      await apiClient.revokeSession().catch(ignoreRevocationFailure);
       await apiClient.invalidateSession();
     } finally {
       setSigningOut(false);
@@ -165,6 +166,10 @@ export function useSettings(): SettingsViewProps {
       void signOut();
     },
   };
+}
+
+function ignoreRevocationFailure(): void {
+  // The server keeps the token until it expires; the device must still sign out.
 }
 
 async function readBiometrics(
