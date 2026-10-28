@@ -147,7 +147,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
 
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async insertBankBatch(inputs: readonly NewTransaction[]): Promise<number> {
+  async insertBankBatch(inputs: readonly NewTransaction[], autoMappedBy: UserId): Promise<number> {
     if (inputs.length === 0) {
       return 0;
     }
@@ -162,6 +162,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       ON CONFLICT DO NOTHING
       RETURNING id
     `);
+    await this.mapAutoMapped(inputs, result.rows, autoMappedBy);
 
     return result.rows.length;
   }
@@ -465,6 +466,41 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   }
 
   /** live → pending | booked, pending → booked (plan-banking.md §1.7). */
+  // AI-004: a row the hint matcher auto-mapped gets its mapping (source 'rule', so a manual map or
+  // unmap replaces it), only when the row is new: a skipped duplicate never gets one and an
+  // existing mapping is never overwritten.
+  private async mapAutoMapped(
+    inputs: readonly NewTransaction[],
+    created: readonly Record<string, unknown>[],
+    autoMappedBy: UserId,
+  ): Promise<void> {
+    const createdIds = new Set(created.map(this.createdId, this));
+    const ids = inputs
+      .filter((input) => input.suggestion?.autoMapped === true && createdIds.has(input.id))
+      .map((input) => input.id);
+    if (ids.length === 0) {
+      return;
+    }
+
+    await this.db.execute(sql`
+      INSERT INTO transaction_mappings
+        (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by, source)
+      SELECT id, household_id, suggested_planned_item_id, amount_minor, currency,
+             ${autoMappedBy}::uuid, 'rule'
+      FROM transactions
+      WHERE id IN (${sql.join(
+        ids.map((id) => sql`${id}::uuid`),
+        sql`, `,
+      )})
+        AND suggested_planned_item_id IS NOT NULL
+      ON CONFLICT (transaction_id) DO NOTHING
+    `);
+  }
+
+  private createdId(row: Record<string, unknown>): unknown {
+    return row['id'];
+  }
+
   private upgradableFrom(target: UpgradeTargetStatus): readonly ProvisionalTransactionStatus[] {
     switch (target) {
       case 'pending':

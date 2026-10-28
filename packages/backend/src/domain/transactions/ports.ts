@@ -29,9 +29,10 @@ export interface TransactionRepository {
   /**
    * Bank sync: one `INSERT ... ON CONFLICT DO NOTHING` per batch (the household comes from each
    * row's `householdId`). Rows whose (account, external id) is already stored, or repeated in
-   * the batch, are skipped; returns how many rows were created.
+   * the batch, are skipped; returns how many rows were created. A new row with `autoMapped`
+   * and a suggested planned item also gets its mapping (source `rule`, by `autoMappedBy`).
    */
-  insertBankBatch(inputs: readonly NewTransaction[]): Promise<number>;
+  insertBankBatch(inputs: readonly NewTransaction[], autoMappedBy: UserId): Promise<number>;
   insertManual(input: NewManualTransaction): Promise<Transaction>;
   /** The account when it is in `scope` and owned by `ownerUserId` (accounts are private). */
   findOwnedAccount(

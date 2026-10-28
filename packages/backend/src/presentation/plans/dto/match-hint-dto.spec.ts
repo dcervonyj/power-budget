@@ -30,6 +30,15 @@ describe('matchHintFromDto', () => {
     expect(matchHintFromDto(null)).toBeNull();
   });
 
+  it('rejects an orphan tolerance or day window', () => {
+    expect(() => matchHintFromDto({ counterpartyPattern: 'A', toleranceMinor: '5' })).toThrow(
+      BadRequestException,
+    );
+    expect(() => matchHintFromDto({ counterpartyPattern: 'A', dayWindow: 2 })).toThrow(
+      BadRequestException,
+    );
+  });
+
   it('rejects a hint with no part set', () => {
     expect(() => matchHintFromDto({ counterpartyPattern: '  ' })).toThrow(BadRequestException);
   });

@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
   BankAccountId,
   CategoryId,
+  computePlanActuals,
   HouseholdId,
   IsoDate,
   PlannedItemId,
@@ -21,6 +22,8 @@ import { DrizzleTransferRepository } from '../../infrastructure/transactions/Dri
 import { DrizzleMerchantRuleRepository } from '../../infrastructure/categorisation/DrizzleMerchantRuleRepository.js';
 import { DrizzlePlannedItemResolver } from '../../infrastructure/categorisation/DrizzlePlannedItemResolver.js';
 import { LearnMerchantRuleUseCase } from '../../application/categorisation/LearnMerchantRuleUseCase.js';
+import { DrizzlePlannedItemRepository } from '../../infrastructure/plans/DrizzlePlannedItemRepository.js';
+import { DrizzlePlanActivityReader } from '../../infrastructure/plans/DrizzlePlanActivityReader.js';
 import { SuggestFromPlannedHintsUseCase } from '../../application/categorisation/SuggestFromPlannedHintsUseCase.js';
 import { DrizzlePlannedHintReader } from '../../infrastructure/categorisation/DrizzlePlannedHintReader.js';
 import { SuggestFromMerchantRulesUseCase } from '../../application/categorisation/SuggestFromMerchantRulesUseCase.js';
@@ -51,6 +54,8 @@ let F: Fixture;
 let ingest: IngestBankTransactionsUseCase;
 let mapUseCase: MapTransactionUseCase;
 let txRepo: DrizzleTransactionRepository;
+let planActivity: DrizzlePlanActivityReader;
+let planItems: DrizzlePlannedItemRepository;
 
 function asHousehold<T>(fn: () => Promise<T>): Promise<T> {
   return runInDbScope({ kind: 'household', householdId: F.householdId, userId: F.userId }, fn);
@@ -204,6 +209,8 @@ describe('Integration: merchant memory (AI-003)', () => {
     appPool = ScopedPool.create({ connectionString: containers.appDatabaseUrl, max: 1 }, null);
     const db = drizzle(appPool, { schema });
     txRepo = new DrizzleTransactionRepository(db);
+    planActivity = new DrizzlePlanActivityReader(db);
+    planItems = new DrizzlePlannedItemRepository(db);
     const rules = new DrizzleMerchantRuleRepository(db);
     const items = new DrizzlePlannedItemResolver(db);
     ingest = new IngestBankTransactionsUseCase(
@@ -302,6 +309,75 @@ describe('Integration: merchant memory (AI-003)', () => {
       suggestion_source: 'planned_hint',
       auto_mapped: true,
     });
+    // F1: the mapping exists (source rule), so core counts the row in the plan actuals.
+    const planRows = await fixtures.query(`SELECT plan_id FROM planned_items WHERE id = $1`, [
+      F.octGroceries,
+    ]);
+    const period = { start: IsoDate.of('2026-10-01'), end: IsoDate.of('2026-10-31') };
+    const items = await asHousehold(() =>
+      planItems.listByPlan(PlanId.of(planRows.rows[0].plan_id), { householdId: F.householdId }),
+    );
+    const activity = await asHousehold(() =>
+      planActivity.read({ householdId: F.householdId, period }),
+    );
+    const view = computePlanActuals({
+      plan: {
+        id: PlanId.of(planRows.rows[0].plan_id),
+        period: { kind: 'custom', range: period },
+        baseCurrency: 'PLN',
+      },
+      plannedItems: items,
+      transactions: activity.transactions,
+      mappings: activity.mappings,
+      transfers: activity.transfers,
+      fxTable: new Map(),
+      clock: () => IsoDate.of('2026-10-31'),
+    });
+    const groceries = view.expenseLines.find((line) => line.plannedItemId === F.octGroceries);
+    expect(groceries?.actual.amountMinor).toBe(4500n);
+    const { rows } = await fixtures.query(
+      `SELECT source FROM transaction_mappings WHERE transaction_id = $1`,
+      [october],
+    );
+    expect(rows).toEqual([{ source: 'rule' }]);
+  });
+
+  it('lets a weak day-only hint yield to a learned merchant rule (AI-004)', async () => {
+    await map(await ingestRow('2026-10-02', 'oct-0'), F.octDining);
+    await fixtures.query(`UPDATE planned_items SET match_hint = $2::jsonb WHERE id = $1`, [
+      F.octGroceries,
+      JSON.stringify({ dayOfMonth: 5, dayWindow: 3 }),
+    ]);
+
+    const october = await ingestRow('2026-10-05', 'oct-1');
+
+    expect(await suggestionOf(october)).toMatchObject({
+      suggested_planned_item_id: F.octDining,
+      suggestion_source: 'merchant_rule',
+      auto_mapped: false,
+    });
+    const { rows } = await fixtures.query(
+      `SELECT 1 FROM transaction_mappings WHERE transaction_id = $1`,
+      [october],
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it('does not map again or overwrite a user mapping when the same row is re-ingested (AI-004)', async () => {
+    await fixtures.query(`UPDATE planned_items SET match_hint = $2::jsonb WHERE id = $1`, [
+      F.octGroceries,
+      JSON.stringify({ counterpartyPattern: 'biedronka', amountMinor: '4500' }),
+    ]);
+    const october = await ingestRow('2026-10-05', 'oct-1');
+    await map(october, F.octDining);
+
+    await ingestRow('2026-10-05', 'oct-1');
+
+    const { rows } = await fixtures.query(
+      `SELECT planned_item_id, source FROM transaction_mappings WHERE transaction_id = $1`,
+      [october],
+    );
+    expect(rows).toEqual([{ planned_item_id: F.octDining, source: 'manual' }]);
   });
 
   it('only suggests when two planned items match the same hint (AI-004)', async () => {

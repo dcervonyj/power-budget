@@ -472,6 +472,13 @@ export function matchHintFromDto(dto: MatchHintDto | null): PlannedItemMatchHint
     );
   }
 
+  if (!hasAmount && dto.toleranceMinor !== undefined && dto.toleranceMinor !== null) {
+    throw new BadRequestException('matchHint toleranceMinor needs an amountMinor');
+  }
+  if (!hasDay && dto.dayWindow !== undefined && dto.dayWindow !== null) {
+    throw new BadRequestException('matchHint dayWindow needs a dayOfMonth');
+  }
+
   return {
     counterpartyPattern: pattern === '' ? null : pattern,
     amount: hasAmount

@@ -48,7 +48,7 @@ export class IngestBankTransactionsUseCase {
         input.ownerUserId,
         input.householdId,
       );
-      await this.transactionRepo.insertBankBatch(suggested);
+      await this.transactionRepo.insertBankBatch(suggested, input.ownerUserId);
     }
   }
 

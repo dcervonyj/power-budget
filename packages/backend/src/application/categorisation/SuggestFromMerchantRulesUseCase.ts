@@ -13,6 +13,9 @@ import type {
   TransactionSuggestionFields,
 } from '../../domain/transactions/entities.js';
 
+/** A planned item hint below this confidence (day-only, amount-only) does not pre-empt a rule. */
+const HINT_MERCHANT_PRECEDENCE_CONFIDENCE = 0.9;
+
 /**
  * Merchant memory at ingest (AI-003): looks the row up in the account owner's rules and
  * resolves the rule's category to the planned item of the plan that is active on the
@@ -46,8 +49,8 @@ export class SuggestFromMerchantRulesUseCase {
     householdId: HouseholdId,
     itemByRuleAndDate: Map<string, PlannedItemId | null>,
   ): Promise<TransactionSuggestionFields | null> {
-    // A planned item hint (AI-004) is tried first and wins.
-    if (row.ignored || row.suggestion !== undefined) {
+    // A confident planned item hint (AI-004) is tried first and wins; a weak one yields to a rule.
+    if (row.ignored || (row.suggestion !== undefined && !isWeakHintSuggestion(row.suggestion))) {
       return null;
     }
 
@@ -100,4 +103,12 @@ export class SuggestFromMerchantRulesUseCase {
 
     return resolved === null ? null : resolved.plannedItemId;
   }
+}
+
+/** A day-only or amount-only hint matches many rows; learned merchant memory is the better guess. */
+function isWeakHintSuggestion(suggestion: TransactionSuggestionFields): boolean {
+  return (
+    suggestion.suggestionSource === 'planned_hint' &&
+    (suggestion.suggestionConfidence ?? 0) < HINT_MERCHANT_PRECEDENCE_CONFIDENCE
+  );
 }
