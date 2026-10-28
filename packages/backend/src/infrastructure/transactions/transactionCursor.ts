@@ -24,7 +24,12 @@ export function decodeTransactionCursor(raw: string): TransactionCursor {
   }
   const parsed = new Date(`${occurredOn}T00:00:00Z`);
   // Date.parse rolls 2026-02-30 over to March, so compare the round trip.
-  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== occurredOn) {
+  // Postgres `date` has no year 0 (the regex already caps the year at 9999).
+  if (
+    occurredOn.startsWith('0000') ||
+    Number.isNaN(parsed.getTime()) ||
+    parsed.toISOString().slice(0, 10) !== occurredOn
+  ) {
     throw new InvalidCursorError();
   }
 
