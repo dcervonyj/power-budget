@@ -41,6 +41,8 @@ const DIACRITICS: Readonly<Record<string, string>> = {
 const END = String.raw`(?![\p{L}\d])`;
 
 const MERCHANT_PREFIXES: readonly RegExp[] = [
+  // Wise: "Card transaction of 12.34 PLN issued by Biedronka", "1,234.56" and "1 234,56" amounts.
+  `card transaction of\\s+[-+]?\\d[\\d\\s.,'\u2019]*?\\s*\\p{L}{3}\\s+issued by${END}\\s*`,
   `(?:card payment to|card purchase at|p[łl]atno[śs][ćc] kart[ąa]|transakcja kart[ąa])${END}[\\s*:-]*`,
   `(?:payu|przelewy24|p24)${END}[\\s*:-]*`,
   `(?:blik payment|p[łl]atno[śs][ćc] blik|blik)${END}[\\s*:-]*`,

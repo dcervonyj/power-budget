@@ -59,14 +59,24 @@ describe('merchantRuleKeysOf', () => {
     ]);
   });
 
-  it('still learns a key from a Wise card title', () => {
-    const keys = merchantRuleKeysOf({
+  it('learns the merchant only from a Wise card title, whatever the amount or currency', () => {
+    const pln = merchantRuleKeysOf({
       ...noCounterparty,
       description: 'Card transaction of 12.34 PLN issued by Biedronka',
     });
+    const eur = merchantRuleKeysOf({
+      ...noCounterparty,
+      description: 'card transaction of 1,234.56 EUR issued by BIEDRONKA',
+    });
 
-    expect(keys).toHaveLength(1);
-    expect(keys[0]?.pattern).toContain('biedronka');
+    expect(pln).toEqual([{ matchKind: 'merchant', pattern: 'biedronka' }]);
+    expect(eur).toEqual(pln);
+  });
+
+  it('keeps the key of a title that is not a Wise card title', () => {
+    expect(
+      merchantRuleKeysOf({ ...noCounterparty, description: 'Card payment to Biedronka 12.34' }),
+    ).toEqual([{ matchKind: 'merchant', pattern: 'biedronka 12 34' }]);
   });
 
   it('keeps the counterparty of a transfer description', () => {
