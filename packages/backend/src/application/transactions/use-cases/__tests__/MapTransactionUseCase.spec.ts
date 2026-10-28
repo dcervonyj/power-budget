@@ -11,6 +11,7 @@ import {
   AlreadyTransferError,
 } from '../../../../domain/transactions/errors.js';
 import type { Transaction, Transfer } from '../../../../domain/transactions/entities.js';
+import type { LearnMerchantRuleUseCase } from '../../../categorisation/LearnMerchantRuleUseCase.js';
 import type { TransactionId, PlannedItemId, UserId, HouseholdId, PlanId } from '@power-budget/core';
 
 const txId = 'tx-1' as unknown as TransactionId;
@@ -34,13 +35,15 @@ describe('MapTransactionUseCase', () => {
   let txRepo: ReturnType<typeof mock<TransactionRepository>>;
   let mappingRepo: ReturnType<typeof mock<MappingRepository>>;
   let transferRepo: ReturnType<typeof mock<TransferRepository>>;
+  let merchantMemory: ReturnType<typeof mock<LearnMerchantRuleUseCase>>;
   let useCase: MapTransactionUseCase;
 
   beforeEach(() => {
     txRepo = mock<TransactionRepository>();
     mappingRepo = mock<MappingRepository>();
     transferRepo = mock<TransferRepository>();
-    useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo);
+    merchantMemory = mock<LearnMerchantRuleUseCase>();
+    useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo, merchantMemory);
   });
 
   it('throws TransactionNotFoundError when transaction does not exist', async () => {
@@ -64,6 +67,29 @@ describe('MapTransactionUseCase', () => {
     await useCase.execute(baseInput);
 
     expect(mappingRepo.set).toHaveBeenCalledWith(txId, plannedItemId, userId, { householdId });
+  });
+
+  it('teaches merchant memory when it maps to a planned item', async () => {
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
+    transferRepo.findByTransaction.mockResolvedValue(null);
+
+    await useCase.execute(baseInput);
+
+    expect(merchantMemory.learnFromMapping).toHaveBeenCalledWith({
+      transaction: fakeTx,
+      plannedItemId,
+      by: userId,
+      householdId,
+    });
+  });
+
+  it('learns nothing from an unmap', async () => {
+    txRepo.findOwnedById.mockResolvedValue(fakeTx);
+    transferRepo.findByTransaction.mockResolvedValue(null);
+
+    await useCase.execute({ ...baseInput, plannedItemId: null });
+
+    expect(merchantMemory.learnFromMapping).not.toHaveBeenCalled();
   });
 
   it('unmaps the transaction (plannedItemId = null)', async () => {

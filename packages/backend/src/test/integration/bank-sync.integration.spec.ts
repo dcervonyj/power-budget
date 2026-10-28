@@ -6,6 +6,9 @@ import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BankConnectionId, HouseholdId, IsoDate, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
+import { SuggestFromMerchantRulesUseCase } from '../../application/categorisation/SuggestFromMerchantRulesUseCase.js';
+import { DrizzleMerchantRuleRepository } from '../../infrastructure/categorisation/DrizzleMerchantRuleRepository.js';
+import { DrizzlePlannedItemResolver } from '../../infrastructure/categorisation/DrizzlePlannedItemResolver.js';
 import { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import type { RawBankAccount, RawTransaction } from '../../domain/bank/entities.js';
 import type { FetchTransactionsInput } from '../../domain/bank/ports.js';
@@ -256,7 +259,14 @@ describe('Integration: bank sync pipeline, processor to transactions (CLN-055)',
       new DrizzleBankAccountRepository(db),
       new DrizzleSyncRunRepository(db),
       registry,
-      new IngestBankTransactionsUseCase(new DrizzleTransactionRepository(db), uuidv7),
+      new IngestBankTransactionsUseCase(
+        new DrizzleTransactionRepository(db),
+        uuidv7,
+        new SuggestFromMerchantRulesUseCase(
+          new DrizzleMerchantRuleRepository(db),
+          new DrizzlePlannedItemResolver(db),
+        ),
+      ),
     );
   });
 

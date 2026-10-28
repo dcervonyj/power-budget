@@ -133,6 +133,11 @@ async function seedHousehold(
     [categoryId, householdId, owner],
   );
   await q.query(
+    `INSERT INTO merchant_rules (id, household_id, owner_user_id, match_kind, pattern, category_id, created_from_tx, created_by)
+     VALUES ($1, $2, $3, 'merchant', 'biedronka', $4, $5, $3)`,
+    [randomUUID(), householdId, owner, categoryId, txId],
+  );
+  await q.query(
     `INSERT INTO leftover_snapshots (id, household_id, plan_id, period_end, amount_minor, currency)
      VALUES ($1, $2, $3, '2026-10-31', 100, 'PLN')`,
     [randomUUID(), householdId, planId],

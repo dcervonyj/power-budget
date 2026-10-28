@@ -97,6 +97,7 @@ export class BankSyncProcessor extends WorkerHost {
           accountId: dbAccount.id,
           rawTransactions: rawTxs,
           householdId,
+          ownerUserId: connection.userId,
         });
 
         totalFetched += rawTxs.length;

@@ -11,6 +11,10 @@ import { BankSyncProcessor } from './BankSyncProcessor.js';
 import { BankSyncSchedulerService } from './BankSyncSchedulerService.js';
 import { BankSyncSchedulerUseCase } from '../../application/bank/use-cases/BankSyncSchedulerUseCase.js';
 import { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
+import { CategorisationModule } from '../categorisation/CategorisationModule.js';
+import { DrizzleMerchantRuleRepository } from '../categorisation/DrizzleMerchantRuleRepository.js';
+import { DrizzlePlannedItemResolver } from '../categorisation/DrizzlePlannedItemResolver.js';
+import { SuggestFromMerchantRulesUseCase } from '../../application/categorisation/SuggestFromMerchantRulesUseCase.js';
 import { DrizzleTransactionRepository } from '../transactions/DrizzleTransactionRepository.js';
 
 /**
@@ -18,7 +22,7 @@ import { DrizzleTransactionRepository } from '../transactions/DrizzleTransaction
  * Imported by WorkerModule only, never by the API module graph.
  */
 @Module({
-  imports: [BankModule, TransactionsModule],
+  imports: [BankModule, TransactionsModule, CategorisationModule],
   providers: [
     {
       provide: BankSyncSchedulerUseCase,
@@ -26,10 +30,18 @@ import { DrizzleTransactionRepository } from '../transactions/DrizzleTransaction
       useFactory: (repo: DrizzleBankConnectionRepository) => new BankSyncSchedulerUseCase(repo),
     },
     {
+      provide: SuggestFromMerchantRulesUseCase,
+      inject: [DrizzleMerchantRuleRepository, DrizzlePlannedItemResolver],
+      useFactory: (rules: DrizzleMerchantRuleRepository, items: DrizzlePlannedItemResolver) =>
+        new SuggestFromMerchantRulesUseCase(rules, items),
+    },
+    {
       provide: IngestBankTransactionsUseCase,
-      inject: [DrizzleTransactionRepository],
-      useFactory: (txRepo: DrizzleTransactionRepository) =>
-        new IngestBankTransactionsUseCase(txRepo, uuidv7),
+      inject: [DrizzleTransactionRepository, SuggestFromMerchantRulesUseCase],
+      useFactory: (
+        txRepo: DrizzleTransactionRepository,
+        merchantRules: SuggestFromMerchantRulesUseCase,
+      ) => new IngestBankTransactionsUseCase(txRepo, uuidv7, merchantRules),
     },
     {
       provide: BankSyncProcessor,

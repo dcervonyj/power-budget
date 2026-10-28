@@ -4,6 +4,7 @@ import type {
   MappingRepository,
   TransferRepository,
 } from '../../../domain/transactions/ports.js';
+import type { LearnMerchantRuleUseCase } from '../../categorisation/LearnMerchantRuleUseCase.js';
 import {
   TransactionNotFoundError,
   AlreadyTransferError,
@@ -22,6 +23,7 @@ export class MapTransactionUseCase {
     private readonly transactionRepo: TransactionRepository,
     private readonly mappingRepo: MappingRepository,
     private readonly transferRepo: TransferRepository,
+    private readonly merchantMemory: LearnMerchantRuleUseCase,
   ) {}
 
   async execute(input: MapTransactionInput): Promise<void> {
@@ -40,5 +42,13 @@ export class MapTransactionUseCase {
     }
 
     await this.mappingRepo.set(input.transactionId, input.plannedItemId, input.by, scope);
+    if (input.plannedItemId !== null) {
+      await this.merchantMemory.learnFromMapping({
+        transaction: tx,
+        plannedItemId: input.plannedItemId,
+        by: input.by,
+        householdId: input.householdId,
+      });
+    }
   }
 }
