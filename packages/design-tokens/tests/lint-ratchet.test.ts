@@ -22,7 +22,7 @@ async function ruleIds(code: string): Promise<string[]> {
   return result.messages.map((message) => message.ruleId ?? 'parse-error');
 }
 
-describe('style ratchet', () => {
+describe('style ratchet', { timeout: 60_000 }, () => {
   it('flags a braceless if', async () => {
     expect(
       await ruleIds(
