@@ -19,6 +19,7 @@ export interface TransactionLabels {
   loadMore(): string;
   transfersNote(): string;
   sortError(): string;
+  moreError(): string;
   detailError(): string;
   detailNotFound(): string;
   detailRetry(): string;
@@ -36,6 +37,7 @@ export interface TransactionLabels {
   mappingError(): string;
   pickerTitle(): string;
   pickerEmpty(): string;
+  pickerError(): string;
   statusTransfer(): string;
   statusToSort(): string;
   sourceBank(): string;
@@ -83,11 +85,7 @@ export function useTransactionLabels(): TransactionLabels {
       });
     },
     sortAll(count) {
-      return text(
-        'tx.month.sortAll',
-        '{count, plural, one {Sort the last one} other {Sort all #}}',
-        { count },
-      );
+      return text('tx.month.sortAll', 'Sort all {count}', { count });
     },
     filterGroup: () => text('tx.filter.group', 'Show'),
     filterOption(filter, count) {
@@ -118,6 +116,7 @@ export function useTransactionLabels(): TransactionLabels {
     transfersNote: () =>
       text('tx.list.transfersNote', 'Transfers between your accounts are not spending.'),
     sortError: () => text('tx.list.sortError', 'Could not sort the transaction.'),
+    moreError: () => text('tx.list.moreError', 'Could not load more transactions.'),
     detailError: () => text('tx.detail.error', 'Could not load the transaction.'),
     detailNotFound: () => text('tx.detail.notFound', 'Transaction not found'),
     detailRetry: () => text('tx.detail.retry', 'Try again'),
@@ -135,6 +134,7 @@ export function useTransactionLabels(): TransactionLabels {
     saveError: () => text('tx.detail.saveError', 'Could not save.'),
     mappingError: () => text('tx.detail.mappingError', 'Could not change the category.'),
     pickerTitle: () => text('tx.detail.pickerTitle', 'Choose a category'),
+    pickerError: () => text('tx.detail.pickerError', 'Could not load the categories.'),
     pickerEmpty: () =>
       text('tx.detail.pickerEmpty', 'No expense categories in an active plan yet.'),
     statusTransfer: () => text('tx.detail.statusTransfer', 'Transfer'),

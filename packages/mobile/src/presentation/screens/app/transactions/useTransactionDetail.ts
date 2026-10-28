@@ -1,22 +1,29 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { categoriesApi, plansApi } from '../../../../infrastructure/index.js';
-import { loadPlannedItemOptions } from '../../../../infrastructure/transactions/PlannedItemCategories.js';
+import {
+  findCategoryName,
+  loadPlannedItemOptions,
+} from '../../../../infrastructure/transactions/PlannedItemCategories.js';
 import type { PlannedItemOption } from '../../../../infrastructure/transactions/PlannedItemCategories.js';
 import { TransactionView } from '../../../../infrastructure/transactions/TransactionView.js';
 import { transactionsGateway } from './transactionsGateway.js';
 import type { TransactionDetailStatus } from './TransactionDetailView.js';
+
+export type OptionsStatus = 'loading' | 'ready' | 'error';
 
 export interface TransactionDetailState {
   readonly status: TransactionDetailStatus;
   readonly transaction: TransactionView | undefined;
   readonly categoryName: string | undefined;
   readonly options: readonly PlannedItemOption[];
+  readonly optionsStatus: OptionsStatus;
   readonly pickerOpen: boolean;
   readonly notes: string;
   readonly saving: boolean;
   /** A failed action; the container shows it as a toast. */
   readonly failure: 'save' | 'mapping' | null;
   readonly retry: () => void;
+  readonly retryOptions: () => void;
   readonly openPicker: () => void;
   readonly closePicker: () => void;
   readonly pickItem: (plannedItemId: string) => void;
@@ -32,6 +39,8 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
   const [status, setStatus] = useState<TransactionDetailStatus>('loading');
   const [transaction, setTransaction] = useState<TransactionView | undefined>(undefined);
   const [options, setOptions] = useState<readonly PlannedItemOption[]>([]);
+  const [optionsStatus, setOptionsStatus] = useState<OptionsStatus>('loading');
+  const [resolved, setResolved] = useState<{ id: string; name: string } | undefined>(undefined);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -48,10 +57,37 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
     }
   }, [transactionId]);
 
+  const loadOptions = useCallback(async (): Promise<void> => {
+    setOptionsStatus('loading');
+    try {
+      setOptions(await loadPlannedItemOptions(plansApi, categoriesApi));
+      setOptionsStatus('ready');
+    } catch {
+      setOptionsStatus('error');
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-    void loadPlannedItemOptions(plansApi, categoriesApi).then(setOptions, () => undefined);
-  }, [load]);
+    void loadOptions();
+  }, [load, loadOptions]);
+
+  const mappedId = transaction?.mapping?.plannedItemId;
+  const inOptions = useMemo(
+    () => options.find((option) => option.plannedItemId === mappedId),
+    [options, mappedId],
+  );
+
+  // The picker lists active plans only; a mapping into an archived plan is resolved on its own.
+  useEffect(() => {
+    if (mappedId === undefined || inOptions !== undefined || optionsStatus === 'loading') {
+      return;
+    }
+    void findCategoryName(plansApi, categoriesApi, mappedId).then(
+      (name) => setResolved(name === undefined ? undefined : { id: mappedId, name }),
+      () => undefined,
+    );
+  }, [mappedId, inOptions, optionsStatus]);
 
   const changeMapping = useCallback(
     async (plannedItemId: string | null): Promise<void> => {
@@ -119,20 +155,21 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
     void load();
   }, [load]);
 
-  const categoryName = options.find(
-    (option) => option.plannedItemId === transaction?.mapping?.plannedItemId,
-  )?.categoryName;
+  const categoryName =
+    inOptions?.categoryName ?? (resolved?.id === mappedId ? resolved?.name : undefined);
 
   return {
     status,
     transaction,
     categoryName,
     options,
+    optionsStatus,
     pickerOpen,
     notes,
     saving,
     failure,
     retry,
+    retryOptions: useCallback((): void => void loadOptions(), [loadOptions]),
     openPicker: useCallback((): void => setPickerOpen(true), []),
     closePicker: useCallback((): void => setPickerOpen(false), []),
     pickItem,

@@ -25,6 +25,9 @@ export interface TransactionDetailViewProps {
   /** Category of the mapped planned item, when it is known. */
   readonly categoryName?: string;
   readonly options: readonly PlannedItemOption[];
+  /** The picker pool is loaded apart from the transaction; a failure must not look like "no categories". */
+  readonly optionsStatus: 'loading' | 'ready' | 'error';
+  readonly onRetryOptions: () => void;
   readonly pickerOpen: boolean;
   readonly notes: string;
   readonly saving: boolean;
@@ -253,6 +256,8 @@ function NotesPanel({
 function CategorySheet({
   transaction,
   options,
+  optionsStatus,
+  onRetryOptions,
   pickerOpen,
   onClosePicker,
   onPickItem,
@@ -264,7 +269,13 @@ function CategorySheet({
   return (
     <Sheet isOpen={pickerOpen} onClose={onClosePicker} title={labels.pickerTitle()}>
       <View style={styles.options}>
-        {options.length === 0 ? <Text style={styles.dim}>{labels.pickerEmpty()}</Text> : null}
+        {optionsStatus === 'loading' ? <SkeletonList rows={2} /> : null}
+        {optionsStatus === 'error' ? (
+          <ErrorBanner message={labels.pickerError()} onRetry={onRetryOptions} />
+        ) : null}
+        {optionsStatus === 'ready' && options.length === 0 ? (
+          <Text style={styles.dim}>{labels.pickerEmpty()}</Text>
+        ) : null}
         {options.map((option) => (
           <Pressable
             key={option.plannedItemId}

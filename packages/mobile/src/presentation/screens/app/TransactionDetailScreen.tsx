@@ -22,6 +22,8 @@ export function TransactionDetailScreen({ route }: Props): React.JSX.Element {
         transaction={detail.transaction}
         categoryName={detail.categoryName}
         options={detail.options}
+        optionsStatus={detail.optionsStatus}
+        onRetryOptions={detail.retryOptions}
         pickerOpen={detail.pickerOpen}
         notes={detail.notes}
         saving={detail.saving}

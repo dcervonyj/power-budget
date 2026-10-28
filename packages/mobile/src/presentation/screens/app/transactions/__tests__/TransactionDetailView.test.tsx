@@ -13,6 +13,8 @@ const BASE: TransactionDetailViewProps = {
   status: 'ready',
   transaction: DETAIL,
   options: OPTIONS,
+  optionsStatus: 'ready',
+  onRetryOptions: jest.fn(),
   pickerOpen: false,
   notes: '',
   saving: false,
@@ -66,8 +68,25 @@ describe('TransactionDetailView', () => {
     expect(onPickItem).toHaveBeenCalledWith('item-fuel');
   });
 
+  it('shows an error with a retry when the categories failed to load', async () => {
+    const onRetryOptions = jest.fn();
+    await renderDetail({ pickerOpen: true, options: [], optionsStatus: 'error', onRetryOptions });
+
+    expect(screen.getByText('Could not load the categories.')).toBeTruthy();
+    expect(screen.queryByText('No expense categories in an active plan yet.')).toBeNull();
+    await userEvent.press(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(onRetryOptions).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not claim there are no categories while they load', async () => {
+    await renderDetail({ pickerOpen: true, options: [], optionsStatus: 'loading' });
+
+    expect(screen.queryByText('No expense categories in an active plan yet.')).toBeNull();
+  });
+
   it('says so when no category can be picked', async () => {
-    await renderDetail({ pickerOpen: true, options: [] });
+    await renderDetail({ pickerOpen: true, options: [], optionsStatus: 'ready' });
 
     expect(screen.getByText('No expense categories in an active plan yet.')).toBeTruthy();
   });

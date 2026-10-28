@@ -7,6 +7,7 @@ import type { AppTabParamList, AppStackParamList } from '../../navigation/types.
 import { Toast } from '../../glass/overlays/Toast.js';
 import { TransactionListView } from './transactions/TransactionListView.js';
 import { useTransactionLabels } from './transactions/useTransactionLabels.js';
+import { useReloadOnFocus } from './transactions/useReloadOnFocus.js';
 import { useTransactionList } from './transactions/useTransactionList.js';
 
 type Props = CompositeScreenProps<
@@ -18,6 +19,7 @@ type Props = CompositeScreenProps<
 export function TransactionListScreen({ navigation }: Props): React.JSX.Element {
   const list = useTransactionList();
   const labels = useTransactionLabels();
+  useReloadOnFocus(navigation, list.reload);
   const openDetail = (id: string): void =>
     navigation.navigate('TransactionDetail', { transactionId: id });
 
@@ -38,14 +40,19 @@ export function TransactionListScreen({ navigation }: Props): React.JSX.Element 
         onRefresh={list.refresh}
         onRetry={list.retry}
         onLoadMore={list.loadMore}
-        onSortAll={() => navigation.navigate('ToSort')}
         onOpen={openDetail}
         onConfirm={list.confirm}
         onUndo={list.undo}
         onChoose={openDetail}
       />
       <Toast
-        message={list.failure === null ? null : labels.sortError()}
+        message={
+          list.failure === null
+            ? null
+            : list.failure === 'more'
+              ? labels.moreError()
+              : labels.sortError()
+        }
         onDismiss={list.dismissFailure}
       />
     </View>

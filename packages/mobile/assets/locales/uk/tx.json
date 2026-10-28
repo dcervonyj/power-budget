@@ -3,7 +3,7 @@
   "tx.month.over": "Перевищено на {amount} у {month}",
   "tx.month.waiting": "{amount} чекає на сортування",
   "tx.month.nothingWaiting": "Нічого не чекає на сортування",
-  "tx.month.sortAll": "{count, plural, one {Відсортувати останню} few {Відсортувати всі #} many {Відсортувати всі #} other {Відсортувати всі #}}",
+  "tx.month.sortAll": "Відсортувати всі {count}",
   "tx.filter.group": "Показати",
   "tx.filter.all": "Усі {count}",
   "tx.filter.toSort": "До сортування {count}",
@@ -36,5 +36,7 @@
   "tx.detail.statusTransfer": "Переказ",
   "tx.detail.statusToSort": "До сортування",
   "tx.detail.sourceBank": "З банку",
-  "tx.detail.sourceManual": "Додано вручну"
+  "tx.detail.sourceManual": "Додано вручну",
+  "tx.list.moreError": "Не вдалося завантажити більше транзакцій.",
+  "tx.detail.pickerError": "Не вдалося завантажити категорії."
 }

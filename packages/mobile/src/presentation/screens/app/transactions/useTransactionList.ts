@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 import { categoriesApi, plansApi } from '../../../../infrastructure/index.js';
+import { SerialQueue } from '../../../../infrastructure/transactions/SerialQueue.js';
+import { loadAllPages } from '../../../../infrastructure/transactions/TransactionPaging.js';
 import {
   categoryNameByItem,
   loadPlannedItemOptions,
@@ -22,6 +24,8 @@ import type {
 import { transactionsGateway } from './transactionsGateway.js';
 import type { TransactionListStatus } from './TransactionListView.js';
 
+export type ListFailure = 'sort' | 'more';
+
 export interface TransactionListState {
   readonly status: TransactionListStatus;
   readonly month: MonthSummary | undefined;
@@ -34,9 +38,11 @@ export interface TransactionListState {
   readonly hasMore: boolean;
   readonly loadingMore: boolean;
   /** A failed action; the container shows it as a toast. */
-  readonly failure: 'sort' | null;
+  readonly failure: ListFailure | null;
   readonly setFilter: (filter: ListFilter) => void;
   readonly refresh: () => void;
+  /** Reloads without the skeleton or the spinner, e.g. when the screen gets focus again. */
+  readonly reload: () => void;
   readonly retry: () => void;
   readonly loadMore: () => void;
   readonly confirm: (id: string) => void;
@@ -53,20 +59,22 @@ export function useTransactionList(): TransactionListState {
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState<ListFilter>('all');
   const [applied, setApplied] = useState<ReadonlySet<string>>(new Set());
-  const [failure, setFailure] = useState<'sort' | null>(null);
+  const [failure, setFailure] = useState<ListFailure | null>(null);
   const [month, setMonth] = useState<MonthSummary | undefined>(undefined);
   const [categoryOfItem, setCategoryOfItem] = useState<ReadonlyMap<string, string>>(new Map());
   const moreInFlight = useRef(false);
+  const mappingQueue = useRef(new SerialQueue());
 
-  const loadFirstPage = useCallback(async (): Promise<void> => {
+  const loadFirstPage = useCallback(async (keepOnError: boolean): Promise<void> => {
     try {
-      const page = await transactionsGateway.page();
-      setItems(page.items);
-      setNextCursor(page.nextCursor);
+      const loaded = await loadAllPages(fetchPage);
+      setItems(loaded.items);
+      setNextCursor(loaded.nextCursor);
       setApplied(new Set());
       setStatus('ready');
     } catch {
-      setStatus('error');
+      // A silent reload keeps what is on screen.
+      setStatus((previous) => (keepOnError && previous === 'ready' ? previous : 'error'));
     } finally {
       setRefreshing(false);
     }
@@ -83,7 +91,7 @@ export function useTransactionList(): TransactionListState {
   }, []);
 
   useEffect(() => {
-    void loadFirstPage();
+    void loadFirstPage(false);
     void loadMonth();
     void loadPlannedItemOptions(plansApi, categoriesApi).then(
       (options) => setCategoryOfItem(categoryNameByItem(options)),
@@ -114,7 +122,7 @@ export function useTransactionList(): TransactionListState {
         setItems((previous) => [...previous, ...page.items]);
         setNextCursor(page.nextCursor);
       })
-      .catch(() => undefined)
+      .catch(() => setFailure('more'))
       .finally(() => {
         moreInFlight.current = false;
         setLoadingMore(false);
@@ -124,7 +132,9 @@ export function useTransactionList(): TransactionListState {
   const setMapping = useCallback(
     async (row: TransactionListRow, plannedItemId: string | null): Promise<boolean> => {
       try {
-        await transactionsGateway.setMapping(row.data.id, plannedItemId);
+        await mappingQueue.current.run(() =>
+          transactionsGateway.setMapping(row.data.id, plannedItemId),
+        );
         void loadMonth();
 
         return true;
@@ -171,13 +181,18 @@ export function useTransactionList(): TransactionListState {
 
   const refresh = useCallback((): void => {
     setRefreshing(true);
-    void loadFirstPage();
+    void loadFirstPage(true);
+    void loadMonth();
+  }, [loadFirstPage, loadMonth]);
+
+  const reload = useCallback((): void => {
+    void loadFirstPage(true);
     void loadMonth();
   }, [loadFirstPage, loadMonth]);
 
   const retry = useCallback((): void => {
     setStatus('loading');
-    void loadFirstPage();
+    void loadFirstPage(false);
   }, [loadFirstPage]);
 
   const dismissFailure = useCallback((): void => setFailure(null), []);
@@ -196,6 +211,7 @@ export function useTransactionList(): TransactionListState {
     failure,
     setFilter,
     refresh,
+    reload,
     retry,
     loadMore,
     confirm,
@@ -206,4 +222,8 @@ export function useTransactionList(): TransactionListState {
 
 function withoutId(ids: ReadonlySet<string>, id: string): ReadonlySet<string> {
   return new Set([...ids].filter((candidate) => candidate !== id));
+}
+
+function fetchPage(cursor?: string): ReturnType<typeof transactionsGateway.page> {
+  return transactionsGateway.page(cursor);
 }

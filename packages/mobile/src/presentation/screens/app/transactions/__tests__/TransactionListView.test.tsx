@@ -92,6 +92,22 @@ describe('TransactionListView', () => {
     expect(onSortAll).toHaveBeenCalledTimes(1);
   });
 
+  it('hides Sort all while no sorting flow is connected', async () => {
+    await renderList({ onSortAll: undefined });
+
+    expect(screen.queryByText(/Sort all/)).toBeNull();
+  });
+
+  it('keeps Load more when the loaded pages hold nothing for the filter', async () => {
+    const onLoadMore = jest.fn();
+    await renderList({ groups: [], filter: 'transfers', hasMore: true, onLoadMore });
+
+    expect(screen.getByText('Nothing here for this filter')).toBeTruthy();
+    await userEvent.press(screen.getByText('Load more'));
+
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+  });
+
   it('hides Sort all when nothing waits', async () => {
     await renderList({ counts: { ...LIST_PROPS.counts, toSort: 0 } });
 
