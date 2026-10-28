@@ -171,12 +171,16 @@ describe('normaliseTransaction extraction', () => {
   });
 
   it.each([
-    'Card transaction of 12.34 PLN issued by',
-    'Card transaction of 12.34 PLN issued by ****1234',
-    'Card transaction of 12.34 PLN issued by Warszawa',
-    'Card transaction of 12.34 PLN issued by 123456',
-  ])('keeps the original title key when no merchant follows the Wise wrapper: %s', (title) => {
-    expect(normaliseTransaction(title).merchantKey).toBe('card transaction of 12 34 pln issued by');
+    ['city only', 'Warszawa', 'warszawa'],
+    ['empty remainder', '', ''],
+    ['mask only', '****1234', ''],
+    ['number only', '123456', ''],
+  ])('keeps a Wise card title key amount-independent: %s', (_name, tail, key) => {
+    const small = normaliseTransaction(`Card transaction of 12.34 PLN issued by ${tail}`.trim());
+    const large = normaliseTransaction(`Card transaction of 1,999.00 EUR issued by ${tail}`.trim());
+
+    expect(small.merchantKey ?? '').toBe(key);
+    expect(large.merchantKey ?? '').toBe(key);
   });
 
   it('strips card masks and times from the merchant', () => {
