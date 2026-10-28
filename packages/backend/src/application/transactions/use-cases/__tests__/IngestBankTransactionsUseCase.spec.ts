@@ -3,7 +3,8 @@ import { mock } from 'vitest-mock-extended';
 import { IngestBankTransactionsUseCase } from '../IngestBankTransactionsUseCase.js';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import type { NewTransaction } from '../../../../domain/transactions/entities.js';
-import type { HouseholdId, BankAccountId } from '@power-budget/core';
+import type { HouseholdId, BankAccountId, UserId } from '@power-budget/core';
+import type { SuggestFromMerchantRulesUseCase } from '../../../categorisation/SuggestFromMerchantRulesUseCase.js';
 import { IsoDate } from '@power-budget/core';
 import type { RawTransaction } from '../../../../domain/bank/entities.js';
 
@@ -12,6 +13,7 @@ const makeId = () => VALID_UUID;
 
 const householdId = 'hh-1' as unknown as HouseholdId;
 const accountId = 'acc-1' as unknown as BankAccountId;
+const ownerUserId = 'u-1' as unknown as UserId;
 
 function makeRawTx(overrides: Partial<RawTransaction> = {}): RawTransaction {
   return {
@@ -44,32 +46,40 @@ function insertedRows(repo: ReturnType<typeof mock<TransactionRepository>>): New
 
 describe('IngestBankTransactionsUseCase', () => {
   let txRepo: ReturnType<typeof mock<TransactionRepository>>;
+  let merchantRules: ReturnType<typeof mock<SuggestFromMerchantRulesUseCase>>;
   let useCase: IngestBankTransactionsUseCase;
 
   beforeEach(() => {
     txRepo = mock<TransactionRepository>();
     txRepo.insertBankBatch.mockResolvedValue(0);
-    useCase = new IngestBankTransactionsUseCase(txRepo, makeId);
+    merchantRules = mock<SuggestFromMerchantRulesUseCase>();
+    merchantRules.suggest.mockImplementation((rows) => Promise.resolve([...rows]));
+    useCase = new IngestBankTransactionsUseCase(txRepo, makeId, merchantRules);
   });
 
   it('writes all booked rows of an account with one insertBankBatch call', async () => {
     const raw2 = makeRawTx({ entryReference: 'ext-2', remittance: 'Lunch' });
     const raw3 = makeRawTx({ entryReference: 'ext-3', remittance: 'Dinner' });
 
-    await useCase.execute({ accountId, rawTransactions: [rawTx, raw2, raw3], householdId });
+    await useCase.execute({
+      accountId,
+      rawTransactions: [rawTx, raw2, raw3],
+      householdId,
+      ownerUserId,
+    });
 
     expect(txRepo.insertBankBatch).toHaveBeenCalledOnce();
     expect(insertedRows(txRepo).map((row) => row.externalId)).toEqual(['ext-1', 'ext-2', 'ext-3']);
   });
 
   it('runs no write when there is nothing to store', async () => {
-    await useCase.execute({ accountId, rawTransactions: [], householdId });
+    await useCase.execute({ accountId, rawTransactions: [], householdId, ownerUserId });
 
     expect(txRepo.insertBankBatch).not.toHaveBeenCalled();
   });
 
   it('stores a booked row with its remittance, counterparty and booking date', async () => {
-    await useCase.execute({ accountId, rawTransactions: [rawTx], householdId });
+    await useCase.execute({ accountId, rawTransactions: [rawTx], householdId, ownerUserId });
 
     expect(insertedRows(txRepo)).toEqual([
       {
@@ -112,7 +122,12 @@ describe('IngestBankTransactionsUseCase', () => {
       remittance: '',
     });
 
-    await useCase.execute({ accountId, rawTransactions: [fxCardPayment], householdId });
+    await useCase.execute({
+      accountId,
+      rawTransactions: [fxCardPayment],
+      householdId,
+      ownerUserId,
+    });
 
     const stored = insertedRows(txRepo)[0]!;
     expect(stored.bank.originalAmount).toEqual({ amountMinor: -1000n, currency: 'EUR' });
@@ -127,7 +142,7 @@ describe('IngestBankTransactionsUseCase', () => {
       valueDate: IsoDate.of('2024-01-16'),
     });
 
-    await useCase.execute({ accountId, rawTransactions: [cardPayment], householdId });
+    await useCase.execute({ accountId, rawTransactions: [cardPayment], householdId, ownerUserId });
 
     expect(insertedRows(txRepo)[0]!.occurredOn).toBe('2024-01-13');
   });
@@ -135,7 +150,7 @@ describe('IngestBankTransactionsUseCase', () => {
   it('falls back to the value date when the bank sends neither transaction nor booking date', async () => {
     const valueDated = makeRawTx({ bookingDate: null, valueDate: IsoDate.of('2024-01-16') });
 
-    await useCase.execute({ accountId, rawTransactions: [valueDated], householdId });
+    await useCase.execute({ accountId, rawTransactions: [valueDated], householdId, ownerUserId });
 
     expect(insertedRows(txRepo)[0]!.occurredOn).toBe('2024-01-16');
   });
@@ -143,7 +158,7 @@ describe('IngestBankTransactionsUseCase', () => {
   it('skips a row without any date', async () => {
     const undated = makeRawTx({ bookingDate: null });
 
-    await useCase.execute({ accountId, rawTransactions: [undated], householdId });
+    await useCase.execute({ accountId, rawTransactions: [undated], householdId, ownerUserId });
 
     expect(txRepo.insertBankBatch).not.toHaveBeenCalled();
   });
@@ -157,7 +172,7 @@ describe('IngestBankTransactionsUseCase', () => {
       makeRawTx({ status: 'booked', entryReference: 'booked-1' }),
     ];
 
-    await useCase.execute({ accountId, rawTransactions: rows, householdId });
+    await useCase.execute({ accountId, rawTransactions: rows, householdId, ownerUserId });
 
     expect(txRepo.insertBankBatch).toHaveBeenCalledOnce();
     expect(insertedRows(txRepo)).toHaveLength(1);
@@ -169,6 +184,7 @@ describe('IngestBankTransactionsUseCase', () => {
       accountId,
       rawTransactions: [makeRawTx({ currency: 'HUF' })],
       householdId,
+      ownerUserId,
     });
 
     const stored = insertedRows(txRepo)[0]!;
@@ -181,6 +197,7 @@ describe('IngestBankTransactionsUseCase', () => {
       accountId,
       rawTransactions: [makeRawTx({ currency: 'pln' })],
       householdId,
+      ownerUserId,
     });
 
     const stored = insertedRows(txRepo)[0]!;
@@ -191,8 +208,13 @@ describe('IngestBankTransactionsUseCase', () => {
   it('gives identical rows without an entry reference distinct keys, the first keeping the old one', async () => {
     const twin = makeRawTx({ entryReference: null });
 
-    await useCase.execute({ accountId, rawTransactions: [twin, twin, twin], householdId });
-    await useCase.execute({ accountId, rawTransactions: [twin], householdId });
+    await useCase.execute({
+      accountId,
+      rawTransactions: [twin, twin, twin],
+      householdId,
+      ownerUserId,
+    });
+    await useCase.execute({ accountId, rawTransactions: [twin], householdId, ownerUserId });
 
     const keys = insertedRows(txRepo).map((row) => row.externalId);
     expect(new Set(keys.slice(0, 3)).size).toBe(3);
@@ -200,7 +222,7 @@ describe('IngestBankTransactionsUseCase', () => {
   });
 
   it('never adds an ordinal to rows keyed by a bank entry reference', async () => {
-    await useCase.execute({ accountId, rawTransactions: [rawTx, rawTx], householdId });
+    await useCase.execute({ accountId, rawTransactions: [rawTx, rawTx], householdId, ownerUserId });
 
     const keys = insertedRows(txRepo).map((row) => row.externalId);
     expect(keys).toEqual(['ext-1', 'ext-1']);

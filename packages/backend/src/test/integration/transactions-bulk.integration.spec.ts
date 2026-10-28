@@ -142,6 +142,11 @@ describe('Integration: bulk transfer and ignore (UI-015)', () => {
   async function mapToNewItem(member: Member, txId: string): Promise<void> {
     const planId = uuidv7();
     const itemId = uuidv7();
+    const categoryId = uuidv7();
+    await getPool().query(
+      `INSERT INTO categories (id, household_id, name) VALUES ($1, $2, 'Food')`,
+      [categoryId, member.householdId],
+    );
     await getPool().query(
       `INSERT INTO plans (id, household_id, owner_user_id, name, type, period_kind, period_start, period_end, base_currency)
        VALUES ($1, $2, $3, 'P', 'household', 'monthly', '2026-10-01', '2026-10-31', 'PLN')`,
@@ -150,7 +155,7 @@ describe('Integration: bulk transfer and ignore (UI-015)', () => {
     await getPool().query(
       `INSERT INTO planned_items (id, plan_id, household_id, category_id, direction, amount_minor, currency)
        VALUES ($1, $2, $3, $4, 'expense', 5000, 'PLN')`,
-      [itemId, planId, member.householdId, uuidv7()],
+      [itemId, planId, member.householdId, categoryId],
     );
     const res = await app.inject({
       method: 'PATCH',

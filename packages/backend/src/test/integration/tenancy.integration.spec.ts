@@ -167,6 +167,7 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
         for (const table of [
           'transactions',
           'live_signals',
+          'merchant_rules',
           'bank_connections',
           'bank_accounts',
           'plans',
@@ -385,6 +386,66 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
         await count(`live_signals WHERE id = $1 AND state = 'received'`, [B.liveSignalId]),
       ).toBe(1);
       await expect(insert(A.householdId, A.userId, A.liveTxId)).resolves.toBeDefined();
+    });
+
+    it('scopes merchant_rules to the household, its members, categories and transactions (AI-003)', async () => {
+      const categoryOf = async (t: Tenant): Promise<string> => {
+        const id = randomUUID();
+        await fixtures.query(
+          `INSERT INTO categories (id, household_id, name) VALUES ($1, $2, 'Food')`,
+          [id, t.householdId],
+        );
+
+        return id;
+      };
+      const catA = await categoryOf(A);
+      const catB = await categoryOf(B);
+      const ruleB = randomUUID();
+      await fixtures.query(
+        `INSERT INTO merchant_rules (id, household_id, owner_user_id, match_kind, pattern, category_id, created_by)
+         VALUES ($1, $2, $3, 'merchant', 'biedronka', $4, $3)`,
+        [ruleB, B.householdId, B.userId, catB],
+      );
+      const insert = (
+        household: string,
+        owner: string,
+        category: string,
+        tx: string | null,
+      ): Promise<unknown> =>
+        asTenant(A, () =>
+          appPool.query(
+            `INSERT INTO merchant_rules (id, household_id, owner_user_id, match_kind, pattern, category_id, created_from_tx, created_by)
+             VALUES ($1, $2, $3, 'merchant', $4, $5, $6, $3)`,
+            [randomUUID(), household, owner, `m-${randomUUID()}`, category, tx],
+          ),
+        );
+
+      const seenByA = await asTenant(A, () => appPool.query('SELECT id FROM merchant_rules'));
+      expect(seenByA.rows).toHaveLength(0);
+      await expect(insert(B.householdId, B.userId, catB, null)).rejects.toMatchObject({
+        code: '42501',
+      });
+      await expect(insert(A.householdId, B.userId, catA, null)).rejects.toMatchObject({
+        code: '42501',
+      });
+      await expect(insert(A.householdId, A.userId, catB, null)).rejects.toMatchObject({
+        code: '42501',
+      });
+      await expect(insert(A.householdId, A.userId, catA, B.txId)).rejects.toMatchObject({
+        code: '42501',
+      });
+      const updated = await asTenant(A, () =>
+        appPool.query(`UPDATE merchant_rules SET hits = 99 WHERE id = $1`, [ruleB]),
+      );
+      const deleted = await asTenant(A, () =>
+        appPool.query('DELETE FROM merchant_rules WHERE id = $1', [ruleB]),
+      );
+      expect(updated.rowCount).toBe(0);
+      expect(deleted.rowCount).toBe(0);
+      expect(await count('merchant_rules WHERE id = $1 AND hits = 0', [ruleB])).toBe(1);
+      await expect(insert(A.householdId, A.userId, catA, A.txId)).resolves.toBeDefined();
+      const seenByB = await asTenant(B, () => appPool.query('SELECT id FROM merchant_rules'));
+      expect(seenByB.rows).toEqual([{ id: ruleB }]);
     });
 
     it('lets system scope (worker) see every household', async () => {

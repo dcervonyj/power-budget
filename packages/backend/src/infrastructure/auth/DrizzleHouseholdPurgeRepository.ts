@@ -25,6 +25,7 @@ export const HOUSEHOLD_PURGED_TABLES: readonly string[] = [
   'planned_items',
   'leftover_snapshots',
   'plans',
+  'merchant_rules',
   'category_privacy',
   'categories',
   'household_exports',
@@ -127,6 +128,7 @@ export class DrizzleHouseholdPurgeRepository implements HouseholdPurgeRepository
       .from(schema.transactions)
       .where(eq(schema.transactions.householdId, householdId));
 
+    await tx.delete(schema.merchantRules).where(eq(schema.merchantRules.householdId, householdId));
     await tx.delete(schema.liveSignals).where(eq(schema.liveSignals.householdId, householdId));
     // FKs to sync_runs, bank_accounts and bank_connections: must go before all three.
     await tx

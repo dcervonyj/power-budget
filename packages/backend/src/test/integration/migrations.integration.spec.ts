@@ -561,6 +561,7 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
       'household_exports',
       'leftover_snapshots',
       'live_signals',
+      'merchant_rules',
       'planned_item_versions',
       'planned_items',
       'plans',
