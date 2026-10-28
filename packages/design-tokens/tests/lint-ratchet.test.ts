@@ -1,9 +1,14 @@
 import { resolve } from 'node:path';
 import { ESLint } from 'eslint';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 // CLN-062: proves the style ratchet in eslint.ratchet.js fires. Lints source text under an existing
 // design-tokens file path (so type-aware rules resolve tsconfig) with the repo's root config.
+// typescript-eslint infers a "single run" when CI=true and then parses the file on disk instead of the text given to
+// lintText, so the first lintText would see the unchanged index.ts and report nothing. A real `eslint` run lints disk
+// content, so this only affects this test; turn the inference off so the fixture text is what gets parsed.
+process.env.TSESTREE_SINGLE_RUN = 'false';
+
 const repoRoot = resolve(__dirname, '../../..');
 const filePath = resolve(repoRoot, 'packages/design-tokens/src/index.ts');
 const eslint = new ESLint({
@@ -18,12 +23,6 @@ async function ruleIds(code: string): Promise<string[]> {
 }
 
 describe('style ratchet', () => {
-  // The very first lintText call of a process returns no messages when CI=true (cause not isolated; CI run
-  // 40631887283 failed on it), so lint a throwaway text once before asserting.
-  beforeAll(async () => {
-    await ruleIds('export const warmUp = 1;\n');
-  });
-
   it('flags a braceless if', async () => {
     expect(
       await ruleIds(
