@@ -17,6 +17,7 @@ export class ReferenceCatalogue {
   private readonly plans: CataloguePlans;
   private readonly categoriesApi: CatalogueCategories;
   private cache = new Map<string, Promise<unknown>>();
+  private changes = 0;
 
   constructor(plans: CataloguePlans, categories: CatalogueCategories) {
     this.plans = plans;
@@ -52,6 +53,12 @@ export class ReferenceCatalogue {
   /** A plan, an item or a category changed here: the next read goes to the API again. */
   invalidate(): void {
     this.cache = new Map();
+    this.changes += 1;
+  }
+
+  /** Changes with every `invalidate()`: a holder of older data can tell it may be out of date. */
+  get version(): number {
+    return this.changes;
   }
 
   /** Sign-out or session end: nothing of the previous user's plans stays. */
