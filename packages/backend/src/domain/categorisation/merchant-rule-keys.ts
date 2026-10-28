@@ -19,10 +19,13 @@ export function merchantRuleKeysOf(source: MerchantRuleSource): MerchantRuleKey[
     keys.push({ matchKind: 'counterparty_iban_hash', pattern: source.counterpartyIbanHash });
   }
 
+  const named = nonEmpty(source.counterpartyName) || nonEmpty(source.merchant);
   const texts: Array<{ text: string | null; isDescription: boolean }> = [
     { text: source.counterpartyName, isDescription: false },
     { text: source.merchant, isDescription: false },
-    { text: source.description, isDescription: true },
+    // Bank boilerplate is shared by many merchants: the description is a key only for rows
+    // that carry no counterparty name or merchant of their own.
+    { text: named ? null : source.description, isDescription: true },
   ];
   for (const { text, isDescription } of texts) {
     const key = text === null ? null : merchantKeyOf(text, isDescription);
@@ -41,6 +44,9 @@ export function merchantRuleConfidence(hits: number): number {
   return thousandths / 1000;
 }
 
+/** merchant_rules.pattern is varchar(255); a longer key is free text, not a merchant. */
+const MAX_PATTERN_LENGTH = 255;
+
 /** Titles that name a kind of payment, not a merchant ("Faktura 1/2026", "Zwrot"). */
 const GENERIC_TITLE_WORDS: readonly string[] = [
   'faktura',
@@ -54,6 +60,12 @@ const GENERIC_TITLE_WORDS: readonly string[] = [
   'rachunek',
   'splata',
   'transfer',
+  'zakup',
+  'transakcja',
+  'blik',
+  'karta',
+  'karty',
+  'kartowa',
   'payment',
   'refund',
   'invoice',
@@ -62,7 +74,7 @@ const GENERIC_TITLE_WORDS: readonly string[] = [
 function merchantKeyOf(text: string, isDescription: boolean): string | null {
   const normalised = normaliseTransaction(text);
   const key = normalised.merchantKey;
-  if (key === null || key === '') {
+  if (key === null || key === '' || key.length > MAX_PATTERN_LENGTH) {
     return null;
   }
   if (!isDescription) {
@@ -79,4 +91,8 @@ function merchantKeyOf(text: string, isDescription: boolean): string | null {
   }
 
   return key;
+}
+
+function nonEmpty(value: string | null): boolean {
+  return value !== null && value.trim() !== '';
 }

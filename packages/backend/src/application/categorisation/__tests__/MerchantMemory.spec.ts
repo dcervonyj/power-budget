@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type {
   CategoryId,
@@ -75,6 +75,7 @@ describe('LearnMerchantRuleUseCase', () => {
   let rules: ReturnType<typeof mock<MerchantRuleRepository>>;
   let items: ReturnType<typeof mock<PlannedItemResolver>>;
   let useCase: LearnMerchantRuleUseCase;
+  const warn = vi.fn();
   const transaction = {
     id: 'tx-1' as TransactionId,
     description: 'Biedronka',
@@ -85,7 +86,20 @@ describe('LearnMerchantRuleUseCase', () => {
   beforeEach(() => {
     rules = mock<MerchantRuleRepository>();
     items = mock<PlannedItemResolver>();
-    useCase = new LearnMerchantRuleUseCase(rules, items, () => now);
+    useCase = new LearnMerchantRuleUseCase(rules, items, () => now, warn);
+  });
+
+  it('logs and swallows a failure so the saved mapping stays', async () => {
+    items.describe.mockRejectedValue(new Error('boom'));
+
+    await useCase.learnFromMapping({
+      transaction,
+      plannedItemId: octoberItem,
+      by: userId,
+      householdId,
+    });
+
+    expect(warn).toHaveBeenCalledWith('Merchant memory skipped for tx-1: Error: boom');
   });
 
   it('upserts a rule with the category and plan kind of the mapped planned item', async () => {

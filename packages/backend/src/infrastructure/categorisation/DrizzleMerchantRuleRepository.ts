@@ -49,7 +49,9 @@ export class DrizzleMerchantRuleRepository implements MerchantRuleRepository {
           categoryId: correction.categoryId,
           planKindPref: correction.planKindPref,
           alwaysAsk: correction.alwaysAsk,
-          hits: sql`${t.hits} + 1`,
+          // A changed choice starts again at one confirmation, so its confidence is not
+          // inherited from the category it replaces.
+          hits: sql`CASE WHEN ${t.categoryId} = ${correction.categoryId} AND ${t.planKindPref} IS NOT DISTINCT FROM ${correction.planKindPref} THEN ${t.hits} + 1 ELSE 1 END`,
           lastHitAt: correction.at,
           createdFromTx: correction.createdFromTx,
           updatedAt: correction.at,

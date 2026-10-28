@@ -22,9 +22,22 @@ export class LearnMerchantRuleUseCase {
     private readonly rules: MerchantRuleRepository,
     private readonly plannedItems: PlannedItemResolver,
     private readonly now: () => Date,
+    private readonly warn: (message: string) => void,
   ) {}
 
+  /**
+   * Best effort: the mapping is already saved, so a failed rule is logged and never fails the
+   * request.
+   */
   async learnFromMapping(input: LearnFromMappingInput): Promise<void> {
+    try {
+      await this.learn(input);
+    } catch (error) {
+      this.warn(`Merchant memory skipped for ${input.transaction.id}: ${String(error)}`);
+    }
+  }
+
+  private async learn(input: LearnFromMappingInput): Promise<void> {
     const { transaction } = input;
     const keys = merchantRuleKeysOf({
       counterpartyIbanHash: transaction.bank.counterpartyIbanHash,

@@ -213,7 +213,12 @@ describe('Integration: merchant memory (AI-003)', () => {
       txRepo,
       new DrizzleMappingRepository(db),
       new DrizzleTransferRepository(db),
-      new LearnMerchantRuleUseCase(rules, items, () => new Date()),
+      new LearnMerchantRuleUseCase(
+        rules,
+        items,
+        () => new Date(),
+        () => undefined,
+      ),
     );
   });
 
@@ -258,7 +263,7 @@ describe('Integration: merchant memory (AI-003)', () => {
     });
   });
 
-  it('lets the most recent correction win and counts every correction as a hit', async () => {
+  it('lets the most recent correction win, counting repeats and restarting on a changed category', async () => {
     const first = await ingestRow('2026-10-05', 'oct-1');
     await map(first, F.octGroceries);
     await map(first, F.octGroceries);
@@ -267,7 +272,7 @@ describe('Integration: merchant memory (AI-003)', () => {
     const second = await ingestRow('2026-10-09', 'oct-2');
     await map(second, F.octDining);
 
-    expect(await ruleOf()).toMatchObject({ category_id: F.dining, hits: 3 });
+    expect(await ruleOf()).toMatchObject({ category_id: F.dining, hits: 1 });
     const november = await ingestRow('2026-11-03', 'nov-1');
     expect(await suggestionOf(november)).toMatchObject({
       suggested_planned_item_id: F.novDining,
