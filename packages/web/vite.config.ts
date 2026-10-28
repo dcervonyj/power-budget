@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { NO_PARSER_ALIAS } from './src/i18n/noParserAlias.js';
 import { precompiledMessages } from './src/i18n/precompiledMessages.js';
 import {
   buildSecurityHeaders,
@@ -71,7 +72,7 @@ export default defineConfig(({ mode }) => {
       dedupe: ['mobx', 'mobx-react-lite', 'react', 'react-dom'],
       alias: {
         // Messages are precompiled to ASTs, so react-intl never parses ICU at runtime.
-        '@formatjs/icu-messageformat-parser': '@formatjs/icu-messageformat-parser/no-parser.js',
+        ...NO_PARSER_ALIAS,
         '@web': path.resolve(__dirname, './src'),
       },
     },

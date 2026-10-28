@@ -19,7 +19,40 @@ function readLocale(locale: string): Record<string, string> {
   );
 }
 
+/** Gives every argument of the message the same number: it drives plural, and select falls back to `other`. */
+function valuesFor(message: string, value: number): Record<string, number> {
+  const names = [...message.matchAll(/\{(\w+)[,}]/g)].map((match) => match[1] ?? '');
+
+  return Object.fromEntries(names.map((name) => [name, value]));
+}
+
+function formatBoth(
+  message: string,
+  locale: string,
+  values: Record<string, unknown>,
+): [string, string] {
+  const raw = createIntl({ locale, messages: { m: message } });
+  const compiled = createIntl({
+    locale,
+    messages: compileMessages({ m: message }, `${locale}.json`) as Record<
+      string,
+      MessageFormatElement[]
+    >,
+  });
+
+  return [
+    raw.formatMessage({ id: 'm' }, values as never),
+    compiled.formatMessage({ id: 'm' }, values as never),
+  ];
+}
+
 describe('compileMessages', () => {
+  it('rejects a message that is not a string', () => {
+    expect(() => compileMessages({ 'nested.id': { a: 'b' } }, 'en.json')).toThrow(
+      /nested\.id.*string/,
+    );
+  });
+
   it('precompiles a plural message that react-intl formats from the AST', () => {
     const source = { 'a.b': 'Refresh in {minutes, plural, one {# minute} other {# minutes}}' };
     const compiled = compileMessages(source, 'en.json');
@@ -41,4 +74,22 @@ describe('compileMessages', () => {
 
     expect(Object.keys(compileMessages(messages, `${locale}.json`))).toEqual(Object.keys(messages));
   });
+
+  it.each(['en', 'uk', 'ru', 'pl'])(
+    'renders %s plural and select messages the same compiled and raw',
+    (locale) => {
+      const sampled = Object.entries(readLocale(locale))
+        .filter(([, message]) => /\{\w+, (plural|select|selectordinal),/.test(message))
+        .slice(0, 5);
+
+      expect(sampled.length).toBeGreaterThan(0);
+      for (const [, message] of sampled) {
+        for (const count of [1, 2, 5, 21]) {
+          const [raw, compiled] = formatBoth(message, locale, valuesFor(message, count));
+
+          expect(compiled).toBe(raw);
+        }
+      }
+    },
+  );
 });
