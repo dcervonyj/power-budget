@@ -144,6 +144,25 @@ describe('useTransactionList pending changes and stale pages', () => {
     expect(result.current.appliedIds.has('a')).toBe(false);
   });
 
+  it('keeps the confirmed row with Undo when a reload already shows the mapping before the write answers', async () => {
+    page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const saving = deferred<undefined>();
+    setMapping.mockReturnValueOnce(saving.promise as never);
+    await act(async () => result.current.confirm('a'));
+
+    page.mockResolvedValueOnce(onePage(item('a', true)));
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(result.current.refreshing).toBe(false));
+
+    const row = result.current.groups[0]?.rows[0];
+    expect(row?.suggestedPlannedItemId).toBe('item-1');
+    expect(result.current.appliedIds.has('a')).toBe(true);
+    expect(result.current.counts.sorted).toBe(1);
+  });
+
   it('drops a Load more answer that arrives after a reload', async () => {
     // The eager load stops at its page limit while the server still has more.
     page.mockResolvedValue({ items: [item('a', false)], nextCursor: 'c1', hasMore: true });
