@@ -6,7 +6,7 @@ import {
 } from '../../../../infrastructure/transactions/PlannedItemCategories.js';
 import type { PlannedItemOption } from '../../../../infrastructure/transactions/PlannedItemCategories.js';
 import { TransactionView } from '../../../../infrastructure/transactions/TransactionView.js';
-import { transactionsGateway } from './transactionsGateway.js';
+import { transactionsGateway, writeQueue } from './transactionsGateway.js';
 import type { TransactionDetailStatus } from './TransactionDetailView.js';
 
 export type OptionsStatus = 'loading' | 'ready' | 'error';
@@ -92,7 +92,7 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
   const changeMapping = useCallback(
     async (plannedItemId: string | null): Promise<void> => {
       try {
-        await transactionsGateway.setMapping(transactionId, plannedItemId);
+        await writeQueue.run(() => transactionsGateway.setMapping(transactionId, plannedItemId));
         setTransaction((previous) =>
           previous === undefined
             ? previous
@@ -122,13 +122,15 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
 
   const toggleTransfer = useCallback(
     (isTransfer: boolean): void => {
-      void transactionsGateway.setTransfer(transactionId, isTransfer).then(
-        () =>
-          setTransaction((previous) =>
-            previous === undefined ? previous : { ...previous, isTransfer },
-          ),
-        () => setFailure('save'),
-      );
+      void writeQueue
+        .run(() => transactionsGateway.setTransfer(transactionId, isTransfer))
+        .then(
+          () =>
+            setTransaction((previous) =>
+              previous === undefined ? previous : { ...previous, isTransfer },
+            ),
+          () => setFailure('save'),
+        );
     },
     [transactionId],
   );

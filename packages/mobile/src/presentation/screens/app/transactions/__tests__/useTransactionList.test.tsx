@@ -6,9 +6,16 @@ import { useTransactionList } from '../useTransactionList.js';
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
-jest.mock('../transactionsGateway.js', () => ({
-  transactionsGateway: { page: jest.fn(), setMapping: jest.fn() },
-}));
+jest.mock('../transactionsGateway.js', () => {
+  const { SerialQueue } = jest.requireActual(
+    '../../../../../infrastructure/transactions/SerialQueue.js',
+  );
+
+  return {
+    transactionsGateway: { page: jest.fn(), setMapping: jest.fn() },
+    writeQueue: new SerialQueue(),
+  };
+});
 jest.mock('../../../../../infrastructure/index.js', () => ({
   apiClient: {},
   plansApi: {
@@ -20,9 +27,14 @@ jest.mock('../../../../../infrastructure/index.js', () => ({
 }));
 
 const page = jest.mocked(transactionsGateway.page);
+const setMapping = jest.mocked(transactionsGateway.setMapping);
 
 /** The API row, reduced to the fields the list reads. */
-function item(id: string, mapped: boolean): TransactionListItemDto {
+function item(
+  id: string,
+  mapped: boolean,
+  suggested: string | null = null,
+): TransactionListItemDto {
   const row = {
     id,
     status: 'booked',
@@ -33,7 +45,7 @@ function item(id: string, mapped: boolean): TransactionListItemDto {
     mapping: mapped ? { plannedItemId: 'item-1', planName: 'October', categoryName: 'Food' } : null,
     mappingSource: null,
     transfer: null,
-    suggestedPlannedItemId: null,
+    suggestedPlannedItemId: suggested,
   };
 
   return row as unknown as TransactionListItemDto;
@@ -54,6 +66,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
 
 beforeEach(() => {
   page.mockReset();
+  setMapping.mockReset();
 });
 
 describe('useTransactionList reloads', () => {
@@ -105,5 +118,52 @@ describe('useTransactionList reloads', () => {
 
     await waitFor(() => expect(result.current.reloadFailed).toBe(false));
     expect(result.current.counts.sorted).toBe(1);
+  });
+});
+
+describe('useTransactionList pending changes and stale pages', () => {
+  it('keeps a confirmed row confirmed when a reload finishes before its request', async () => {
+    page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const saving = deferred<undefined>();
+    setMapping.mockReturnValueOnce(saving.promise as never);
+    await act(async () => result.current.confirm('a'));
+    expect(result.current.appliedIds.has('a')).toBe(true);
+
+    page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    expect(result.current.appliedIds.has('a')).toBe(true);
+
+    page.mockResolvedValueOnce(onePage(item('a', true)));
+    await act(async () => saving.resolve(undefined));
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(result.current.counts.sorted).toBe(1));
+    expect(result.current.appliedIds.has('a')).toBe(false);
+  });
+
+  it('drops a Load more answer that arrives after a reload', async () => {
+    // The eager load stops at its page limit while the server still has more.
+    page.mockResolvedValue({ items: [item('a', false)], nextCursor: 'c1', hasMore: true });
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(result.current.hasMore).toBe(true);
+    page.mockReset();
+
+    const older = deferred<TransactionPageDto>();
+    page.mockReturnValueOnce(older.promise);
+    await act(async () => result.current.loadMore());
+    page.mockResolvedValueOnce(onePage(item('a', true)));
+    await act(async () => result.current.reload());
+    await waitFor(() => expect(result.current.hasMore).toBe(false));
+
+    await act(async () =>
+      older.resolve({ items: [item('b', false)], nextCursor: 'c2', hasMore: true }),
+    );
+
+    expect(result.current.counts.all).toBe(1);
+    expect(result.current.hasMore).toBe(false);
   });
 });
