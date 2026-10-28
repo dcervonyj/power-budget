@@ -9,6 +9,9 @@ import {
 } from './src/infrastructure/security/securityHeaders.js';
 
 const DEFAULT_API_URL = 'http://localhost:3000';
+// One env file for the whole repo: VITE_* variables live in the root .env (CLN-065).
+// Real environment variables (CI, Cloudflare Pages dashboard) still take precedence.
+const ENV_DIR = path.resolve(__dirname, '../..');
 
 /** Writes `dist/_headers` (Cloudflare Pages) with the production CSP. */
 function securityHeadersFile(headers: SecurityHeaders): Plugin {
@@ -22,7 +25,7 @@ function securityHeadersFile(headers: SecurityHeaders): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), 'VITE_');
+  const env = loadEnv(mode, ENV_DIR, 'VITE_');
   const apiUrl = env['VITE_API_URL'] || DEFAULT_API_URL;
   const sentryDsn = env['VITE_SENTRY_DSN'] || undefined;
   const sentryAuthToken = process.env['SENTRY_AUTH_TOKEN'];
@@ -46,6 +49,8 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    envDir: ENV_DIR,
+    envPrefix: 'VITE_',
     plugins,
     build: {
       sourcemap: sentryAuthToken && !gallery ? 'hidden' : false,

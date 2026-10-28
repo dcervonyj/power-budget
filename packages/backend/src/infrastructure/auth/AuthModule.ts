@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_CONFIG, type AppConfig } from '../../config/AppConfig.js';
 import Redis from 'ioredis';
 import { DatabaseModule } from '../database/database.module.js';
 import { QueueModule } from '../queue/queue.module.js';
@@ -23,7 +23,7 @@ import { DrizzleNotificationOutboxPort } from './DrizzleNotificationOutboxPort.j
 import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule, QueueModule, NotificationsModule],
+  imports: [DatabaseModule, QueueModule, NotificationsModule],
   providers: [
     DrizzleUserRepository,
     DrizzleUserProfileRepository,
@@ -40,11 +40,8 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     JwtAccessTokenIssuerAdapter,
     {
       provide: REDIS_CLIENT,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        const url = config.get<string>('REDIS_URL') ?? 'redis://localhost:6379';
-        return new Redis(url);
-      },
+      inject: [APP_CONFIG],
+      useFactory: (config: AppConfig) => new Redis(config.redisUrl),
     },
     RedisRefreshTokenStore,
     RedisFailedAttemptCounter,
@@ -57,9 +54,8 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     },
     {
       provide: EnvKekEncryption,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) =>
-        new EnvKekEncryption(config.get<string>('KEK_BASE64') ?? ''),
+      inject: [APP_CONFIG],
+      useFactory: (config: AppConfig) => new EnvKekEncryption(config.kekBase64),
     },
   ],
   exports: [

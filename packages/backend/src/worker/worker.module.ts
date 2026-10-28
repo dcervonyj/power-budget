@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { AppConfigModule } from '../config/app-config.module.js';
 import { ScheduleModule } from '@nestjs/schedule';
 import { QueueModule } from '../infrastructure/queue/queue.module.js';
 import { WorkerDbScopeModule } from '../infrastructure/database/WorkerDbScopeModule.js';
@@ -19,7 +19,7 @@ import { FxWorkerModule } from '../infrastructure/fx/FxWorkerModule.js';
  */
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    AppConfigModule.forRole('worker'),
     ScheduleModule.forRoot(),
     // Cross-household jobs: statements run with the RLS bypass (CLN-005).
     WorkerDbScopeModule,
