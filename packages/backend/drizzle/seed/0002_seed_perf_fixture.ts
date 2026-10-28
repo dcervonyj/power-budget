@@ -247,6 +247,7 @@ async function seed(): Promise<void> {
 
       mappingBatch.push({
         transactionId: txId,
+        householdId: H_ID,
         plannedItemId: pi.id,
         amountMinor,
         currency: 'PLN',
