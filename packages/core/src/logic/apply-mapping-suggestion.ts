@@ -27,7 +27,9 @@ export function applyMappingSuggestion(
   transaction: Transaction,
   priorMappings: readonly PriorMapping[],
 ): PlannedItemId | null {
-  if (priorMappings.length === 0) return null;
+  if (priorMappings.length === 0) {
+    return null;
+  }
 
   const normMerchant = transaction.merchantName ? normaliseText(transaction.merchantName) : null;
   const normDesc = normaliseText(transaction.description);
@@ -45,6 +47,7 @@ export function applyMappingSuggestion(
   // Step 2: Description substring match
   const descMatches = priorMappings.filter((m) => {
     const priorDesc = normaliseText(m.description);
+
     return (
       (normDesc.length >= 3 && priorDesc.includes(normDesc)) ||
       (priorDesc.length >= 3 && normDesc.includes(priorDesc))
