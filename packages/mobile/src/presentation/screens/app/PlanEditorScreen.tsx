@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text } from 'react-native';
 import { useIntl } from 'react-intl';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -42,6 +42,10 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [draft, setDraft] = useState<PlanDraftItem>(EMPTY_DRAFT);
+  // Amount saves run one after another per item, so a slow earlier save cannot overwrite a newer one.
+  const saveQueues = useRef(new Map<string, Promise<void>>());
+  const pendingSaves = useRef(new Map<string, number>());
+  const confirmedItems = useRef(new Map<string, PlannedItemDto>());
 
   const text = useCallback(
     (id: string, defaultMessage: string): string => intl.formatMessage({ id, defaultMessage }),
@@ -64,6 +68,7 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       ]);
       setPlan(loadedPlan);
       setItems(loadedItems);
+      confirmedItems.current = new Map(loadedItems.map((item) => [item.id, item]));
       setCategories(loadedCategories);
       setSpent(loadedSpent);
     } catch {
@@ -99,12 +104,14 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     if (plan === null) {
       return;
     }
-    const previous = plan;
+    const previousPeriod = plan.period;
     setPlan({ ...plan, period: { start, end } });
     try {
-      setPlan(await plansApi.update(plan.id, { periodStart: start, periodEnd: end }));
+      const saved = await plansApi.update(plan.id, { periodStart: start, periodEnd: end });
+      // Only the period comes from the server: unsaved name and currency edits stay as typed.
+      setPlan((current) => (current === null ? current : { ...current, period: saved.period }));
     } catch {
-      setPlan(previous);
+      setPlan((current) => (current === null ? current : { ...current, period: previousPeriod }));
       setSaveError(text('plan.error.save', 'Could not save the plan.'));
     }
   }
@@ -128,6 +135,7 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
         currency,
       };
       const created = await plansApi.createItem(plan.id, body);
+      confirmedItems.current.set(created.id, created);
       setItems((previous) => [...previous, created]);
       setDraft(EMPTY_DRAFT);
       setSaveError(null);
@@ -136,28 +144,49 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     }
   }
 
-  async function handleAmountChange(itemId: string, amountMinor: string): Promise<void> {
+  function handleAmountChange(itemId: string, amountMinor: string): void {
     const item = items.find((candidate) => candidate.id === itemId);
     if (plan === null || item === undefined) {
       return;
     }
-    const previous = items;
     const { currency } = item.amount;
     if (!isSupportedCurrency(currency)) {
       return;
     }
+    const planIdToSave = plan.id;
     setItems((current) =>
       current.map((entry) =>
         entry.id === itemId ? { ...entry, amount: { amountMinor, currency } } : entry,
       ),
     );
+    pendingSaves.current.set(itemId, (pendingSaves.current.get(itemId) ?? 0) + 1);
+    const previousSave = saveQueues.current.get(itemId) ?? Promise.resolve();
+    saveQueues.current.set(
+      itemId,
+      previousSave.then(() => saveAmount(planIdToSave, itemId, { amountMinor, currency })),
+    );
+  }
+
+  async function saveAmount(
+    planIdToSave: string,
+    itemId: string,
+    body: UpdatePlannedItemDto,
+  ): Promise<void> {
     try {
-      const body: UpdatePlannedItemDto = { amountMinor, currency };
-      const updated = await plansApi.updateItem(plan.id, itemId, body);
-      setItems((current) => current.map((entry) => (entry.id === itemId ? updated : entry)));
+      const updated = await plansApi.updateItem(planIdToSave, itemId, body);
+      confirmedItems.current.set(itemId, updated);
+      if (pendingSaves.current.get(itemId) === 1) {
+        setItems((current) => current.map((entry) => (entry.id === itemId ? updated : entry)));
+      }
     } catch {
-      setItems(previous);
+      const confirmed = confirmedItems.current.get(itemId);
+      if (pendingSaves.current.get(itemId) === 1 && confirmed !== undefined) {
+        // Only this item goes back to its last saved value; other edits stay.
+        setItems((current) => current.map((entry) => (entry.id === itemId ? confirmed : entry)));
+      }
       setSaveError(text('plan.error.itemUpdate', 'Could not update the item.'));
+    } finally {
+      pendingSaves.current.set(itemId, (pendingSaves.current.get(itemId) ?? 1) - 1);
     }
   }
 
@@ -165,12 +194,15 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     if (plan === null) {
       return;
     }
-    const previous = items;
+    const index = items.findIndex((entry) => entry.id === itemId);
+    const removed = items[index];
     setItems((current) => current.filter((entry) => entry.id !== itemId));
     try {
       await plansApi.deleteItem(plan.id, itemId);
     } catch {
-      setItems(previous);
+      if (removed !== undefined) {
+        setItems((current) => [...current.slice(0, index), removed, ...current.slice(index)]);
+      }
       setSaveError(text('plan.error.itemRemove', 'Could not remove the item.'));
     }
   }
@@ -266,7 +298,7 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       }}
       onArchive={handleArchive}
       onAmountChange={(itemId, amountMinor) => {
-        void handleAmountChange(itemId, amountMinor);
+        handleAmountChange(itemId, amountMinor);
       }}
       onRemove={(itemId) => {
         void handleRemove(itemId);

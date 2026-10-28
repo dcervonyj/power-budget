@@ -4,6 +4,7 @@ import { useIntl } from 'react-intl';
 import { isPlanArchived } from '@power-budget/shared-app';
 import type { PlanDto, PlanPeriodKindDto } from '@power-budget/shared-app/contract';
 import { Button } from '../../../components/Button.js';
+import { SegmentedControl } from '../../../glass/controls/SegmentedControl.js';
 import { StatusTag } from '../../../glass/atoms/StatusTag.js';
 import { GlassPanel } from '../../../glass/material/GlassPanel.js';
 import { makeStyles, useGlass } from '../../../theme/index.js';
@@ -16,6 +17,8 @@ export interface PlansListViewProps {
   readonly refreshing: boolean;
   readonly error: string | null;
   readonly creating: boolean;
+  readonly periodKind: PlanPeriodKindDto;
+  readonly onPeriodKindChange: (kind: PlanPeriodKindDto) => void;
   readonly onCreate: () => void;
   readonly onOpen: (planId: string) => void;
   readonly onRefresh: () => void;
@@ -37,6 +40,8 @@ export function PlansListView({
   refreshing,
   error,
   creating,
+  periodKind,
+  onPeriodKindChange,
   onCreate,
   onOpen,
   onRefresh,
@@ -51,6 +56,21 @@ export function PlansListView({
     defaultMessage: 'Create new plan',
   });
 
+  const periodOptions: ReadonlyArray<{ value: PlanPeriodKindDto; label: string }> = [
+    {
+      value: 'weekly',
+      label: intl.formatMessage({ id: 'plan.periodKind.weekly', defaultMessage: 'Weekly' }),
+    },
+    {
+      value: 'monthly',
+      label: intl.formatMessage({ id: 'plan.periodKind.monthly', defaultMessage: 'Monthly' }),
+    },
+    {
+      value: 'custom',
+      label: intl.formatMessage({ id: 'plan.periodKind.custom', defaultMessage: 'Custom' }),
+    },
+  ];
+
   return (
     <ScrollView
       contentContainerStyle={shared.page}
@@ -58,6 +78,12 @@ export function PlansListView({
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={glass.colors.fg} />
       }
     >
+      <SegmentedControl<PlanPeriodKindDto>
+        label={intl.formatMessage({ id: 'plan.field.periodKind', defaultMessage: 'Period' })}
+        options={periodOptions}
+        value={periodKind}
+        onChange={onPeriodKindChange}
+      />
       <Button variant="primary" loading={creating} onPress={onCreate}>
         {createLabel}
       </Button>

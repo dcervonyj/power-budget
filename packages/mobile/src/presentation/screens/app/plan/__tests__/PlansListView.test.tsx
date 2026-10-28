@@ -30,6 +30,8 @@ function props(overrides: Partial<PlansListViewProps> = {}): PlansListViewProps 
     refreshing: false,
     error: null,
     creating: false,
+    periodKind: 'monthly',
+    onPeriodKindChange: jest.fn(),
     onCreate: jest.fn(),
     onOpen: jest.fn(),
     onRefresh: jest.fn(),
@@ -55,6 +57,15 @@ describe('PlansListView', () => {
     await userEvent.setup().press(screen.getByRole('button', { name: /September/ }));
 
     expect(onOpen).toHaveBeenCalledWith('p2');
+  });
+
+  it('reports the chosen period kind before creating', async () => {
+    const onPeriodKindChange = jest.fn();
+    await renderGlass(<PlansListView {...props({ onPeriodKindChange })} />);
+
+    await userEvent.setup().press(screen.getByRole('radio', { name: 'Weekly' }));
+
+    expect(onPeriodKindChange).toHaveBeenCalledWith('weekly');
   });
 
   it('creates a plan from the primary button', async () => {
