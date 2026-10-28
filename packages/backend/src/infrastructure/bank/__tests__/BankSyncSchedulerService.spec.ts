@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { BankConnectionId, HouseholdId } from '@power-budget/core';
+import { BankConnectionId, HouseholdId } from '@power-budget/core';
 import type { BankSyncSchedulerUseCase } from '../../../application/bank/use-cases/BankSyncSchedulerUseCase.js';
 import type { BankSyncQueuePort } from '../../../domain/bank/ports.js';
 import { BankSyncSchedulerService } from '../BankSyncSchedulerService.js';
 
-const HOUSEHOLD_ID = 'hh-1' as HouseholdId;
-const CONN_A = 'conn-a' as BankConnectionId;
-const CONN_B = 'conn-b' as BankConnectionId;
+const HOUSEHOLD_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const CONN_A = BankConnectionId.of('01900000-56de-73cd-85a3-120bb4d80098');
+const CONN_B = BankConnectionId.of('01900000-dcc1-70bf-8cb6-85cec8cdd223');
 
 describe('BankSyncSchedulerService', () => {
   it('enqueues every active connection with the 4-hour UTC slot as scheduledAt', async () => {

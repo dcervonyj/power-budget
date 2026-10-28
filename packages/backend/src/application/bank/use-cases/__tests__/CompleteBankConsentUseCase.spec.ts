@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
+import { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
 import type {
   BankConnectionRepository,
   BankConnector,
@@ -16,15 +16,15 @@ import {
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { BankController } from '../../../../presentation/bank/BankController.js';
 
-const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;
-const ALICE_PARTNER = '01900000-0000-7000-8000-00000000000c' as UserId;
-const MALLORY = '01900000-0000-7000-8000-00000000000b' as UserId;
-const ALICE_HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
-const MALLORY_HOUSEHOLD = '01900000-0000-7000-8000-0000000000b1' as HouseholdId;
-const ALICE_CONN = '01900000-0000-7000-8000-0000000000a2' as BankConnectionId;
-const MALLORY_CONN = '01900000-0000-7000-8000-0000000000b2' as BankConnectionId;
-const MALLORY_RETRY_CONN = '01900000-0000-7000-8000-0000000000b3' as BankConnectionId;
-const MALLORY_TOKEN = 'enc:mallory-wise-token' as EncryptedString;
+const ALICE = UserId.of('01900000-0000-7000-8000-00000000000a');
+const ALICE_PARTNER = UserId.of('01900000-0000-7000-8000-00000000000c');
+const MALLORY = UserId.of('01900000-0000-7000-8000-00000000000b');
+const ALICE_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
+const MALLORY_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000b1');
+const ALICE_CONN = BankConnectionId.of('01900000-0000-7000-8000-0000000000a2');
+const MALLORY_CONN = BankConnectionId.of('01900000-0000-7000-8000-0000000000b2');
+const MALLORY_RETRY_CONN = BankConnectionId.of('01900000-0000-7000-8000-0000000000b3');
+const MALLORY_TOKEN = EncryptedString.of('enc:mallory-wise-token');
 
 function makeConnection(overrides: Partial<BankConnection>): BankConnection {
   return {

@@ -3,7 +3,8 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { Job } from 'bullmq';
 import { mock } from 'vitest-mock-extended';
 import { uuidv7 } from 'uuidv7';
-import type { BankConnectionId, HouseholdId } from '@power-budget/core';
+import { BankConnectionId } from '@power-budget/core';
+import type { HouseholdId } from '@power-budget/core';
 import { startContainers, stopContainers, resetState, getDb, getPool } from './setup.js';
 import { createTestApp } from './app.js';
 import type {
@@ -230,7 +231,7 @@ describe('bank connection lifecycle (CLN-038, real app)', () => {
       status: string,
       encryptedConsent: string | null,
     ): Promise<BankConnectionId> {
-      const id = uuidv7() as BankConnectionId;
+      const id = BankConnectionId.of(uuidv7());
       await getPool().query(
         `INSERT INTO bank_connections (id, household_id, user_id, provider, bank_id, external_consent_ref, encrypted_consent, status)
          VALUES ($1, $2, $3, 'gocardless', $4, $5, $6, $7)`,

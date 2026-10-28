@@ -3,7 +3,7 @@ import { mock } from 'vitest-mock-extended';
 import { IngestBankTransactionsUseCase } from '../IngestBankTransactionsUseCase.js';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import type { NewTransaction } from '../../../../domain/transactions/entities.js';
-import type { HouseholdId, BankAccountId, UserId } from '@power-budget/core';
+import { HouseholdId, BankAccountId, UserId } from '@power-budget/core';
 import type { SuggestFromPlannedHintsUseCase } from '../../../categorisation/SuggestFromPlannedHintsUseCase.js';
 import type { SuggestFromMerchantRulesUseCase } from '../../../categorisation/SuggestFromMerchantRulesUseCase.js';
 import { IsoDate } from '@power-budget/core';
@@ -12,9 +12,9 @@ import type { RawTransaction } from '../../../../domain/bank/entities.js';
 const VALID_UUID = '01900000-0000-7000-8000-000000000001';
 const makeId = () => VALID_UUID;
 
-const householdId = 'hh-1' as unknown as HouseholdId;
-const accountId = 'acc-1' as unknown as BankAccountId;
-const ownerUserId = 'u-1' as unknown as UserId;
+const householdId = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const accountId = BankAccountId.of('01900000-998a-733e-8778-f641457f6a29');
+const ownerUserId = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
 
 function makeRawTx(overrides: Partial<RawTransaction> = {}): RawTransaction {
   return {

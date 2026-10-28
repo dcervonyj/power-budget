@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import { BankConnectionId, HouseholdId, UserId, type EncryptedString } from '@power-budget/core';
+import { BankConnectionId, HouseholdId, UserId, EncryptedString } from '@power-budget/core';
 import type { BankConnectionRepository, BankSyncQueuePort } from '../../../../domain/bank/ports.js';
 import type { BankConnection } from '../../../../domain/bank/entities.js';
 import { RefreshConnectionUseCase } from '../RefreshConnectionUseCase.js';
@@ -19,7 +19,7 @@ const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 const CONNECTION_ID = BankConnectionId.of('01900000-0000-7000-8000-000000000003');
 
 // EncryptedString is a type-only brand with no constructor; the encryption port mints it in prod.
-const CONSENT = 'enc:consent' as EncryptedString;
+const CONSENT = EncryptedString.of('enc:consent');
 
 function makeConnection(userId: UserId, overrides: Partial<BankConnection> = {}): BankConnection {
   return {

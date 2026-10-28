@@ -1,22 +1,19 @@
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type {
+import {
   BankAccountId,
   CategoryId,
-  FxRate,
   FxRateId,
-  FxRateTable,
   HouseholdId,
   IsoDate,
   IsoDateTime,
-  Mapping,
   PlanId,
   PlannedItemId,
-  Transaction,
   TransactionId,
   TransactionMappingId,
   UserId,
 } from '@power-budget/core';
+import type { FxRate, FxRateTable, Mapping, Transaction } from '@power-budget/core';
 import type { Plan, PlannedItem } from '../../domain/plans/entities.js';
 import type {
   PlanActivity,
@@ -27,25 +24,28 @@ import type { FxRateRepository } from '../../domain/fx/index.js';
 import { FX_CARRY_FORWARD_DAYS } from '../../domain/fx/index.js';
 import { PlanActualsService } from './PlanActualsService.js';
 import { PlanFxRatesLoader } from './plan-fx-rates.js';
+import { testUuid } from '../../test/doubles/testUuid.js';
 
-const HH = 'hh-1' as HouseholdId;
-const ANN = 'u-ann' as UserId;
-const BOB = 'u-bob' as UserId;
-const ITEM = 'item-1' as PlannedItemId;
+const HH = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const ANN = UserId.of('01900000-df75-7d2d-8df4-707b8b171d37');
+const BOB = UserId.of('01900000-2f5d-7fe5-8e88-c03764db3083');
+const ITEM = PlannedItemId.of('01900000-8d6b-76cf-88e6-806f74576ba2');
+
+const PLAN_ID = PlanId.of('01900000-9df3-7cd5-8459-d2fb1d3f0b7c');
 
 function plan(overrides: Partial<Plan> = {}): Plan {
   return {
-    id: 'plan-1' as PlanId,
+    id: PLAN_ID,
     householdId: HH,
     ownerUserId: null,
     name: 'October',
     type: 'household',
     periodKind: 'monthly',
-    period: { start: '2026-10-01' as IsoDate, end: '2026-10-31' as IsoDate },
+    period: { start: IsoDate.of('2026-10-01'), end: IsoDate.of('2026-10-31') },
     baseCurrency: 'PLN',
     archivedAt: null,
-    createdAt: '2026-10-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2026-10-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
     ...overrides,
   };
 }
@@ -53,56 +53,56 @@ function plan(overrides: Partial<Plan> = {}): Plan {
 function item(overrides: Partial<PlannedItem> = {}): PlannedItem {
   return {
     id: ITEM,
-    planId: 'plan-1' as PlanId,
+    planId: PlanId.of('01900000-9df3-7cd5-8459-d2fb1d3f0b7c'),
     householdId: HH,
-    categoryId: 'cat-1' as CategoryId,
+    categoryId: CategoryId.of('01900000-2548-776e-8414-dc1c91b1b01c'),
     direction: 'expense',
     amount: { amountMinor: 10_000n, currency: 'PLN' },
     note: null,
     matchHint: null,
-    createdAt: '2026-10-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2026-10-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
     ...overrides,
   };
 }
 
 function tx(id: string, amountMinor: bigint, currency: 'PLN' | 'EUR' | 'USD' = 'PLN'): Transaction {
   return {
-    id: id as TransactionId,
+    id: TransactionId.of(testUuid(id)),
     householdId: HH,
-    accountId: 'acc-1' as BankAccountId,
+    accountId: BankAccountId.of('01900000-998a-733e-8778-f641457f6a29'),
     externalId: null,
     source: 'bank',
     status: 'booked',
     amount: { amountMinor, currency },
     description: id,
     merchantName: null,
-    bookedAt: '2026-10-10' as IsoDate,
-    createdAt: '2026-10-10T00:00:00Z' as IsoDateTime,
+    bookedAt: IsoDate.of('2026-10-10'),
+    createdAt: IsoDateTime.of('2026-10-10T00:00:00Z'),
     ignored: false,
   };
 }
 
 function mapping(txId: string): Mapping {
   return {
-    id: txId as TransactionMappingId,
+    id: TransactionMappingId.of(testUuid(txId)),
     householdId: HH,
-    transactionId: txId as TransactionId,
+    transactionId: TransactionId.of(testUuid(txId)),
     plannedItemId: ITEM,
     createdByUserId: ANN,
-    createdAt: '2026-10-10T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2026-10-10T00:00:00Z'),
   };
 }
 
 function eurPln(): FxRateTable {
   const rate: FxRate = {
-    id: 'fx-1' as FxRateId,
+    id: FxRateId.of('01900000-94c9-799f-880a-403271315132'),
     baseCurrency: 'EUR',
     quoteCurrency: 'PLN',
     rate: '4.25',
-    rateDate: '2026-10-20' as IsoDate,
+    rateDate: IsoDate.of('2026-10-20'),
     source: 'ecb',
-    fetchedAt: '2026-10-20T16:00:00Z' as IsoDateTime,
+    fetchedAt: IsoDateTime.of('2026-10-20T16:00:00Z'),
   };
 
   return new Map([['EUR/PLN', rate]]);
@@ -118,7 +118,7 @@ function activity(): PlanActivity {
 
   return {
     transactions,
-    owners: new Map(transactions.map((t) => [t.id, t.id.startsWith('ann') ? ANN : BOB])),
+    owners: new Map(transactions.map((t) => [t.id, t.description.startsWith('ann') ? ANN : BOB])),
     mappings: [mapping('ann-mapped')],
     transfers: [],
   };
@@ -212,7 +212,7 @@ describe('PlanActualsService', () => {
 
     await expect(
       service.read(plan({ baseCurrency: 'XYZ' }), new Date('2026-10-20T12:00:00Z')),
-    ).rejects.toThrow('UNSUPPORTED_CURRENCY: Plan plan-1 has base currency XYZ');
+    ).rejects.toThrow(`UNSUPPORTED_CURRENCY: Plan ${PLAN_ID} has base currency XYZ`);
   });
 
   it('passes any other error through the FX translation unchanged', () => {
@@ -220,7 +220,7 @@ describe('PlanActualsService', () => {
     const failure = new Error('connection lost');
 
     expect(
-      loader.translateError(failure, { rateDate: '2026-10-20' as IsoDate, table: new Map() }),
+      loader.translateError(failure, { rateDate: IsoDate.of('2026-10-20'), table: new Map() }),
     ).toBe(failure);
   });
 
@@ -230,7 +230,7 @@ describe('PlanActualsService', () => {
     const asOf = new Date('2026-10-20T12:00:00Z');
 
     await scoped.read(plan(), asOf);
-    await scoped.read(plan({ id: 'plan-2' as PlanId }), asOf);
+    await scoped.read(plan({ id: PlanId.of('01900000-1e38-78c5-8214-74c7d1dc7342') }), asOf);
 
     expect(fxRepo.getTable).toHaveBeenCalledTimes(1);
 

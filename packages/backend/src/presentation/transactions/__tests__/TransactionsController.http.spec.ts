@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, TransactionId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
+import type { TransactionId } from '@power-budget/core';
 import { TransactionsController } from '../TransactionsController.js';
 import { AddManualTransactionUseCase } from '../../../application/transactions/use-cases/AddManualTransactionUseCase.js';
 import { BulkActOnTransactionsUseCase } from '../../../application/transactions/use-cases/BulkActOnTransactionsUseCase.js';
@@ -23,8 +24,8 @@ import {
   type HttpTestApp,
 } from '../../../test/http/createHttpTestApp.js';
 
-const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;
-const ALICE_HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
+const ALICE = UserId.of('01900000-0000-7000-8000-00000000000a');
+const ALICE_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
 // Passes ParseUUIDPipe and @IsUUID() (any hex UUID) but is no id the core id types accept.
 const NIL_ID = '00000000-0000-0000-0000-000000000000';
 const V4_ID = '3b241101-e2bb-4255-8caf-4136c566a962';

@@ -1,7 +1,7 @@
 import { FixedClock } from '../../../../test/doubles/FixedClock.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
+import { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
 import type {
   BankConnectionRepository,
   BankConnectorRegistry,
@@ -14,10 +14,10 @@ import {
   BankConnectionForbiddenError,
 } from '../../../../domain/bank/errors.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const OTHER_USER_ID = '01900000-0000-7000-8000-000000000099' as UserId;
-const TEST_HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
-const TEST_CONNECTION_ID = '01900000-0000-7000-8000-000000000003' as BankConnectionId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
+const OTHER_USER_ID = UserId.of('01900000-0000-7000-8000-000000000099');
+const TEST_HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
+const TEST_CONNECTION_ID = BankConnectionId.of('01900000-0000-7000-8000-000000000003');
 
 function makeConnection(overrides?: Partial<BankConnection>): BankConnection {
   return {
@@ -27,7 +27,7 @@ function makeConnection(overrides?: Partial<BankConnection>): BankConnection {
     provider: 'gocardless',
     bankId: 'PKO_PLPKOPPLPW',
     externalConsentRef: 'ref-123',
-    encryptedConsent: 'encrypted-token' as EncryptedString,
+    encryptedConsent: EncryptedString.of('encrypted-token'),
     expiresAt: null,
     status: 'active',
     disconnectedAt: null,

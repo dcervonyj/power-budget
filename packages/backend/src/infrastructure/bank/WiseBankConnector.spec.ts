@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { BankConnectionId, EncryptedString } from '@power-budget/core';
+import { BankConnectionId, EncryptedString } from '@power-budget/core';
 import { WiseBankConnector } from './WiseBankConnector.js';
 import type { Encryption } from '../../domain/auth/ports.js';
 
 const FAKE_TOKEN = 'test-wise-api-token';
-const FAKE_CONNECTION_ID = 'conn-abc' as unknown as BankConnectionId;
-const FAKE_ENCRYPTED = 'encrypted-token' as EncryptedString;
+const FAKE_CONNECTION_ID = BankConnectionId.of('01900000-4c22-7c01-89e3-ee77a20bee1a');
+const FAKE_ENCRYPTED = EncryptedString.of('encrypted-token');
 
 const mockEncryption: Encryption = {
   encrypt: vi.fn(),

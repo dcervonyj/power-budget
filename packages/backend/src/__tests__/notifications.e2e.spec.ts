@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import { EnqueueNotificationUseCase } from '../application/notifications/use-cases/EnqueueNotificationUseCase.js';
 import { OverBudgetDetectorUseCase } from '../application/notifications/use-cases/OverBudgetDetectorUseCase.js';
 import { InMemoryNotificationRepository } from '../test/doubles/InMemoryNotificationRepository.js';
 
-const TEST_HOUSEHOLD_ID = 'test-household-001' as HouseholdId;
-const TEST_USER_ID = 'test-user-001' as UserId;
+const TEST_HOUSEHOLD_ID = HouseholdId.of('01900000-fe57-79ae-8f6f-1808e923dd10');
+const TEST_USER_ID = UserId.of('01900000-ab18-798b-84f2-b4af38094bda');
 
 describe('Notification E2E flow', () => {
   let repo: InMemoryNotificationRepository;

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type {
+import {
   CategoryId,
   HouseholdId,
   IsoDate,
@@ -17,12 +17,13 @@ import type {
 import type { NewTransaction, Transaction } from '../../../domain/transactions/entities.js';
 import { LearnMerchantRuleUseCase } from '../LearnMerchantRuleUseCase.js';
 import { SuggestFromMerchantRulesUseCase } from '../SuggestFromMerchantRulesUseCase.js';
+import { testUuid } from '../../../test/doubles/testUuid.js';
 
-const householdId = 'hh-1' as HouseholdId;
-const userId = 'u-1' as UserId;
-const categoryId = 'cat-groceries' as CategoryId;
-const octoberItem = 'item-oct' as PlannedItemId;
-const novemberItem = 'item-nov' as PlannedItemId;
+const householdId = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const userId = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
+const categoryId = CategoryId.of('01900000-6531-7012-80f0-ce400ebdf7c3');
+const octoberItem = PlannedItemId.of('01900000-ca42-7a08-87d0-ea23b92bffd2');
+const novemberItem = PlannedItemId.of('01900000-af7f-7078-8688-40abdd88f496');
 const now = new Date('2026-10-20T10:00:00Z');
 
 function bank(counterpartyName: string): Transaction['bank'] {
@@ -43,7 +44,7 @@ function bank(counterpartyName: string): Transaction['bank'] {
 
 function rule(overrides: Partial<MerchantRule> = {}): MerchantRule {
   return {
-    id: 'rule-1' as MerchantRuleId,
+    id: MerchantRuleId.of('01900000-31a8-7b4b-80a6-defa3ed1e985'),
     householdId,
     ownerUserId: userId,
     matchKind: 'merchant',
@@ -62,7 +63,7 @@ function rule(overrides: Partial<MerchantRule> = {}): MerchantRule {
 function newTx(occurredOn: string, overrides: Partial<NewTransaction> = {}): NewTransaction {
   return {
     householdId,
-    occurredOn: occurredOn as IsoDate,
+    occurredOn: IsoDate.of(occurredOn),
     amount: { amountMinor: -4500n, currency: 'PLN' },
     description: 'Biedronka',
     merchant: null,
@@ -78,7 +79,7 @@ describe('LearnMerchantRuleUseCase', () => {
   let useCase: LearnMerchantRuleUseCase;
   const warn = vi.fn();
   const transaction = {
-    id: 'tx-1' as TransactionId,
+    id: TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f'),
     description: 'Biedronka',
     merchant: null,
     bank: bank('Biedronka'),
@@ -100,7 +101,9 @@ describe('LearnMerchantRuleUseCase', () => {
       householdId,
     });
 
-    expect(warn).toHaveBeenCalledWith('Merchant memory skipped for tx-1: Error: boom');
+    expect(warn).toHaveBeenCalledWith(
+      `Merchant memory skipped for ${testUuid('tx-1')}: Error: boom`,
+    );
   });
 
   it('upserts a rule with the category and plan kind of the mapped planned item', async () => {
@@ -120,7 +123,7 @@ describe('LearnMerchantRuleUseCase', () => {
       categoryId,
       planKindPref: 'household',
       alwaysAsk: false,
-      createdFromTx: 'tx-1',
+      createdFromTx: '01900000-2321-7f77-806b-ac43756e0a3f',
       by: userId,
       at: now,
     });

@@ -14,7 +14,7 @@ import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHou
 import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from '../../infrastructure/auth/DrizzleHouseholdInviteRepository.js';
-import type { UserId, HouseholdId, EncryptedString } from '@power-budget/core';
+import { UserId, HouseholdId, EncryptedString } from '@power-budget/core';
 
 type DB = NodePgDatabase<typeof schema>;
 
@@ -33,7 +33,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('creates and finds a user by id', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const users = new DrizzleUserRepository(db);
-        const id = makeUserId() as UserId;
+        const id = UserId.of(makeUserId());
 
         const created = await users.create({
           id,
@@ -56,7 +56,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('finds a user by email (case-insensitive)', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const users = new DrizzleUserRepository(db);
-        const id = makeUserId() as UserId;
+        const id = UserId.of(makeUserId());
 
         await users.create({
           id,
@@ -74,7 +74,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('returns null when user not found', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const users = new DrizzleUserRepository(db);
-        const result = await users.findById(makeUserId() as UserId);
+        const result = await users.findById(UserId.of(makeUserId()));
         expect(result).toBeNull();
       });
     });
@@ -82,7 +82,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('updates locale preference', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const users = new DrizzleUserRepository(db);
-        const id = makeUserId() as UserId;
+        const id = UserId.of(makeUserId());
 
         await users.create({
           id,
@@ -105,7 +105,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('creates and finds a household by id', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const households = new DrizzleHouseholdRepository(db);
-        const id = makeHouseholdId() as HouseholdId;
+        const id = HouseholdId.of(makeHouseholdId());
 
         const created = await households.create({ id, name: 'Smith Family', baseCurrency: 'PLN' });
         expect(created.id).toBe(id);
@@ -120,7 +120,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('returns null for unknown household', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const households = new DrizzleHouseholdRepository(db);
-        const result = await households.findById(makeHouseholdId() as HouseholdId);
+        const result = await households.findById(HouseholdId.of(makeHouseholdId()));
         expect(result).toBeNull();
       });
     });
@@ -130,8 +130,8 @@ describe('Integration: auth infrastructure adapters', () => {
         const users = new DrizzleUserRepository(db);
         const households = new DrizzleHouseholdRepository(db);
 
-        const userId = makeUserId() as UserId;
-        const hhId = makeHouseholdId() as HouseholdId;
+        const userId = UserId.of(makeUserId());
+        const hhId = HouseholdId.of(makeHouseholdId());
 
         await users.create({
           id: userId,
@@ -154,8 +154,8 @@ describe('Integration: auth infrastructure adapters', () => {
     it('findMembership returns null for non-member', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const households = new DrizzleHouseholdRepository(db);
-        const hhId = makeHouseholdId() as HouseholdId;
-        const userId = makeUserId() as UserId;
+        const hhId = HouseholdId.of(makeHouseholdId());
+        const userId = UserId.of(makeUserId());
         await households.create({ id: hhId, name: 'HH', baseCurrency: 'USD' });
 
         const result = await households.findMembership(hhId, userId);
@@ -168,8 +168,8 @@ describe('Integration: auth infrastructure adapters', () => {
         const users = new DrizzleUserRepository(db);
         const households = new DrizzleHouseholdRepository(db);
 
-        const userId = makeUserId() as UserId;
-        const hhId = makeHouseholdId() as HouseholdId;
+        const userId = UserId.of(makeUserId());
+        const hhId = HouseholdId.of(makeHouseholdId());
 
         await users.create({
           id: userId,
@@ -189,7 +189,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('findByUserId returns null when user has no household', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const households = new DrizzleHouseholdRepository(db);
-        const result = await households.findByUserId(makeUserId() as UserId);
+        const result = await households.findByUserId(UserId.of(makeUserId()));
         expect(result).toBeNull();
       });
     });
@@ -203,7 +203,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const users = new DrizzleUserRepository(db);
         const magicLinks = new DrizzleMagicLinkTokenRepository(db);
 
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `magic-${userId}@example.com`,
@@ -231,7 +231,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const users = new DrizzleUserRepository(db);
         const magicLinks = new DrizzleMagicLinkTokenRepository(db);
 
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `expired-${userId}@example.com`,
@@ -261,7 +261,7 @@ describe('Integration: auth infrastructure adapters', () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const users = new DrizzleUserRepository(db);
         const magicLinks = new DrizzleMagicLinkTokenRepository(db);
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `find-${userId}@example.com`,
@@ -294,7 +294,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const users = new DrizzleUserRepository(db);
         const totpSecrets = new DrizzleTotpSecretRepository(db);
 
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `totp-${userId}@example.com`,
@@ -304,7 +304,7 @@ describe('Integration: auth infrastructure adapters', () => {
 
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'enc-secret-abc' as EncryptedString,
+          encryptedSecret: EncryptedString.of('enc-secret-abc'),
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
@@ -323,7 +323,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const users = new DrizzleUserRepository(db);
         const totpSecrets = new DrizzleTotpSecretRepository(db);
 
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `totp2-${userId}@example.com`,
@@ -333,7 +333,7 @@ describe('Integration: auth infrastructure adapters', () => {
 
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'old-secret' as EncryptedString,
+          encryptedSecret: EncryptedString.of('old-secret'),
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
@@ -343,7 +343,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const verifiedAt = new Date();
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'new-secret' as EncryptedString,
+          encryptedSecret: EncryptedString.of('new-secret'),
           enrolledAt: new Date(),
           verifiedAt,
           lastUsedTimeStep: null,
@@ -360,7 +360,7 @@ describe('Integration: auth infrastructure adapters', () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const users = new DrizzleUserRepository(db);
         const totpSecrets = new DrizzleTotpSecretRepository(db);
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `claim-${userId}@example.com`,
@@ -369,7 +369,7 @@ describe('Integration: auth infrastructure adapters', () => {
         });
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'env-v1:aes-256-gcm:iv:ct:tag' as EncryptedString,
+          encryptedSecret: EncryptedString.of('env-v1:aes-256-gcm:iv:ct:tag'),
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
@@ -393,7 +393,7 @@ describe('Integration: auth infrastructure adapters', () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const users = new DrizzleUserRepository(db);
         const totpSecrets = new DrizzleTotpSecretRepository(db);
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `pending-${userId}@example.com`,
@@ -403,32 +403,32 @@ describe('Integration: auth infrastructure adapters', () => {
         const enabledAt = new Date('2026-10-20T10:00:00.000Z');
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'active-secret' as EncryptedString,
+          encryptedSecret: EncryptedString.of('active-secret'),
           enrolledAt: enabledAt,
           verifiedAt: enabledAt,
           lastUsedTimeStep: 200,
           pendingEncryptedSecret: null,
         });
 
-        await totpSecrets.savePending(userId, 'first-pending' as EncryptedString);
-        await totpSecrets.savePending(userId, 'second-pending' as EncryptedString);
+        await totpSecrets.savePending(userId, EncryptedString.of('first-pending'));
+        await totpSecrets.savePending(userId, EncryptedString.of('second-pending'));
         const pending = await totpSecrets.findByUser(userId);
         const swappedAt = new Date('2026-10-26T10:00:00.000Z');
         const staleSwap = await totpSecrets.promotePending(
           userId,
-          'first-pending' as EncryptedString,
+          EncryptedString.of('first-pending'),
           150,
           swappedAt,
         );
         const swap = await totpSecrets.promotePending(
           userId,
-          'second-pending' as EncryptedString,
+          EncryptedString.of('second-pending'),
           150,
           swappedAt,
         );
         const repeatedSwap = await totpSecrets.promotePending(
           userId,
-          'second-pending' as EncryptedString,
+          EncryptedString.of('second-pending'),
           151,
           new Date(),
         );
@@ -457,7 +457,7 @@ describe('Integration: auth infrastructure adapters', () => {
     it('returns null when no TOTP secret exists', async () => {
       await withRollbackTransaction(getPool(), async (db: DB) => {
         const totpSecrets = new DrizzleTotpSecretRepository(db);
-        const result = await totpSecrets.findByUser(makeUserId() as UserId);
+        const result = await totpSecrets.findByUser(UserId.of(makeUserId()));
         expect(result).toBeNull();
       });
     });
@@ -467,7 +467,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const users = new DrizzleUserRepository(db);
         const totpSecrets = new DrizzleTotpSecretRepository(db);
 
-        const userId = makeUserId() as UserId;
+        const userId = UserId.of(makeUserId());
         await users.create({
           id: userId,
           email: `totpdel-${userId}@example.com`,
@@ -477,7 +477,7 @@ describe('Integration: auth infrastructure adapters', () => {
 
         await totpSecrets.save({
           userId,
-          encryptedSecret: 'to-delete' as EncryptedString,
+          encryptedSecret: EncryptedString.of('to-delete'),
           enrolledAt: new Date(),
           verifiedAt: null,
           lastUsedTimeStep: null,
@@ -500,7 +500,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const households = new DrizzleHouseholdRepository(db);
         const invites = new DrizzleHouseholdInviteRepository(db);
 
-        const hhId = makeHouseholdId() as HouseholdId;
+        const hhId = HouseholdId.of(makeHouseholdId());
         await households.create({ id: hhId, name: 'Invite HH', baseCurrency: 'PLN' });
 
         const tokenHash = createHash('sha256').update('invite-token-1').digest('hex');
@@ -537,7 +537,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const households = new DrizzleHouseholdRepository(db);
         const invites = new DrizzleHouseholdInviteRepository(db);
 
-        const hhId = makeHouseholdId() as HouseholdId;
+        const hhId = HouseholdId.of(makeHouseholdId());
         await households.create({ id: hhId, name: 'Accept HH', baseCurrency: 'EUR' });
         const user = await insertTestUser(db, { email: 'accept@example.com' });
 
@@ -557,7 +557,7 @@ describe('Integration: auth infrastructure adapters', () => {
         const outcome = await invites.acceptAndJoin({
           inviteId: invite.id,
           householdId: hhId,
-          userId: user.id as UserId,
+          userId: UserId.of(user.id),
           leaveHouseholdId: null,
           maxMembers: 2,
           at: new Date(),

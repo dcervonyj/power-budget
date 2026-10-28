@@ -2,7 +2,7 @@
 import { createHash } from 'node:crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId } from '@power-budget/core';
+import { UserId } from '@power-budget/core';
 import type {
   UserRepository,
   MagicLinkTokenRepository,
@@ -12,7 +12,7 @@ import type { NotificationOutbox } from '../../../domain/notifications/ports.js'
 import { RequestMagicLinkUseCase } from './RequestMagicLinkUseCase.js';
 import type { User } from '../../../domain/auth/entities.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 
 function makeUser(): User {
   return {

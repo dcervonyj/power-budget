@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { Provider } from '@nestjs/common';
-import type { HouseholdId, UserId, HouseholdInviteId } from '@power-budget/core';
-import type { EncryptedString } from '@power-budget/core';
+import { HouseholdId, UserId, HouseholdInviteId } from '@power-budget/core';
+import { EncryptedString } from '@power-budget/core';
 import type {
   HouseholdRepository,
   TotpSecretRepository,
@@ -40,11 +40,11 @@ import {
   type HttpTestApp,
 } from '../../../test/http/createHttpTestApp.js';
 
-const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;
-const ALICE_HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
-const BOB_HOUSEHOLD = '01900000-0000-7000-8000-0000000000b1' as HouseholdId;
+const ALICE = UserId.of('01900000-0000-7000-8000-00000000000a');
+const ALICE_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
+const BOB_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000b1');
 
-const INVITE_ID = '01900000-0000-7000-8000-0000000000c1' as HouseholdInviteId;
+const INVITE_ID = HouseholdInviteId.of('01900000-0000-7000-8000-0000000000c1');
 
 interface InviteUseCaseMocks {
   readonly invite: ReturnType<typeof mock<InviteToHouseholdUseCase>>;
@@ -84,7 +84,7 @@ function makeHousehold(id: HouseholdId): Household {
 function makeTotpSecret(): TotpSecret {
   return {
     userId: ALICE,
-    encryptedSecret: 'env-v1:aes-256-gcm:iv:ct:tag' as EncryptedString,
+    encryptedSecret: EncryptedString.of('env-v1:aes-256-gcm:iv:ct:tag'),
     enrolledAt: new Date(),
     verifiedAt: new Date(),
     lastUsedTimeStep: 1,

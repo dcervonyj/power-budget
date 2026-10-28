@@ -4,13 +4,14 @@ import { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
 import type { BankConnectionRepository } from '../../../../domain/bank/ports.js';
 import type { BankConnection } from '../../../../domain/bank/entities.js';
 import { ListUserConnectionsUseCase } from '../ListUserConnectionsUseCase.js';
+import { testUuid } from '../../../../test/doubles/testUuid.js';
 
 const USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 
 function makeConnection(id: string, status: BankConnection['status']): BankConnection {
   return {
-    id: BankConnectionId.of(id),
+    id: BankConnectionId.of(testUuid(id)),
     householdId: HOUSEHOLD_ID,
     userId: USER_ID,
     provider: 'gocardless',

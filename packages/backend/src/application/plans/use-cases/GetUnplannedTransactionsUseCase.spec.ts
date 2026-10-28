@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, IsoDate, IsoDateTime, PlanId, UserId } from '@power-budget/core';
+import { HouseholdId, IsoDate, IsoDateTime, PlanId, UserId } from '@power-budget/core';
 import type { Plan } from '../../../domain/plans/entities.js';
 import type { PlanRepository, UnplannedTransactionReader } from '../../../domain/plans/ports.js';
 import {
@@ -9,9 +9,9 @@ import {
   UNPLANNED_MAX_LIMIT,
 } from './GetUnplannedTransactionsUseCase.js';
 
-const HH = 'hh-1' as HouseholdId;
-const ANN = 'u-ann' as UserId;
-const PLAN = 'plan-1' as PlanId;
+const HH = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const ANN = UserId.of('01900000-df75-7d2d-8df4-707b8b171d37');
+const PLAN = PlanId.of('01900000-9df3-7cd5-8459-d2fb1d3f0b7c');
 
 const PLAN_ROW: Plan = {
   id: PLAN,
@@ -20,11 +20,11 @@ const PLAN_ROW: Plan = {
   name: 'October',
   type: 'household',
   periodKind: 'monthly',
-  period: { start: '2026-10-01' as IsoDate, end: '2026-10-31' as IsoDate },
+  period: { start: IsoDate.of('2026-10-01'), end: IsoDate.of('2026-10-31') },
   baseCurrency: 'PLN',
   archivedAt: null,
-  createdAt: '2026-10-01T00:00:00Z' as IsoDateTime,
-  updatedAt: '2026-10-01T00:00:00Z' as IsoDateTime,
+  createdAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
+  updatedAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
 };
 
 function setup(): {
