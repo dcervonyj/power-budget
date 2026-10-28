@@ -424,6 +424,15 @@ Because TypeScript path aliases in a multi-project setup leak transitive deps. P
 
 ---
 
+### Workspace package resolution in dev
+
+One strategy for every web/backend consumer: **workspace packages resolve through their `dist/` output** (package `exports`). `core`, `shared-app` and `design-tokens` are never aliased to `src`.
+
+- `turbo.json`: `dev` has `dependsOn: ["^build"]`, so a clean checkout builds all dependencies before any dev server starts.
+- `core` and `shared-app` run `tsup --watch`, `design-tokens` runs `tsc -b --watch`, the backend runs `nest start --watch`, web runs Vite. An edit to `core` or `shared-app` rebuilds `dist/`, and Vite and Nest pick it up.
+- Mobile (Metro) is started separately with `pnpm -F @power-budget/mobile start`; it keeps its own `src` aliasing as an Expo requirement and is not part of `pnpm dev`.
+- `design-tokens` watch only recompiles TypeScript; re-run `pnpm -F @power-budget/design-tokens build` to regenerate `tokens.css` / `glass.css`.
+
 ## 5. Domain Sections
 
 Each domain is documented with the same template: purpose, core concepts, backend/frontend layering, key ports, cross-domain deps, open questions.
