@@ -1,9 +1,8 @@
+import { appShellStore, signOut } from '../../composition.js';
 import React, { Suspense, useState } from 'react';
 import { observer } from 'mobx-react-lite';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { signOut } from '../../AppProviders.js';
 import { ROUTE_PATHS } from '../../infrastructure/navigation/routePaths.js';
-import { appShellStore } from '../../application/shell/appShellStore.js';
 import type { ShellSync } from '../../application/shell/ShellStore.js';
 import { deriveSyncChipState } from '../glass/atoms/syncChipState.js';
 import { useLocaleChoice } from '../components/LocaleSwitcher.js';

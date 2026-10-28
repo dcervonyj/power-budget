@@ -1,3 +1,4 @@
+import { appShellStore, bankConnectionStore, dashboardStore } from '../../../composition.js';
 import React, { useEffect } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
@@ -10,9 +11,6 @@ import { SkeletonList } from '../../components/shared/SkeletonList.js';
 import { PlanDashboardView } from '../../components/plan-dashboard/PlanDashboardView.js';
 import { OVERVIEW_CONTAINER_STYLE } from '../../components/plan-dashboard/overviewStyles.js';
 import { FilterChips } from '../../glass/controls/FilterChips.js';
-import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
-import { dashboardStore } from '../../../application/dashboard/DashboardStore.js';
-import { appShellStore } from '../../../application/shell/appShellStore.js';
 import { useVisiblePolling } from '../../hooks/useVisiblePolling.js';
 import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
 

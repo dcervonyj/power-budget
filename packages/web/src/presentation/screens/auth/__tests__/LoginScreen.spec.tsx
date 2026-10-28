@@ -6,14 +6,11 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { LoginScreen } from '../LoginScreen.js';
-import { apiClient } from '../../../../AppProviders.js';
+import { tokenStore } from '../../../../composition.js';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  apiClient: { post: vi.fn() },
-  tokenStore: { setTokens: vi.fn().mockResolvedValue(undefined) },
-}));
-
-const mockPost = vi.mocked(apiClient.post);
+const mockPost = spyOnApiClient().post;
+const setTokens = vi.spyOn(tokenStore, 'setTokens');
 
 function apiError(status: number, code: string): Error & { response: unknown } {
   return Object.assign(new Error(`HTTP ${status}`), {
@@ -38,6 +35,7 @@ function renderLogin(): void {
 describe('LoginScreen', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setTokens.mockResolvedValue(undefined);
   });
 
   it('asks for the authenticator code on 403 requires_totp, then sends it', async () => {

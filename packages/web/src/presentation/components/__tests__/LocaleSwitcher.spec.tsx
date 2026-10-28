@@ -2,22 +2,14 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LocaleContext, apiClient, tokenStore } from '../../../AppProviders.js';
+import { LocaleContext } from '../../../AppProviders.js';
+import { tokenStore } from '../../../composition.js';
+import { spyOnApiClient } from '../../../test/apiClientSpies.js';
 import { stubLocalStorage } from '../../theme/__tests__/matchMediaStub.js';
 import { LocaleSwitcher } from '../LocaleSwitcher.js';
 
-vi.mock('../../../AppProviders.js', async () => {
-  const react = await import('react');
-
-  return {
-    LocaleContext: react.createContext({ locale: 'en', setLocale: () => undefined }),
-    apiClient: { patch: vi.fn() },
-    tokenStore: { getAccessToken: vi.fn() },
-  };
-});
-
-const mockPatch = vi.mocked(apiClient.patch);
-const mockAccessToken = vi.mocked(tokenStore.getAccessToken);
+const mockPatch = spyOnApiClient().patch;
+const mockAccessToken = vi.spyOn(tokenStore, 'getAccessToken');
 
 function renderSwitcher(setLocale: (locale: 'en' | 'uk' | 'ru' | 'pl') => void): void {
   render(

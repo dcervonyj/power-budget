@@ -1,7 +1,7 @@
+import { apiClient } from '../../composition.js';
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import type { AuditEventDto, AuditPageDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
 import { AuditEventItem } from './AuditEventItem.js';
 import { Drawer } from './Drawer.js';
 import { useTheme } from './ThemeContext.js';

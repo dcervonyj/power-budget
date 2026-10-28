@@ -1,14 +1,8 @@
+import { acceptInvite, settingsStore } from '../../../composition.js';
 import React, { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { householdsApi, tokenStore } from '../../../AppProviders.js';
-import {
-  AcceptInvite,
-  type AcceptInviteError,
-} from '../../../application/household/AcceptInvite.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
+import type { AcceptInviteError } from '../../../application/household/AcceptInvite.js';
 import { AcceptInviteView } from './AcceptInviteView.js';
-
-const acceptInvite = new AcceptInvite(householdsApi, tokenStore);
 
 /**
  * `/invite/accept?token=`: the link of the household invite email, shown in the auth

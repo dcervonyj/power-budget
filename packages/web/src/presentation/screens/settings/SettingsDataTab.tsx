@@ -1,3 +1,4 @@
+import { settingsStore } from '../../../composition.js';
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
@@ -13,7 +14,6 @@ import {
 import { Button } from '../../components/Button.js';
 import { Input } from '../../components/Input.js';
 import { Modal } from '../../components/Modal.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 
 const CONFIRM_WORD = 'DELETE';
 

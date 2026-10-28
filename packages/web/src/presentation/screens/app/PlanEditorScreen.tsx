@@ -1,3 +1,9 @@
+import {
+  categoriesApi,
+  plansApi,
+  referenceCatalogue,
+  settingsStore,
+} from '../../../composition.js';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useParams } from 'react-router-dom';
@@ -11,8 +17,6 @@ import type {
   UpdatePlanDto,
   UpdatePlannedItemDto,
 } from '@power-budget/shared-app/contract';
-import { categoriesApi, plansApi } from '../../../AppProviders.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 import { toAmountInput, toMinorUnitsString } from '../../../application/plans/PlanAmounts.js';
 import { computePlanTotals } from '../../../application/plans/PlanTotals.js';
 import type { CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
@@ -22,7 +26,6 @@ import { SkeletonBlock } from '../../components/shared/SkeletonBlock.js';
 import { PlanEditorView, type PlanDraftItem } from './PlanEditorView.js';
 import type { PlanItemChange, PlanItemRowModel } from './PlanItemRows.js';
 import { PAGE_STYLE } from './planStyles.js';
-import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 
 const EMPTY_DRAFT: PlanDraftItem = {
   categoryId: '',

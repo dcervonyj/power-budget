@@ -1,13 +1,12 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { isSupportedCurrency } from '@power-budget/core';
-import { readApiError } from '@power-budget/shared-app';
+import { readApiError, type HttpClient } from '@power-budget/shared-app';
 import type {
   UpdateUserProfileDto,
   UserProfileDto,
   VerifyTotpDto,
 } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
-import { clientSession } from '../auth/ClientSession.js';
+import type { KeyValueStore } from '../ports/KeyValueStore.js';
 
 const BASE_CURRENCY_KEY = 'pb_base_currency';
 const DEFAULT_BASE_CURRENCY = 'EUR';
@@ -15,18 +14,20 @@ const INTERESTING_CURRENCIES_KEY = 'pb_interesting_currencies';
 
 export type SaveError = 'save_failed' | 'unsupported_currency';
 
-function readStored(key: string): string | null {
+export type SettingsHttp = Pick<HttpClient, 'get' | 'post' | 'patch' | 'delete'>;
+
+function readStored(storage: KeyValueStore, key: string): string | null {
   try {
-    return localStorage.getItem(key);
+    return storage.getItem(key);
   } catch {
     // Storage can be unavailable (private mode, non-browser runtime); defaults apply.
     return null;
   }
 }
 
-function readInterestingCurrencies(): string[] {
+function readInterestingCurrencies(storage: KeyValueStore): string[] {
   try {
-    const raw = readStored(INTERESTING_CURRENCIES_KEY);
+    const raw = readStored(storage, INTERESTING_CURRENCIES_KEY);
     return raw ? (JSON.parse(raw) as string[]) : [];
   } catch {
     return [];
@@ -47,8 +48,8 @@ export class SettingsStore {
   timezone: string = '';
 
   /** Cached so screens have a currency before the profile loads. */
-  baseCurrency: string = readStored(BASE_CURRENCY_KEY) ?? DEFAULT_BASE_CURRENCY;
-  interestingCurrencies: string[] = readInterestingCurrencies();
+  baseCurrency: string;
+  interestingCurrencies: string[];
 
   isSaving: boolean = false;
   saveError: SaveError | null = null;
@@ -65,8 +66,17 @@ export class SettingsStore {
   /** Bumped when the session ends, so a late profile of the previous user is dropped. */
   private session = 0;
 
-  constructor() {
-    makeAutoObservable<SettingsStore, 'session'>(this, { session: false });
+  constructor(
+    private readonly http: SettingsHttp,
+    private readonly storage: KeyValueStore,
+  ) {
+    this.baseCurrency = readStored(storage, BASE_CURRENCY_KEY) ?? DEFAULT_BASE_CURRENCY;
+    this.interestingCurrencies = readInterestingCurrencies(storage);
+    makeAutoObservable<SettingsStore, 'session' | 'http' | 'storage'>(this, {
+      session: false,
+      http: false,
+      storage: false,
+    });
   }
 
   setDisplayName(value: string): void {
@@ -97,7 +107,7 @@ export class SettingsStore {
   async loadProfile(): Promise<void> {
     const session = this.session;
     try {
-      const res = await apiClient.get<UserProfileDto>('/users/me');
+      const res = await this.http.get<UserProfileDto>('/users/me');
       this.applyProfile(session, res.data);
     } catch {
       // The screens keep their defaults when the profile is not available.
@@ -114,7 +124,7 @@ export class SettingsStore {
   }
 
   async saveCurrency(): Promise<void> {
-    localStorage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(this.interestingCurrencies));
+    this.storage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(this.interestingCurrencies));
     if (!isSupportedCurrency(this.baseCurrency)) {
       this.saveError = 'unsupported_currency';
 
@@ -129,14 +139,14 @@ export class SettingsStore {
     this.exportUrl = null;
     this.exportError = null;
     try {
-      await apiClient.post('/households/export', {});
+      await this.http.post('/households/export', {});
 
       let attempts = 0;
       const maxAttempts = 15;
       await new Promise<void>((resolve, reject) => {
         const timer = setInterval(() => {
           attempts++;
-          apiClient
+          this.http
             .get<{ url?: string; status?: string }>('/households/export/status')
             .then((res: { data: { url?: string; status?: string } }) => {
               if (res.data.status === 'failed') {
@@ -185,9 +195,9 @@ export class SettingsStore {
     try {
       if (totpCode) {
         const body: VerifyTotpDto = { code: totpCode };
-        await apiClient.post('/auth/totp/verify', body);
+        await this.http.post('/auth/totp/verify', body);
       }
-      await apiClient.delete(`/households/${this.householdId}`);
+      await this.http.delete(`/households/${this.householdId}`);
     } catch (err) {
       this.deleteError = deleteErrorCode(err);
       this.isDeleting = false;
@@ -222,7 +232,7 @@ export class SettingsStore {
     this.isSaving = true;
     this.saveError = null;
     try {
-      const res = await apiClient.patch<UserProfileDto>('/users/me', body);
+      const res = await this.http.patch<UserProfileDto>('/users/me', body);
       this.applyProfile(session, res.data);
     } catch {
       runInAction(() => {
@@ -271,7 +281,7 @@ export class SettingsStore {
     this.householdId = profile.householdId ?? '';
     if (profile.baseCurrency !== null) {
       this.baseCurrency = profile.baseCurrency;
-      localStorage.setItem(BASE_CURRENCY_KEY, profile.baseCurrency);
+      this.storage.setItem(BASE_CURRENCY_KEY, profile.baseCurrency);
     }
   }
 }
@@ -295,6 +305,3 @@ function deleteErrorCode(err: unknown): DeleteError {
       return 'delete_failed';
   }
 }
-
-export const settingsStore = new SettingsStore();
-clientSession.register(settingsStore);

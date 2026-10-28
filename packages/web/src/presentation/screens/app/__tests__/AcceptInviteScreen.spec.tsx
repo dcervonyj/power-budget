@@ -1,21 +1,15 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
-import { householdsApi, tokenStore } from '../../../../AppProviders.js';
-import { settingsStore } from '../../../../application/settings/SettingsStore.js';
+import { householdsApi, settingsStore, tokenStore } from '../../../../composition.js';
 import { AcceptInviteScreen } from '../AcceptInviteScreen.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import { apiError } from '../../../../test/dashboardFixtures.js';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  householdsApi: { acceptInvite: vi.fn() },
-  tokenStore: { getRefreshToken: vi.fn(() => 'refresh-1'), setTokens: vi.fn() },
-}));
-vi.mock('../../../../application/settings/SettingsStore.js', () => ({
-  settingsStore: { loadProfile: vi.fn() },
-}));
-
-const acceptInvite = vi.mocked(householdsApi.acceptInvite);
+const acceptInvite = vi.spyOn(householdsApi, 'acceptInvite');
+const getRefreshToken = vi.spyOn(tokenStore, 'getRefreshToken');
+const setTokens = vi.spyOn(tokenStore, 'setTokens');
+const loadProfile = vi.spyOn(settingsStore, 'loadProfile');
 
 function renderAt(url: string): void {
   renderWithProviders(<AcceptInviteScreen />, { url, path: '/invite/accept' });
@@ -24,6 +18,9 @@ function renderAt(url: string): void {
 describe('AcceptInviteScreen', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getRefreshToken.mockReturnValue('refresh-1');
+    setTokens.mockResolvedValue(undefined);
+    loadProfile.mockResolvedValue(undefined);
   });
 
   it('accepts the token from the link, swaps the access token and opens the household', async () => {
@@ -34,8 +31,8 @@ describe('AcceptInviteScreen', () => {
 
     expect(await screen.findByText('household-route')).toBeInTheDocument();
     expect(acceptInvite).toHaveBeenCalledWith('raw-token');
-    expect(tokenStore.setTokens).toHaveBeenCalledWith('new-access', 'refresh-1');
-    expect(settingsStore.loadProfile).toHaveBeenCalledTimes(1);
+    expect(setTokens).toHaveBeenCalledWith('new-access', 'refresh-1');
+    expect(loadProfile).toHaveBeenCalledTimes(1);
   });
 
   it('explains an invite sent to another email', async () => {
@@ -47,7 +44,7 @@ describe('AcceptInviteScreen', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'This invite was sent to another email address.',
     );
-    expect(tokenStore.setTokens).not.toHaveBeenCalled();
+    expect(setTokens).not.toHaveBeenCalled();
   });
 
   it('cannot accept a link without a token', () => {

@@ -1,6 +1,5 @@
 import { makeAutoObservable, runInAction } from 'mobx';
-import { apiClient } from '../../AppProviders.js';
-import { clientSession } from '../auth/ClientSession.js';
+import type { HttpClient } from '@power-budget/shared-app';
 import type {
   BankConnectionDto,
   BankConsentLinkDto,
@@ -12,6 +11,8 @@ import {
   BankConnectionMapper,
   type BankConnection,
 } from '../../infrastructure/api/BankConnectionMapper.js';
+
+export type BankHttp = Pick<HttpClient, 'get' | 'post'>;
 
 export type BankActionError = 'reconnect' | 'refresh' | 'connect';
 
@@ -27,8 +28,11 @@ export class BankConnectionStore {
   /** Bumped when the session ends, so a late answer for the previous user is dropped. */
   private session = 0;
 
-  constructor() {
-    makeAutoObservable<BankConnectionStore, 'session'>(this, { session: false });
+  constructor(private readonly http: BankHttp) {
+    makeAutoObservable<BankConnectionStore, 'session' | 'http'>(this, {
+      session: false,
+      http: false,
+    });
   }
 
   async fetchConnections(): Promise<void> {
@@ -37,7 +41,7 @@ export class BankConnectionStore {
     this.error = null;
     this.actionError = null;
     try {
-      const res = await apiClient.get<BankConnectionDto[]>('/bank-connections');
+      const res = await this.http.get<BankConnectionDto[]>('/bank-connections');
       this.applyConnections(session, res.data);
     } catch {
       this.applyFetchFailed(session);
@@ -48,7 +52,7 @@ export class BankConnectionStore {
   async reconnect(id: string, redirectUri: string): Promise<string | null> {
     this.actionError = null;
     try {
-      const res = await apiClient.post<BankReconnectLinkDto>(`/bank-connections/${id}/reconnect`, {
+      const res = await this.http.post<BankReconnectLinkDto>(`/bank-connections/${id}/reconnect`, {
         redirectUri,
       });
 
@@ -68,7 +72,7 @@ export class BankConnectionStore {
   ): Promise<string | null> {
     this.actionError = null;
     try {
-      const res = await apiClient.post<BankConsentLinkDto>('/bank-connections', {
+      const res = await this.http.post<BankConsentLinkDto>('/bank-connections', {
         provider,
         bankId,
         redirectUri,
@@ -86,7 +90,7 @@ export class BankConnectionStore {
     this.actionError = null;
     this.refreshingIds = [...this.refreshingIds, id];
     try {
-      await apiClient.post(`/bank-connections/${id}/refresh`, {});
+      await this.http.post(`/bank-connections/${id}/refresh`, {});
       await this.fetchConnections();
     } catch {
       this.setActionError('refresh');
@@ -133,6 +137,3 @@ export class BankConnectionStore {
     this.loading = false;
   }
 }
-
-export const bankConnectionStore = new BankConnectionStore();
-clientSession.register(bankConnectionStore);

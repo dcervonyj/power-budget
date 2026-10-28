@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { endSession, navigationAdapter } from '../AppProviders.js';
-import { clientSession } from '../application/auth/ClientSession.js';
+import { clientSession, endSession, navigationAdapter } from '../composition.js';
 
 describe('endSession (the API client gave up on the session)', () => {
   afterEach(() => {
