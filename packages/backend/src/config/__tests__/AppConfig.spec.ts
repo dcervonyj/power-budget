@@ -80,6 +80,20 @@ describe('parseAppConfig', () => {
     expect(problemsOf(blank, 'worker')).toContain('JWT_SECRET is not set');
   });
 
+  it('applies the length rules to the trimmed secret', () => {
+    const padded = `${'a'.repeat(10)}${' '.repeat(30)}`;
+
+    expect(problemsOf({ ...VALID, NODE_ENV: 'production', JWT_SECRET: padded }, 'api')).toContain(
+      'JWT_SECRET is shorter than 32 bytes',
+    );
+    expect(
+      problemsOf({ ...VALID, NODE_ENV: 'production', JWT_SECRET: padded }, 'worker'),
+    ).toContain('JWT_SECRET is shorter than 32 bytes');
+    expect(parseAppConfig({ ...VALID, JWT_SECRET: `  ${JWT}  ` }, 'api').jwtSecret).toBe(
+      `  ${JWT}  `,
+    );
+  });
+
   it('uses secrets byte-for-byte while rejecting blank ones', () => {
     const padded = ` ${JWT} `;
     const config = parseAppConfig({ ...VALID, JWT_SECRET: padded, KEK_BASE64: ` ${KEK}\n` }, 'api');
