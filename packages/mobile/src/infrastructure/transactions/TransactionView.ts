@@ -11,12 +11,14 @@ export interface TransactionView {
   readonly id: string;
   readonly occurredOn: string;
   readonly description: string;
+  readonly merchant: string | null;
   readonly amount: MoneyDto;
   readonly source: TransactionSourceDto;
   readonly notes: string | null;
   readonly ignored: boolean;
   readonly isTransfer: boolean;
   readonly mapping: TransactionMappingDto | null;
+  readonly suggestedPlannedItemId: string | null;
 }
 
 export const TransactionView = {
@@ -27,12 +29,14 @@ export const TransactionView = {
       id: transaction.id,
       occurredOn: transaction.occurredOn,
       description: transaction.description,
+      merchant: transaction.merchant,
       amount: transaction.amount,
       source: transaction.source,
       notes: transaction.notes,
       ignored: transaction.ignored,
       isTransfer: detail.transfer !== null,
       mapping: detail.mapping,
+      suggestedPlannedItemId: transaction.suggestedPlannedItemId,
     };
   },
 };
@@ -48,4 +52,9 @@ export function formatAmountText(amount: MoneyDto): string {
 
 export function isOutgoing(amount: MoneyDto): boolean {
   return amount.amountMinor.startsWith('-');
+}
+
+/** The name a transaction goes by: the merchant, else the bank description. */
+export function titleOf(view: Pick<TransactionView, 'merchant' | 'description'>): string {
+  return view.merchant ?? view.description;
 }
