@@ -428,7 +428,8 @@ describe('Integration: transaction list read model, accounts and manual transact
       );
       expect(await seen(`categoryId=${groceries.categoryId}&unmappedOnly=true`)).toEqual(new Set());
 
-      for (const bad of ['currency=XYZ', 'source=gocardless', 'categoryId=nope']) {
+      // An empty cursor is a 400, not the first page.
+      for (const bad of ['currency=XYZ', 'source=gocardless', 'categoryId=nope', 'cursor=']) {
         const res = await app.inject({
           method: 'GET',
           url: `/transactions?${bad}`,

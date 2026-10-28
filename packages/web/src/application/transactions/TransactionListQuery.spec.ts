@@ -69,6 +69,12 @@ describe('buildQuery', () => {
     expect(buildQuery({ ...noFilters, source: 'manual' })).toBe('source=manual&limit=50');
   });
 
+  it('sends a provider as the source', () => {
+    expect(buildQuery({ ...noFilters, source: 'wise_webhook' })).toBe(
+      'source=wise_webhook&limit=50',
+    );
+  });
+
   it('sends just the page size without filters', () => {
     expect(buildQuery(noFilters)).toBe('limit=50');
   });

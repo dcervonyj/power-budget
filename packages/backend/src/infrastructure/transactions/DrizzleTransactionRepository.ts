@@ -577,7 +577,8 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     if (query.transfer === false) {
       conditions.push(...this.notATransfer(scope));
     }
-    if (query.cursor) {
+    // An empty cursor is invalid (400), not the first page.
+    if (query.cursor !== undefined) {
       const after = decodeTransactionCursor(query.cursor);
       // Row value, not `a < x OR (a = x AND b < y)`: the planner turns it into an index bound.
       conditions.push(

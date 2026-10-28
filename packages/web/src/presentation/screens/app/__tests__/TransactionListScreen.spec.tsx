@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { darkTheme } from '@power-budget/design-tokens';
@@ -191,7 +191,71 @@ describe('TransactionListScreen', () => {
     // The fixture rows are PLN and manual: the API filtered, the page drops nothing (PERF-07).
     expect(await screen.findByText('Biedronka')).toBeDefined();
     expect(mockGet.mock.calls.map((call) => call[0])).toContain(
-      '/transactions?categoryId=cat-1&currency=EUR&source=bank_sync&limit=50',
+      '/transactions?categoryId=cat-1&currency=EUR&source=wise_webhook&limit=50',
+    );
+    // Every provider can be picked; the old `wise` link selects the Wise provider (review F2).
+    for (const name of ['Bank', 'Enable Banking', 'Wise', 'PKO email', 'IKO push', 'Manual']) {
+      expect(screen.getByRole('option', { name })).toBeDefined();
+    }
+    expect(screen.getByRole('option', { name: 'Wise' })).toHaveProperty('selected', true);
+  });
+
+  it('drops a "load more" page of the old filters after a filter change (review F1)', async () => {
+    const observers: ((entries: { isIntersecting: boolean }[]) => void)[] = [];
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: (entries: { isIntersecting: boolean }[]) => void) {
+          observers.push(callback);
+        }
+        observe(): void {}
+        disconnect(): void {}
+      },
+    );
+    const oldPage = { release: (): void => undefined };
+    mockGet.mockImplementation((url: string) => {
+      if (url.includes('cursor=c1')) {
+        return new Promise((resolve) => {
+          oldPage.release = () => {
+            resolve(ok({ items: [row('Stale', {})], nextCursor: 'c2', hasMore: true }));
+          };
+        });
+      }
+      if (url.startsWith('/transactions?mapped=true')) {
+        return Promise.resolve(ok({ items: [row('Fresh', {})], nextCursor: null, hasMore: false }));
+      }
+      if (url.startsWith('/transactions?')) {
+        return Promise.resolve(ok({ ...page, nextCursor: 'c1', hasMore: true }));
+      }
+
+      return Promise.resolve(ok([]));
+    });
+    renderAt('/transactions');
+    await screen.findByText('Biedronka');
+
+    act(() => {
+      observers[observers.length - 1]?.([{ isIntersecting: true }]);
+    });
+    await waitFor(() => {
+      expect(mockGet.mock.calls.map((call) => call[0])).toContain(
+        '/transactions?limit=50&cursor=c1',
+      );
+    });
+    fireEvent.click(screen.getByRole('radio', { name: 'Mapped' }));
+    await screen.findByText('Fresh');
+    await act(async () => {
+      oldPage.release();
+      await Promise.resolve();
+    });
+
+    expect(screen.queryByText('Stale')).toBeNull();
+    expect(screen.getByText('Fresh')).toBeDefined();
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        observe(): void {}
+        disconnect(): void {}
+      },
     );
   });
 
