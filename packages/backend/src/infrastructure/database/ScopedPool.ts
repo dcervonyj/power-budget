@@ -33,16 +33,17 @@ type QueryCallback = (error: Error | undefined, result?: unknown) => void;
  *
  * The cache is only sound because the settings are written on an idle connection (autocommit),
  * so no later ROLLBACK can undo them. ScopedPool therefore follows the transaction status
- * Postgres reports with every ReadyForQuery: a connection released inside a transaction (open or
- * failed) is destroyed together with its cached settings, and a checkout never writes settings on
- * a connection that is not idle.
+ * Postgres reports with every ReadyForQuery and counts the queries still in flight: a connection
+ * released inside a transaction (open or failed) or with a query in flight is destroyed together
+ * with its cached settings, a checkout never writes settings on a busy or non-idle connection, and
+ * the settings are cached only when Postgres reports the connection idle right after them.
  *
  * Invariant: nothing else writes these settings at session level. Transaction-local writes
  * (`set_config(..., true)`, e.g. refresh_plan_actuals) revert to the session value and are fine.
  */
 export class ScopedPool {
   private readonly appliedSql = new WeakMap<PoolClient, string>();
-  private readonly transactions = new TransactionStatusTracker();
+  private readonly connections = new ConnectionStateTracker();
 
   constructor(
     private readonly pool: Pool,
@@ -188,11 +189,11 @@ export class ScopedPool {
 
   private async checkout(scope: DbScope | null): Promise<PoolClient> {
     const client: PoolClient = await Reflect.apply(pg.Pool.prototype.connect, this.pool, []);
-    this.transactions.follow(client);
+    this.connections.follow(client);
     client.release = new GuardedRelease(
       client,
       client.release,
-      this.transactions,
+      this.connections,
       this.appliedSql,
     ).bound();
     try {
@@ -208,25 +209,34 @@ export class ScopedPool {
 
   private async applyScope(client: PoolClient, scope: DbScope | null): Promise<void> {
     const sql = ScopedPool.settingsSql(scope);
-    if (!this.transactions.isIdle(client)) {
-      throw new Error('ScopedPool: refusing a connection that is inside a transaction');
+    if (!this.connections.isIdle(client) || !this.connections.isQuiet(client)) {
+      throw new Error('ScopedPool: refusing a connection that is busy or inside a transaction');
     }
     if (this.appliedSql.get(client) === sql) {
       return;
     }
     this.appliedSql.delete(client);
     await client.query(sql);
+    // The status Postgres sent after the set_config proves it ran outside a transaction block,
+    // i.e. it is committed and no later ROLLBACK can restore the previous settings.
+    if (!this.connections.isIdle(client)) {
+      throw new Error('ScopedPool: the scope settings were written inside a transaction');
+    }
     this.appliedSql.set(client, sql);
   }
 }
 
 /**
- * Records the transaction status of each connection from Postgres' ReadyForQuery message:
- * 'I' idle, 'T' inside a transaction block, 'E' inside a failed transaction block.
- * A connection it cannot follow counts as not idle, so it is never reused with cached settings.
+ * Follows the state of each connection:
+ * - the transaction status of Postgres' ReadyForQuery message: 'I' idle, 'T' inside a
+ *   transaction block, 'E' inside a failed transaction block;
+ * - the number of queries sent through `client.query` that have not completed yet (pg queues
+ *   them, so a released connection can still have a BEGIN on its way).
+ * A connection it cannot follow counts as busy, so it is never reused with cached settings.
  */
-class TransactionStatusTracker {
+class ConnectionStateTracker {
   private readonly statuses = new WeakMap<PoolClient, string>();
+  private readonly inFlight = new WeakMap<PoolClient, number>();
 
   follow(client: PoolClient): void {
     if (this.statuses.has(client) || !(client instanceof pg.Client)) {
@@ -234,11 +244,29 @@ class TransactionStatusTracker {
     }
     // pg hands out a connection only between statements, so a newly followed one is idle.
     this.statuses.set(client, 'I');
+    this.inFlight.set(client, 0);
     client.connection.on('readyForQuery', this.record.bind(this, client));
+    Object.defineProperty(client, 'query', {
+      value: new CountingQuery(client, client.query, this).bound(),
+      configurable: true,
+      writable: true,
+    });
   }
 
   isIdle(client: PoolClient): boolean {
     return this.statuses.get(client) === 'I';
+  }
+
+  isQuiet(client: PoolClient): boolean {
+    return this.inFlight.get(client) === 0;
+  }
+
+  started(client: PoolClient): void {
+    this.inFlight.set(client, (this.inFlight.get(client) ?? 0) + 1);
+  }
+
+  finished(client: PoolClient): void {
+    this.inFlight.set(client, (this.inFlight.get(client) ?? 1) - 1);
   }
 
   private record(client: PoolClient, message: unknown): void {
@@ -248,12 +276,101 @@ class TransactionStatusTracker {
   }
 }
 
-/** Destroys a connection given back inside a transaction, and forgets its settings. */
+/** Replaces `client.query`: counts every query from the moment it is queued until it completes. */
+class CountingQuery {
+  constructor(
+    private readonly client: PoolClient,
+    private readonly query: (...args: unknown[]) => unknown,
+    private readonly connections: ConnectionStateTracker,
+  ) {}
+
+  bound(): (...args: unknown[]) => unknown {
+    return this.run.bind(this);
+  }
+
+  private run(...args: unknown[]): unknown {
+    return new InFlightQuery(this.client, this.connections).send(this.query, args);
+  }
+}
+
+/** One query in flight. A form whose completion it cannot observe stays counted (fail closed). */
+class InFlightQuery {
+  private done = false;
+
+  constructor(
+    private readonly client: PoolClient,
+    private readonly connections: ConnectionStateTracker,
+  ) {}
+
+  send(query: (...args: unknown[]) => unknown, args: unknown[]): unknown {
+    this.connections.started(this.client);
+    const callback = args[args.length - 1];
+    if (InFlightQuery.isCallback(callback)) {
+      return this.call(query, [...args.slice(0, -1), this.finishThen.bind(this, callback)]);
+    }
+    const result = this.call(query, args);
+    if (InFlightQuery.isThenable(result)) {
+      result.then(this.finish.bind(this), this.finish.bind(this));
+    } else if (InFlightQuery.isEmitter(result)) {
+      Reflect.apply(result.once, result, ['end', this.finish.bind(this)]);
+      Reflect.apply(result.once, result, ['error', this.finish.bind(this)]);
+    }
+
+    return result;
+  }
+
+  private static isCallback(value: unknown): value is (...args: unknown[]) => unknown {
+    return typeof value === 'function';
+  }
+
+  private static isThenable(value: unknown): value is PromiseLike<unknown> {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'then' in value &&
+      typeof value.then === 'function'
+    );
+  }
+
+  private static isEmitter(value: unknown): value is { once: (...args: unknown[]) => unknown } {
+    return (
+      typeof value === 'object' &&
+      value !== null &&
+      'once' in value &&
+      typeof value.once === 'function'
+    );
+  }
+
+  private call(query: (...args: unknown[]) => unknown, args: unknown[]): unknown {
+    try {
+      return Reflect.apply(query, this.client, args);
+    } catch (error) {
+      this.finish();
+      throw error;
+    }
+  }
+
+  private finishThen(callback: (...args: unknown[]) => unknown, ...results: unknown[]): unknown {
+    this.finish();
+
+    return Reflect.apply(callback, undefined, results);
+  }
+
+  private finish(): void {
+    if (this.done) {
+      return;
+    }
+    this.done = true;
+    this.connections.finished(this.client);
+  }
+}
+
+/** Destroys a connection given back busy or inside a transaction, and forgets its settings. */
 class GuardedRelease {
   constructor(
     private readonly client: PoolClient,
     private readonly release: (error?: Error | boolean) => void,
-    private readonly transactions: TransactionStatusTracker,
+    private readonly connections: ConnectionStateTracker,
     private readonly appliedSql: WeakMap<PoolClient, string>,
   ) {}
 
@@ -270,10 +387,13 @@ class GuardedRelease {
   }
 
   private unusableReason(): Error | false {
-    if (this.transactions.isIdle(this.client)) {
-      return false;
+    if (!this.connections.isQuiet(this.client)) {
+      return new Error('ScopedPool: connection released with a query in flight');
+    }
+    if (!this.connections.isIdle(this.client)) {
+      return new Error('ScopedPool: connection released inside a transaction');
     }
 
-    return new Error('ScopedPool: connection released inside a transaction');
+    return false;
   }
 }

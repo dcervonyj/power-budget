@@ -3,6 +3,7 @@ import type { MockInstance } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { uuidv7 } from 'uuidv7';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import pg from 'pg';
 import type { Pool, PoolClient, QueryResult } from 'pg';
 import { HouseholdId, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
@@ -293,6 +294,53 @@ describe('Integration: ScopedPool keeps the DbScope on the pooled connection (CL
       pid: afterFailed.pid,
     });
     expect(new Set([first.pid, afterOpen.pid, afterFailed.pid]).size).toBe(3);
+  });
+
+  it('destroys a connection released while its BEGIN is still in flight', async () => {
+    const { pool } = recordedPool(1);
+    const first = await observe(pool, householdScope(A));
+
+    const open = await runInDbScope(householdScope(A), () => pool.connect());
+    const begun = open.query('BEGIN');
+    open.release();
+    await Promise.allSettled([begun]);
+    const next = await runInDbScope(householdScope(B), () => pool.connect());
+    await next.query('ROLLBACK');
+    next.release();
+    const after = await observe(pool, householdScope(B));
+
+    expect(after).toEqual({
+      householdId: B.householdId,
+      userId: B.userId,
+      rlsBypass: 'off',
+      plans: 1,
+      pid: after.pid,
+    });
+    expect(after.pid).not.toBe(first.pid);
+  });
+
+  it('never caches settings that Postgres reports were written inside a transaction', async () => {
+    const { pool } = recordedPool(1);
+    const first = await observe(pool, householdScope(A));
+    const reused = await runInDbScope(householdScope(A), () => pool.connect());
+    reused.release();
+
+    // A BEGIN the in-flight count cannot see (sent past the counting client.query).
+    const unseen: Promise<unknown> = Reflect.apply(pg.Client.prototype.query, reused, ['BEGIN']);
+    await expect(runInDbScope(householdScope(B), () => pool.query(OBSERVE_SQL))).rejects.toThrow(
+      'ScopedPool: the scope settings were written inside a transaction',
+    );
+    await Promise.allSettled([unseen]);
+    const after = await observe(pool, householdScope(B));
+
+    expect(after).toEqual({
+      householdId: B.householdId,
+      userId: B.userId,
+      rlsBypass: 'off',
+      plans: 1,
+      pid: after.pid,
+    });
+    expect(after.pid).not.toBe(first.pid);
   });
 
   it('scopes the callback forms of query and connect too', async () => {
