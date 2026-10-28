@@ -20,6 +20,8 @@ export interface TransactionLabels {
   transfersNote(): string;
   sortError(): string;
   moreError(): string;
+  reloadError(): string;
+  loadedOnly(): string;
   detailError(): string;
   detailNotFound(): string;
   detailRetry(): string;
@@ -116,6 +118,13 @@ export function useTransactionLabels(): TransactionLabels {
     transfersNote: () =>
       text('tx.list.transfersNote', 'Transfers between your accounts are not spending.'),
     sortError: () => text('tx.list.sortError', 'Could not sort the transaction.'),
+    reloadError: () =>
+      text(
+        'tx.list.reloadError',
+        'Could not refresh the transactions. What you see may be out of date.',
+      ),
+    loadedOnly: () =>
+      text('tx.list.loadedOnly', 'Counts and totals cover the transactions loaded so far.'),
     moreError: () => text('tx.list.moreError', 'Could not load more transactions.'),
     detailError: () => text('tx.detail.error', 'Could not load the transaction.'),
     detailNotFound: () => text('tx.detail.notFound', 'Transaction not found'),

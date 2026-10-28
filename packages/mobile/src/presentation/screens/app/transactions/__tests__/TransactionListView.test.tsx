@@ -108,6 +108,31 @@ describe('TransactionListView', () => {
     expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
 
+  it('offers a retry when a reload failed and the rows may be stale', async () => {
+    const onRetry = jest.fn();
+    await renderList({ reloadFailed: true, onRetry });
+
+    expect(screen.getByText(/out of date/)).toBeTruthy();
+    expect(screen.getAllByTestId('tx-row')).toHaveLength(5);
+    await userEvent.press(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('says the totals cover the loaded rows while more pages remain', async () => {
+    await renderList({ hasMore: true, onLoadMore: jest.fn() });
+
+    expect(
+      screen.getByText('Counts and totals cover the transactions loaded so far.'),
+    ).toBeTruthy();
+  });
+
+  it('does not qualify the totals once everything is loaded', async () => {
+    await renderList({ hasMore: false });
+
+    expect(screen.queryByText(/loaded so far/)).toBeNull();
+  });
+
   it('hides Sort all when nothing waits', async () => {
     await renderList({ counts: { ...LIST_PROPS.counts, toSort: 0 } });
 

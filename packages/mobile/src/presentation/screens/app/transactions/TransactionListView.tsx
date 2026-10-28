@@ -39,6 +39,8 @@ export interface TransactionListViewProps {
   readonly refreshing?: boolean;
   readonly hasMore?: boolean;
   readonly loadingMore?: boolean;
+  /** A reload failed: the rows may be stale, so offer a retry above them. */
+  readonly reloadFailed?: boolean;
   readonly onRefresh?: () => void;
   readonly onRetry?: () => void;
   readonly onLoadMore?: () => void;
@@ -120,6 +122,9 @@ export function TransactionListView(props: TransactionListViewProps): React.JSX.
         )
       }
     >
+      {props.reloadFailed === true ? (
+        <ErrorBanner message={labels.reloadError()} onRetry={props.onRetry} />
+      ) : null}
       {props.month === undefined ? null : <MonthPanel {...props} month={props.month} />}
       <FilterChips
         options={options}
@@ -127,6 +132,7 @@ export function TransactionListView(props: TransactionListViewProps): React.JSX.
         onChange={props.onFilterChange}
         label={labels.filterGroup()}
       />
+      {props.hasMore === true ? <Text style={styles.dim}>{labels.loadedOnly()}</Text> : null}
       <GlassPanel
         material="frosted"
         depth={1}

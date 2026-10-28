@@ -37,6 +37,7 @@ export function TransactionListScreen({ navigation }: Props): React.JSX.Element 
         refreshing={list.refreshing}
         hasMore={list.hasMore}
         loadingMore={list.loadingMore}
+        reloadFailed={list.reloadFailed}
         onRefresh={list.refresh}
         onRetry={list.retry}
         onLoadMore={list.loadMore}
