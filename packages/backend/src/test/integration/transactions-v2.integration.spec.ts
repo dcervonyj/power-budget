@@ -178,10 +178,10 @@ describe('Integration: transactions v2 repository and dashboard reads (SYNC-001)
     const input = newBooked();
     const scope = { householdId: H.householdId };
 
-    const { id, created } = await asHousehold(() => repo.upsertByExternalId(input));
-    const stored = await asHousehold(() => repo.findById(id, scope));
+    const created = await asHousehold(() => repo.insertBankBatch([input]));
+    const stored = await asHousehold(() => repo.findById(input.id, scope));
 
-    expect(created).toBe(true);
+    expect(created).toBe(1);
     expect(stored).toMatchObject({
       id: input.id,
       status: 'booked',

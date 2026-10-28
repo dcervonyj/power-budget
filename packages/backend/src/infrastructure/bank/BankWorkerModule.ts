@@ -12,10 +12,6 @@ import { BankSyncSchedulerService } from './BankSyncSchedulerService.js';
 import { BankSyncSchedulerUseCase } from '../../application/bank/use-cases/BankSyncSchedulerUseCase.js';
 import { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import { DrizzleTransactionRepository } from '../transactions/DrizzleTransactionRepository.js';
-import { DrizzleMappingRepository } from '../transactions/DrizzleMappingRepository.js';
-import type { MappingSuggestionPort } from '../../domain/transactions/ports.js';
-
-const STUB_SUGGESTION: MappingSuggestionPort = { suggest: () => null };
 
 /**
  * Worker-only: the bank-sync BullMQ processor and the 4-hourly scheduling cron.
@@ -31,9 +27,9 @@ const STUB_SUGGESTION: MappingSuggestionPort = { suggest: () => null };
     },
     {
       provide: IngestBankTransactionsUseCase,
-      inject: [DrizzleTransactionRepository, DrizzleMappingRepository],
-      useFactory: (txRepo: DrizzleTransactionRepository, mappingRepo: DrizzleMappingRepository) =>
-        new IngestBankTransactionsUseCase(txRepo, mappingRepo, STUB_SUGGESTION, uuidv7),
+      inject: [DrizzleTransactionRepository],
+      useFactory: (txRepo: DrizzleTransactionRepository) =>
+        new IngestBankTransactionsUseCase(txRepo, uuidv7),
     },
     {
       provide: BankSyncProcessor,

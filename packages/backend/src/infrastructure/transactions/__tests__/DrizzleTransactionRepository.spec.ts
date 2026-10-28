@@ -3,6 +3,22 @@ import type { HouseholdId, TransactionId } from '@power-budget/core';
 import { DrizzleTransactionRepository } from '../DrizzleTransactionRepository.js';
 import { NO_BANK_DETAILS } from '../../../domain/transactions/entities.js';
 
+const BASE_ROW = {
+  id: 'new-id' as TransactionId,
+  householdId: 'h-1' as HouseholdId,
+  accountId: 'acc-1' as import('@power-budget/core').BankAccountId,
+  externalId: 'ext-123',
+  occurredOn: '2024-01-01' as import('@power-budget/core').IsoDate,
+  amount: { amountMinor: 1000n, currency: 'USD' as import('@power-budget/core').CurrencyCode },
+  description: 'Test',
+  merchant: null,
+  source: 'bank_sync' as const,
+  sourceKind: null,
+  status: 'booked' as const,
+  bank: NO_BANK_DETAILS,
+  ignored: false,
+};
+
 describe('DrizzleTransactionRepository', () => {
   it('returns null when findById gets no rows', async () => {
     // Arrange: chain terminates with empty array
@@ -28,36 +44,30 @@ describe('DrizzleTransactionRepository', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null when upsertByExternalId finds existing row', async () => {
-    const existing = [{ id: 'existing-id' }];
-    const mockDb = {
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      onConflictDoNothing: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockResolvedValue([]),
-      select: vi.fn().mockReturnThis(),
-      from: vi.fn().mockReturnThis(),
-      where: vi.fn().mockReturnThis(),
-      limit: vi.fn().mockResolvedValue(existing),
+  function bankRow(id: string, externalId: string) {
+    return {
+      ...BASE_ROW,
+      id: id as TransactionId,
+      externalId,
     };
+  }
+
+  it('insertBankBatch writes the batch with one statement and counts the created rows', async () => {
+    const mockDb = { execute: vi.fn().mockResolvedValue({ rows: [{ id: 'a' }] }) };
 
     const repo = new DrizzleTransactionRepository(mockDb as never);
-    const result = await repo.upsertByExternalId({
-      id: 'new-id' as TransactionId,
-      householdId: 'h-1' as HouseholdId,
-      accountId: 'acc-1' as import('@power-budget/core').BankAccountId,
-      externalId: 'ext-123',
-      occurredOn: '2024-01-01' as import('@power-budget/core').IsoDate,
-      amount: { amountMinor: 1000n, currency: 'USD' as import('@power-budget/core').CurrencyCode },
-      description: 'Test',
-      merchant: null,
-      source: 'bank_sync',
-      sourceKind: null,
-      status: 'booked',
-      bank: NO_BANK_DETAILS,
-      ignored: false,
-    });
+    const created = await repo.insertBankBatch([bankRow('a', 'e1'), bankRow('b', 'e2')]);
 
-    expect(result).toEqual({ id: 'existing-id', created: false });
+    expect(created).toBe(1);
+    expect(mockDb.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('insertBankBatch runs no statement for an empty batch', async () => {
+    const mockDb = { execute: vi.fn() };
+
+    const created = await new DrizzleTransactionRepository(mockDb as never).insertBankBatch([]);
+
+    expect(created).toBe(0);
+    expect(mockDb.execute).not.toHaveBeenCalled();
   });
 });
