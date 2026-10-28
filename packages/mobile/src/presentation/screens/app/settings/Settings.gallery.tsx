@@ -54,7 +54,7 @@ export function SettingsNightSaved(): React.JSX.Element {
 
 /** Profile failed to load: the device-local Appearance and sign out still work. */
 export function SettingsLoadError(): React.JSX.Element {
-  return <Stage props={{ ...READY, loadState: 'error', preference: 'light' }} />;
+  return <Stage props={{ ...READY, loadState: 'error', profile: null, preference: 'light' }} />;
 }
 
 function noop(): void {
