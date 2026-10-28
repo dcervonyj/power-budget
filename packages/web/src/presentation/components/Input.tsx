@@ -79,6 +79,11 @@ export function Input({
               right: 'var(--pb-glass-space-sm)',
               top: '50%',
               transform: 'translateY(-50%)',
+              // WCAG 2.2 target size (24 px minimum): a larger hit area, text stays where it was.
+              minWidth: 44,
+              minHeight: 32,
+              padding: '1px 6px',
+              textAlign: 'right',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
