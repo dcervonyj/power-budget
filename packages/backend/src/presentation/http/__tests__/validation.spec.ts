@@ -97,6 +97,41 @@ describe('global ValidationPipe', () => {
     });
   });
 
+  it('accepts the category, currency and source filters (CLN-050)', async () => {
+    const dto = await createValidationPipe().transform(
+      { categoryId: ACCOUNT_ID, currency: 'EUR', source: 'enable_banking' },
+      LIST_QUERY,
+    );
+
+    expect(dto).toMatchObject({
+      categoryId: ACCOUNT_ID,
+      currency: 'EUR',
+      source: 'enable_banking',
+    });
+  });
+
+  it('rejects an unknown category id, currency or source', async () => {
+    const response = await rejection(
+      { categoryId: 'groceries', currency: 'XYZ', source: 'gocardless' },
+      LIST_QUERY,
+    );
+
+    expect(response).toEqual({
+      code: 'validation_failed',
+      message: 'Validation failed',
+      errors: [
+        { field: 'categoryId', messages: ['categoryId must be a UUID'] },
+        { field: 'currency', messages: [expect.stringContaining('currency must be one of')] },
+        {
+          field: 'source',
+          messages: [
+            'source must be one of the following values: bank_sync, enable_banking, wise_webhook, pko_email, iko_push, manual',
+          ],
+        },
+      ],
+    });
+  });
+
   it('rejects an unknown direction for unplanned transactions', async () => {
     expect(await rejection({ direction: 'sideways' }, UNPLANNED_QUERY)).toEqual({
       code: 'validation_failed',

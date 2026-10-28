@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Logger } from 'drizzle-orm';
-import { HouseholdId, UserId } from '@power-budget/core';
+import { CategoryId, HouseholdId, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
 import type { TransactionQuery } from '../../domain/transactions/entities.js';
 import { DrizzleTransactionRepository } from '../../infrastructure/transactions/DrizzleTransactionRepository.js';
@@ -22,6 +22,8 @@ const BUFFERS_PER_PAGE = 2_000;
 // UUIDv7-shaped fixture ids, so the branded ids accept them.
 const HOUSEHOLD = '10000000-0000-7000-8000-000000000001';
 const OWNER = '00000000-0000-7000-8000-000000000001';
+/** One of the 14 expense categories the fixture maps to (about 5% of the rows each). */
+const CATEGORY = '30000000-0000-7000-8000-000000000002';
 
 /**
  * Shape of the audit perf fixture (docs/handoff/audit-2610/perf-sql/perf-seed.sql): per household
@@ -151,12 +153,30 @@ describe('Integration: GET /transactions page cost does not grow with history (C
     ['mapped', { mapped: true }],
     ['transfers only', { transfer: true }],
     ['no transfers', { transfer: false }],
+    // CLN-050: filters that used to run on the client, one page at a time (audit PERF-07).
+    ['categoryId', { categoryId: CategoryId.of(CATEGORY) }],
+    ['currency', { currency: 'EUR' }],
+    ['source', { source: 'bank_sync' }],
+    [
+      'categoryId + currency + mapped',
+      { categoryId: CategoryId.of(CATEGORY), currency: 'EUR', mapped: true },
+    ],
   ])('reads under the buffer budget: %s', async (_name, filters) => {
     const page = await repository.list(query(filters), scope);
 
     expect(page.items.length).toBeGreaterThan(0);
     const buffers = await buffersOf(logger.last());
     console.info(`CLN048 ${expect.getState().currentTestName} buffers=${buffers}`);
+    expect(buffers).toBeLessThan(BUFFERS_PER_PAGE);
+  });
+
+  it('reads under the buffer budget for a currency the caller has no row in', async () => {
+    // The worst case of the old client-side filter: it paged through the whole history.
+    const page = await repository.list(query({ currency: 'USD' }), scope);
+
+    expect(page.items).toEqual([]);
+    const buffers = await buffersOf(logger.last());
+    console.info(`CLN050 ${expect.getState().currentTestName} buffers=${buffers}`);
     expect(buffers).toBeLessThan(BUFFERS_PER_PAGE);
   });
 

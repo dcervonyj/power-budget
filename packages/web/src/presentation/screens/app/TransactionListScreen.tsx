@@ -7,6 +7,7 @@ import { useLocalObservable } from 'mobx-react-lite';
 import { Toast } from '../../components/shared/Toast.js';
 import {
   toBooking,
+  toCurrency,
   toMappingFilter,
   toSource,
   type TransactionFilters,
@@ -92,7 +93,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
     category: searchParams.get('category') ?? '',
     status: toMappingFilter(searchParams.get('status')),
     booking: toBooking(searchParams.get('booking')),
-    currency: searchParams.get('currency') ?? '',
+    currency: toCurrency(searchParams.get('currency')),
     source: toSource(searchParams.get('source')),
     q: searchParams.get('q') ?? '',
   };
@@ -155,7 +156,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
         );
         if (cancelled) return;
         const page = res.data;
-        setTransactions(toTransactions(page, filtersRef.current));
+        setTransactions(toTransactions(page));
         setNextCursor(page.nextCursor);
       } catch {
         if (!cancelled) {
@@ -185,7 +186,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
         `/transactions?${buildQuery(filtersRef.current, nextCursor)}`,
       );
       const page = res.data;
-      setTransactions((prev) => [...prev, ...toTransactions(page, filtersRef.current)]);
+      setTransactions((prev) => [...prev, ...toTransactions(page)]);
       setNextCursor(page.nextCursor);
     } catch {
       // silently fail so user can try scrolling again

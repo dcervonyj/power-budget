@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiQueryFrom } from '../http/ApiQueryFrom.js';
 import { CategoryId } from '@power-budget/core';
 import type { HouseholdId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
@@ -49,6 +50,7 @@ export class CategoriesController {
   @Get()
   @ApiOperation({ summary: "List system categories and the household's own categories" })
   @ApiResponse({ status: 200, description: 'Categories', type: [CategoryDto] })
+  @ApiQueryFrom(ListCategoriesQueryDto)
   async list(
     @Query() query: ListCategoriesQueryDto,
     @CurrentUser() user: AuthenticatedUser,

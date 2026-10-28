@@ -1,62 +1,45 @@
 import type { Transaction } from '../../domain/transactions/Transaction.js';
 import type { TransactionFilters } from '../../presentation/components/TransactionFilterBar.js';
-import type { TransactionPageDto } from '@power-budget/shared-app/contract';
+import type {
+  ListTransactionsQueryDto,
+  TransactionPageDto,
+} from '@power-budget/shared-app/contract';
 import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 
 const LIMIT = 50;
 
 /**
- * `GET /transactions` filters from, to, q, `unmappedOnly`, `mapped`, `transfer` and booking `status` in SQL
- * under the keyset cursor (CLN-023); any other query parameter is a 400. Currency and
- * source have no API filter yet and are filtered on the page.
+ * The `GET /transactions` query of the list filters, typed by the API contract. Every filter runs
+ * in SQL under the keyset cursor (CLN-023, CLN-050), so each page is a full page of matches and
+ * the list never pages through the history to fill the screen (audit PERF-07).
  */
+export function toListQuery(f: TransactionFilters, cursor?: string): ListTransactionsQueryDto {
+  return {
+    ...(f.from ? { from: f.from } : {}),
+    ...(f.to ? { to: f.to } : {}),
+    ...(f.q ? { q: f.q } : {}),
+    ...(f.status === 'unmapped' ? { unmappedOnly: true } : {}),
+    ...(f.status === 'mapped' ? { mapped: true } : {}),
+    ...(f.status === 'transfer' ? { transfer: true } : {}),
+    ...(f.booking ? { status: f.booking } : {}),
+    ...(f.category ? { categoryId: f.category } : {}),
+    ...(f.currency ? { currency: f.currency } : {}),
+    ...(f.source ? { source: f.source } : {}),
+    limit: LIMIT,
+    ...(cursor ? { cursor } : {}),
+  };
+}
+
 export function buildQuery(f: TransactionFilters, cursor?: string): string {
   const params = new URLSearchParams();
-  if (f.from) {
-    params.set('from', f.from);
-  }
-  if (f.to) {
-    params.set('to', f.to);
-  }
-  if (f.q) {
-    params.set('q', f.q);
-  }
-  if (f.status === 'unmapped') {
-    params.set('unmappedOnly', 'true');
-  }
-  if (f.status === 'mapped') {
-    params.set('mapped', 'true');
-  }
-  if (f.status === 'transfer') {
-    params.set('transfer', 'true');
-  }
-  if (f.booking) {
-    params.set('status', f.booking);
-  }
-  params.set('limit', String(LIMIT));
-  if (cursor) {
-    params.set('cursor', cursor);
+  for (const [name, value] of Object.entries(toListQuery(f, cursor))) {
+    params.set(name, String(value));
   }
 
   return params.toString();
 }
 
-function matchesSource(tx: Transaction, source: TransactionFilters['source']): boolean {
-  switch (source) {
-    case '':
-      return true;
-    case 'manual':
-      return tx.source === 'manual';
-    case 'gocardless':
-    case 'wise':
-      return tx.source === 'bank_sync';
-  }
-}
-
-export function toTransactions(page: TransactionPageDto, f: TransactionFilters): Transaction[] {
-  return page.items
-    .map((dto) => TransactionMapper.fromListItem(dto))
-    .filter(
-      (tx) => (!f.currency || tx.amount.currency === f.currency) && matchesSource(tx, f.source),
-    );
+/** The page as the API filtered it; nothing is dropped on the client. */
+export function toTransactions(page: TransactionPageDto): Transaction[] {
+  return page.items.map((dto) => TransactionMapper.fromListItem(dto));
 }

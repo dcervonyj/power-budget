@@ -2505,7 +2505,36 @@ export interface operations {
   };
   TransactionsController_list: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Filter by bank account ID */
+        accountId?: string;
+        /** @description Start date filter (YYYY-MM-DD) */
+        from?: string;
+        /** @description End date filter (YYYY-MM-DD) */
+        to?: string;
+        /** @description Full-text search query */
+        q?: string;
+        /** @description Return only transactions that still need a decision: no mapping, not a transfer, not ignored */
+        unmappedOnly?: boolean;
+        /** @description Return only transactions mapped to a planned item (not a transfer, not ignored); `false` adds no filter, use `unmappedOnly` for the opposite */
+        mapped?: boolean;
+        /** @description `true`: only internal transfers (not ignored); `false`: only transactions that are not part of a transfer */
+        transfer?: boolean;
+        /** @description Row lifecycle filter (`booked` is booked by the bank) */
+        status?: 'live' | 'pending' | 'booked' | 'cancelled' | 'expired' | 'manual';
+        /** @description Only transactions mapped to a planned item of this category (`GET /categories`) */
+        categoryId?: string;
+        /** @description Only transactions in this currency (ISO 4217) */
+        currency?:
+          'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
+        /** @description Where the rows came from. `bank_sync`: every bank row, whichever provider; `manual`: manual rows; `enable_banking`, `wise_webhook`, `pko_email`, `iko_push`: rows of that provider (bank rows synced before SYNC-001 carry none and match only `bank_sync`) */
+        source?:
+          'bank_sync' | 'enable_banking' | 'wise_webhook' | 'pko_email' | 'iko_push' | 'manual';
+        /** @description Opaque pagination cursor (`nextCursor` of the previous page) */
+        cursor?: string;
+        /** @description Page size (default 50, values above 200 are clamped) */
+        limit?: number;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -2825,7 +2854,20 @@ export interface operations {
   };
   AuditController_list: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Filter by subject entity type */
+        subjectType?: string;
+        /** @description Filter by subject entity ID */
+        subjectId?: string;
+        /** @description Start date filter (ISO 8601) */
+        from?: string;
+        /** @description End date filter (ISO 8601) */
+        to?: string;
+        /** @description Pagination cursor (`nextCursor` of the previous page) */
+        cursor?: string;
+        /** @description Page size (default 50, values above 200 are clamped) */
+        limit?: number;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -2859,7 +2901,10 @@ export interface operations {
   };
   BankController_catalogue: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description ISO 3166-1 alpha-2 country code */
+        country?: string;
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -3257,7 +3302,10 @@ export interface operations {
   };
   PlansController_list: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description `active` (default): not archived; `archived`; `all` */
+        status?: 'active' | 'archived' | 'all';
+      };
       header?: never;
       path?: never;
       cookie?: never;
@@ -3981,7 +4029,10 @@ export interface operations {
   };
   CategoriesController_list: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Include archived categories (default false) */
+        includeArchived?: boolean;
+      };
       header?: never;
       path?: never;
       cookie?: never;

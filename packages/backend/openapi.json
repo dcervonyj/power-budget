@@ -794,7 +794,138 @@
       "get": {
         "description": "Only transactions on the caller's accounts; a partner's appear only as dashboard aggregates. Keyset-paged (occurredOn desc, id desc). Each row carries its mapping (plan and category names, archived plans included), mapping source, transfer link, ignored flag and booking status, read in one query.",
         "operationId": "TransactionsController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "accountId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by bank account ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date filter (YYYY-MM-DD)",
+            "schema": {
+              "example": "2024-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date filter (YYYY-MM-DD)",
+            "schema": {
+              "example": "2024-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Full-text search query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "unmappedOnly",
+            "required": false,
+            "in": "query",
+            "description": "Return only transactions that still need a decision: no mapping, not a transfer, not ignored",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "mapped",
+            "required": false,
+            "in": "query",
+            "description": "Return only transactions mapped to a planned item (not a transfer, not ignored); `false` adds no filter, use `unmappedOnly` for the opposite",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "transfer",
+            "required": false,
+            "in": "query",
+            "description": "`true`: only internal transfers (not ignored); `false`: only transactions that are not part of a transfer",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Row lifecycle filter (`booked` is booked by the bank)",
+            "schema": {
+              "enum": ["live", "pending", "booked", "cancelled", "expired", "manual"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "description": "Only transactions mapped to a planned item of this category (`GET /categories`)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "currency",
+            "required": false,
+            "in": "query",
+            "description": "Only transactions in this currency (ISO 4217)",
+            "schema": {
+              "enum": ["PLN", "EUR", "USD", "GBP", "UAH", "RUB", "CHF", "CZK", "SEK", "NOK", "DKK"],
+              "type": "string"
+            }
+          },
+          {
+            "name": "source",
+            "required": false,
+            "in": "query",
+            "description": "Where the rows came from. `bank_sync`: every bank row, whichever provider; `manual`: manual rows; `enable_banking`, `wise_webhook`, `pko_email`, `iko_push`: rows of that provider (bank rows synced before SYNC-001 carry none and match only `bank_sync`)",
+            "schema": {
+              "enum": [
+                "bank_sync",
+                "enable_banking",
+                "wise_webhook",
+                "pko_email",
+                "iko_push",
+                "manual"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Opaque pagination cursor (`nextCursor` of the previous page)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size (default 50, values above 200 are clamped)",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Paginated list of transactions",
@@ -1108,7 +1239,66 @@
     "/audit-log": {
       "get": {
         "operationId": "AuditController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "subjectType",
+            "required": false,
+            "in": "query",
+            "description": "Filter by subject entity type",
+            "schema": {
+              "example": "transaction",
+              "type": "string"
+            }
+          },
+          {
+            "name": "subjectId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by subject entity ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": false,
+            "in": "query",
+            "description": "Start date filter (ISO 8601)",
+            "schema": {
+              "example": "2024-01-01",
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": false,
+            "in": "query",
+            "description": "End date filter (ISO 8601)",
+            "schema": {
+              "example": "2024-12-31",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "description": "Pagination cursor (`nextCursor` of the previous page)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Page size (default 50, values above 200 are clamped)",
+            "schema": {
+              "example": 50,
+              "type": "number"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Paginated list of audit events",
@@ -1139,7 +1329,18 @@
     "/bank-connections/catalogue": {
       "get": {
         "operationId": "BankController_catalogue",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "country",
+            "required": false,
+            "in": "query",
+            "description": "ISO 3166-1 alpha-2 country code",
+            "schema": {
+              "example": "PL",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of bank institutions",
@@ -1547,7 +1748,18 @@
     "/plans": {
       "get": {
         "operationId": "PlansController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "`active` (default): not archived; `archived`; `all`",
+            "schema": {
+              "enum": ["active", "archived", "all"],
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Plans ordered by period start",
@@ -2261,7 +2473,17 @@
     "/categories": {
       "get": {
         "operationId": "CategoriesController_list",
-        "parameters": [],
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "required": false,
+            "in": "query",
+            "description": "Include archived categories (default false)",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Categories",

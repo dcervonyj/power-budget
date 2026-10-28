@@ -1,20 +1,24 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
+import { CURRENCIES, isSupportedCurrency, type CurrencyCode } from '@power-budget/core';
 import type { TransactionStatus } from '../../domain/transactions/Transaction.js';
 import { FilterChips } from '../glass/controls/FilterChips.js';
 import { Icon } from '../glass/atoms/Icon.js';
 import '../glass/controls/controls.css';
 
+/** Every filter is applied by the API (`GET /transactions`, CLN-050). */
 export interface TransactionFilters {
   from: string;
   to: string;
+  /** Category id: rows mapped to a planned item of this category (`categoryId`). */
   category: string;
   /** Mapping filter, applied by the API (`unmappedOnly`, `mapped`, `transfer`). */
   status: '' | 'unmapped' | 'mapped' | 'transfer';
   /** Booking status, applied by the API (`status`). */
   booking: '' | TransactionStatus;
-  currency: string;
-  source: '' | 'gocardless' | 'wise' | 'manual';
+  currency: '' | CurrencyCode;
+  /** `bank_sync`: every bank row, whichever provider; `manual`: rows a user entered. */
+  source: '' | 'bank_sync' | 'manual';
   q: string;
 }
 
@@ -23,6 +27,8 @@ export interface TransactionFilterBarProps {
   onChange: (filters: TransactionFilters) => void;
   categories: { id: string; name: string }[];
 }
+
+const CURRENCY_CODES: readonly CurrencyCode[] = Object.keys(CURRENCIES).filter(isSupportedCurrency);
 
 const BAR_STYLE: React.CSSProperties = {
   display: 'flex',
@@ -250,20 +256,21 @@ export function TransactionFilterBar({
               id: 'screen.transactionList.filter.currency',
               defaultMessage: 'Currency',
             })}
-            <input
-              type="text"
-              className="pbg-ctl pbg-ctl-field"
+            <select
+              className="pbg-ctl"
               value={filters.currency}
               onChange={(e) => {
-                set('currency', e.target.value.toUpperCase());
+                set('currency', toCurrency(e.target.value));
               }}
-              placeholder={intl.formatMessage({
-                id: 'screen.transactionList.filter.currencyPlaceholder',
-                defaultMessage: 'EUR',
-              })}
-              maxLength={3}
-              style={{ ...FIELD_STYLE, width: 88 }}
-            />
+              style={FIELD_STYLE}
+            >
+              <option value="">{allLabel}</option>
+              {CURRENCY_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
           </label>
           <label style={LABEL_STYLE}>
             {intl.formatMessage({
@@ -279,16 +286,10 @@ export function TransactionFilterBar({
               style={FIELD_STYLE}
             >
               <option value="">{allLabel}</option>
-              <option value="gocardless">
+              <option value="bank_sync">
                 {intl.formatMessage({
-                  id: 'screen.transactionDetail.source.gocardless',
-                  defaultMessage: 'Bank (GoCardless)',
-                })}
-              </option>
-              <option value="wise">
-                {intl.formatMessage({
-                  id: 'screen.transactionDetail.source.wise',
-                  defaultMessage: 'Wise',
+                  id: 'screen.transactionDetail.source.bankSync',
+                  defaultMessage: 'Bank',
                 })}
               </option>
               <option value="manual">
@@ -328,13 +329,23 @@ export function toBooking(value: string | null): TransactionFilters['booking'] {
   }
 }
 
+/** `gocardless` and `wise` are the old bank options: both always meant every bank row. */
 export function toSource(value: string | null): TransactionFilters['source'] {
   switch (value) {
+    case 'bank_sync':
     case 'gocardless':
     case 'wise':
+      return 'bank_sync';
     case 'manual':
       return value;
     default:
       return '';
   }
+}
+
+/** A currency the API does not know reads as "all" (it would answer 400). */
+export function toCurrency(value: string | null): TransactionFilters['currency'] {
+  const code = value === null ? '' : value.toUpperCase();
+
+  return isSupportedCurrency(code) ? code : '';
 }
