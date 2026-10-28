@@ -7,6 +7,7 @@ import type {
   OAuthProvider,
 } from '../../../domain/auth/ports.js';
 import { InvalidCredentialsError } from '../../../domain/auth/errors.js';
+import { emailLocalPart } from '../../../domain/auth/email-local-part.js';
 import type { User } from '../../../domain/auth/entities.js';
 import type { LoginPolicy } from '../services/LoginPolicy.js';
 
@@ -56,7 +57,7 @@ export class LoginWithGoogleUseCase {
     const user = await this.userRepo.create({
       id: userId,
       email,
-      displayName: email.split('@')[0] ?? email,
+      displayName: emailLocalPart(email),
       defaultLocale: 'en',
       passwordHash: null,
     });
