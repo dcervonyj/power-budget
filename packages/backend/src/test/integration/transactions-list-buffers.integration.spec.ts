@@ -9,7 +9,11 @@ import { encodeTransactionCursor } from '../../infrastructure/transactions/trans
 import { APP_ROLE } from './app-role.js';
 import { getPool, resetState, startContainers, stopContainers } from './setup.js';
 
-/** Households in the fixture; each has 2 users, 3 accounts and 5,000 transactions. */
+/**
+ * Households in the fixture; each has 2 users, 3 accounts and 5,000 transactions. The audit
+ * fixture has 200 (1M rows); every query is household-scoped, so the per-page cost is the same and
+ * 2 keep the seed fast for CI. The 1M-row measurements are in the CLN-048 PR.
+ */
 const HOUSEHOLDS = 2;
 /** Upper bound of shared buffers (hit + read) for one `GET /transactions` page. */
 const BUFFERS_PER_PAGE = 2_000;

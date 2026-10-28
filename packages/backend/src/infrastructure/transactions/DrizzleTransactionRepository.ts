@@ -5,12 +5,15 @@ import {
   desc,
   eq,
   exists,
+  getTableColumns,
   gte,
   ilike,
   inArray,
+  isNotNull,
   isNull,
   lte,
   notExists,
+  notInArray,
   or,
   sql,
 } from 'drizzle-orm';
@@ -232,19 +235,22 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   }
 
   /**
-   * Two steps (CLN-048): `pageOf` picks the page ids from `transactions` alone (filters as EXISTS
-   * tests, keyset on the `(household_id, occurred_on DESC, id DESC)` index, `LIMIT n+1`), then this
-   * query joins mappings, plans, categories and transfers for those rows only. Joining first made
-   * every page cost grow with the caller's whole history.
+   * Two steps (CLN-048): `pageOf` picks the page rows from `transactions` alone (`LIMIT n+1`), then
+   * this query joins mappings, plans, categories and transfers for those rows only. Joining first
+   * made every page cost grow with the caller's whole history (55k buffers on the audit fixture).
    */
   async list(query: TransactionQuery, scope: HouseholdScope): Promise<Page<TransactionListItem>> {
     const limit = query.limit ?? 50;
-    const t = schema.transactions;
     const page = this.pageOf(query, scope, limit + 1);
+    // Joins the filter has already ruled out get `ON false`, so they cost nothing.
+    const mappingJoin = this.joinUnless(query.unmappedOnly === true);
+    const transferJoin = this.joinUnless(
+      query.unmappedOnly === true || query.mapped === true || query.transfer === false,
+    );
 
     const rows: ListRow[] = await this.db
       .select({
-        tx: t,
+        tx: page._.selectedFields,
         mappingOrigin: schema.transactionMappings.source,
         mappedAt: schema.transactionMappings.mappedAt,
         plannedItemId: schema.plannedItems.id,
@@ -260,14 +266,16 @@ export class DrizzleTransactionRepository implements TransactionRepository {
         transferAsBCounterpart: transferAsB.txAId,
       })
       .from(page)
-      .innerJoin(t, eq(t.id, page.id))
       // Each join matches at most one row (PK / unique keys), so paging stays one row per tx.
-      .leftJoin(schema.transactionMappings, eq(schema.transactionMappings.transactionId, t.id))
+      .leftJoin(
+        schema.transactionMappings,
+        and(eq(schema.transactionMappings.transactionId, page.id), mappingJoin),
+      )
       .leftJoin(
         schema.plannedItems,
         and(
           eq(schema.plannedItems.id, schema.transactionMappings.plannedItemId),
-          eq(schema.plannedItems.householdId, t.householdId),
+          eq(schema.plannedItems.householdId, page.householdId),
         ),
       )
       // Archived plans included: a mapping into last month's plan still shows its names.
@@ -275,11 +283,19 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .leftJoin(schema.categories, eq(schema.categories.id, schema.plannedItems.categoryId))
       .leftJoin(
         transferAsA,
-        and(eq(transferAsA.txAId, t.id), eq(transferAsA.householdId, t.householdId)),
+        and(
+          eq(transferAsA.txAId, page.id),
+          eq(transferAsA.householdId, page.householdId),
+          transferJoin,
+        ),
       )
       .leftJoin(
         transferAsB,
-        and(eq(transferAsB.txBId, t.id), eq(transferAsB.householdId, t.householdId)),
+        and(
+          eq(transferAsB.txBId, page.id),
+          eq(transferAsB.householdId, page.householdId),
+          transferJoin,
+        ),
       )
       .orderBy(desc(page.occurredOn), desc(page.id));
 
@@ -472,18 +488,18 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   }
 
   /**
-   * The ids of one page. Without a mapping filter the household/date index is walked in order and
-   * stops after `size` rows. A mapping filter is tested per row, and each `transaction_mappings`
-   * probe also runs that table's RLS policy (a `transactions` lookup), so the planner prefers to
-   * read every own row, probe them all and sort (about 15k buffers for 3,333 rows). There the own
-   * rows are sorted first inside a fenced subquery (a subquery with LIMIT is planned on its own and
-   * outer filters are not pushed into it), and the mapping probe runs on them in order until the
-   * page is full.
+   * The rows of one page, every `transactions` column (no second lookup by id). Without a mapping
+   * filter the household/date index is walked in order and stops after `size` rows. A mapping
+   * filter is tested per row, and each `transaction_mappings` probe also runs that table's RLS
+   * policy (a `transactions` lookup), so the planner prefers to read every own row, probe them all
+   * and sort (about 15k buffers for 3,333 rows). There the own rows are sorted first inside a
+   * fenced subquery (a subquery with LIMIT is planned on its own and outer filters are not pushed
+   * into it), and the mapping probe runs on them in order until the page is full.
    */
   private pageOf(query: TransactionQuery, scope: HouseholdScope, size: number) {
     const t = schema.transactions;
     const rows = this.db
-      .select({ id: t.id, occurredOn: t.occurredOn })
+      .select(getTableColumns(t))
       .from(t)
       .where(and(...this.rowConditions(query, scope)))
       .orderBy(desc(t.occurredOn), desc(t.id));
@@ -494,12 +510,16 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     const ownRows = rows.limit(PLANNER_FENCE).as('own_rows');
 
     return this.db
-      .select({ id: ownRows.id, occurredOn: ownRows.occurredOn })
+      .select(ownRows._.selectedFields)
       .from(ownRows)
       .where(and(...this.mappingConditions(query, ownRows.id)))
       .orderBy(desc(ownRows.occurredOn), desc(ownRows.id))
       .limit(size)
       .as('page');
+  }
+
+  private joinUnless(ruledOut: boolean): SQL {
+    return ruledOut ? sql`false` : sql`true`;
   }
 
   /** Conditions on the `transactions` row and its transfers; the mapping test is separate. */
@@ -528,16 +548,19 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       conditions.push(eq(t.status, query.status));
     }
     if (query.unmappedOnly || query.mapped) {
-      conditions.push(...this.notATransfer(), eq(t.ignored, false));
+      conditions.push(...this.notATransfer(scope), eq(t.ignored, false));
     }
     if (query.transfer === true) {
-      const isTransfer = or(exists(this.transferOfRow('a')), exists(this.transferOfRow('b')));
+      const isTransfer = or(
+        inArray(t.id, this.transferSide('a', scope)),
+        inArray(t.id, this.transferSide('b', scope)),
+      );
       if (isTransfer) {
         conditions.push(isTransfer, eq(t.ignored, false));
       }
     }
     if (query.transfer === false) {
-      conditions.push(...this.notATransfer());
+      conditions.push(...this.notATransfer(scope));
     }
     if (query.cursor) {
       const after = decodeTransactionCursor(query.cursor);
@@ -582,23 +605,30 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .where(eq(schema.transactionMappings.transactionId, rowId));
   }
 
-  /** The transfer in which the outer `transactions` row is side `a` or side `b`. */
-  private transferOfRow(side: 'a' | 'b') {
-    const ownSide = side === 'a' ? schema.transfers.txAId : schema.transfers.txBId;
+  /**
+   * The household's transactions on side `a` or `b` of a transfer. Tested with `IN` under `OR` and
+   * with `NOT IN`, both stay hashed subplans: the household's transfers are read once per query,
+   * not probed per row (per-row probes cost about 13k buffers for 3,333 own rows).
+   */
+  private transferSide(side: 'a' | 'b', scope: HouseholdScope) {
+    const txId = side === 'a' ? schema.transfers.txAId : schema.transfers.txBId;
 
-    return this.db
-      .select({ one: sql`1` })
-      .from(schema.transfers)
-      .where(
-        and(
-          eq(ownSide, schema.transactions.id),
-          eq(schema.transfers.householdId, schema.transactions.householdId),
-        ),
-      );
+    return (
+      this.db
+        .select({ id: txId })
+        .from(schema.transfers)
+        // `NOT IN` is never true when the list holds a NULL; a one-sided transfer has no `tx_b`.
+        .where(and(eq(schema.transfers.householdId, scope.householdId), isNotNull(txId)))
+    );
   }
 
-  private notATransfer(): SQL[] {
-    return [notExists(this.transferOfRow('a')), notExists(this.transferOfRow('b'))];
+  private notATransfer(scope: HouseholdScope): SQL[] {
+    const t = schema.transactions;
+
+    return [
+      notInArray(t.id, this.transferSide('a', scope)),
+      notInArray(t.id, this.transferSide('b', scope)),
+    ];
   }
 
   private toListItem(row: ListRow): TransactionListItem {
