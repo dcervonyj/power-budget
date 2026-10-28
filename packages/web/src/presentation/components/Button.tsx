@@ -63,7 +63,7 @@ export function Button({
   );
 }
 
-/** Keeps the label in the accessible name while the visible text is the loading mark. */
+/** Keeps the label in the accessible name (children are text; an icon-only child needs its own aria-label) while the visible text is the loading mark. */
 const VISUALLY_HIDDEN: React.CSSProperties = {
   position: 'absolute',
   width: 1,
