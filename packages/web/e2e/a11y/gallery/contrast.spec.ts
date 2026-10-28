@@ -8,7 +8,11 @@ import { openWorstPointStage } from '../support/worstPoints.js';
 
 async function attach(testInfo: TestInfo, rows: readonly TextMeasurement[]): Promise<void> {
   await testInfo.attach('contrast.json', {
-    body: JSON.stringify(rows, null, 2),
+    body: JSON.stringify(
+      rows.map((row) => ({ ...row, worst: Math.round(row.worst * 100) / 100 })),
+      null,
+      2,
+    ),
     contentType: 'application/json',
   });
 }
@@ -18,7 +22,7 @@ function failing(rows: readonly TextMeasurement[]): string[] {
     .filter((row) => row.worst < row.required)
     .map(
       (row) =>
-        `${row.tag} "${row.text}" ${row.color} on ${row.worstBackground}: ${String(row.worst)} < ${String(row.required)}`,
+        `${row.tag} "${row.text}" ${row.color} on ${row.worstBackground}: ${row.worst.toFixed(2)} < ${String(row.required)}`,
     );
 }
 
@@ -28,7 +32,10 @@ test.describe('every gallery entry', () => {
       test(`text contrast ${entry} ${theme}`, async ({ page }, testInfo) => {
         await openGalleryEntry(page, entry, theme);
 
-        const rows = await measureRenderedText(page, '#gallery-main');
+        // Modal, drawer and sheet panels render through a portal onto the scrim: measure the
+        // panel when one is open (the page behind it is inert), else the entry itself.
+        const open = (await page.locator('[role="dialog"]').count()) > 0;
+        const rows = await measureRenderedText(page, open ? '[role="dialog"]' : '#gallery-main');
         await attach(testInfo, rows);
 
         expect(failing(rows)).toEqual([]);
@@ -38,8 +45,14 @@ test.describe('every gallery entry', () => {
 });
 
 // D7-SPEC R2.6: the worst points, rebuilt from the real tokens and measured in the browser.
+const TEXTS_PER_STAGE: Readonly<Record<string, number>> = {
+  'frosted-over-bloom': 4,
+  'clear-over-sun': 4,
+  'frosted-over-sun': 4,
+  'accent-ink-on-light-solid': 1,
+};
 const WORST_POINTS: Readonly<Record<Theme, readonly string[]>> = {
-  dark: ['frosted-over-bloom'],
+  dark: ['frosted-over-bloom', 'accent-ink-on-light-solid'],
   light: ['clear-over-sun', 'frosted-over-sun', 'accent-ink-on-light-solid'],
 };
 
@@ -49,7 +62,11 @@ for (const theme of THEMES) {
       const rows = await measureWorstPoints(page, theme);
       await attach(testInfo, rows);
 
-      expect(rows.length).toBeGreaterThan(0);
+      const expectedRows = WORST_POINTS[theme].map((point) => TEXTS_PER_STAGE[point] ?? 0);
+      const measuredRows = WORST_POINTS[theme].map(
+        (point) => rows.filter((row) => row.text.startsWith(`${point} / `)).length,
+      );
+      expect(measuredRows).toEqual(expectedRows);
       expect(failing(rows)).toEqual([]);
     });
   });

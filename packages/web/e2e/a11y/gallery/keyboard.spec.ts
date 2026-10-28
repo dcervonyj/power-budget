@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { galleryEntryIds, openGalleryEntry, THEMES } from '../support/gallery.js';
-import { walkTabOrder } from '../support/keyboard.js';
+import { escapesOfDialogTrap, walkTabOrder } from '../support/keyboard.js';
 
 // DSN-050: keyboard-only pass on the gallery. Tab reaches every control in DOM order, each stop
 // shows a focus indicator, and an open dialog keeps Tab and Shift+Tab inside it.
@@ -38,12 +38,7 @@ for (const entry of dialogEntries()) {
     await expect(page.getByRole('dialog')).toBeVisible();
     await expect.poll(() => insideDialog(page)).toBe(true);
 
-    for (const key of ['Tab', 'Shift+Tab']) {
-      for (let press = 0; press < 12; press += 1) {
-        await page.keyboard.press(key);
-        expect(await insideDialog(page)).toBe(true);
-      }
-    }
+    expect(await escapesOfDialogTrap(page)).toEqual([]);
   });
 }
 

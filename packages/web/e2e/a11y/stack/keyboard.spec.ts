@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { BackendApi, signInWithTokens, uniqueEmail } from '../../support/api.js';
 import { FULL_STACK } from '../../support/stack.js';
-import { walkTabOrder } from '../support/keyboard.js';
+import { escapesOfDialogTrap, walkTabOrder } from '../support/keyboard.js';
 
 // DSN-050: keyboard-only pass on the real app: tab order and focus ring on the main screens, and
 // the Clone plan dialog traps Tab, closes on Esc and hands focus back to the button that opened it.
@@ -51,10 +51,7 @@ test('Clone plan dialog traps focus, closes on Esc and returns focus to its open
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
-  for (let press = 0; press < 12; press += 1) {
-    await page.keyboard.press(press % 2 === 0 ? 'Tab' : 'Shift+Tab');
-    await expect(dialog.locator(':focus')).toHaveCount(1);
-  }
+  expect(await escapesOfDialogTrap(page)).toEqual([]);
   await page.keyboard.press('Escape');
 
   await expect(dialog).toHaveCount(0);
