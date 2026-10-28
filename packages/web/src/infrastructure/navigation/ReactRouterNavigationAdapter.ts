@@ -41,7 +41,7 @@ export class ReactRouterNavigationAdapter implements Navigator {
       return;
     }
     const state = this.stateFor(route);
-    this._navigate?.(routeToPath(route), state ? { ...options, state } : options);
+    void this._navigate?.(routeToPath(route), state ? { ...options, state } : options);
   }
 
   /**
