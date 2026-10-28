@@ -5,11 +5,10 @@ import type { SettingsViewProps } from './settingsTypes.js';
 
 const READY: SettingsViewProps = {
   loadState: 'ready',
-  email: 'anna@example.com',
+  profile: { email: 'anna@example.com', locale: 'pl' },
   nameDraft: 'Anna Kowalska',
   nameSave: 'idle',
   preference: 'system',
-  locale: 'pl',
   baseCurrency: 'PLN',
   preferencesError: false,
   biometricAvailable: true,

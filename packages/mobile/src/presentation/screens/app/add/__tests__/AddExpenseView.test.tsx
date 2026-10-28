@@ -116,6 +116,20 @@ describe('AddExpenseView actions', () => {
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
+  it('does not save while no account is chosen', async () => {
+    const onSave = jest.fn();
+    await renderAdd(
+      <AddExpenseView {...props({ typed: '84.00', accounts: [], accountId: null, onSave })} />,
+      'pl',
+    );
+
+    await userEvent
+      .setup()
+      .press(screen.getByRole('button', { name: /^Dodaj 84,00 zł do: Groceries/ }));
+
+    expect(onSave).not.toHaveBeenCalled();
+  });
+
   it('reports the chosen category and account', async () => {
     const onCategoryChange = jest.fn();
     const onAccountChange = jest.fn();

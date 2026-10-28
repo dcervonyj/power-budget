@@ -1,4 +1,4 @@
-import { NO_LABEL } from '../../../../domain/display.js';
+import { requireCategoryName } from '../../../../domain/categoryName.js';
 import { IsoDate, parseMinorUnits, periodProgress } from '@power-budget/core';
 import type {
   AccountDto,
@@ -41,7 +41,7 @@ export function buildAddExpenseData(sources: AddExpenseSources): AddExpenseData 
       ...dashboard.expenseLines.map((line) => ({
         id: line.plannedItemId,
         plannedItemId: line.plannedItemId,
-        name: names.get(line.categoryId) ?? NO_LABEL,
+        name: requireCategoryName(names, line.categoryId),
         plannedMinor: parseMinorUnits(line.planned.amountMinor),
         spentMinor: parseMinorUnits(line.actual.amountMinor),
       })),

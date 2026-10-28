@@ -1,5 +1,3 @@
-import { DEFAULT_LOCALE } from '../../../../domain/locale.js';
-import { NO_LABEL } from '../../../../domain/display.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import type { UpdateUserProfileDto, UserProfileDto } from '@power-budget/shared-app/contract';
@@ -10,6 +8,7 @@ import type {
   SettingsCurrency,
   SettingsLoadState,
   SettingsLocale,
+  SettingsProfile,
   SettingsSaveState,
   SettingsViewProps,
 } from './settingsTypes.js';
@@ -146,11 +145,10 @@ export function useSettings(): SettingsViewProps {
 
   return {
     loadState,
-    email: profile?.email ?? NO_LABEL,
+    profile: loadState === 'ready' ? toViewProfile(profile) : null,
     nameDraft,
     nameSave,
     preference,
-    locale: profile?.locale ?? DEFAULT_LOCALE,
     baseCurrency: profile?.baseCurrency ?? null,
     preferencesError,
     biometricAvailable,
@@ -190,4 +188,8 @@ async function readBiometrics(
   } catch {
     setAvailable(false);
   }
+}
+
+function toViewProfile(profile: UserProfileDto | null): SettingsProfile | null {
+  return profile === null ? null : { email: profile.email, locale: profile.locale };
 }
