@@ -164,6 +164,12 @@ describe('normaliseTransaction extraction', () => {
     expect(result.merchantKey).toBe('biedronka');
   });
 
+  it('strips a processor prefix behind the Wise card wrapper', () => {
+    expect(
+      normaliseTransaction('Card transaction of 12.34 PLN issued by PayU Biedronka').merchantKey,
+    ).toBe('biedronka');
+  });
+
   it('strips card masks and times from the merchant', () => {
     expect(normaliseTransaction('Card payment to Lidl ****1234 14:32').merchant).toBe('Lidl');
   });

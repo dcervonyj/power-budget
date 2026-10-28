@@ -40,9 +40,12 @@ const DIACRITICS: Readonly<Record<string, string>> = {
 /** Keyword end: next char is not a letter or digit (JS \b is ASCII-only). */
 const END = String.raw`(?![\p{L}\d])`;
 
-const MERCHANT_PREFIXES: readonly RegExp[] = [
-  // Wise: "Card transaction of 12.34 PLN issued by Biedronka", "1,234.56" and "1 234,56" amounts.
+// Wise: "Card transaction of 12.34 PLN issued by Biedronka", "1,234.56" and "1 234,56" amounts.
+const WISE_CARD_PREFIX = toPrefixPattern(
   `card transaction of\\s+[-+]?\\d[\\d\\s.,'\u2019]*?\\s*\\p{L}{3}\\s+issued by${END}\\s*`,
+);
+
+const MERCHANT_PREFIXES: readonly RegExp[] = [
   `(?:card payment to|card purchase at|p[łl]atno[śs][ćc] kart[ąa]|transakcja kart[ąa])${END}[\\s*:-]*`,
   `(?:payu|przelewy24|p24)${END}[\\s*:-]*`,
   `(?:blik payment|p[łl]atno[śs][ćc] blik|blik)${END}[\\s*:-]*`,
@@ -213,6 +216,11 @@ function cutAtTitle(rest: string): string {
 }
 
 function stripFirstPrefix(description: string): string {
+  // The Wise wrapper hides the real descriptor: "... issued by PayU Biedronka" strips like "PayU Biedronka".
+  if (WISE_CARD_PREFIX.test(description)) {
+    return stripFirstPrefix(description.replace(WISE_CARD_PREFIX, ''));
+  }
+
   for (const prefix of MERCHANT_PREFIXES) {
     if (prefix.test(description)) {
       return keepPrefixWhenNothingFollows(description, description.replace(prefix, ''));
