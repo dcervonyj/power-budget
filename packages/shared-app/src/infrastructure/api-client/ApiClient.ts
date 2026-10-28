@@ -31,6 +31,7 @@ interface PendingRequest {
   headers: Record<string, string>;
   body: unknown;
   retried: boolean;
+  timeoutMs: number;
   epoch: number | undefined;
 }
 
@@ -60,6 +61,7 @@ const UNAUTHORIZED = 401;
 const REVOKE_TIMEOUT_MS = 5000;
 const SESSION_REJECTED_STATUSES: readonly number[] = [400, 401];
 const SUCCESS_STATUS_LIMIT = 300;
+const ABSOLUTE_OR_PROTOCOL_RELATIVE = /^([a-z][a-z0-9+.-]*:)?\/\//i;
 const ABSOLUTE_URL_ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/]+/i;
 
 export class ApiClient implements HttpClient {
@@ -89,6 +91,7 @@ export class ApiClient implements HttpClient {
       headers: { ...req.headers },
       body: req.body,
       retried: false,
+      timeoutMs: req.timeoutMs ?? 0,
       epoch: undefined,
     });
 
@@ -222,10 +225,15 @@ export class ApiClient implements HttpClient {
     body: unknown,
     headers: Record<string, string>,
   ): Promise<HttpResponse<T>> {
-    return this.transport<T>(
-      { url, method: 'POST', headers, body, retried: false, epoch: undefined },
-      REVOKE_TIMEOUT_MS,
-    );
+    return this.transport<T>({
+      url,
+      method: 'POST',
+      headers,
+      body,
+      retried: false,
+      timeoutMs: REVOKE_TIMEOUT_MS,
+      epoch: undefined,
+    });
   }
 
   /** Attaches the current access token, sends, and recovers from a 401 (refresh and retry once). */
@@ -236,14 +244,15 @@ export class ApiClient implements HttpClient {
       req.headers['Authorization'] = bearer(token);
     }
     try {
-      return await this.transport(req, 0);
+      return await this.transport(req);
     } catch (error) {
       return this.handleResponseError(error, req);
     }
   }
 
   /** One fetch call; `timeoutMs` 0 means no timeout. Non-2xx answers and failures become HttpError. */
-  private async transport<T>(req: PendingRequest, timeoutMs: number): Promise<HttpResponse<T>> {
+  private async transport<T>(req: PendingRequest): Promise<HttpResponse<T>> {
+    const timeoutMs = req.timeoutMs;
     const controller = new AbortController();
     const timer =
       timeoutMs > 0 ? setTimeout(controller.abort.bind(controller), timeoutMs) : undefined;
@@ -272,7 +281,7 @@ export class ApiClient implements HttpClient {
   }
 
   private resolveUrl(url: string): string {
-    if (ABSOLUTE_URL_ORIGIN.test(url)) {
+    if (ABSOLUTE_OR_PROTOCOL_RELATIVE.test(url)) {
       return url;
     }
 

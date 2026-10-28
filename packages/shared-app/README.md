@@ -11,7 +11,7 @@ This package holds all frontend application logic that has **zero platform depen
 - **MobX `observer` connector** — `connect()` HOC wrapping components in `observer()`
 - **NavigationPort** — platform-agnostic navigation interface; adapted by web (React Router) and mobile (React Navigation) in their own packages
 - **AppRoute** — typed discriminated union of every route in the app
-- **ApiClient** — axios-based `HttpClient` implementation with auth interceptor
+- **ApiClient** — fetch-based `HttpClient` implementation with token header and refresh on 401
 - **SecureTokenStore** — port interface for token persistence (implemented per-platform)
 - **Feature scaffolds** — empty `application/`, `api/`, `config/`, `ui/connect/` barrels for each of the 8 feature modules
 
