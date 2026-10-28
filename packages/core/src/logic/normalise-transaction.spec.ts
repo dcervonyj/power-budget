@@ -184,6 +184,11 @@ describe('normaliseTransaction extraction', () => {
     expect(result.descriptorClass).toBe(descriptorClass);
   });
 
+  it('flags only Wise card titles', () => {
+    expect(normaliseTransaction('Card transaction of 1 PLN issued by Lidl').isWiseCard).toBe(true);
+    expect(normaliseTransaction('Card payment to Lidl').isWiseCard).toBe(false);
+  });
+
   it.each([
     ['city only', 'Warszawa', 'warszawa'],
     ['empty remainder', '', ''],

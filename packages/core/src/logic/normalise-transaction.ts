@@ -16,6 +16,8 @@ export interface NormalisedTransaction {
   readonly counterparty: string | null;
   readonly descriptorClass: DescriptorClass;
   readonly descriptionKey: string;
+  /** True when the text was a Wise card title and `merchant` is the issuer named in it. */
+  readonly isWiseCard: boolean;
 }
 
 const DIACRITICS: Readonly<Record<string, string>> = {
@@ -121,6 +123,7 @@ export function normaliseTransaction(rawDescription: string): NormalisedTransact
     counterparty,
     descriptorClass,
     descriptionKey: normaliseText(description),
+    isWiseCard,
   };
 }
 
