@@ -80,6 +80,7 @@ export function TransactionDetailModal({
     setIgnored(false);
     setShowMapModal(false);
     setNotesError(null);
+    setActionError(null);
     setLoading(true);
 
     let cancelled = false;

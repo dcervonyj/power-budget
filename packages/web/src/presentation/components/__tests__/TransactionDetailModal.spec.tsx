@@ -177,4 +177,21 @@ describe('TransactionDetailModal', () => {
       expect(screen.getByRole('alert')).toHaveTextContent('Too many requests');
     });
   });
+
+  it('drops the action error when the modal opens another transaction', async () => {
+    mockPost.mockRejectedValueOnce(apiError(500));
+    const { rerender } = render(
+      <TransactionDetailModal transactionId="tx-1" isOpen onClose={vi.fn()} />,
+      { wrapper },
+    );
+    await screen.findByText('Bank · Pending');
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as transfer' }));
+    await screen.findByRole('alert');
+
+    rerender(<TransactionDetailModal transactionId="tx-2" isOpen onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.queryByText('The change could not be saved. Please try again.')).toBeNull();
+    });
+  });
 });
