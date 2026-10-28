@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { IntlProvider } from 'react-intl';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
@@ -36,6 +36,8 @@ export function LocaleProvider({
   );
   const [messages, setMessages] = useState<Record<string, string>>({});
 
+  // Counts explicit language choices; the launch-time stored read must not overwrite one.
+  const choices = useRef(0);
   const apply = useCallback(async (next: SupportedLocale): Promise<void> => {
     const loaded = await loadMessages(next);
     setMessages(loaded);
@@ -43,13 +45,17 @@ export function LocaleProvider({
   }, []);
 
   useEffect(() => {
+    const choicesAtStart = choices.current;
     void AsyncStorage.getItem(LOCALE_STORAGE_KEY).then((stored) =>
-      apply(resolver.resolve(deviceLanguage, stored)),
+      choices.current === choicesAtStart
+        ? apply(resolver.resolve(deviceLanguage, stored))
+        : undefined,
     );
   }, [apply, deviceLanguage]);
 
   const setLocale = useCallback(
     (next: SupportedLocale): void => {
+      choices.current += 1;
       void AsyncStorage.setItem(LOCALE_STORAGE_KEY, next);
       void apply(next);
     },
