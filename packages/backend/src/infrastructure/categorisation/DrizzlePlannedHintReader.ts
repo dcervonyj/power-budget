@@ -50,14 +50,14 @@ export class DrizzlePlannedHintReader implements PlannedHintReader {
   }
 
   private toItem(row: {
-    id: string;
-    categoryId: string;
+    id: PlannedItemId;
+    categoryId: CategoryId;
     direction: string;
     amountMinor: bigint;
     currency: string;
     matchHint: unknown;
-    periodStart: string;
-    periodEnd: string;
+    periodStart: IsoDate;
+    periodEnd: IsoDate;
   }): HintedPlannedItem[] {
     const matchHint = matchHintFromJson(row.matchHint);
     if (matchHint === null || (row.direction !== 'income' && row.direction !== 'expense')) {
@@ -66,13 +66,13 @@ export class DrizzlePlannedHintReader implements PlannedHintReader {
 
     return [
       {
-        plannedItemId: row.id as PlannedItemId,
-        categoryId: row.categoryId as CategoryId,
+        plannedItemId: row.id,
+        categoryId: row.categoryId,
         direction: row.direction,
         amount: { amountMinor: row.amountMinor, currency: currencyOf(row.currency) },
         matchHint,
-        periodStart: row.periodStart as IsoDate,
-        periodEnd: row.periodEnd as IsoDate,
+        periodStart: row.periodStart,
+        periodEnd: row.periodEnd,
       },
     ];
   }

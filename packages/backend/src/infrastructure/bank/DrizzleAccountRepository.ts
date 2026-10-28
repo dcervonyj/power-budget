@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { BankAccountId, BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
+import type { UserId } from '@power-budget/core';
 import type { Account, ManualAccount, NewManualAccount } from '../../domain/bank/entities.js';
 import type { AccountRepository, HouseholdScope } from '../../domain/bank/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
@@ -51,7 +51,7 @@ export class DrizzleAccountRepository implements AccountRepository {
       return {
         ...this.toManualAccount(row),
         kind: 'bank',
-        connectionId: row.connectionId as BankConnectionId,
+        connectionId: row.connectionId,
         balance: { amountMinor: row.balanceMinor, currency: currencyOf(row.currency) },
         lastSyncedAt: row.lastSyncedAt,
       };
@@ -62,9 +62,9 @@ export class DrizzleAccountRepository implements AccountRepository {
 
   private toManualAccount(row: schema.SelectBankAccount): ManualAccount {
     return {
-      id: row.id as BankAccountId,
-      householdId: row.householdId as HouseholdId,
-      ownerUserId: row.ownerUserId as UserId,
+      id: row.id,
+      householdId: row.householdId,
+      ownerUserId: row.ownerUserId,
       kind: 'manual',
       name: row.name,
       currency: currencyOf(row.currency),

@@ -1,12 +1,12 @@
+import { NotificationEventId } from '@power-budget/core';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, isNull, lte, sql, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { UserId } from '@power-budget/core';
 import type {
   ExpiringConnectionRow,
   HouseholdMemberRow,
   NotificationOutboxRow,
-  NotificationKind,
 } from '../../domain/notifications/entities.js';
 import type {
   ClaimedRecipient,
@@ -17,6 +17,13 @@ import { DrizzleNotificationClaim } from './DrizzleNotificationClaim.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
 
+/** The expiring-connection select: `expiresAt` is nullable in the schema, the query only keeps rows that have one. */
+interface ExpiringConnectionSource extends Omit<ExpiringConnectionRow, 'expiresAt' | 'locale'> {
+  readonly expiresAt: Date | null;
+  readonly localePreference: string | null;
+  readonly defaultLocale: string;
+}
+
 @Injectable()
 export class DrizzleNotificationRepository implements NotificationRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
@@ -25,7 +32,7 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     const [row] = await this.db
       .select()
       .from(schema.notificationsOutbox)
-      .where(eq(schema.notificationsOutbox.id, id))
+      .where(eq(schema.notificationsOutbox.id, NotificationEventId.of(id)))
       .limit(1);
 
     return row === undefined ? null : this.toEntity(row);
@@ -55,7 +62,12 @@ export class DrizzleNotificationRepository implements NotificationRepository {
             tx
               .select({ id: schema.notificationsOutbox.id })
               .from(schema.notificationsOutbox)
-              .where(and(eq(schema.notificationsOutbox.id, id), this.isPending()))
+              .where(
+                and(
+                  eq(schema.notificationsOutbox.id, NotificationEventId.of(id)),
+                  this.isPending(),
+                ),
+              )
               .for('update', { skipLocked: true }),
           ),
         )
@@ -89,8 +101,8 @@ export class DrizzleNotificationRepository implements NotificationRepository {
       .innerJoin(schema.users, eq(schema.householdUsers.userId, schema.users.id));
 
     return rows.map((r) => ({
-      householdId: r.householdId as HouseholdId,
-      userId: r.userId as UserId,
+      householdId: r.householdId,
+      userId: r.userId,
       email: r.email,
       displayName: r.displayName,
       locale: r.localePreference ?? r.defaultLocale,
@@ -121,19 +133,7 @@ export class DrizzleNotificationRepository implements NotificationRepository {
         ),
       );
 
-    return rows
-      .filter((r) => r.expiresAt !== null)
-      .map((r) => ({
-        connectionId: r.connectionId,
-        householdId: r.householdId as HouseholdId,
-        userId: r.userId as UserId,
-        email: r.email,
-        displayName: r.displayName,
-        locale: r.localePreference ?? r.defaultLocale,
-        bankId: r.bankId,
-        expiresAt: r.expiresAt as Date,
-        emailBouncing: r.emailBouncing,
-      }));
+    return rows.flatMap(this.toExpiringConnection, this);
   }
 
   async setEmailBouncing(email: string): Promise<void> {
@@ -200,6 +200,26 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     };
   }
 
+  private toExpiringConnection(r: ExpiringConnectionSource): ExpiringConnectionRow[] {
+    if (r.expiresAt === null) {
+      return [];
+    }
+
+    return [
+      {
+        connectionId: r.connectionId,
+        householdId: r.householdId,
+        userId: r.userId,
+        email: r.email,
+        displayName: r.displayName,
+        locale: r.localePreference ?? r.defaultLocale,
+        bankId: r.bankId,
+        expiresAt: r.expiresAt,
+        emailBouncing: r.emailBouncing,
+      },
+    ];
+  }
+
   private isPending(): SQL | undefined {
     return and(
       isNull(schema.notificationsOutbox.sentAt),
@@ -210,13 +230,13 @@ export class DrizzleNotificationRepository implements NotificationRepository {
   private toEntity(r: schema.SelectNotificationOutbox): NotificationOutboxRow {
     return {
       id: r.id,
-      householdId: (r.householdId as HouseholdId | null) ?? null,
-      recipientUserId: (r.recipientUserId as UserId | null) ?? null,
+      householdId: r.householdId ?? null,
+      recipientUserId: r.recipientUserId ?? null,
       recipientEmail: r.recipientEmail ?? null,
       recipientLocale: r.recipientLocale ?? null,
-      kind: r.kind as NotificationKind,
+      kind: r.kind,
       dedupeKey: r.dedupeKey,
-      payload: r.payload as Record<string, unknown>,
+      payload: r.payload,
       createdAt: r.createdAt,
       sentAt: r.sentAt ?? null,
       failedAt: r.failedAt ?? null,

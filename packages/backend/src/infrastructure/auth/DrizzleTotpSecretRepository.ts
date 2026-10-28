@@ -113,11 +113,11 @@ export class DrizzleTotpSecretRepository implements TotpSecretRepository {
 
 function toEntity(row: TotpSecretRow): TotpSecret {
   return {
-    userId: row.userId as UserId,
-    encryptedSecret: row.encryptedSecret as EncryptedString,
+    userId: row.userId,
+    encryptedSecret: row.encryptedSecret,
     enrolledAt: row.enrolledAt,
     verifiedAt: row.verifiedAt ?? null,
     lastUsedTimeStep: row.lastUsedTimeStep ?? null,
-    pendingEncryptedSecret: row.pendingEncryptedSecret as EncryptedString | null,
+    pendingEncryptedSecret: row.pendingEncryptedSecret,
   };
 }

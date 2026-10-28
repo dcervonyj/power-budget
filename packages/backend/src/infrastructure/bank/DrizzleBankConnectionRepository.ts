@@ -2,13 +2,12 @@ import { Inject } from '@nestjs/common';
 import { eq, and, isNotNull } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { BankConnectionId, HouseholdId, UserId, EncryptedString } from '@power-budget/core';
+import type { BankConnectionId, UserId, EncryptedString } from '@power-budget/core';
 import type {
   BankProvider,
   BankId,
   BankConnection,
   NewBankConnection,
-  BankConnectionStatus,
 } from '../../domain/bank/entities.js';
 import type { BankConnectionRepository, HouseholdScope } from '../../domain/bank/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
@@ -131,15 +130,15 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
 
   private toEntity(row: schema.SelectBankConnection): BankConnection {
     return {
-      id: row.id as BankConnectionId,
-      householdId: row.householdId as HouseholdId,
-      userId: row.userId as UserId,
-      provider: row.provider as BankProvider,
+      id: row.id,
+      householdId: row.householdId,
+      userId: row.userId,
+      provider: row.provider,
       bankId: row.bankId,
       externalConsentRef: row.externalConsentRef ?? null,
-      encryptedConsent: (row.encryptedConsent as EncryptedString | null) ?? null,
+      encryptedConsent: row.encryptedConsent ?? null,
       expiresAt: row.expiresAt ?? null,
-      status: row.status as BankConnectionStatus,
+      status: row.status,
       disconnectedAt: row.disconnectedAt ?? null,
       createdAt: row.createdAt,
     };

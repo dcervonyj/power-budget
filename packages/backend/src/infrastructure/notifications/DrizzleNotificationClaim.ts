@@ -1,3 +1,4 @@
+import { NotificationEventId } from '@power-budget/core';
 import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
@@ -28,7 +29,7 @@ export class DrizzleNotificationClaim implements NotificationClaim {
       .set({ sentAt: new Date(), failedAt: null, payload: this.payloadWithoutSecrets() })
       .where(
         and(
-          eq(schema.notificationsOutbox.id, this.notification.id),
+          eq(schema.notificationsOutbox.id, NotificationEventId.of(this.notification.id)),
           isNull(schema.notificationsOutbox.sentAt),
         ),
       );
@@ -43,7 +44,7 @@ export class DrizzleNotificationClaim implements NotificationClaim {
 
   private stillPending(): SQL | undefined {
     return and(
-      eq(schema.notificationsOutbox.id, this.notification.id),
+      eq(schema.notificationsOutbox.id, NotificationEventId.of(this.notification.id)),
       isNull(schema.notificationsOutbox.sentAt),
       isNull(schema.notificationsOutbox.failedAt),
       eq(schema.notificationsOutbox.attempts, this.notification.attempts),

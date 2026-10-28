@@ -1,12 +1,5 @@
 import { BANK_TX_DIRECTIONS } from '@power-budget/core';
-import type {
-  BankAccountId,
-  CategoryId,
-  HouseholdId,
-  Money,
-  PlannedItemId,
-  TransactionId,
-} from '@power-budget/core';
+import type { Money } from '@power-budget/core';
 import {
   PROVISIONAL_TRANSACTION_STATUSES,
   SUGGESTION_SOURCES,
@@ -56,9 +49,9 @@ type BankColumns = Pick<
 export class TransactionRowMapper {
   toEntity(row: schema.SelectTransaction): Transaction {
     return {
-      id: row.id as TransactionId,
-      householdId: row.householdId as HouseholdId,
-      accountId: row.accountId as BankAccountId,
+      id: row.id,
+      householdId: row.householdId,
+      accountId: row.accountId,
       externalId: row.externalId,
       occurredOn: isoDateOf(row.occurredOn),
       amount: { amountMinor: row.amountMinor, currency: currencyOf(row.currency) },
@@ -75,8 +68,8 @@ export class TransactionRowMapper {
       reconciliation: this.reconciliationOf(row.reconciliation),
       ignored: row.ignored,
       notes: row.notes,
-      suggestedPlannedItemId: row.suggestedPlannedItemId as PlannedItemId | null,
-      suggestedCategoryId: row.suggestedCategoryId as CategoryId | null,
+      suggestedPlannedItemId: row.suggestedPlannedItemId,
+      suggestedCategoryId: row.suggestedCategoryId,
       suggestionConfidence: row.suggestionConfidence,
       suggestionSource:
         row.suggestionSource === null

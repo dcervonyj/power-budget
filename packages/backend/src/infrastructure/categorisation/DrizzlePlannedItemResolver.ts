@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, asc, eq, gte, isNull, lte, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { CategoryId, HouseholdId, PlanType, PlannedItemId } from '@power-budget/core';
+import type { HouseholdId, PlannedItemId } from '@power-budget/core';
 import type {
   PlannedItemProfile,
   PlannedItemQuery,
@@ -35,9 +35,7 @@ export class DrizzlePlannedItemResolver implements PlannedItemResolver {
       .limit(1);
     const row = rows[0];
 
-    return row === undefined
-      ? null
-      : { categoryId: row.categoryId as CategoryId, planKind: row.planKind as PlanType };
+    return row === undefined ? null : { categoryId: row.categoryId, planKind: row.planKind };
   }
 
   async resolveActive(query: PlannedItemQuery): Promise<ResolvedPlannedItem | null> {
@@ -68,6 +66,6 @@ export class DrizzlePlannedItemResolver implements PlannedItemResolver {
       .limit(1);
     const row = rows[0];
 
-    return row === undefined ? null : { plannedItemId: row.id as PlannedItemId };
+    return row === undefined ? null : { plannedItemId: row.id };
   }
 }

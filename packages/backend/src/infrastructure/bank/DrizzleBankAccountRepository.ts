@@ -1,8 +1,9 @@
+import { BankAccountId } from '@power-budget/core';
 import { Inject } from '@nestjs/common';
 import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { BankConnectionId, HouseholdId, BankAccountId, UserId } from '@power-budget/core';
+import type { BankConnectionId, UserId } from '@power-budget/core';
 import type { BankAccount, RawBankAccount } from '../../domain/bank/entities.js';
 import type { BankAccountRepository, HouseholdScope } from '../../domain/bank/ports.js';
 import { uuidv7 } from 'uuidv7';
@@ -26,7 +27,7 @@ export class DrizzleBankAccountRepository implements BankAccountRepository {
       .insert(schema.bankAccounts)
       .values(
         accounts.map((a) => ({
-          id: uuidv7() as BankAccountId,
+          id: BankAccountId.of(uuidv7()),
           householdId: scope.householdId,
           kind: 'bank',
           ownerUserId,
@@ -74,9 +75,9 @@ export class DrizzleBankAccountRepository implements BankAccountRepository {
 
     return [
       {
-        id: r.id as BankAccountId,
-        householdId: r.householdId as HouseholdId,
-        connectionId: r.connectionId as BankConnectionId,
+        id: r.id,
+        householdId: r.householdId,
+        connectionId: r.connectionId,
         externalId: r.externalId,
         name: r.name,
         iban: r.iban ?? null,

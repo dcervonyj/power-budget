@@ -45,10 +45,10 @@ export class DrizzleMagicLinkTokenRepository implements MagicLinkTokenRepository
   }
 }
 
-function toResult(row: { userId: string } | undefined): { userId: UserId } | null {
+function toResult(row: { userId: UserId } | undefined): { userId: UserId } | null {
   if (row === undefined) {
     return null;
   }
 
-  return { userId: row.userId as UserId };
+  return { userId: row.userId };
 }

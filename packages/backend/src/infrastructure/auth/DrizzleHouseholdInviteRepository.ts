@@ -1,7 +1,7 @@
 import { Inject } from '@nestjs/common';
 import { and, count, desc, eq, gt, isNull, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId, UserId, HouseholdInviteId } from '@power-budget/core';
 import type {
   AcceptInviteCommand,
   AcceptInviteOutcome,
@@ -56,7 +56,10 @@ export class DrizzleHouseholdInviteRepository implements HouseholdInviteReposito
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
-  async findInHousehold(id: string, householdId: HouseholdId): Promise<HouseholdInvite | null> {
+  async findInHousehold(
+    id: HouseholdInviteId,
+    householdId: HouseholdId,
+  ): Promise<HouseholdInvite | null> {
     const rows = await this.db
       .select()
       .from(invites)
@@ -75,7 +78,7 @@ export class DrizzleHouseholdInviteRepository implements HouseholdInviteReposito
     return rows.map((row) => this.toEntity(row));
   }
 
-  async revoke(id: string, householdId: HouseholdId, at: Date): Promise<boolean> {
+  async revoke(id: HouseholdInviteId, householdId: HouseholdId, at: Date): Promise<boolean> {
     const rows = await this.db
       .update(invites)
       .set({ revokedAt: at })
@@ -86,7 +89,7 @@ export class DrizzleHouseholdInviteRepository implements HouseholdInviteReposito
   }
 
   async rotateToken(
-    id: string,
+    id: HouseholdInviteId,
     householdId: HouseholdId,
     tokenHash: string,
     expiresAt: Date,
@@ -239,13 +242,13 @@ export class DrizzleHouseholdInviteRepository implements HouseholdInviteReposito
   private toEntity(row: InviteRow): HouseholdInvite {
     return {
       id: row.id,
-      householdId: row.householdId as HouseholdId,
+      householdId: row.householdId,
       email: row.email,
       tokenHash: row.tokenHash,
       expiresAt: row.expiresAt,
       acceptedAt: row.acceptedAt ?? null,
       createdAt: row.createdAt,
-      invitedByUserId: (row.invitedByUserId as UserId | null) ?? null,
+      invitedByUserId: row.invitedByUserId ?? null,
       revokedAt: row.revokedAt ?? null,
     };
   }

@@ -29,7 +29,7 @@ export class DrizzleFxRateRepository implements FxRateRepository {
       .insert(schema.fxRates)
       .values(
         rates.map((rate) => ({
-          id: uuidv7(),
+          id: FxRateId.of(uuidv7()),
           base: rate.baseCurrency,
           quote: rate.quoteCurrency,
           rateOnDate: rate.rateDate,

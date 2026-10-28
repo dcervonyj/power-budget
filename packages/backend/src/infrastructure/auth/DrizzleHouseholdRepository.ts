@@ -62,9 +62,9 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
     }
 
     return {
-      householdId: row.householdId as HouseholdId,
-      userId: row.userId as UserId,
-      role: row.role as 'owner' | 'member',
+      householdId: row.householdId,
+      userId: row.userId,
+      role: row.role,
       joinedAt: row.joinedAt,
     };
   }
@@ -104,7 +104,7 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
       .orderBy(asc(schema.householdUsers.joinedAt));
 
     return rows.map((row) => ({
-      userId: row.userId as UserId,
+      userId: row.userId,
       email: row.email,
       displayName: row.displayName,
       role: row.role === 'owner' ? 'owner' : 'member',
@@ -121,7 +121,7 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
 
   private toEntity(row: schema.SelectHousehold): Household {
     return {
-      id: row.id as HouseholdId,
+      id: row.id,
       name: row.name,
       baseCurrency: row.baseCurrency,
       createdAt: row.createdAt,
