@@ -37,6 +37,12 @@ beforeEach(() => {
   auditLog = mock<AuditLogPort>();
 });
 
+const HINT = {
+  counterpartyPattern: 'Landlord',
+  amount: null,
+  day: { dayOfMonth: 5, window: 1 },
+};
+
 describe('CreatePlanUseCase', () => {
   function useCase(): CreatePlanUseCase {
     return new CreatePlanUseCase(planRepo, auditLog, () => NEW_ID);
@@ -345,7 +351,7 @@ describe('ClonePlanFromPreviousUseCase', () => {
     planRepo.findById.mockResolvedValue(makePlan());
     planRepo.list.mockResolvedValue([makePlan()]);
     planRepo.create.mockResolvedValue(clone);
-    itemRepo.listByPlan.mockResolvedValue([makeItem({ note: 'beans' })]);
+    itemRepo.listByPlan.mockResolvedValue([makeItem({ note: 'beans', matchHint: HINT })]);
 
     const result = await useCase().execute({ sourcePlanId: PLAN, householdId: HH, userId: USER });
 
@@ -375,6 +381,7 @@ describe('ClonePlanFromPreviousUseCase', () => {
       direction: 'expense',
       amount: { amountMinor: 150000n, currency: 'PLN' },
       note: 'beans',
+      matchHint: HINT,
     });
     expect(auditLog.record).toHaveBeenCalledWith({
       householdId: HH,
