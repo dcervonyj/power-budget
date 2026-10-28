@@ -73,7 +73,8 @@ describe('StaleChunkRecovery', () => {
     const { reload, store, recovery, fire } = setup();
     fire();
 
-    recovery.chunkLoaded();
+    recovery.chunkLoaded('locale');
+    recovery.chunkLoaded('route');
     expect(store.has(RELOAD_FLAG_KEY)).toBe(false);
     fire();
     fire();
@@ -81,10 +82,22 @@ describe('StaleChunkRecovery', () => {
     expect(reload).toHaveBeenCalledTimes(2);
   });
 
+  it('keeps the guard while the locale chunk (or the route chunk) has not loaded', () => {
+    const { store, recovery, fire } = setup();
+    fire();
+
+    recovery.chunkLoaded('route');
+
+    expect(store.get(RELOAD_FLAG_KEY)).toBe('1');
+    recovery.chunkLoaded('locale');
+    expect(store.has(RELOAD_FLAG_KEY)).toBe(false);
+  });
+
   it('a chunk load without a prior reload leaves storage untouched', () => {
     const { store, recovery } = setup();
 
-    recovery.chunkLoaded();
+    recovery.chunkLoaded('locale');
+    recovery.chunkLoaded('route');
 
     expect(store.size).toBe(0);
   });
@@ -101,7 +114,7 @@ describe('StaleChunkRecovery', () => {
       const { reload, recovery, fire } = setup({ sessionStorage: throwingStorage });
 
       expect(() => fire()).not.toThrow();
-      expect(() => recovery.chunkLoaded()).not.toThrow();
+      expect(() => recovery.chunkLoaded('route')).not.toThrow();
       expect(reload).not.toHaveBeenCalled();
     });
   });

@@ -4,6 +4,7 @@ import { IntlProvider } from 'react-intl';
 import { CategoriesApi, HouseholdsApi, PlansApi } from '@power-budget/shared-app';
 import { LocalStorageTokenStore } from './infrastructure/tokens/LocalStorageTokenStore.js';
 import { ReactRouterNavigationAdapter } from './infrastructure/navigation/ReactRouterNavigationAdapter.js';
+import { staleChunkRecovery } from './infrastructure/lazyChunk.js';
 import { createApiClient } from './infrastructure/api/ApiClient.js';
 import { ThemeProvider } from './presentation/theme/ThemeProvider.js';
 import { SignOut } from './application/auth/SignOut.js';
@@ -125,8 +126,13 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
 
   const [loadError, setLoadError] = useState<unknown>(undefined);
 
+  function onMessagesLoaded(loaded: Record<string, string>): void {
+    staleChunkRecovery.chunkLoaded('locale');
+    setMessages(loaded);
+  }
+
   useEffect(() => {
-    loadMessages(locale).then(setMessages, setLoadError);
+    loadMessages(locale).then(onMessagesLoaded, setLoadError);
   }, [locale]);
 
   if (loadError !== undefined) {
