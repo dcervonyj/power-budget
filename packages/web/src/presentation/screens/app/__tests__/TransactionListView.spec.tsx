@@ -3,8 +3,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { MemoryRouter } from 'react-router-dom';
+import { TransactionMapper } from '../../../../infrastructure/api/TransactionMapper.js';
 import { TransactionListView } from '../TransactionListView.js';
-import type { MonthLeft } from '../../../../application/transactions/TransactionListQueryView.js';
+import type {
+  DayGroup,
+  MonthLeft,
+} from '../../../../application/transactions/TransactionListQueryView.js';
 import type { TransactionFilters } from '../../../components/TransactionFilterBar.js';
 
 const FILTERS: TransactionFilters = {
@@ -18,7 +22,7 @@ const FILTERS: TransactionFilters = {
   source: '',
 };
 
-function renderView(month: MonthLeft) {
+function renderView(month: MonthLeft, groups: readonly DayGroup[] = []) {
   const noop = vi.fn();
   render(
     <MemoryRouter>
@@ -30,7 +34,7 @@ function renderView(month: MonthLeft) {
           categories={[]}
           status="ready"
           onRetry={noop}
-          groups={[]}
+          groups={groups}
           suggestionLabelOf={() => undefined}
           selectedIds={new Set()}
           onToggleRow={noop}
@@ -68,5 +72,32 @@ describe('TransactionListView month line', () => {
     expect(screen.getByText(/Over by .*120.* in October/)).toBeDefined();
     expect(screen.getByLabelText(/October: over by .*120/)).toBeDefined();
     expect(screen.queryByText(/-/)).toBeNull();
+  });
+});
+
+describe('TransactionListView row checkbox', () => {
+  it('is named from the description, date and amount, not the id', () => {
+    const transaction = TransactionMapper.fromListItem({
+      id: 'b1f0c2d4-0000-4000-8000-000000000001',
+      accountId: 'acc-1',
+      externalId: null,
+      occurredOn: '2026-10-21',
+      amount: { amountMinor: '-1500', currency: 'PLN' },
+      description: 'Biedronka',
+      merchant: null,
+      source: 'bank_sync',
+      status: 'booked',
+      ignored: false,
+      notes: null,
+      suggestedPlannedItemId: null,
+      createdAt: '2026-10-21T10:00:00.000Z',
+      mapping: null,
+      mappingSource: 'none',
+      transfer: null,
+    });
+    renderView(month(50000n), [{ day: '2026-10-21', transactions: [transaction] }]);
+
+    const box = screen.getByRole('checkbox', { name: /^Select transaction Biedronka, .*15/ });
+    expect(box.getAttribute('aria-label')).not.toContain('b1f0c2d4');
   });
 });

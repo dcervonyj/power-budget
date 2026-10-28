@@ -128,7 +128,7 @@ test.describe('manual transaction journey', () => {
   test('bulk-ignores and bulk-marks transfers from the selection', async ({ page, request }) => {
     const api = new BackendApi(request);
     const tokens = await api.register(uniqueEmail('bulk'));
-    const [first, second, third] = await cashTransactions(api, tokens.accessToken, [
+    const ids = await cashTransactions(api, tokens.accessToken, [
       'Refund one',
       'Refund two',
       'To savings',
@@ -136,8 +136,8 @@ test.describe('manual transaction journey', () => {
     await signInWithTokens(page, tokens);
 
     await page.goto('/transactions');
-    await page.getByLabel(`Select transaction ${String(first)}`).check();
-    await page.getByLabel(`Select transaction ${String(second)}`).check();
+    await page.getByLabel(/^Select transaction Refund one,/).check();
+    await page.getByLabel(/^Select transaction Refund two,/).check();
     await page.getByRole('button', { name: 'Ignore (2)' }).click();
 
     await expect(
@@ -147,18 +147,14 @@ test.describe('manual transaction journey', () => {
       page.getByRole('group', { name: /Refund two/ }).getByText(/Ignored/),
     ).toBeVisible();
 
-    await page.getByLabel(`Select transaction ${String(third)}`).check();
+    await page.getByLabel(/^Select transaction To savings,/).check();
     await page.getByRole('button', { name: 'Mark as Transfer (1)' }).click();
     await expect(
       page.getByRole('group', { name: /To savings/ }).getByText('Transfer', { exact: true }),
     ).toBeVisible();
 
     const rows = new Map((await listed(api, tokens.accessToken)).map((tx) => [tx.id, tx]));
-    expect([first, second, third].map((id) => rows.get(String(id))?.ignored)).toEqual([
-      true,
-      true,
-      false,
-    ]);
+    expect(ids.map((id) => rows.get(String(id))?.ignored)).toEqual([true, true, false]);
   });
 
   test('shows the sorting panel and day groups in both themes', async ({ page, request }, info) => {
