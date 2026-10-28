@@ -2,6 +2,7 @@ import { makeAutoObservable } from 'mobx';
 import { readApiError, type PlansApi } from '@power-budget/shared-app';
 import {
   FX_RATE_UNAVAILABLE,
+  type PlanDto,
   type PlannedItemDto,
   type UnplannedTransactionPageDto,
 } from '@power-budget/shared-app/contract';
@@ -23,6 +24,12 @@ export type PlanDashboardError = 'not_found' | 'fx_unavailable' | 'failed';
 /** What the store reads from the plan and category endpoints. */
 export type PlanDashboardPlans = Pick<PlansApi, 'get' | 'dashboard' | 'listItems' | 'unplanned'>;
 /** What the store needs from the shared catalogue: one plan, its items and the category names. */
+interface DashboardReference {
+  readonly plan: PlanDto;
+  readonly categoryNames: Map<string, string>;
+  readonly items: PlannedItemDto[];
+}
+
 export type PlanDashboardReference = Pick<ReferenceCatalogue, 'plan' | 'items' | 'categoryNames'>;
 
 /** One page-through list of the caller's own unplanned transactions. */
@@ -64,16 +71,22 @@ export class PlanDashboardStore implements PlanDashboardSource {
   unplannedIncome: UnplannedList = EMPTY_LIST;
 
   private readonly plans: PlanDashboardPlans;
-  private readonly reference: PlanDashboardReference;
+  private readonly catalogue: PlanDashboardReference;
+  /** What the last load read; a poll maps its one dashboard answer with it. */
+  private reference: DashboardReference | null = null;
   /** Bumped by every load and by sign-out: an answer of an older one is dropped. */
   private token = 0;
   private polling = false;
 
   constructor(plans: PlanDashboardPlans, reference: PlanDashboardReference) {
     this.plans = plans;
-    this.reference = reference;
-    makeAutoObservable<PlanDashboardStore, 'plans' | 'reference' | 'token' | 'polling'>(this, {
+    this.catalogue = reference;
+    makeAutoObservable<
+      PlanDashboardStore,
+      'plans' | 'catalogue' | 'reference' | 'token' | 'polling'
+    >(this, {
       plans: false,
+      catalogue: false,
       reference: false,
       token: false,
       polling: false,
@@ -91,6 +104,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.polling = false;
     if (planId !== this.planId) {
       this.planId = planId;
+      this.reference = null;
       this.dashboard = null;
       this.unplannedExpenses = EMPTY_LIST;
       this.unplannedIncome = EMPTY_LIST;
@@ -98,7 +112,16 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.loading = true;
     this.error = null;
     try {
-      this.applyDashboard(planId, token, await this.readDashboard(planId));
+      const [reference, dto] = await Promise.all([
+        this.readReference(planId),
+        this.plans.dashboard(planId),
+      ]);
+      if (this.token !== token) {
+        // A newer load or the end of the session took over: start nothing for this one.
+        return;
+      }
+      this.reference = reference;
+      this.applyDashboard(planId, token, toPlanDashboard(dto, reference));
       await Promise.all([this.loadUnplanned('expense', null), this.loadUnplanned('income', null)]);
     } catch (err) {
       this.applyError(planId, token, classifyDashboardError(err));
@@ -114,7 +137,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
     if (planId !== this.planId || this.loading || this.polling) {
       return;
     }
-    if (this.dashboard === null) {
+    const reference = this.reference;
+    if (this.dashboard === null || reference === null) {
       await this.load(planId);
 
       return;
@@ -122,7 +146,11 @@ export class PlanDashboardStore implements PlanDashboardSource {
     const token = this.token;
     this.polling = true;
     try {
-      this.applyDashboard(planId, token, await this.readDashboard(planId));
+      this.applyDashboard(
+        planId,
+        token,
+        toPlanDashboard(await this.plans.dashboard(planId), reference),
+      );
     } catch {
       // The shown data stays; the next poll tries again.
     } finally {
@@ -139,6 +167,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
   resetSession(): void {
     this.token += 1;
     this.polling = false;
+    this.reference = null;
     this.planId = null;
     this.dashboard = null;
     this.loading = false;
@@ -182,15 +211,15 @@ export class PlanDashboardStore implements PlanDashboardSource {
     }
   }
 
-  private async readDashboard(planId: string): Promise<PlanDashboard> {
-    const [plan, dto, categoryNames, items] = await Promise.all([
-      this.reference.plan(planId),
-      this.plans.dashboard(planId),
-      this.reference.categoryNames(),
+  /** Plan, category names and items, from the shared catalogue; only a load reads them. */
+  private async readReference(planId: string): Promise<DashboardReference> {
+    const [plan, categoryNames, items] = await Promise.all([
+      this.catalogue.plan(planId),
+      this.catalogue.categoryNames(),
       this.listItems(planId),
     ]);
 
-    return toPlanDashboard(dto, { plan, categoryNames, items });
+    return { plan, categoryNames, items };
   }
 
   private applyDashboard(planId: string, token: number, dashboard: PlanDashboard): void {
@@ -232,7 +261,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
   /** Without items the lines show only base-currency amounts. */
   private async listItems(planId: string): Promise<PlannedItemDto[]> {
     try {
-      return await this.reference.items(planId);
+      return await this.catalogue.items(planId);
     } catch {
       return [];
     }
