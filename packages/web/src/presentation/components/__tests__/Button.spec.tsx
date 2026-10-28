@@ -20,7 +20,7 @@ describe('Button', () => {
 
   it('shows loading indicator', () => {
     render(<Button loading>Click me</Button>, { wrapper });
-    expect(screen.getByRole('button').textContent).toBe('…');
+    expect(screen.getByRole('button').textContent).toBe('Click me…');
   });
 
   it('calls onClick', () => {
@@ -34,5 +34,19 @@ describe('Button', () => {
     render(<Button disabled>Click me</Button>, { wrapper });
     const btn = screen.getByRole('button') as HTMLButtonElement;
     expect(btn.disabled).toBe(true);
+  });
+});
+
+describe('Button loading a11y', () => {
+  it('is aria-busy and keeps its label as the accessible name', () => {
+    render(<Button loading>Save</Button>, { wrapper });
+    const btn = screen.getByRole('button', { name: 'Save' });
+    expect(btn.getAttribute('aria-busy')).toBe('true');
+    expect(btn.querySelector('[aria-hidden="true"]')?.textContent).toBe('…');
+  });
+
+  it('is not busy by default', () => {
+    render(<Button>Save</Button>, { wrapper });
+    expect(screen.getByRole('button').getAttribute('aria-busy')).toBe('false');
   });
 });

@@ -31,4 +31,13 @@ describe('Input', () => {
     render(<Input value="" onChange={() => {}} error="Required" />, { wrapper });
     expect(screen.getByText('Required')).toBeDefined();
   });
+
+  it('announces the error and links it to the input', () => {
+    render(<Input value="" onChange={() => {}} error="Required" placeholder="x" />, { wrapper });
+    const alert = screen.getByRole('alert');
+    expect(alert.textContent).toBe('Required');
+    const input = screen.getByPlaceholderText('x');
+    expect(input.getAttribute('aria-describedby')).toBe(alert.id);
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+  });
 });

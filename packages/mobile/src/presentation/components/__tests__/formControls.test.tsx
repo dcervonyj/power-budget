@@ -35,6 +35,12 @@ describe('Button', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
+  it('reports busy while loading', async () => {
+    await renderWithProviders(<Button loading>Save</Button>);
+
+    expect(screen.getByRole('button', { name: 'Save' })).toBeBusy();
+  });
+
   it('renders every variant', async () => {
     await renderWithProviders(
       <>
