@@ -20,7 +20,11 @@ function referencedTables(table: PgTable): string[] {
   );
 }
 
-/** Tables that reference households directly or through another household-scoped table. */
+function hasHouseholdIdColumn(table: PgTable): boolean {
+  return getTableConfig(table).columns.some((column) => column.name === 'household_id');
+}
+
+/** Tables with a household_id column, or that reference households directly or through another household-scoped table. */
 function householdScopedTables(): string[] {
   const tables = Object.values(schema).filter(isTable);
   const scoped = new Set<string>(['households']);
@@ -29,7 +33,10 @@ function householdScopedTables(): string[] {
     grew = false;
     for (const table of tables) {
       const name = getTableConfig(table).name;
-      if (!scoped.has(name) && referencedTables(table).some((ref) => scoped.has(ref))) {
+      if (
+        !scoped.has(name) &&
+        (hasHouseholdIdColumn(table) || referencedTables(table).some((ref) => scoped.has(ref)))
+      ) {
         scoped.add(name);
         grew = true;
       }
