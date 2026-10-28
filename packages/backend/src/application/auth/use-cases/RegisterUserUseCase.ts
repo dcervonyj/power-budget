@@ -9,6 +9,7 @@ import type {
   RefreshTokenStore,
 } from '../../../domain/auth/ports.js';
 import { EmailAlreadyRegisteredError } from '../../../domain/auth/errors.js';
+import { emailLocalPart } from '../../../domain/auth/email-local-part.js';
 import type { LocaleCode } from '../../../domain/auth/entities.js';
 
 export interface RegisterUserInput {
@@ -45,7 +46,7 @@ export class RegisterUserUseCase {
     const passwordHash = await this.passwordHashing.hash(input.password);
     const userId = UserId.of(uuidv7());
     const householdId = HouseholdId.of(uuidv7());
-    const displayName = input.email.split('@')[0] ?? input.email;
+    const displayName = emailLocalPart(input.email);
 
     // User, household and owner membership in one transaction: a failure leaves no rows.
     await this.registrationRepo.register({
