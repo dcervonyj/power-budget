@@ -9,7 +9,6 @@ import type {
   EmailChannel,
   TemplateRenderer,
   NotificationClaim,
-  NotificationClaimHandler,
 } from '../../../domain/notifications/ports.js';
 import { QUEUE_NOTIFICATION_DISPATCH } from '../../queue/queue.constants.js';
 import type { DispatchNotificationJobPayload } from '../BullMQNotificationDispatchQueue.js';
@@ -36,19 +35,16 @@ export type DeliveryOutcome =
   | { readonly status: 'failed'; readonly error: Error }
   | { readonly status: 'retry'; readonly error: Error };
 
-/** Another dispatcher holds the row; BullMQ retries the job after its backoff. */
+/** Another claim holds the row right now; BullMQ retries the job after its backoff. */
 export class NotificationBusyError extends Error {
   constructor(outboxId: string) {
-    super(`Notification ${outboxId} is being dispatched by another worker`);
+    super(`Notification ${outboxId} is being claimed by another worker`);
     this.name = 'NotificationBusyError';
   }
 }
 
 @Processor(QUEUE_NOTIFICATION_DISPATCH, { concurrency: 5 })
-export class DispatchNotificationProcessor
-  extends WorkerHost
-  implements NotificationClaimHandler<DeliveryOutcome>
-{
+export class DispatchNotificationProcessor extends WorkerHost {
   constructor(
     private readonly outbox: NotificationRepository,
     private readonly emailChannel: EmailChannel,
@@ -65,20 +61,20 @@ export class DispatchNotificationProcessor
       return;
     }
 
-    const outcome = await this.outbox.claimForDispatch(outboxId, this);
-    if (outcome.status === 'unavailable') {
+    const claim = await this.outbox.claimForDispatch(outboxId);
+    if (claim === null) {
       await this.assertNoLongerPending(outboxId);
 
       return;
     }
 
-    this.report(outboxId, outcome.result);
+    this.report(outboxId, await this.deliver(claim));
   }
 
-  /** Runs while the outbox row is claimed. Never throws for a delivery failure. */
-  async handle(claim: NotificationClaim): Promise<DeliveryOutcome> {
+  /** Runs after the claim committed: no transaction or connection is held while sending. Never throws for a delivery failure. */
+  private async deliver(claim: NotificationClaim): Promise<DeliveryOutcome> {
     const { notification } = claim;
-    const user = await this.resolveRecipient(notification);
+    const user = this.resolveRecipient(claim);
     if (user === null || user.emailBouncing) {
       await claim.markFailed();
 
@@ -143,7 +139,7 @@ export class DispatchNotificationProcessor
     }
   }
 
-  /** A row that is still pending but could not be claimed is held by another dispatcher. */
+  /** A row that is still pending but could not be claimed is held by another claim; retry, it may crash. */
   private async assertNoLongerPending(outboxId: string): Promise<void> {
     const current = await this.outbox.findById(outboxId);
     if (current !== null && current.sentAt === null && current.failedAt === null) {
@@ -152,9 +148,10 @@ export class DispatchNotificationProcessor
   }
 
   /** A user's address and locale, or the stored address of an invitee without an account. */
-  private async resolveRecipient(notification: NotificationOutbox): Promise<Recipient | null> {
+  private resolveRecipient(claim: NotificationClaim): Recipient | null {
+    const { notification } = claim;
     if (notification.recipientUserId !== null) {
-      return this.outbox.findUserById(notification.recipientUserId);
+      return claim.recipient;
     }
     if (notification.recipientEmail === null) {
       return null;

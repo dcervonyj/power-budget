@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { createServer } from 'node:http';
+import { describe, it, expect, vi } from 'vitest';
 import { ResendEmailChannel } from '../ResendEmailChannel.js';
 import {
   DEFAULT_EMAIL_FROM,
@@ -22,6 +23,32 @@ describe('ResendEmailChannel', () => {
         idempotencyKey: 'notification-n-1',
       }),
     ).rejects.toThrow();
+  });
+});
+
+describe('ResendEmailChannel timeout', () => {
+  it('aborts a send the provider never answers', async () => {
+    const server = createServer(() => undefined);
+    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+    const address = server.address();
+    const port = typeof address === 'object' && address !== null ? address.port : 0;
+    vi.stubEnv('RESEND_BASE_URL', `http://127.0.0.1:${port}`);
+    const channel = new ResendEmailChannel('re_test', DEFAULT_EMAIL_FROM, 100);
+
+    try {
+      await expect(
+        channel.send({
+          to: 'user@example.com',
+          subject: 'hi',
+          html: '<p>hi</p>',
+          idempotencyKey: 'notification-n-1',
+        }),
+      ).rejects.toThrow();
+    } finally {
+      vi.unstubAllEnvs();
+      server.closeAllConnections();
+      server.close();
+    }
   });
 });
 
