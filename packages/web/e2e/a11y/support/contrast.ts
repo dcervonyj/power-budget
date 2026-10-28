@@ -11,7 +11,7 @@ export interface TextMeasurement {
   readonly fontSize: number;
   readonly large: boolean;
   readonly required: number;
-  /** Lowest contrast over every sampled background pixel behind the text. */
+  /** Lowest contrast over every sampled background pixel behind the text (unrounded). */
   readonly worst: number;
   /** Background colour of that worst pixel. */
   readonly worstBackground: string;
@@ -54,17 +54,37 @@ export async function measureRenderedText(
 
 /** Browser side: one probe per visible element that owns text. Self-contained (serialised). */
 function collectTextProbes(rootSelector: string): TextProbe[] {
-  const root = document.querySelector(rootSelector);
-  if (root === null) {
-    return [];
+  const roots = Array.from(document.querySelectorAll(rootSelector));
+  if (roots.length === 0) {
+    throw new Error(`contrast: nothing matches ${rootSelector}`);
   }
   const result: TextProbe[] = [];
-  const elements = [root, ...Array.from(root.querySelectorAll('*'))];
+  const elements = roots.flatMap((root) => [root, ...Array.from(root.querySelectorAll('*'))]);
+  // Text a field draws itself: the value, or the placeholder while it is empty.
+  const textTypes = ['text', 'email', 'search', 'tel', 'url', 'number', 'password'];
+  function fieldText(element: Element): { text: string; placeholder: boolean } {
+    const none = { text: '', placeholder: false };
+    if (
+      !(element instanceof HTMLTextAreaElement) &&
+      !(element instanceof HTMLInputElement && textTypes.includes(element.type))
+    ) {
+      return none;
+    }
+    if (element.value !== '') {
+      return element instanceof HTMLInputElement && element.type === 'password'
+        ? none
+        : { text: element.value, placeholder: false };
+    }
+
+    return { text: element.placeholder, placeholder: element.placeholder !== '' };
+  }
   for (const element of elements) {
     const own = Array.from(element.childNodes).filter(
       (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() !== '',
     );
-    if (own.length === 0) {
+    const field = fieldText(element);
+    const drawn = field.text;
+    if (own.length === 0 && drawn === '') {
       continue;
     }
     const style = getComputedStyle(element);
@@ -89,7 +109,10 @@ function collectTextProbes(rootSelector: string): TextProbe[] {
     if (opacity === 0) {
       continue;
     }
-    const match = /rgba?\(([^)]+)\)/.exec(style.color);
+    const colorText = field.placeholder
+      ? getComputedStyle(element, '::placeholder').color
+      : style.color;
+    const match = /rgba?\(([^)]+)\)/.exec(colorText);
     const parts = (match?.[1] ?? '0,0,0').split(/[ ,/]+/).filter((part) => part !== '');
     const alpha = (parts[3] === undefined ? 1 : Number(parts[3])) * opacity;
     const rects: { x: number; y: number; width: number; height: number }[] = [];
@@ -112,16 +135,28 @@ function collectTextProbes(rootSelector: string): TextProbe[] {
         }
       }
     }
+    if (drawn !== '') {
+      const padLeft = parseFloat(style.paddingLeft) + parseFloat(style.borderLeftWidth);
+      const padRight = parseFloat(style.paddingRight) + parseFloat(style.borderRightWidth);
+      const padTop = parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth);
+      const padBottom = parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth);
+      rects.push({
+        x: box.left + window.scrollX + padLeft,
+        y: box.top + window.scrollY + padTop,
+        width: box.width - padLeft - padRight,
+        height: box.height - padTop - padBottom,
+      });
+    }
     if (rects.length === 0) {
       continue;
     }
     const fontSize = parseFloat(style.fontSize);
     const bold = Number(style.fontWeight) >= 700;
     result.push({
-      text: own
-        .map((node) => (node.textContent ?? '').trim())
-        .join(' ')
-        .slice(0, 48),
+      text: (drawn !== ''
+        ? drawn
+        : own.map((node) => (node.textContent ?? '').trim()).join(' ')
+      ).slice(0, 48),
       tag: element.tagName.toLowerCase(),
       color: [Number(parts[0]), Number(parts[1]), Number(parts[2]), alpha],
       fontSize,
@@ -153,7 +188,7 @@ async function measureAgainstScreenshot(input: {
   const shownContext = await decode(input.shown);
   const context = await decode(input.hidden);
   if (shownContext === null || context === null) {
-    return [];
+    throw new Error('contrast: a screenshot could not be decoded');
   }
   const hiddenPixels: CanvasRenderingContext2D = context;
   const shownPixels: CanvasRenderingContext2D = shownContext;
@@ -236,7 +271,7 @@ async function measureAgainstScreenshot(input: {
       fontSize: probe.fontSize,
       large: probe.large,
       required: probe.large ? 3 : 4.5,
-      worst: worst === Infinity ? 21 : Math.round(worst * 100) / 100,
+      worst: worst === Infinity ? 21 : worst,
       worstBackground,
     };
   });

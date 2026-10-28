@@ -7,7 +7,12 @@ import { runAxe } from '../support/axe.js';
 // DSN-050: axe on the real pages of the e2e stack, in both themes. Serious and critical findings fail.
 test.skip(!FULL_STACK, 'needs the e2e stack (TEST_ENV=e2e)');
 
-const PUBLIC_PAGES = ['/login', '/register', '/auth/magic-link'] as const;
+const PUBLIC_PAGES = [
+  '/login',
+  '/register',
+  '/auth/magic-link',
+  '/invite/accept?token=none',
+] as const;
 const APP_PAGES = [
   '/dashboard',
   '/transactions',
@@ -17,6 +22,8 @@ const APP_PAGES = [
   '/categories',
   '/household',
   '/bank-connections',
+  '/bank-connections/new',
+  '/auth/totp-enroll',
   '/settings/profile',
   '/settings/appearance',
   '/settings/locale',

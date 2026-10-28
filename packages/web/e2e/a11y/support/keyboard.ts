@@ -34,7 +34,11 @@ export async function walkTabOrder(page: Page, rootSelector: string): Promise<Ta
     await page.keyboard.press('Tab');
     const stop = await page.evaluate(describeFocus, rootSelector);
     const last = stops[stops.length - 1];
-    if (stop === null || (last !== undefined && stop.index >= 0 && stop.index < last.index)) {
+    const wrapped =
+      last !== undefined && stop !== null && stop.index >= 0 && stop.index === stops[0]?.index
+        ? stop.index < last.index
+        : false;
+    if (stop === null || wrapped) {
       break;
     }
     if (last === undefined || stop.index !== last.index || stop.label !== last.label) {
@@ -142,4 +146,40 @@ function describeFocus(rootSelector: string): FocusStop | null {
     label: `${element.tagName.toLowerCase()}[${text.slice(0, 32)}]`,
     visibleFocus: outline || changed,
   };
+}
+
+/**
+ * Dialog focus trap: from the first control, Tab (n+1) times then Shift+Tab (n+1) times, n being
+ * the number of tab stops in the dialog, so both ends are crossed. Returns the labels of any
+ * press that left the dialog (empty: the trap holds).
+ */
+export async function escapesOfDialogTrap(page: Page): Promise<string[]> {
+  const stops = await page.evaluate(countDialogStops);
+  const escapes: string[] = [];
+  for (const key of ['Tab', 'Shift+Tab']) {
+    for (let press = 0; press < stops + 1; press += 1) {
+      await page.keyboard.press(key);
+      if (!(await page.evaluate(focusInsideDialog))) {
+        escapes.push(`${key} #${String(press + 1)}`);
+      }
+    }
+  }
+
+  return escapes;
+}
+
+function countDialogStops(): number {
+  const dialog = document.querySelector('[role="dialog"]');
+  const candidates = dialog?.querySelectorAll(
+    'a[href], button:not(:disabled), input:not(:disabled):not([type="hidden"]), select:not(:disabled), textarea:not(:disabled), summary, [tabindex]:not([tabindex="-1"])',
+  );
+
+  return Array.from(candidates ?? []).filter((element) => element.getClientRects().length > 0)
+    .length;
+}
+
+function focusInsideDialog(): boolean {
+  const dialog = document.querySelector('[role="dialog"]');
+
+  return dialog !== null && dialog.contains(document.activeElement);
 }

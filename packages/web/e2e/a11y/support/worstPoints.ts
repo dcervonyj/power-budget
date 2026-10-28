@@ -39,7 +39,7 @@ function buildStage(input: {
 }): void {
   const main = document.querySelector('#gallery-main');
   if (main === null) {
-    return;
+    throw new Error('worst point stage: #gallery-main is missing');
   }
   const stage = document.createElement('div');
   stage.setAttribute('data-worst-point', input.name);
