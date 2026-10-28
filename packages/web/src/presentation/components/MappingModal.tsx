@@ -105,7 +105,10 @@ export function MappingModal({
 
   const count = selectedIds.length;
   const title = intl.formatMessage(
-    { id: 'mapping.title', defaultMessage: 'Map {count} transactions' },
+    {
+      id: 'mapping.title',
+      defaultMessage: '{count, plural, one {Map # transaction} other {Map # transactions}}',
+    },
     { count },
   );
   const footer = (

@@ -9,5 +9,7 @@
   "tx.row.change.aria": "Змінити категорію: {title}",
   "tx.sorting.title": "Сортування",
   "tx.sorting.aria": "Відсортовано {sorted} з {total}",
-  "tx.sorting.summary": "Відсортовано: {sorted} · до сортування: {toSort}"
+  "tx.sorting.summary": "Відсортовано: {sorted} · до сортування: {toSort}",
+  "tx.list.monthOver": "Перевищено на {amount}, місяць: {month}",
+  "tx.row.choose": "Обрати"
 }
