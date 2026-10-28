@@ -1,7 +1,7 @@
-import axios, { AxiosError, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiClient, type RefreshRaceTiming } from '../ApiClient.js';
 import { readApiError } from '../ApiError.js';
+import { HttpError } from '../HttpError.js';
 import type { SecureTokenStore } from '../../tokens/SecureTokenStore.js';
 
 class InMemoryTokenStore implements SecureTokenStore {
@@ -40,25 +40,32 @@ interface RouteResult {
   data: unknown;
 }
 
-type Route = (config: InternalAxiosRequestConfig) => RouteResult | Promise<RouteResult>;
+/** What a route sees of a request: the path (without base URL), headers and parsed JSON body. */
+interface FakeConfig {
+  url: string;
+  headers: { Authorization?: string };
+  data: unknown;
+}
+
+type Route = (config: FakeConfig) => RouteResult | Promise<RouteResult>;
 
 /** Status 0 stands for "no response" (offline, DNS, connection reset). */
 const NETWORK_ERROR = 0;
 
+const BASE_URL = 'http://api.test';
+
+function authorizationOf(headers: Headers): FakeConfig['headers'] {
+  const authorization = headers.get('Authorization');
+
+  return authorization === null ? {} : { Authorization: authorization };
+}
+
+type FetchFake = (input: string, init: RequestInit) => Promise<Response>;
+
 const HANG_GUARD_MS = 1000;
 
-function respond(config: InternalAxiosRequestConfig, status: number, data: unknown) {
-  if (status === NETWORK_ERROR) {
-    return Promise.reject(new AxiosError('Network Error', 'ERR_NETWORK', config, null));
-  }
-  const response = { data, status, statusText: String(status), headers: {}, config };
-  if (status >= 400) {
-    return Promise.reject(
-      new AxiosError(`HTTP ${status}`, 'ERR_BAD_REQUEST', config, null, response),
-    );
-  }
-
-  return Promise.resolve(response);
+function respond(status: number, data: unknown): Response {
+  return new Response(JSON.stringify(data), { status });
 }
 
 /** Fast enough for the hang guard; the production default waits 3 s. */
@@ -87,7 +94,7 @@ class RotatingRefreshServer {
     this.refreshTokens = new Set([refreshToken]);
   }
 
-  data(config: InternalAxiosRequestConfig): RouteResult {
+  data(config: FakeConfig): RouteResult {
     if (config.headers.Authorization === `Bearer ${this.validAccess}`) {
       return { status: 200, data: { ok: true } };
     }
@@ -95,7 +102,7 @@ class RotatingRefreshServer {
     return { status: 401, data: { code: 'unauthorized' } };
   }
 
-  async refresh(config: InternalAxiosRequestConfig): Promise<RouteResult> {
+  async refresh(config: FakeConfig): Promise<RouteResult> {
     const body: unknown = typeof config.data === 'string' ? JSON.parse(config.data) : config.data;
     const refreshToken = Reflect.get(Object(body), 'refreshToken');
     if (typeof refreshToken !== 'string' || !this.refreshTokens.delete(refreshToken)) {
@@ -137,7 +144,7 @@ function withinGuard<T>(promise: Promise<T>): Promise<T> {
 }
 
 describe('ApiClient token refresh', () => {
-  const originalAdapter = axios.defaults.adapter;
+  let fetchFake: FetchFake;
   let seen: SeenRequest[];
   let routes: Record<string, Route>;
   let store: InMemoryTokenStore;
@@ -145,12 +152,13 @@ describe('ApiClient token refresh', () => {
 
   function createClient(): ApiClient {
     return new ApiClient(
-      'http://api.test',
+      BASE_URL,
       store,
       () => {
         unauthenticated += 1;
       },
       RACE_TIMING,
+      (input, init) => fetchFake(input, init),
     );
   }
 
@@ -159,27 +167,24 @@ describe('ApiClient token refresh', () => {
     routes = {};
     store = new InMemoryTokenStore();
     unauthenticated = 0;
-    const adapter: AxiosAdapter = async (config) => {
-      const url = config.url ?? '';
-      seen.push({
-        url,
-        authorization: String(config.headers.Authorization ?? ''),
-        body: typeof config.data === 'string' ? JSON.parse(config.data) : config.data,
-      });
+    fetchFake = async (input, init) => {
+      const url = input.replace(BASE_URL, '');
+      const headers = new Headers(init.headers);
+      const body = typeof init.body === 'string' ? JSON.parse(init.body) : init.body;
+      seen.push({ url, authorization: headers.get('Authorization') ?? '', body });
       const route = routes[url];
+      const config: FakeConfig = {
+        url,
+        headers: authorizationOf(headers),
+        data: body,
+      };
       const { status, data } = route ? await route(config) : { status: 404, data: {} };
+      if (status === NETWORK_ERROR) {
+        throw new TypeError('Failed to fetch');
+      }
 
-      return respond(config, status, data);
+      return respond(status, data);
     };
-    axios.defaults.adapter = adapter;
-  });
-
-  afterEach(() => {
-    if (originalAdapter === undefined) {
-      delete axios.defaults.adapter;
-    } else {
-      axios.defaults.adapter = originalAdapter;
-    }
   });
 
   function protectedRoute(validToken: string): Route {
@@ -221,9 +226,9 @@ describe('ApiClient token refresh', () => {
       (error: unknown) => error,
     );
 
-    expect(failure).toBeInstanceOf(AxiosError);
-    expect((failure as AxiosError).response?.status).toBe(401);
-    expect((failure as AxiosError).config?.url).toBe('/auth/refresh');
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).response?.status).toBe(401);
+    expect((failure as HttpError).config?.url).toBe('/auth/refresh');
     expect(seen.map((r) => r.url)).toEqual(['/transactions', '/auth/refresh']);
     expect(store.cleared).toBe(1);
     expect(unauthenticated).toBe(1);
@@ -265,7 +270,7 @@ describe('ApiClient token refresh', () => {
       createClient().post('/auth/login', { email: 'a@b.c', password: 'x' }),
     ).catch((error: unknown) => error);
 
-    expect((failure as AxiosError).response?.data).toEqual({ code: 'invalid_credentials' });
+    expect((failure as HttpError).response?.data).toEqual({ code: 'invalid_credentials' });
     expect(seen.map((r) => r.url)).toEqual(['/auth/login']);
     expect(store.cleared).toBe(0);
     expect(unauthenticated).toBe(0);
@@ -282,7 +287,7 @@ describe('ApiClient token refresh', () => {
       (error: unknown) => error,
     );
 
-    expect((failure as AxiosError).response?.status).toBe(401);
+    expect((failure as HttpError).response?.status).toBe(401);
     expect(seen.map((r) => r.url)).toEqual(['/transactions', '/auth/refresh', '/transactions']);
     expect(store.cleared).toBe(1);
     expect(unauthenticated).toBe(1);
@@ -342,7 +347,7 @@ describe('ApiClient token refresh', () => {
       (error: unknown) => error,
     );
 
-    expect(failure).toBeInstanceOf(AxiosError);
+    expect(failure).toBeInstanceOf(HttpError);
     expect(readApiError(failure).status).toBe(0);
     expect(store.access).toBe('old-access');
     expect(store.refresh).toBe('old-refresh');
@@ -377,8 +382,20 @@ describe('ApiClient token refresh', () => {
     routes['/data'] = (config) => server.data(config);
     routes['/auth/refresh'] = (config) => server.refresh(config);
     const loggedOut: string[] = [];
-    const tabA = new ApiClient('http://api.test', store, () => loggedOut.push('A'), RACE_TIMING);
-    const tabB = new ApiClient('http://api.test', store, () => loggedOut.push('B'), RACE_TIMING);
+    const tabA = new ApiClient(
+      BASE_URL,
+      store,
+      () => loggedOut.push('A'),
+      RACE_TIMING,
+      (input, init) => fetchFake(input, init),
+    );
+    const tabB = new ApiClient(
+      BASE_URL,
+      store,
+      () => loggedOut.push('B'),
+      RACE_TIMING,
+      (input, init) => fetchFake(input, init),
+    );
 
     const results = await withinGuard(Promise.allSettled([tabA.get('/data'), tabB.get('/data')]));
 
