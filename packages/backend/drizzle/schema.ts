@@ -15,6 +15,7 @@ import {
   uniqueIndex,
   primaryKey,
   check,
+  foreignKey,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
@@ -309,6 +310,9 @@ export const transactions = pgTable(
     uniqueIndex('transactions_external_unique')
       .on(t.accountId, t.externalId)
       .where(sql`external_id IS NOT NULL`),
+    // CLN-051: target of the transaction_mappings (transaction_id, household_id) foreign key,
+    // which keeps a mapping's household equal to its transaction's (the RLS policy relies on it).
+    uniqueIndex('transactions_id_household_unique').on(t.id, t.householdId),
     check(
       'transactions_status_check',
       sql`status IN ('live', 'pending', 'booked', 'cancelled', 'expired', 'manual')`,
@@ -336,6 +340,9 @@ export const transactionMappings = pgTable(
     transactionId: uuid('transaction_id')
       .primaryKey()
       .references(() => transactions.id),
+    // CLN-051: the transaction's household, so the RLS policy is a column compare instead of a
+    // transactions lookup per mapping row. The composite foreign key below keeps it in sync.
+    householdId: uuid('household_id').notNull(),
     plannedItemId: uuid('planned_item_id').notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
@@ -348,6 +355,11 @@ export const transactionMappings = pgTable(
   },
   (t) => [
     index('mappings_planned_item_idx').on(t.plannedItemId),
+    foreignKey({
+      name: 'transaction_mappings_transaction_household_fk',
+      columns: [t.transactionId, t.householdId],
+      foreignColumns: [transactions.id, transactions.householdId],
+    }),
     check('transaction_mappings_source_check', sql`source IN ('manual', 'rule', 'ai')`),
   ],
 );

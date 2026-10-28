@@ -54,7 +54,7 @@ export class DrizzleMappingRepository implements MappingRepository {
     }
 
     await this.assertPlannedItemsInScope(this.db, [plannedItemId], scope);
-    await this.upsert(this.db, transactionId, plannedItemId, amount, by);
+    await this.upsert(this.db, transactionId, plannedItemId, amount, by, scope);
   }
 
   async bulkSet(
@@ -129,7 +129,7 @@ export class DrizzleMappingRepository implements MappingRepository {
       if (!amount) {
         throw new TransactionNotFoundError();
       }
-      await this.upsert(tx, item.transactionId, item.plannedItemId, amount, by);
+      await this.upsert(tx, item.transactionId, item.plannedItemId, amount, by, scope);
     }
   }
 
@@ -188,11 +188,15 @@ export class DrizzleMappingRepository implements MappingRepository {
     plannedItemId: PlannedItemId,
     amount: MappedAmount,
     by: UserId,
+    scope: HouseholdScope,
   ): Promise<void> {
     await db
       .insert(schema.transactionMappings)
       .values({
         transactionId,
+        // CLN-051: the transaction's household (checked by amountsInScope); the RLS policy and
+        // the (transaction_id, household_id) foreign key rely on it.
+        householdId: scope.householdId,
         plannedItemId,
         amountMinor: amount.amountMinor,
         currency: amount.currency,
