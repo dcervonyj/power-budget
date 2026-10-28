@@ -1,9 +1,15 @@
+import { EncryptedString } from '@power-budget/core';
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
-import type { EncryptedString } from '@power-budget/core';
 import type { Encryption } from '../../domain/auth/ports.js';
 
 const KID = 'env-v1';
 const ALG = 'aes-256-gcm';
+
+type CiphertextParts = [string, string, string, string, string];
+
+function hasFiveParts(parts: string[]): parts is CiphertextParts {
+  return parts.length === 5;
+}
 const IV_BYTES = 16;
 const KEY_BYTES = 32;
 const AUTH_TAG_BYTES = 16;
@@ -52,21 +58,15 @@ export class EnvKekEncryption implements Encryption {
       authTag.toString('base64'),
     ].join(':');
 
-    return result as EncryptedString;
+    return EncryptedString.of(result);
   }
 
   async decrypt(ciphertext: EncryptedString, context?: string): Promise<string> {
     const parts = ciphertext.split(':');
-    if (parts.length !== 5) {
+    if (!hasFiveParts(parts)) {
       throw new Error('EnvKekEncryption: invalid ciphertext format');
     }
-    const [kid, alg, ivB64, ciphertextB64, authTagB64] = parts as [
-      string,
-      string,
-      string,
-      string,
-      string,
-    ];
+    const [kid, alg, ivB64, ciphertextB64, authTagB64] = parts;
     if (kid !== KID || alg !== ALG) {
       throw new Error(`EnvKekEncryption: unsupported kid="${kid}" alg="${alg}"`);
     }

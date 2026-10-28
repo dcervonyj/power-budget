@@ -51,11 +51,11 @@ export class DrizzleUserRepository implements UserRepository {
 
   private toEntity(row: schema.SelectUser): User {
     return {
-      id: row.id as UserId,
+      id: row.id,
       email: row.email,
       displayName: row.displayName,
-      localePreference: (row.localePreference ?? null) as LocaleCode | null,
-      defaultLocale: row.defaultLocale as LocaleCode,
+      localePreference: row.localePreference ?? null,
+      defaultLocale: row.defaultLocale,
       passwordHash: row.passwordHash ?? null,
       emailVerifiedAt: row.emailVerifiedAt ?? null,
       createdAt: row.createdAt,

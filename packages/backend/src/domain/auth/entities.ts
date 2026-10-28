@@ -1,4 +1,10 @@
-import type { UserId, HouseholdId, SessionId, EncryptedString } from '@power-budget/core';
+import type {
+  UserId,
+  HouseholdId,
+  HouseholdInviteId,
+  SessionId,
+  EncryptedString,
+} from '@power-budget/core';
 
 export type LocaleCode = 'en' | 'uk' | 'ru' | 'pl';
 export type HouseholdRole = 'owner' | 'member';
@@ -86,7 +92,7 @@ export interface TotpSecret {
 }
 
 export interface HouseholdInvite {
-  readonly id: string; // UUID
+  readonly id: HouseholdInviteId;
   readonly householdId: HouseholdId;
   /** Lower-cased address the invite is bound to. */
   readonly email: string;
@@ -109,7 +115,7 @@ export type NewHouseholdInvite = Omit<HouseholdInvite, 'createdAt' | 'acceptedAt
  *   scheduled for deletion) only if it holds no data; otherwise nothing changes.
  */
 export interface AcceptInviteCommand {
-  readonly inviteId: string;
+  readonly inviteId: HouseholdInviteId;
   readonly householdId: HouseholdId;
   readonly userId: UserId;
   readonly leaveHouseholdId: HouseholdId | null;

@@ -1,4 +1,10 @@
-import type { UserId, HouseholdId, EncryptedString, HouseholdExportId } from '@power-budget/core';
+import type {
+  UserId,
+  HouseholdId,
+  EncryptedString,
+  HouseholdExportId,
+  HouseholdInviteId,
+} from '@power-budget/core';
 import type {
   User,
   NewUser,
@@ -144,14 +150,14 @@ export interface HouseholdInviteRepository {
   replaceOpen(invite: NewHouseholdInvite, at: Date): Promise<HouseholdInvite>;
   findByTokenHash(tokenHash: string): Promise<HouseholdInvite | null>;
   /** An invite of this household, or null (an id of another household reads as missing). */
-  findInHousehold(id: string, householdId: HouseholdId): Promise<HouseholdInvite | null>;
+  findInHousehold(id: HouseholdInviteId, householdId: HouseholdId): Promise<HouseholdInvite | null>;
   /** Not accepted and not revoked (expired ones included, so they can be resent). */
   listOpen(householdId: HouseholdId): Promise<HouseholdInvite[]>;
   /** False when the invite is not open in this household. */
-  revoke(id: string, householdId: HouseholdId, at: Date): Promise<boolean>;
+  revoke(id: HouseholdInviteId, householdId: HouseholdId, at: Date): Promise<boolean>;
   /** New token and expiry for an open invite (resend). Null when it is not open. */
   rotateToken(
-    id: string,
+    id: HouseholdInviteId,
     householdId: HouseholdId,
     tokenHash: string,
     expiresAt: Date,

@@ -1,4 +1,4 @@
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId, UserId, HouseholdInviteId } from '@power-budget/core';
 import type { HouseholdInviteRepository } from '../../../domain/auth/ports.js';
 import { InviteNotFoundError } from '../../../domain/auth/errors.js';
 import type { HouseholdAccess } from '../services/HouseholdAccess.js';
@@ -6,7 +6,7 @@ import type { HouseholdAccess } from '../services/HouseholdAccess.js';
 export interface RevokeHouseholdInviteInput {
   readonly userId: UserId;
   readonly householdId: HouseholdId;
-  readonly inviteId: string;
+  readonly inviteId: HouseholdInviteId;
 }
 
 /** The owner withdraws an open invite; its link stops working at once. */

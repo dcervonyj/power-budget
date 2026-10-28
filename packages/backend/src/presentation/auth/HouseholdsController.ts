@@ -1,3 +1,4 @@
+import { HouseholdInviteId } from '@power-budget/core';
 import {
   Controller,
   Get,
@@ -206,7 +207,7 @@ export class HouseholdsController {
     const view = await this.resendInvite.execute({
       userId: user.userId,
       householdId: this.householdOf(user),
-      inviteId,
+      inviteId: HouseholdInviteId.of(inviteId),
     });
 
     return this.toInviteDto(view);
@@ -227,7 +228,7 @@ export class HouseholdsController {
     await this.revokeInvite.execute({
       userId: user.userId,
       householdId: this.householdOf(user),
-      inviteId,
+      inviteId: HouseholdInviteId.of(inviteId),
     });
   }
 

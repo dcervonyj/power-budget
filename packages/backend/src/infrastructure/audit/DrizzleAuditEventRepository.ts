@@ -1,7 +1,8 @@
+import { AuditEventId } from '@power-budget/core';
 import { Inject, Injectable } from '@nestjs/common';
 import { eq, and, gte, lte, gt } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { HouseholdId, UserId, IsoDateTime } from '@power-budget/core';
+import type { HouseholdId, UserId } from '@power-budget/core';
 import { uuidv7 } from 'uuidv7';
 import type {
   AuditEventRepository,
@@ -10,10 +11,11 @@ import type {
   AuditPage,
   HouseholdScope,
 } from '../../domain/audit/ports.js';
-import type { AuditEvent, NewAuditEvent, AuditEventId } from '../../domain/audit/entities.js';
+import type { AuditEvent, NewAuditEvent } from '../../domain/audit/entities.js';
 import type { AuditLogPort } from '../../domain/plans/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
+import { isoDateTimeOf } from '../database/row-values.js';
 
 /**
  * Implements AuditEventRepository, AuditLogger, and the legacy AuditLogPort
@@ -53,7 +55,7 @@ export class DrizzleAuditEventRepository
 
   async insertAuditEvent(event: NewAuditEvent): Promise<void> {
     await this.db.insert(schema.auditLog).values({
-      id: uuidv7() as AuditEventId,
+      id: AuditEventId.of(uuidv7()),
       householdId: event.householdId,
       actorUserId: event.actorId,
       action: event.action,
@@ -94,7 +96,7 @@ export class DrizzleAuditEventRepository
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
     const lastItem = items[items.length - 1];
-    const nextCursor = hasMore && lastItem ? (lastItem.id as AuditEventId) : null;
+    const nextCursor = hasMore && lastItem ? lastItem.id : null;
 
     return {
       items: items.map((r) => this.toEntity(r)),
@@ -105,14 +107,18 @@ export class DrizzleAuditEventRepository
 
   private toEntity(row: schema.SelectAuditLog): AuditEvent {
     return {
-      id: row.id as AuditEventId,
+      id: row.id,
+      // The listing filters on householdId, so it is set; actor_user_id is nulled when a purge anonymises the row
+      // (SET NULL), which AuditEvent does not model yet.
+
       householdId: row.householdId as HouseholdId,
+
       actorId: row.actorUserId as UserId,
       subjectType: row.subjectType,
       subjectId: row.subjectId,
       action: row.action,
-      meta: (row.context as Record<string, unknown>) ?? {},
-      occurredAt: row.at.toISOString() as IsoDateTime,
+      meta: row.context ?? {},
+      occurredAt: isoDateTimeOf(row.at),
     };
   }
 }

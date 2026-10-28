@@ -1,3 +1,4 @@
+import { HouseholdInviteId } from '@power-budget/core';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import type {
   Household,
@@ -10,7 +11,7 @@ export const OWNER_ID = '01900000-0000-7000-8000-00000000000a' as UserId;
 export const PARTNER_ID = '01900000-0000-7000-8000-00000000000b' as UserId;
 export const HOUSEHOLD_ID = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
 export const SOLO_HOUSEHOLD_ID = '01900000-0000-7000-8000-0000000000b1' as HouseholdId;
-export const INVITE_ID = '01900000-0000-7000-8000-0000000000c1';
+export const INVITE_ID = HouseholdInviteId.of('01900000-0000-7000-8000-0000000000c1');
 export const OWNER_EMAIL = 'ann@example.com';
 export const PARTNER_EMAIL = 'bob@example.com';
 

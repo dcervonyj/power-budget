@@ -1,3 +1,4 @@
+import { HouseholdInviteId } from '@power-budget/core';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { HouseholdInviteRepository, UserRepository } from '../../../domain/auth/ports.js';
@@ -22,6 +23,7 @@ import {
 
 const NOW = new Date('2026-10-21T12:00:00Z');
 const NEW_EXPIRY = new Date('2026-10-28T12:00:00Z');
+const EXPIRED_ID = HouseholdInviteId.of('01900000-0000-7000-8000-0000000000d1');
 const TOKEN: InviteToken = { token: 'raw-2', tokenHash: 'hash-2', expiresAt: NEW_EXPIRY };
 const INPUT = { userId: OWNER_ID, householdId: HOUSEHOLD_ID, inviteId: INVITE_ID };
 
@@ -133,7 +135,11 @@ describe('household invite management', () => {
   describe('ListHouseholdInvitesUseCase', () => {
     it('lists open invites with their status', async () => {
       const pending = makeInvite({ expiresAt: NEW_EXPIRY, createdAt: NOW });
-      const expired = makeInvite({ id: 'old', expiresAt: NOW, createdAt: NOW });
+      const expired = makeInvite({
+        id: EXPIRED_ID,
+        expiresAt: NOW,
+        createdAt: NOW,
+      });
       inviteRepo.listOpen.mockResolvedValue([pending, expired]);
 
       const views = await new ListHouseholdInvitesUseCase(inviteRepo, access).execute({
@@ -144,7 +150,7 @@ describe('household invite management', () => {
       expect(inviteRepo.listOpen).toHaveBeenCalledWith(HOUSEHOLD_ID);
       expect(views.map((view) => [view.id, view.status])).toEqual([
         [INVITE_ID, 'pending'],
-        ['old', 'expired'],
+        [EXPIRED_ID, 'expired'],
       ]);
     });
   });

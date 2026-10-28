@@ -1,20 +1,16 @@
+import { TransferId } from '@power-budget/core';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray, or } from 'drizzle-orm';
 import type { NodePgDatabase, NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
-import type {
-  HouseholdId,
-  IsoDateTime,
-  TransactionId,
-  TransferId,
-  UserId,
-} from '@power-budget/core';
+import type { TransactionId, UserId } from '@power-budget/core';
 import { uuidv7 } from 'uuidv7';
 import type { HouseholdScope, TransferRepository } from '../../domain/transactions/ports.js';
 import { AlreadyMappedError, TransactionNotFoundError } from '../../domain/transactions/errors.js';
 import type { Transfer } from '../../domain/transactions/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
+import { isoDateTimeOf } from '../database/row-values.js';
 
 /** The pool-bound database or a transaction on it. */
 type Executor = PgDatabase<NodePgQueryResultHKT, typeof schema>;
@@ -44,7 +40,7 @@ export class DrizzleTransferRepository implements TransferRepository {
       throw new TransactionNotFoundError();
     }
 
-    const transferId = uuidv7() as TransferId;
+    const transferId = TransferId.of(uuidv7());
     await this.db.insert(schema.transfers).values({
       id: transferId,
       householdId: scope.householdId,
@@ -96,12 +92,12 @@ export class DrizzleTransferRepository implements TransferRepository {
     }
 
     return {
-      id: row.id as TransferId,
-      householdId: row.householdId as HouseholdId,
-      txAId: row.txAId as TransactionId,
-      txBId: (row.txBId ?? null) as TransactionId | null,
-      markedBy: row.markedBy as UserId,
-      markedAt: row.markedAt.toISOString() as IsoDateTime,
+      id: row.id,
+      householdId: row.householdId,
+      txAId: row.txAId,
+      txBId: row.txBId ?? null,
+      markedBy: row.markedBy,
+      markedAt: isoDateTimeOf(row.markedAt),
       status: 'active',
     };
   }
@@ -150,7 +146,7 @@ export class DrizzleTransferRepository implements TransferRepository {
     const rows = ids
       .filter((id) => !marked.has(id))
       .map((id) => ({
-        id: uuidv7(),
+        id: TransferId.of(uuidv7()),
         householdId: scope.householdId,
         txAId: id,
         txBId: null,

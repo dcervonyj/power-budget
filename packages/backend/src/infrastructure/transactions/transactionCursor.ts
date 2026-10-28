@@ -1,12 +1,12 @@
+import { IsoDate, TransactionId } from '@power-budget/core';
 import { InvalidCursorError } from '../../domain/transactions/errors.js';
 
 export interface TransactionCursor {
-  readonly occurredOn: string;
-  readonly id: string;
+  readonly occurredOn: IsoDate;
+  readonly id: TransactionId;
 }
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** base64url, plus the padded standard base64 the unplanned reader issued before CLN-043. */
 const CURSOR_CHARS = /^(?:[A-Za-z0-9_-]+|[A-Za-z0-9+/]+={0,2})$/;
 
@@ -20,7 +20,13 @@ export function decodeTransactionCursor(raw: string): TransactionCursor {
     throw new InvalidCursorError();
   }
   const [occurredOn, id, ...rest] = Buffer.from(raw, 'base64url').toString('utf8').split('|');
-  if (rest.length > 0 || !occurredOn || !id || !DATE.test(occurredOn) || !UUID.test(id)) {
+  if (
+    rest.length > 0 ||
+    !occurredOn ||
+    !id ||
+    !DATE.test(occurredOn) ||
+    !TransactionId.isValid(id)
+  ) {
     throw new InvalidCursorError();
   }
   const parsed = new Date(`${occurredOn}T00:00:00Z`);
@@ -34,5 +40,5 @@ export function decodeTransactionCursor(raw: string): TransactionCursor {
     throw new InvalidCursorError();
   }
 
-  return { occurredOn, id };
+  return { occurredOn: IsoDate.of(occurredOn), id: TransactionId.of(id) };
 }

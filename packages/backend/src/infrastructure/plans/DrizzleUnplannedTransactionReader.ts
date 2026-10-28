@@ -1,7 +1,6 @@
 import { Inject } from '@nestjs/common';
 import { and, desc, eq, gte, lte, lt, notInArray, or, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { BankAccountId, IsoDate, TransactionId } from '@power-budget/core';
 import type {
   UnplannedTransactionReader,
   UnplannedTransactionPage,
@@ -91,12 +90,12 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
 
     return {
       items: items.map((row) => ({
-        id: row.id as TransactionId,
+        id: row.id,
         description: row.description,
         amountMinor: row.amountMinor,
         currency: row.currency,
-        occurredOn: row.occurredOn as IsoDate,
-        accountId: row.accountId as BankAccountId,
+        occurredOn: row.occurredOn,
+        accountId: row.accountId,
         source: row.source,
       })),
       nextCursor,

@@ -2,7 +2,13 @@ import { Inject } from '@nestjs/common';
 import { and, asc, eq } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { uuidv7 } from 'uuidv7';
-import { CategoryId, HouseholdId, PlanId, PlannedItemId } from '@power-budget/core';
+import {
+  CategoryId,
+  HouseholdId,
+  PlanId,
+  PlannedItemId,
+  PlannedItemVersionId,
+} from '@power-budget/core';
 import type { UserId } from '@power-budget/core';
 import type { HouseholdScope, PlannedItemRepository } from '../../domain/plans/ports.js';
 import type {
@@ -89,7 +95,7 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
 
       const previous = this.toEntity(before);
       await tx.insert(schema.plannedItemVersions).values({
-        id: uuidv7(),
+        id: PlannedItemVersionId.of(uuidv7()),
         plannedItemId: id,
         householdId: scope.householdId,
         before: plannedItemPatchToJson({
