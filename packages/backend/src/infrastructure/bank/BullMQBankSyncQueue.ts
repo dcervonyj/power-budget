@@ -25,7 +25,11 @@ export class BullMQBankSyncQueue implements BankSyncQueuePort {
       `bank sync for ${payload.connectionId}`,
     );
 
-    return { jobId: job.id ?? '' };
+    if (job.id === undefined) {
+      throw new Error(`Bank sync for ${payload.connectionId} was enqueued without a job id`);
+    }
+
+    return { jobId: job.id };
   }
 
   private jobOptions(connectionId: BankConnectionId, scheduledAt: Date | undefined): JobsOptions {

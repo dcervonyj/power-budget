@@ -230,16 +230,16 @@ export class DrizzleNotificationRepository implements NotificationRepository {
   private toEntity(r: schema.SelectNotificationOutbox): NotificationOutboxRow {
     return {
       id: r.id,
-      householdId: r.householdId ?? null,
-      recipientUserId: r.recipientUserId ?? null,
-      recipientEmail: r.recipientEmail ?? null,
-      recipientLocale: r.recipientLocale ?? null,
+      householdId: r.householdId,
+      recipientUserId: r.recipientUserId,
+      recipientEmail: r.recipientEmail,
+      recipientLocale: r.recipientLocale,
       kind: r.kind,
       dedupeKey: r.dedupeKey,
       payload: r.payload,
       createdAt: r.createdAt,
-      sentAt: r.sentAt ?? null,
-      failedAt: r.failedAt ?? null,
+      sentAt: r.sentAt,
+      failedAt: r.failedAt,
       attempts: r.attempts,
     };
   }

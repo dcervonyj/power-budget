@@ -5,6 +5,7 @@ import type { UserId } from '@power-budget/core';
 import type { User, NewUser, LocaleCode } from '../../domain/auth/entities.js';
 import type { UserRepository } from '../../domain/auth/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
+import { insertedRow } from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
 
 export class DrizzleUserRepository implements UserRepository {
@@ -39,7 +40,7 @@ export class DrizzleUserRepository implements UserRepository {
       })
       .returning();
 
-    return this.toEntity(rows[0]!);
+    return this.toEntity(insertedRow(rows, 'user'));
   }
 
   async updateLocalePreference(id: UserId, locale: LocaleCode): Promise<void> {
@@ -54,10 +55,10 @@ export class DrizzleUserRepository implements UserRepository {
       id: row.id,
       email: row.email,
       displayName: row.displayName,
-      localePreference: row.localePreference ?? null,
+      localePreference: row.localePreference,
       defaultLocale: row.defaultLocale,
-      passwordHash: row.passwordHash ?? null,
-      emailVerifiedAt: row.emailVerifiedAt ?? null,
+      passwordHash: row.passwordHash,
+      emailVerifiedAt: row.emailVerifiedAt,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };

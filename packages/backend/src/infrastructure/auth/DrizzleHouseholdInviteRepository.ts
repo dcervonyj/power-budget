@@ -246,10 +246,10 @@ export class DrizzleHouseholdInviteRepository implements HouseholdInviteReposito
       email: row.email,
       tokenHash: row.tokenHash,
       expiresAt: row.expiresAt,
-      acceptedAt: row.acceptedAt ?? null,
+      acceptedAt: row.acceptedAt,
       createdAt: row.createdAt,
-      invitedByUserId: row.invitedByUserId ?? null,
-      revokedAt: row.revokedAt ?? null,
+      invitedByUserId: row.invitedByUserId,
+      revokedAt: row.revokedAt,
     };
   }
 }

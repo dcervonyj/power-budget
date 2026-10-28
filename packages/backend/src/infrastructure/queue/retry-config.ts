@@ -30,9 +30,12 @@ export const DEFAULT_JOB_OPTIONS = {
  * Register this with BullMQ worker's backoffStrategy option.
  */
 export function customBackoffStrategy(attemptsMade: number): number {
-  const idx = Math.min(attemptsMade, RETRY_DELAYS_MS.length - 1);
+  const delay = RETRY_DELAYS_MS[Math.min(attemptsMade, RETRY_DELAYS_MS.length - 1)];
+  if (delay === undefined) {
+    throw new Error(`No retry delay for attempt ${attemptsMade}`);
+  }
 
-  return RETRY_DELAYS_MS[idx] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]!;
+  return delay;
 }
 
 /**

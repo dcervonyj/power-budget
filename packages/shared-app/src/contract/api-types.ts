@@ -1306,7 +1306,7 @@ export interface components {
        * @description OAuth redirect URI after consent
        * @example https://app.power-budget.test/connect/callback
        */
-      redirectUri?: string;
+      redirectUri: string;
     };
     BankReconnectLinkDto: {
       /** @description Provider consent page to redirect the user to */

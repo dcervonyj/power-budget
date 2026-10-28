@@ -53,15 +53,16 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
     // A forged cursor throws InvalidCursorError, mapped to 400 invalid_cursor.
     if (query.cursor !== undefined) {
       const parsed = decodeTransactionCursor(query.cursor);
-      conditions.push(
-        or(
-          lt(schema.transactions.occurredOn, parsed.occurredOn),
-          and(
-            eq(schema.transactions.occurredOn, parsed.occurredOn),
-            lt(schema.transactions.id, parsed.id),
-          ),
-        )!,
+      const afterCursor = or(
+        lt(schema.transactions.occurredOn, parsed.occurredOn),
+        and(
+          eq(schema.transactions.occurredOn, parsed.occurredOn),
+          lt(schema.transactions.id, parsed.id),
+        ),
       );
+      if (afterCursor !== undefined) {
+        conditions.push(afterCursor);
+      }
     }
 
     const rows = await this.db

@@ -1,13 +1,19 @@
 import 'reflect-metadata';
 // Provide minimal stubs for env vars required during module construction.
 // These are only used at spec-generation time — no real crypto or DB queries run.
-process.env['KEK_BASE64'] ??= 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA='; // 32 null bytes
-process.env['DATABASE_URL'] ??=
-  'postgresql://power_budget:power_budget@localhost:5432/power_budget';
-process.env['REDIS_URL'] ??= 'redis://localhost:6379';
-process.env['RESEND_API_KEY'] ??= 're_placeholder_spec_gen';
-// Spec generation never signs or verifies tokens; this only satisfies the boot check.
-process.env['JWT_SECRET'] ??= 'openapi-spec-generation-placeholder-secret';
+const SPEC_GENERATION_ENV: Record<string, string> = {
+  KEK_BASE64: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=', // 32 null bytes
+  DATABASE_URL: 'postgresql://power_budget:power_budget@localhost:5432/power_budget',
+  REDIS_URL: 'redis://localhost:6379',
+  RESEND_API_KEY: 're_placeholder_spec_gen',
+  // Spec generation never signs or verifies tokens; this only satisfies the boot check.
+  JWT_SECRET: 'openapi-spec-generation-placeholder-secret',
+};
+for (const [name, value] of Object.entries(SPEC_GENERATION_ENV)) {
+  if (process.env[name] === undefined) {
+    process.env[name] = value;
+  }
+}
 
 import type { INestApplication } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
