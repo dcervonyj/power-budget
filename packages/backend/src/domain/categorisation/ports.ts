@@ -3,6 +3,8 @@ import type {
   MerchantCorrection,
   MerchantRule,
   MerchantRuleKey,
+  HintedPlannedItem,
+  HintedPlannedItemQuery,
   PlannedItemProfile,
   PlannedItemQuery,
   ResolvedPlannedItem,
@@ -37,4 +39,12 @@ export interface PlannedItemResolver {
    * then the owner's own plan; null when no plan covers the date.
    */
   resolveActive(query: PlannedItemQuery): Promise<ResolvedPlannedItem | null>;
+}
+
+export interface PlannedHintReader {
+  /**
+   * The planned items with a match hint of the plans (not archived, owned by the owner or the
+   * household) that overlap the query window.
+   */
+  listHinted(query: HintedPlannedItemQuery): Promise<HintedPlannedItem[]>;
 }

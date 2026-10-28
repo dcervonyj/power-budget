@@ -23,6 +23,7 @@ const item: PlannedItemDto = {
   direction: 'expense',
   amount: { amountMinor: '120000', currency: 'PLN' },
   note: null,
+  matchHint: null,
   createdAt: '2026-10-01T00:00:00.000Z',
   updatedAt: '2026-10-01T00:00:00.000Z',
 };
