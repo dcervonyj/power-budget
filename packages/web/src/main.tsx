@@ -7,8 +7,8 @@ import '@fontsource-variable/geist';
 // The package exports map only exposes JS, so the generated CSS is imported by path (built by turbo).
 import '../../design-tokens/dist/tokens.css';
 import '../../design-tokens/dist/glass.css';
-import { IntlProvider } from 'react-intl';
 import { AppProviders } from './AppProviders.js';
+import { StaticCrashFallback } from './presentation/shell/StaticCrashFallback.js';
 import { AppCrashFallback } from './presentation/shell/AppCrashFallback.js';
 import { staleChunkRecovery } from './infrastructure/lazyChunk.js';
 
@@ -29,7 +29,7 @@ Sentry.init({
 });
 
 // Inner boundary: translated fallback. Outer boundary: covers provider render errors and
-// failed locale chunks, where no translations exist, so it falls back to English.
+// failed locale chunks, where react-intl is unavailable, so it uses a small static string table.
 const GuardedApp = Sentry.withErrorBoundary(App, { fallback: <AppCrashFallback /> });
 
 const OuterGuard = Sentry.withErrorBoundary(
@@ -41,11 +41,7 @@ const OuterGuard = Sentry.withErrorBoundary(
     </BrowserRouter>
   ),
   {
-    fallback: (
-      <IntlProvider locale="en" defaultLocale="en" messages={{}}>
-        <AppCrashFallback />
-      </IntlProvider>
-    ),
+    fallback: <StaticCrashFallback />,
   },
 );
 

@@ -16,7 +16,7 @@ export function lazyChunk<T extends ComponentType<any>>(
 }
 
 function markLoaded<M>(module: M): M {
-  staleChunkRecovery.chunkLoaded();
+  staleChunkRecovery.chunkLoaded('route');
 
   return module;
 }

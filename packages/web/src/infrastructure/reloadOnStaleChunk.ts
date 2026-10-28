@@ -1,5 +1,8 @@
 export const RELOAD_FLAG_KEY = 'pb_chunk_reload';
 
+export type StartupChunk = 'locale' | 'route';
+const STARTUP_CHUNKS: readonly StartupChunk[] = ['locale', 'route'];
+
 export interface StaleChunkTarget {
   addEventListener(type: 'vite:preloadError', listener: (event: Event) => void): void;
   location: { reload(): void };
@@ -13,13 +16,16 @@ export interface StaleChunkTarget {
  *  - While the guard is set, every vite:preloadError goes to the error boundary: no reload,
  *    whatever the build. So a failure that survives a reload (same or new build, however slow
  *    the retry) never causes a second reload: at most one automatic reload per failure.
- *  - The guard is cleared only by a positive signal that chunks load again: a successful lazy
- *    chunk import (see lazyChunk) calls chunkLoaded(). A later deploy in a long-lived tab
- *    therefore recovers with one more reload.
+ *  - The guard is cleared only by a positive signal that chunks load again: ALL startup chunks
+ *    loaded after the reload (the locale messages and a lazy route, see lazyChunk and
+ *    AppProviders), each reporting through chunkLoaded(). One working chunk is not enough while
+ *    another still fails. A later deploy in a long-lived tab then recovers with one more reload.
  *  - Storage is only touched inside try/catch, lazily. If it throws we cannot persist the
  *    guard, so we do not reload (the boundary shows Reload) and the app still starts.
  */
 export class StaleChunkRecovery {
+  private readonly loaded = new Set<StartupChunk>();
+
   constructor(private readonly target: StaleChunkTarget) {}
 
   install(): void {
@@ -32,8 +38,12 @@ export class StaleChunkRecovery {
     });
   }
 
-  /** A lazy chunk loaded fine: the reload (if any) has recovered. */
-  chunkLoaded(): void {
+  /** A startup chunk loaded fine; once every startup chunk has, the reload (if any) recovered. */
+  chunkLoaded(chunk: StartupChunk): void {
+    this.loaded.add(chunk);
+    if (!STARTUP_CHUNKS.every((required) => this.loaded.has(required))) {
+      return;
+    }
     try {
       const storage = this.target.sessionStorage();
       if (storage.getItem(RELOAD_FLAG_KEY) !== null) {
