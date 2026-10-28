@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 import type { PlanDashboard } from '../../domain/dashboard/PlanDashboard.js';
 import { groupByDay, isToSort, monthLeft, sortingProgress } from './TransactionListQueryView.js';

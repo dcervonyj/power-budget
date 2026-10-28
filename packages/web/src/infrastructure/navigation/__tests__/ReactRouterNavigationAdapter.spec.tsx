@@ -15,6 +15,7 @@ import {
 import type { AppRoute } from '@power-budget/shared-app/contract';
 import { ReactRouterNavigationAdapter } from '../ReactRouterNavigationAdapter.js';
 import { ROUTE_PATHS } from '../routePaths.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { returnPath } from '../../../presentation/guards/returnPath.js';
 
 const EXPECTED_PATHS: ReadonlyArray<[AppRoute, string]> = [

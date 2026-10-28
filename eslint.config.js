@@ -7,7 +7,7 @@
 const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const formatjsPlugin = require('eslint-plugin-formatjs').default;
-const { layerLintBlocks, layerAllowListBlocks } = require('./eslint.layers.js');
+const { layerLintBlocks } = require('./eslint.layers.js');
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
@@ -68,10 +68,9 @@ module.exports = [
     },
   },
 
-  // ─── Per-layer import restrictions (CLN-061) + temporary allow-list ─────
+  // ─── Per-layer import restrictions (CLN-061) ─────────────────────
   // Defined in eslint.layers.js; must come after the scaffold above so it overrides it.
   ...layerLintBlocks,
-  ...layerAllowListBlocks,
 
   // ─── formatjs: no-literal-string in presentation layers ─────────────────
   // Ensures all user-visible strings in presentation/ go through react-intl.

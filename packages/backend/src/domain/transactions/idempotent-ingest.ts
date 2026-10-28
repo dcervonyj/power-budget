@@ -1,4 +1,5 @@
 import type { IngestHashInput } from './entities.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { createHash } from 'node:crypto';
 
 /**

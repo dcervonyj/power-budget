@@ -6,11 +6,11 @@
 const LAYER_MESSAGE = 'Layer violation: an inner layer must not import an outer layer.';
 
 /** @param {string} layer */
-const layerGlob = (layer) => `**/${layer}/**`;
+const layerGlob = (layer) => [`**/${layer}`, `**/${layer}/**`];
 
 /** @param {string[]} layers */
 const layerPatterns = (layers) => ({
-  group: layers.map(layerGlob),
+  group: layers.flatMap(layerGlob),
   message: LAYER_MESSAGE,
 });
 
@@ -52,20 +52,30 @@ const block = (files, layers, frameworks) => ({
 
 const NONE = { paths: [], patterns: [] };
 
-/** @type {import('eslint').Linter.Config[]} */
-const layerLintBlocks = [
-  // backend
+/**
+ * Flat-config `files` globs resolve relative to the config file that holds them, so the backend
+ * (which lints with packages/backend/eslint.config.js, base dir packages/backend) needs prefix ''
+ * and the root config needs 'packages/backend/'.
+ * @param {string} prefix
+ * @returns {import('eslint').Linter.Config[]}
+ */
+const backendLayerBlocks = (prefix) => [
   block(
-    ['packages/backend/src/domain/**/*.ts'],
+    [`${prefix}src/domain/**/*.ts`],
     ['application', 'infrastructure', 'presentation', 'bootstrap', 'worker'],
     BACKEND_FRAMEWORKS,
   ),
   block(
-    ['packages/backend/src/application/**/*.ts'],
+    [`${prefix}src/application/**/*.ts`],
     ['infrastructure', 'presentation', 'bootstrap', 'worker'],
     BACKEND_FRAMEWORKS,
   ),
-  block(['packages/backend/src/infrastructure/**/*.ts'], ['presentation'], NONE),
+  block([`${prefix}src/infrastructure/**/*.ts`], ['presentation'], NONE),
+];
+
+/** @type {import('eslint').Linter.Config[]} */
+const layerLintBlocks = [
+  ...backendLayerBlocks('packages/backend/'),
   // web + mobile
   block(
     ['packages/{web,mobile}/src/domain/**/*.{ts,tsx}'],
@@ -84,6 +94,8 @@ const layerLintBlocks = [
 // No code was moved. Each entry must be fixed and removed in follow-up tickets (move the import behind a port,
 // inject IdGenerator/Clock instead of uuidv7/node:crypto, relocate shared types out of presentation, split
 // mappers out of infrastructure). Do NOT add entries here: new violations must fail lint.
+// Documentation only: each known import carries `// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list`
+// on its own line, so a NEW forbidden import in a listed file still errors.
 const LAYER_ALLOW_LIST = [
   'packages/backend/src/application/auth/services/HouseholdInviteMailer.ts',
   'packages/backend/src/application/auth/use-cases/ConsumeMagicLinkUseCase.spec.ts',
@@ -116,9 +128,4 @@ const LAYER_ALLOW_LIST = [
   'packages/web/src/infrastructure/navigation/__tests__/ReactRouterNavigationAdapter.spec.tsx',
 ];
 
-/** @type {import('eslint').Linter.Config[]} */
-const layerAllowListBlocks = [
-  { files: LAYER_ALLOW_LIST, rules: { 'no-restricted-imports': 'off' } },
-];
-
-module.exports = { layerLintBlocks, layerAllowListBlocks, LAYER_ALLOW_LIST };
+module.exports = { layerLintBlocks, backendLayerBlocks, LAYER_ALLOW_LIST };

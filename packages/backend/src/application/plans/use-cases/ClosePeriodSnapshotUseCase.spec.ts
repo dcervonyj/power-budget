@@ -10,6 +10,7 @@ import type {
   CategoryId,
 } from '@power-budget/core';
 import { CurrencyMismatchError, PlanId } from '@power-budget/core';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { uuidv7 } from 'uuidv7';
 import type { Plan } from '../../../domain/plans/entities.js';
 import type {
