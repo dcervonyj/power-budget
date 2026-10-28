@@ -1,9 +1,15 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { ConfigService } from '@nestjs/config';
+import { parseAppConfig } from '../../config/AppConfig.js';
 import { Redis } from 'ioredis';
-import { buildQueueConnectionOptions, DEFAULT_REDIS_URL } from './redis-connection.js';
+import { buildQueueConnectionOptions } from './redis-connection.js';
 
 const UPSTASH_URL = 'rediss://default:s3cret@eu1-example-12345.upstash.io:6379';
+
+const BASE_ENV = {
+  NODE_ENV: 'development',
+  JWT_SECRET: 'unit-test-jwt-secret-with-at-least-32-bytes',
+  KEK_BASE64: Buffer.alloc(32).toString('base64'),
+};
 
 const clients: Redis[] = [];
 
@@ -23,7 +29,9 @@ describe('buildQueueConnectionOptions', () => {
   });
 
   it('passes the full REDIS_URL through instead of rebuilding host/port', () => {
-    const options = buildQueueConnectionOptions(new ConfigService({ REDIS_URL: UPSTASH_URL }));
+    const options = buildQueueConnectionOptions(
+      parseAppConfig({ ...BASE_ENV, REDIS_URL: UPSTASH_URL }, 'api'),
+    );
 
     expect(options).toEqual({ connection: { url: UPSTASH_URL } });
   });
@@ -47,8 +55,8 @@ describe('buildQueueConnectionOptions', () => {
   });
 
   it('falls back to local Redis when REDIS_URL is unset', () => {
-    const options = buildQueueConnectionOptions(new ConfigService({}));
+    const options = buildQueueConnectionOptions(parseAppConfig(BASE_ENV, 'api'));
 
-    expect(options).toEqual({ connection: { url: DEFAULT_REDIS_URL } });
+    expect(options).toEqual({ connection: { url: 'redis://localhost:6379' } });
   });
 });

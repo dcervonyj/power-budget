@@ -7,9 +7,9 @@ import {
 } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import * as jwt from 'jsonwebtoken';
-import { ConfigService } from '@nestjs/config';
+import { APP_CONFIG, type AppConfig } from '../../../config/AppConfig.js';
 import type { UserId, HouseholdId } from '@power-budget/core';
-import { JWT_ALGORITHM, resolveJwtSecret } from '../../../infrastructure/auth/jwt-secret.js';
+import { JWT_ALGORITHM } from '../../../infrastructure/auth/jwt-secret.js';
 
 export interface JwtRequestUser {
   userId: UserId;
@@ -20,11 +20,8 @@ export interface JwtRequestUser {
 export class JwtAuthGuard implements CanActivate {
   private readonly secret: string;
 
-  constructor(@Inject(ConfigService) private readonly config: ConfigService) {
-    this.secret = resolveJwtSecret(
-      config.get<string>('JWT_SECRET'),
-      config.get<string>('NODE_ENV'),
-    );
+  constructor(@Inject(APP_CONFIG) config: AppConfig) {
+    this.secret = config.jwtSecret;
   }
 
   canActivate(context: ExecutionContext): boolean {

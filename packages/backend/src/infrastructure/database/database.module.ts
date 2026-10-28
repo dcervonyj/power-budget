@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_CONFIG, type AppConfig } from '../../config/AppConfig.js';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import * as schema from '../../../drizzle/schema.js';
 import type { DbScope } from './DbScope.js';
@@ -15,17 +15,14 @@ export const DRIZZLE_DB = 'DRIZZLE_DB';
 export const DB_FALLBACK_SCOPE = 'DB_FALLBACK_SCOPE';
 
 @Module({
-  imports: [ConfigModule],
   providers: [
     {
       provide: DRIZZLE_DB,
-      inject: [ConfigService, { token: DB_FALLBACK_SCOPE, optional: true }],
-      useFactory: (config: ConfigService, fallbackScope: DbScope | undefined) => {
+      inject: [APP_CONFIG, { token: DB_FALLBACK_SCOPE, optional: true }],
+      useFactory: (config: AppConfig, fallbackScope: DbScope | undefined) => {
         const pool = ScopedPool.create(
           {
-            connectionString:
-              config.get<string>('DATABASE_URL') ??
-              'postgresql://power_budget:power_budget@localhost:5432/power_budget',
+            connectionString: config.databaseUrl,
           },
           fallbackScope ?? null,
         );

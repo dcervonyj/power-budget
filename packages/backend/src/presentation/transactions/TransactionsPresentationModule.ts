@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { uuidv7 } from 'uuidv7';
 import { TransactionsModule } from '../../infrastructure/transactions/TransactionsModule.js';
 import { DrizzleMappingRepository } from '../../infrastructure/transactions/DrizzleMappingRepository.js';
@@ -17,7 +16,7 @@ import { UnmarkTransferUseCase } from '../../application/transactions/use-cases/
 import { TransactionsController } from './TransactionsController.js';
 
 @Module({
-  imports: [TransactionsModule, ConfigModule],
+  imports: [TransactionsModule],
   controllers: [TransactionsController],
   providers: [
     {

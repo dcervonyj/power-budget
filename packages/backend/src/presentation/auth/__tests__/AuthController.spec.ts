@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { ExecutionContext } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { parseAppConfig } from '../../../config/AppConfig.js';
 import * as jwt from 'jsonwebtoken';
 import type { UserId, HouseholdId } from '@power-budget/core';
 import type {
@@ -12,7 +12,6 @@ import type {
 } from '../../../domain/auth/ports.js';
 import { AuthController } from '../AuthController.js';
 import { JwtAuthGuard } from '../guards/JwtAuthGuard.js';
-import { InvalidJwtSecretError } from '../../../infrastructure/auth/jwt-secret.js';
 import type { RegisterUserUseCase } from '../../../application/auth/use-cases/RegisterUserUseCase.js';
 import { RefreshTokenUseCase } from '../../../application/auth/use-cases/RefreshTokenUseCase.js';
 import type { Household } from '../../../domain/auth/entities.js';
@@ -78,7 +77,6 @@ describe('AuthController — register', () => {
 });
 
 describe('JwtAuthGuard', () => {
-  let configService: ReturnType<typeof mock<ConfigService>>;
   let guard: JwtAuthGuard;
 
   function makeContext(authHeader?: string): ExecutionContext {
@@ -93,31 +91,16 @@ describe('JwtAuthGuard', () => {
     return ctx;
   }
 
-  function makeConfig(env: Record<string, string | undefined>): ConfigService {
-    const config = mock<ConfigService>();
-    config.get.mockImplementation((key: string) => env[key]);
-
-    return config;
-  }
-
   beforeEach(() => {
-    configService = mock<ConfigService>();
-    configService.get.mockImplementation((key: string) =>
-      key === 'JWT_SECRET' ? TEST_SECRET : 'production',
+    const config = parseAppConfig(
+      {
+        NODE_ENV: 'production',
+        JWT_SECRET: TEST_SECRET,
+        KEK_BASE64: Buffer.alloc(32).toString('base64'),
+      },
+      'api',
     );
-    guard = new JwtAuthGuard(configService);
-  });
-
-  it('refuses to start without JWT_SECRET outside tests (no dev-secret fallback)', () => {
-    expect(() => new JwtAuthGuard(makeConfig({ NODE_ENV: 'staging' }))).toThrow(
-      InvalidJwtSecretError,
-    );
-  });
-
-  it('refuses to start with a JWT_SECRET shorter than 32 bytes', () => {
-    expect(
-      () => new JwtAuthGuard(makeConfig({ NODE_ENV: 'production', JWT_SECRET: 'short-secret' })),
-    ).toThrow(InvalidJwtSecretError);
+    guard = new JwtAuthGuard(config);
   });
 
   it('rejects a token forged with the old default secret', () => {
