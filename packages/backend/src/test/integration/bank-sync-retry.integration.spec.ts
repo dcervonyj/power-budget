@@ -172,7 +172,7 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
       });
 
       const deadline = Date.now() + 15_000;
-      while ((await queue.getJobCounts('delayed')).delayed === 0) {
+      while ((await queue.getJobCounts('delayed'))['delayed'] === 0) {
         if (Date.now() > deadline) {
           throw new Error('job never reached delayed');
         }
