@@ -37,7 +37,7 @@ describe('shared queue Redis connection shutdown (CLN-056)', () => {
     await stopContainers();
   });
 
-  it('closing the API and worker contexts quits the shared connection after queues and workers, with no closed-connection errors', async () => {
+  it('closing the API and worker contexts quits each queue connection after queues and workers, with no closed-connection errors', async () => {
     const errors: string[] = [];
     const record = (...args: unknown[]): void => {
       errors.push(args.map(String).join(' '));
@@ -52,7 +52,8 @@ describe('shared queue Redis connection shutdown (CLN-056)', () => {
       WorkerModule,
       { logger: ['error'], abortOnError: false },
     );
-    const shared = getSharedQueueConnection(redisUrl);
+    const shared = getSharedQueueConnection(redisUrl, 'worker');
+    const apiShared = getSharedQueueConnection(redisUrl, 'api');
     await vi.waitFor(() => expect(shared.status).toBe('ready'));
     const events: string[] = [];
     const quit = vi.spyOn(shared, 'quit');
@@ -66,7 +67,10 @@ describe('shared queue Redis connection shutdown (CLN-056)', () => {
 
     try {
       await api.close();
-      // The worker context still holds it: the API closing must not quit it.
+      // The API (bounded producer) connection is its own; the worker's stays up.
+      await vi.waitFor(() => expect(apiShared.status).toBe('end'));
+      expect(apiShared.options.maxRetriesPerRequest).toBe(2);
+      expect(shared.options.maxRetriesPerRequest).toBeNull();
       expect(quit).not.toHaveBeenCalled();
       expect(shared.status).toBe('ready');
 

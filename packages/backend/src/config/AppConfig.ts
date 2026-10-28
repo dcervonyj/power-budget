@@ -11,6 +11,8 @@ import { resolveJwtSecret } from '../infrastructure/auth/jwt-secret.js';
 export type AppRole = 'api' | 'worker';
 
 export interface AppConfig {
+  /** Which process role parsed this config (the API never runs queue workers). */
+  readonly role: AppRole;
   readonly nodeEnv: string;
   readonly port: number;
   readonly startWorker: boolean;
@@ -122,6 +124,7 @@ export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
   }
 
   return {
+    role,
     nodeEnv,
     port,
     startWorker,

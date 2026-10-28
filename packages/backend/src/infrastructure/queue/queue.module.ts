@@ -22,7 +22,7 @@ export class QueueModule implements OnApplicationShutdown {
   private readonly logger = new Logger(QueueModule.name);
 
   constructor(
-    @Inject(APP_CONFIG) private readonly config: Pick<AppConfig, 'redisUrl'>,
+    @Inject(APP_CONFIG) private readonly config: Pick<AppConfig, 'redisUrl' | 'role'>,
     @Inject(ModuleRef) private readonly moduleRef: ModuleRef,
     @Inject(DiscoveryService) private readonly discovery: DiscoveryService,
   ) {}
@@ -45,7 +45,7 @@ export class QueueModule implements OnApplicationShutdown {
     if (failures.length > 0) {
       throw new AggregateError(failures, `${failures.length} queue/worker close(s) failed`);
     }
-    await releaseSharedQueueConnection(this.config.redisUrl);
+    await releaseSharedQueueConnection(this.config.redisUrl, this.config.role);
   }
 
   private workers(): Worker[] {

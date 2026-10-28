@@ -27,8 +27,10 @@ function parsedByIoredis(url: string): Redis {
 
 describe('buildQueueConnectionOptions', () => {
   afterEach(async () => {
-    await releaseSharedQueueConnection(UPSTASH_URL);
-    await releaseSharedQueueConnection('redis://localhost:6379');
+    for (const role of ['api', 'worker'] as const) {
+      await releaseSharedQueueConnection(UPSTASH_URL, role);
+      await releaseSharedQueueConnection('redis://localhost:6379', role);
+    }
     while (clients.length > 0) {
       clients.pop()?.disconnect();
     }
@@ -40,12 +42,26 @@ describe('buildQueueConnectionOptions', () => {
     );
 
     expect(options.connection).toBeInstanceOf(Redis);
-    expect(options.connection).toBe(getSharedQueueConnection(UPSTASH_URL));
-    expect(getSharedQueueConnection(UPSTASH_URL).options.maxRetriesPerRequest).toBeNull();
-    expect(getSharedQueueConnection(UPSTASH_URL).options.tls).toBeDefined();
+    expect(options.connection).toBe(getSharedQueueConnection(UPSTASH_URL, 'api'));
+    expect(getSharedQueueConnection(UPSTASH_URL, 'api').options.tls).toBeDefined();
   });
 
-  it('returns the same connection for repeated builds (API and worker contexts share it)', () => {
+  it('bounds retries on the API (producer) connection so an enqueue fails fast in an outage', () => {
+    buildQueueConnectionOptions(parseAppConfig({ ...BASE_ENV, REDIS_URL: UPSTASH_URL }, 'api'));
+
+    expect(getSharedQueueConnection(UPSTASH_URL, 'api').options.maxRetriesPerRequest).toBe(2);
+  });
+
+  it('keeps unlimited retries on the worker connection (BullMQ requires null for workers)', () => {
+    buildQueueConnectionOptions(parseAppConfig({ ...BASE_ENV, REDIS_URL: UPSTASH_URL }, 'worker'));
+
+    expect(getSharedQueueConnection(UPSTASH_URL, 'worker').options.maxRetriesPerRequest).toBeNull();
+    expect(getSharedQueueConnection(UPSTASH_URL, 'worker')).not.toBe(
+      getSharedQueueConnection(UPSTASH_URL, 'api'),
+    );
+  });
+
+  it('returns the same connection for repeated builds (all queues of a context share it)', () => {
     const config = parseAppConfig({ ...BASE_ENV, REDIS_URL: UPSTASH_URL }, 'api');
 
     expect(buildQueueConnectionOptions(config).connection).toBe(
@@ -74,22 +90,22 @@ describe('buildQueueConnectionOptions', () => {
   it('falls back to local Redis when REDIS_URL is unset', () => {
     const options = buildQueueConnectionOptions(parseAppConfig(BASE_ENV, 'api'));
 
-    expect(options.connection).toBe(getSharedQueueConnection('redis://localhost:6379'));
+    expect(options.connection).toBe(getSharedQueueConnection('redis://localhost:6379', 'api'));
   });
 });
 
 describe('releaseSharedQueueConnection', () => {
   it('quits the shared connection exactly once, when the last context releases it', async () => {
     const config = parseAppConfig(BASE_ENV, 'api');
-    buildQueueConnectionOptions(config); // API context
-    buildQueueConnectionOptions(config); // embedded worker context
-    const connection = getSharedQueueConnection(config.redisUrl);
+    buildQueueConnectionOptions(config); // two contexts of the same role
+    buildQueueConnectionOptions(config);
+    const connection = getSharedQueueConnection(config.redisUrl, 'api');
     const quit = vi.spyOn(connection, 'quit').mockResolvedValue('OK');
 
-    await releaseSharedQueueConnection(config.redisUrl);
+    await releaseSharedQueueConnection(config.redisUrl, 'api');
     expect(quit).not.toHaveBeenCalled();
 
-    await releaseSharedQueueConnection(config.redisUrl);
+    await releaseSharedQueueConnection(config.redisUrl, 'api');
     expect(quit).toHaveBeenCalledTimes(1);
 
     connection.disconnect();
