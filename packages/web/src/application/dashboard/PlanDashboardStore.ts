@@ -1,8 +1,7 @@
 import { makeAutoObservable } from 'mobx';
-import { readApiError, type CategoriesApi, type PlansApi } from '@power-budget/shared-app';
+import { readApiError, type PlansApi } from '@power-budget/shared-app';
 import {
   FX_RATE_UNAVAILABLE,
-  type CategoryDto,
   type PlannedItemDto,
   type UnplannedTransactionPageDto,
 } from '@power-budget/shared-app/contract';
@@ -15,6 +14,7 @@ import {
   toPlanDashboard,
   toUnplannedTransaction,
 } from '../../infrastructure/api/PlanDashboardMapper.js';
+import type { ReferenceCatalogue } from '../catalogue/ReferenceCatalogue.js';
 import { toDashboardOverview, type DashboardOverview } from './dashboardOverview.js';
 
 /** 404 is `not_found`; 503 fx_rate_unavailable (CLN-012) is `fx_unavailable`. */
@@ -22,7 +22,8 @@ export type PlanDashboardError = 'not_found' | 'fx_unavailable' | 'failed';
 
 /** What the store reads from the plan and category endpoints. */
 export type PlanDashboardPlans = Pick<PlansApi, 'get' | 'dashboard' | 'listItems' | 'unplanned'>;
-export type PlanDashboardCategories = Pick<CategoriesApi, 'list'>;
+/** What the store needs from the shared catalogue: one plan, its items and the category names. */
+export type PlanDashboardReference = Pick<ReferenceCatalogue, 'plan' | 'items' | 'categoryNames'>;
 
 /** One page-through list of the caller's own unplanned transactions. */
 export interface UnplannedList {
@@ -49,6 +50,10 @@ const EMPTY_LIST: UnplannedList = { items: [], nextCursor: null, loading: false,
  * One plan's dashboard (`GET /plans/:id/dashboard`) with the names of its categories,
  * the item amounts in their own currency and the first page of the caller's unplanned
  * transactions. A reload keeps the shown data until the new answer arrives.
+ *
+ * `load` reads everything (open, plan switch, retry). `poll` reads only the dashboard: the plan,
+ * its items and the category names come from the shared catalogue (read once per plan), and the
+ * unplanned pages the user loaded stay as they are.
  */
 export class PlanDashboardStore implements PlanDashboardSource {
   planId: string | null = null;
@@ -59,14 +64,19 @@ export class PlanDashboardStore implements PlanDashboardSource {
   unplannedIncome: UnplannedList = EMPTY_LIST;
 
   private readonly plans: PlanDashboardPlans;
-  private readonly categories: PlanDashboardCategories;
+  private readonly reference: PlanDashboardReference;
+  /** Bumped by every load and by sign-out: an answer of an older one is dropped. */
+  private token = 0;
+  private polling = false;
 
-  constructor(plans: PlanDashboardPlans, categories: PlanDashboardCategories) {
+  constructor(plans: PlanDashboardPlans, reference: PlanDashboardReference) {
     this.plans = plans;
-    this.categories = categories;
-    makeAutoObservable<PlanDashboardStore, 'plans' | 'categories'>(this, {
+    this.reference = reference;
+    makeAutoObservable<PlanDashboardStore, 'plans' | 'reference' | 'token' | 'polling'>(this, {
       plans: false,
-      categories: false,
+      reference: false,
+      token: false,
+      polling: false,
     });
   }
 
@@ -76,6 +86,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
   }
 
   async load(planId: string): Promise<void> {
+    this.token += 1;
+    const token = this.token;
+    this.polling = false;
     if (planId !== this.planId) {
       this.planId = planId;
       this.dashboard = null;
@@ -85,19 +98,37 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.loading = true;
     this.error = null;
     try {
-      const [plan, dto, categories, items] = await Promise.all([
-        this.plans.get(planId),
-        this.plans.dashboard(planId),
-        this.listCategories(),
-        this.listItems(planId),
-      ]);
-      this.applyDashboard(
-        planId,
-        toPlanDashboard(dto, { plan, categoryNames: toCategoryNames(categories), items }),
-      );
+      this.applyDashboard(planId, token, await this.readDashboard(planId));
       await Promise.all([this.loadUnplanned('expense', null), this.loadUnplanned('income', null)]);
     } catch (err) {
-      this.applyError(planId, classifyDashboardError(err));
+      this.applyError(planId, token, classifyDashboardError(err));
+    }
+  }
+
+  /**
+   * One request: the dashboard of the shown plan. Skipped while a load or another poll is in
+   * flight and for a plan that is not shown; a failed poll keeps the shown data. Before the first
+   * dashboard has arrived it is a full load.
+   */
+  async poll(planId: string): Promise<void> {
+    if (planId !== this.planId || this.loading || this.polling) {
+      return;
+    }
+    if (this.dashboard === null) {
+      await this.load(planId);
+
+      return;
+    }
+    const token = this.token;
+    this.polling = true;
+    try {
+      this.applyDashboard(planId, token, await this.readDashboard(planId));
+    } catch {
+      // The shown data stays; the next poll tries again.
+    } finally {
+      if (token === this.token) {
+        this.polling = false;
+      }
     }
   }
 
@@ -106,6 +137,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
    * because it no longer matches `planId`.
    */
   resetSession(): void {
+    this.token += 1;
+    this.polling = false;
     this.planId = null;
     this.dashboard = null;
     this.loading = false;
@@ -133,30 +166,43 @@ export class PlanDashboardStore implements PlanDashboardSource {
     if (planId === null) {
       return;
     }
+    const token = this.token;
     const before = this.unplannedOf(direction);
     this.setUnplanned(direction, { ...before, loading: true, failed: false });
     try {
       const page = await this.plans.unplanned(planId, direction, cursor);
       this.applyUnplanned(
         planId,
+        token,
         direction,
         appendPage(cursor === null ? EMPTY_LIST : before, page),
       );
     } catch {
-      this.applyUnplanned(planId, direction, { ...before, loading: false, failed: true });
+      this.applyUnplanned(planId, token, direction, { ...before, loading: false, failed: true });
     }
   }
 
-  private applyDashboard(planId: string, dashboard: PlanDashboard): void {
-    if (this.planId !== planId) {
+  private async readDashboard(planId: string): Promise<PlanDashboard> {
+    const [plan, dto, categoryNames, items] = await Promise.all([
+      this.reference.plan(planId),
+      this.plans.dashboard(planId),
+      this.reference.categoryNames(),
+      this.listItems(planId),
+    ]);
+
+    return toPlanDashboard(dto, { plan, categoryNames, items });
+  }
+
+  private applyDashboard(planId: string, token: number, dashboard: PlanDashboard): void {
+    if (this.planId !== planId || this.token !== token) {
       return;
     }
     this.dashboard = dashboard;
     this.loading = false;
   }
 
-  private applyError(planId: string, error: PlanDashboardError): void {
-    if (this.planId !== planId) {
+  private applyError(planId: string, token: number, error: PlanDashboardError): void {
+    if (this.planId !== planId || this.token !== token) {
       return;
     }
     this.error = error;
@@ -164,8 +210,13 @@ export class PlanDashboardStore implements PlanDashboardSource {
   }
 
   /** A late answer for a plan that is no longer shown is dropped. */
-  private applyUnplanned(planId: string, direction: LineDirection, list: UnplannedList): void {
-    if (this.planId === planId) {
+  private applyUnplanned(
+    planId: string,
+    token: number,
+    direction: LineDirection,
+    list: UnplannedList,
+  ): void {
+    if (this.planId === planId && this.token === token) {
       this.setUnplanned(direction, list);
     }
   }
@@ -178,31 +229,14 @@ export class PlanDashboardStore implements PlanDashboardSource {
     }
   }
 
-  /** Without categories the dashboard still renders, without names. */
-  private async listCategories(): Promise<CategoryDto[]> {
-    try {
-      return await this.categories.list({ includeArchived: true });
-    } catch {
-      return [];
-    }
-  }
-
   /** Without items the lines show only base-currency amounts. */
   private async listItems(planId: string): Promise<PlannedItemDto[]> {
     try {
-      return await this.plans.listItems(planId);
+      return await this.reference.items(planId);
     } catch {
       return [];
     }
   }
-}
-
-function toCategoryNames(categories: readonly CategoryDto[]): Map<string, string> {
-  return new Map(categories.map(toNameEntry));
-}
-
-function toNameEntry(category: CategoryDto): [string, string] {
-  return [category.id, category.name];
 }
 
 function appendPage(list: UnplannedList, page: UnplannedTransactionPageDto): UnplannedList {

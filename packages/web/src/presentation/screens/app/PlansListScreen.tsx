@@ -7,6 +7,7 @@ import type { CreatePlanDto, PlanDto } from '@power-budget/shared-app/contract';
 import { plansApi } from '../../../AppProviders.js';
 import { PlansListView } from './PlansListView.js';
 import { settingsStore } from '../../../application/settings/SettingsStore.js';
+import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 
 const DEFAULT_PLAN_CURRENCY = 'EUR';
 
@@ -64,6 +65,7 @@ export function PlansListScreen(): React.JSX.Element {
           : DEFAULT_PLAN_CURRENCY,
       };
       const created = await plansApi.create(body);
+      referenceCatalogue.invalidate();
       void navigate(`/plans/${created.id}`);
     } catch {
       setError(
@@ -83,6 +85,7 @@ export function PlansListScreen(): React.JSX.Element {
     try {
       // Plans are archived, not deleted (CLN-011).
       await plansApi.archive(id);
+      referenceCatalogue.invalidate();
     } catch {
       setPlans(prevPlans);
       setError(

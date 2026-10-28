@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
 import { Link, useParams } from 'react-router-dom';
 import { PlanDashboardView } from '../../components/plan-dashboard/PlanDashboardView.js';
 import { planDashboardStore } from '../../../application/dashboard/DashboardStore.js';
 import { appShellStore } from '../../../application/shell/appShellStore.js';
+import { useVisiblePolling } from '../../hooks/useVisiblePolling.js';
 import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
 import { OVERVIEW_CONTAINER_STYLE } from '../../components/plan-dashboard/overviewStyles.js';
 
@@ -24,24 +25,23 @@ const LINK_STYLE: React.CSSProperties = {
   textDecoration: 'none',
 };
 
-/** `/plans/:id/dashboard`: the same Overview for one plan, refreshed every 30 s. */
+/** `/plans/:id/dashboard`: the same Overview for one plan, polled every 30 s while the tab is visible. */
 export const PlanDashboardScreen = observer(function PlanDashboardScreen(): React.JSX.Element {
   const intl = useIntl();
   const { id = '' } = useParams<{ id: string }>();
 
   useEffect(() => {
-    if (id === '') {
-      return undefined;
-    }
-    void planDashboardStore.load(id);
-    const interval = setInterval(() => {
+    if (id !== '') {
       void planDashboardStore.load(id);
-    }, POLL_INTERVAL_MS);
-
-    return () => {
-      clearInterval(interval);
-    };
+    }
   }, [id]);
+
+  const poll = useCallback((): void => {
+    if (id !== '') {
+      void planDashboardStore.poll(id);
+    }
+  }, [id]);
+  useVisiblePolling(poll, POLL_INTERVAL_MS);
 
   return (
     <div style={OVERVIEW_CONTAINER_STYLE}>

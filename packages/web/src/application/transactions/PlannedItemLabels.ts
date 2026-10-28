@@ -1,5 +1,7 @@
-import type { PlansApi } from '@power-budget/shared-app';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
+import type { ReferenceCatalogue } from '../catalogue/ReferenceCatalogue.js';
+
+export type PlannedItemSource = Pick<ReferenceCatalogue, 'activePlans' | 'items' | 'categoryNames'>;
 
 export interface PlannedItemLabel {
   readonly planName: string;
@@ -18,12 +20,9 @@ export interface PlannedItemCatalogue {
 }
 
 /** Active plans with their items and category names; the pool a transaction can map to. */
-export async function loadPlannedItems(
-  plansApi: Pick<PlansApi, 'list' | 'listItems'>,
-  categoryNames: () => Promise<ReadonlyMap<string, string>>,
-): Promise<PlannedItemCatalogue> {
-  const [plans, names] = await Promise.all([plansApi.list('active'), categoryNames()]);
-  const perPlan = await Promise.all(plans.map((plan) => itemsOf(plansApi, plan)));
+export async function loadPlannedItems(source: PlannedItemSource): Promise<PlannedItemCatalogue> {
+  const [plans, names] = await Promise.all([source.activePlans(), source.categoryNames()]);
+  const perPlan = await Promise.all(plans.map((plan) => itemsOf(source, plan)));
   const options = perPlan.flat().map(({ plan, item }) => ({
     item,
     planName: plan.name,
@@ -49,10 +48,10 @@ export function suggestedFirst(
 }
 
 async function itemsOf(
-  plansApi: Pick<PlansApi, 'listItems'>,
+  source: Pick<PlannedItemSource, 'items'>,
   plan: PlanDto,
 ): Promise<Array<{ plan: PlanDto; item: PlannedItemDto }>> {
-  const items = await plansApi.listItems(plan.id);
+  const items = await source.items(plan.id);
 
   return items.map((item) => ({ plan, item }));
 }

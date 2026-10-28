@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { PlanDashboardResponseDto } from '@power-budget/shared-app/contract';
 import { PlanDashboardStore } from '../../../../application/dashboard/PlanDashboardStore.js';
+import { catalogueFor } from '../../../../test/referenceCatalogue.js';
 import { PlanDashboardView } from '../PlanDashboardView.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import {
@@ -34,14 +35,15 @@ function makeStore(): { store: PlanDashboardStore; dashboard: ReturnType<typeof 
             : UNPLANNED_LAST_PAGE,
       ),
     );
+  const api = {
+    get: vi.fn().mockResolvedValue(PLAN),
+    dashboard,
+    listItems: vi.fn().mockResolvedValue(ITEMS),
+    unplanned,
+  };
   const store = new PlanDashboardStore(
-    {
-      get: vi.fn().mockResolvedValue(PLAN),
-      dashboard,
-      listItems: vi.fn().mockResolvedValue(ITEMS),
-      unplanned,
-    },
-    { list: vi.fn().mockResolvedValue(CATEGORIES) },
+    api,
+    catalogueFor(api, { list: vi.fn().mockResolvedValue(CATEGORIES) }),
   );
 
   return { store, dashboard };
@@ -51,18 +53,19 @@ function makeStore(): { store: PlanDashboardStore; dashboard: ReturnType<typeof 
 async function loadD7(
   overrides: Partial<PlanDashboardResponseDto> = {},
 ): Promise<PlanDashboardStore> {
+  const api = {
+    get: vi.fn().mockResolvedValue(D7_PLAN),
+    dashboard: vi.fn().mockResolvedValue({ ...D7_DASHBOARD, ...overrides }),
+    listItems: vi.fn().mockResolvedValue([]),
+    unplanned: vi
+      .fn()
+      .mockImplementation((_planId: string, direction: string) =>
+        Promise.resolve(direction === 'expense' ? D7_UNPLANNED_PAGE : EMPTY_PAGE),
+      ),
+  };
   const store = new PlanDashboardStore(
-    {
-      get: vi.fn().mockResolvedValue(D7_PLAN),
-      dashboard: vi.fn().mockResolvedValue({ ...D7_DASHBOARD, ...overrides }),
-      listItems: vi.fn().mockResolvedValue([]),
-      unplanned: vi
-        .fn()
-        .mockImplementation((_planId: string, direction: string) =>
-          Promise.resolve(direction === 'expense' ? D7_UNPLANNED_PAGE : EMPTY_PAGE),
-        ),
-    },
-    { list: vi.fn().mockResolvedValue(D7_CATEGORIES) },
+    api,
+    catalogueFor(api, { list: vi.fn().mockResolvedValue(D7_CATEGORIES) }),
   );
   await store.load('plan-d7');
 
