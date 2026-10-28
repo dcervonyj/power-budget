@@ -1,5 +1,6 @@
 import React from 'react';
 import { fireEvent, screen, userEvent } from '@testing-library/react-native';
+import { EMPTY_MATCH_HINT_FORM } from '@power-budget/core';
 import type { PlanDto } from '@power-budget/shared-app/contract';
 import { renderGlass } from '../../../../glass/atoms/__tests__/glassTestUtils.js';
 import { PlanEditorView, type PlanEditorViewProps } from '../PlanEditorView.js';
@@ -30,6 +31,7 @@ const SALARY: PlanItemRowModel = {
   currency: 'PLN',
   amountInput: '8400.00',
   spentMinor: null,
+  matchHint: null,
 };
 
 const GROCERIES: PlanItemRowModel = {
@@ -40,6 +42,13 @@ const GROCERIES: PlanItemRowModel = {
   currency: 'PLN',
   amountInput: '2200.00',
   spentMinor: 114864n,
+  matchHint: {
+    counterpartyPattern: 'Biedronka',
+    amountMinor: null,
+    toleranceMinor: null,
+    dayOfMonth: null,
+    dayWindow: null,
+  },
 };
 
 function props(overrides: Partial<PlanEditorViewProps> = {}): PlanEditorViewProps {
@@ -54,7 +63,8 @@ function props(overrides: Partial<PlanEditorViewProps> = {}): PlanEditorViewProp
     },
     income: [SALARY],
     limits: [GROCERIES],
-    draft: { categoryId: '', direction: 'expense', amount: '' },
+    draft: { categoryId: '', direction: 'expense', amount: '', matchHint: EMPTY_MATCH_HINT_FORM },
+    draftHintInvalid: [],
     draftCategories: [{ value: 'cat-home', label: 'Home' }],
     saving: false,
     adding: false,
@@ -69,6 +79,7 @@ function props(overrides: Partial<PlanEditorViewProps> = {}): PlanEditorViewProp
     onSave: jest.fn(),
     onArchive: jest.fn(),
     onAmountChange: jest.fn(),
+    onMatchHintChange: jest.fn(),
     onRemove: jest.fn(),
     ...overrides,
   };
@@ -102,6 +113,52 @@ describe('PlanEditorView totals', () => {
 
     expect(screen.getByText('Over income')).toBeTruthy();
     expect(screen.getByText('2 items in other currencies are not counted')).toBeTruthy();
+  });
+});
+
+describe('PlanEditorView match hint', () => {
+  it('shows the stored hint and saves an edited one as exact minor units', async () => {
+    const onMatchHintChange = jest.fn();
+    await renderGlass(<PlanEditorView {...props({ onMatchHintChange })} />);
+    const user = userEvent.setup();
+
+    await user.press(screen.getByRole('button', { name: 'Match hint: Groceries' }));
+    expect(screen.getByDisplayValue('Biedronka')).toBeTruthy();
+    await fireEvent.changeText(screen.getByDisplayValue('Biedronka'), 'Lidl');
+    await user.press(screen.getAllByRole('button', { name: 'Save hint' })[0]!);
+
+    expect(onMatchHintChange).toHaveBeenCalledWith('l-food', {
+      counterpartyPattern: 'Lidl',
+      amountMinor: null,
+      toleranceMinor: null,
+      dayOfMonth: null,
+      dayWindow: null,
+    });
+  });
+
+  it('rejects a tolerance without an amount and does not save', async () => {
+    const onMatchHintChange = jest.fn();
+    await renderGlass(<PlanEditorView {...props({ onMatchHintChange })} />);
+    const user = userEvent.setup();
+
+    await user.press(screen.getByRole('button', { name: 'Match hint: Salary' }));
+    await fireEvent.changeText(screen.getAllByLabelText('Amount tolerance (±)')[0]!, '5');
+    await user.press(screen.getAllByRole('button', { name: 'Save hint' })[0]!);
+
+    expect(onMatchHintChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert', { name: /Check the highlighted hint fields/ })).toBeTruthy();
+  });
+
+  it('clears the hint when every field is emptied', async () => {
+    const onMatchHintChange = jest.fn();
+    await renderGlass(<PlanEditorView {...props({ onMatchHintChange })} />);
+    const user = userEvent.setup();
+
+    await user.press(screen.getByRole('button', { name: 'Match hint: Groceries' }));
+    await fireEvent.changeText(screen.getByDisplayValue('Biedronka'), '');
+    await user.press(screen.getAllByRole('button', { name: 'Save hint' })[0]!);
+
+    expect(onMatchHintChange).toHaveBeenCalledWith('l-food', null);
   });
 });
 
@@ -201,7 +258,12 @@ describe('PlanEditorView actions', () => {
 
   it('types the draft amount and switches direction, clearing the category', async () => {
     const onDraftChange = jest.fn();
-    const draft = { categoryId: 'cat-home', direction: 'expense' as const, amount: '' };
+    const draft = {
+      categoryId: 'cat-home',
+      direction: 'expense' as const,
+      amount: '',
+      matchHint: EMPTY_MATCH_HINT_FORM,
+    };
     await renderGlass(<PlanEditorView {...props({ draft, onDraftChange })} />);
 
     await fireEvent.changeText(screen.getByLabelText('Amount in PLN'), '12,5');
@@ -212,6 +274,7 @@ describe('PlanEditorView actions', () => {
       categoryId: '',
       direction: 'income',
       amount: '',
+      matchHint: EMPTY_MATCH_HINT_FORM,
     });
   });
 

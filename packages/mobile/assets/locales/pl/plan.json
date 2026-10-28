@@ -62,6 +62,7 @@
   "plan.matchHint.tolerance": "Tolerancja kwoty (±)",
   "plan.matchHint.dayOfMonth": "Dzień miesiąca",
   "plan.matchHint.dayWindow": "Okno dni (± dni)",
+  "plan.matchHint.toggle": "Wskazówka dopasowania: {name}",
   "plan.matchHint.save": "Zapisz wskazówkę",
   "plan.matchHint.invalid": "Sprawdź zaznaczone pola wskazówki. Tolerancja wymaga kwoty, a okno dni wymaga dnia."
 }

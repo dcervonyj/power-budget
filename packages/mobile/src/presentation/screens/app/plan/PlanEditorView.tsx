@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 import { useIntl } from 'react-intl';
+import type { MatchHintField } from '@power-budget/core';
 import type { SelectOption } from '@power-budget/shared-app';
 import type { PlanDto, PlannedItemDirectionDto } from '@power-budget/shared-app/contract';
 import { Button } from '../../../components/Button.js';
@@ -13,6 +14,7 @@ import { SegmentedControl } from '../../../glass/controls/SegmentedControl.js';
 import { GlassPanel } from '../../../glass/material/GlassPanel.js';
 import { BODY_FONT, TOUCH_TARGET } from '../../../glass/controls/fonts.js';
 import { makeStyles, useGlass } from '../../../theme/index.js';
+import { MatchHintFields } from './MatchHintFields.js';
 import { PlanIncomeList, PlanLimitList } from './PlanItemRows.js';
 import type { PlanDraftItem, PlanItemHandlers, PlanItemRowModel } from './planModels.js';
 import type { PlanTotals } from './planAmounts.js';
@@ -28,6 +30,8 @@ export interface PlanEditorViewProps extends PlanItemHandlers {
   readonly limits: readonly PlanItemRowModel[];
   readonly draft: PlanDraftItem;
   readonly draftCategories: readonly SelectOption[];
+  /** Hint fields that failed the last "Add item" attempt. */
+  readonly draftHintInvalid: readonly MatchHintField[];
   readonly saving: boolean;
   readonly adding: boolean;
   readonly categoriesFailed: boolean;
@@ -283,6 +287,7 @@ function PlanDetails({
 function NewItemForm({
   draft,
   draftCategories,
+  draftHintInvalid,
   plan,
   adding,
   categoriesFailed,
@@ -355,6 +360,16 @@ function NewItemForm({
           onDraftChange({ ...draft, amount });
         }}
         style={styles.amountInput}
+      />
+      <Text style={shared.label}>
+        {intl.formatMessage({ id: 'plan.matchHint.title', defaultMessage: 'Match hint' })}
+      </Text>
+      <MatchHintFields
+        values={draft.matchHint}
+        invalid={draftHintInvalid}
+        onChange={(matchHint) => {
+          onDraftChange({ ...draft, matchHint });
+        }}
       />
       <Button variant="primary" loading={adding} onPress={onAddItem}>
         {intl.formatMessage({ id: 'plan.item.add', defaultMessage: 'Add item' })}

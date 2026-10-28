@@ -62,6 +62,7 @@
   "plan.matchHint.tolerance": "Допуск суми (±)",
   "plan.matchHint.dayOfMonth": "День місяця",
   "plan.matchHint.dayWindow": "Вікно днів (± днів)",
+  "plan.matchHint.toggle": "Підказка зіставлення: {name}",
   "plan.matchHint.save": "Зберегти підказку",
   "plan.matchHint.invalid": "Перевірте виділені поля підказки. Допуск потребує суми, а вікно днів потребує дня."
 }

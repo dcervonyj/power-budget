@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useIntl } from 'react-intl';
 import type { IntlShape } from 'react-intl';
+import { matchHintToFormValues, parseMatchHintForm, type MatchHintField } from '@power-budget/core';
 import { formatMoneyParts } from '@power-budget/shared-app';
 import type { CategoryRowData } from '@power-budget/shared-app';
+import { Button } from '../../../components/Button.js';
 import { Icon } from '../../../glass/atoms/Icon.js';
 import { toSupportedLocale } from '../../../glass/atoms/supportedLocale.js';
 import { IconButton } from '../../../glass/controls/IconButton.js';
 import { Stepper } from '../../../glass/controls/Stepper.js';
 import { CategoryRow } from '../../../glass/rows/CategoryRow.js';
 import { makeStyles, useGlass } from '../../../theme/index.js';
+import { MatchHintFields } from './MatchHintFields.js';
 import { PlanAmountField } from './PlanAmountField.js';
 import type { PlanItemHandlers, PlanItemRowModel } from './planModels.js';
 import { stepMinorUnits, toSteppableMinor } from './planAmounts.js';
@@ -53,6 +56,7 @@ export function PlanIncomeList({ rows, ...handlers }: RowsProps): React.JSX.Elem
         <View key={row.id} style={styles.controls}>
           <Text style={[shared.label, styles.name]}>{row.name}</Text>
           <ItemControls row={row} index={index} {...handlers} />
+          <MatchHintEditor row={row} onChange={handlers.onMatchHintChange} />
         </View>
       ))}
     </View>
@@ -100,6 +104,63 @@ function LimitRow({ row, index, ...handlers }: RowProps): React.JSX.Element {
         )}
         <ItemControls row={row} index={index} {...handlers} />
       </View>
+      <MatchHintEditor row={row} onChange={handlers.onMatchHintChange} />
+    </View>
+  );
+}
+
+/** The item's match hint: opened on demand, saved with the button (empty fields clear it). */
+function MatchHintEditor({
+  row,
+  onChange,
+}: {
+  readonly row: PlanItemRowModel;
+  readonly onChange: PlanItemHandlers['onMatchHintChange'];
+}): React.JSX.Element {
+  const intl = useIntl();
+  const [open, setOpen] = useState(false);
+  const [values, setValues] = useState(matchHintToFormValues(row.matchHint, row.currency));
+  const [invalid, setInvalid] = useState<readonly MatchHintField[]>([]);
+
+  function save(): void {
+    const result = parseMatchHintForm(values, row.currency);
+    if (result.kind === 'invalid') {
+      setInvalid(result.fields);
+
+      return;
+    }
+    setInvalid([]);
+    onChange(row.id, result.kind === 'ok' ? result.hint : null);
+  }
+
+  return (
+    <View>
+      <Button
+        variant="secondary"
+        onPress={() => {
+          setOpen(!open);
+        }}
+      >
+        {intl.formatMessage(
+          { id: 'plan.matchHint.toggle', defaultMessage: 'Match hint: {name}' },
+          { name: row.name },
+        )}
+      </Button>
+      {open ? (
+        <View>
+          <MatchHintFields
+            values={values}
+            invalid={invalid}
+            onChange={(next) => {
+              setValues(next);
+              setInvalid([]);
+            }}
+          />
+          <Button variant="primary" onPress={save}>
+            {intl.formatMessage({ id: 'plan.matchHint.save', defaultMessage: 'Save hint' })}
+          </Button>
+        </View>
+      ) : null}
     </View>
   );
 }
