@@ -406,6 +406,140 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     }
   });
 
+  it('0020 backfills transaction_mappings.household_id and reads the RLS settings once per statement (CLN-051)', async () => {
+    const pool = await createDatabase(`cln051_${SUFFIX}`);
+    const before = fullJournal().entries.find((e) => e.tag.startsWith('0020_'))!.idx - 1;
+    await migrate(drizzle(pool), { migrationsFolder: folderUpTo(before) });
+    const ids = {
+      user: '01900000-0000-7000-8000-000000000501',
+      householdA: '01900000-0000-7000-8000-000000000502',
+      householdB: '01900000-0000-7000-8000-000000000503',
+      accountA: '01900000-0000-7000-8000-000000000504',
+      accountB: '01900000-0000-7000-8000-000000000505',
+      txA: '01900000-0000-7000-8000-000000000511',
+      txB: '01900000-0000-7000-8000-000000000512',
+      txUnmapped: '01900000-0000-7000-8000-000000000513',
+      item: '01900000-0000-7000-8000-000000000521',
+    };
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query("SELECT set_config('app.rls_bypass', 'on', true)");
+      await client.query(`INSERT INTO users (id, email) VALUES ($1, 'm@example.com')`, [ids.user]);
+      for (const [household, account, tx] of [
+        [ids.householdA, ids.accountA, ids.txA],
+        [ids.householdB, ids.accountB, ids.txB],
+      ] as const) {
+        await client.query(
+          `INSERT INTO households (id, name, base_currency) VALUES ($1, 'h', 'PLN')`,
+          [household],
+        );
+        await client.query(
+          `INSERT INTO bank_accounts (id, household_id, owner_user_id, kind, name, currency)
+           VALUES ($1, $2, $3, 'manual', 'Cash', 'PLN')`,
+          [account, household, ids.user],
+        );
+        await client.query(
+          `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, source)
+           VALUES ($1, $2, $3, '2026-10-01', -100, 'PLN', 'manual')`,
+          [tx, household, account],
+        );
+        await client.query(
+          `INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
+           VALUES ($1, $2, -100, 'PLN', $3)`,
+          [tx, ids.item, ids.user],
+        );
+      }
+      await client.query(
+        `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, source)
+         VALUES ($1, $2, $3, '2026-10-02', -100, 'PLN', 'manual')`,
+        [ids.txUnmapped, ids.householdA, ids.accountA],
+      );
+      await client.query('COMMIT');
+    } finally {
+      client.release();
+    }
+
+    await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });
+
+    const verify = await pool.connect();
+    try {
+      await verify.query('BEGIN');
+      await verify.query("SELECT set_config('app.rls_bypass', 'on', true)");
+      const backfilled = await verify.query(
+        'SELECT transaction_id, household_id FROM transaction_mappings ORDER BY transaction_id',
+      );
+      expect(backfilled.rows).toEqual([
+        { transaction_id: ids.txA, household_id: ids.householdA },
+        { transaction_id: ids.txB, household_id: ids.householdB },
+      ]);
+      // A mapping cannot name another household than its transaction's, even with the bypass.
+      await verify.query('SAVEPOINT mismatch');
+      await expect(
+        verify.query(
+          `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+           VALUES ($1, $2, $3, -100, 'PLN', $4)`,
+          [ids.txUnmapped, ids.householdB, ids.item, ids.user],
+        ),
+      ).rejects.toMatchObject({ code: '23503' });
+      await verify.query('ROLLBACK TO SAVEPOINT mismatch');
+      await verify.query('SAVEPOINT missing');
+      await expect(
+        verify.query(
+          `INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
+           VALUES ($1, $2, -100, 'PLN', $3)`,
+          [ids.txUnmapped, ids.item, ids.user],
+        ),
+      ).rejects.toMatchObject({ code: '23502' });
+      await verify.query('ROLLBACK TO SAVEPOINT missing');
+
+      // The owner is bound by FORCE RLS: household A sees only its own mapping.
+      await verify.query(
+        "SELECT set_config('app.rls_bypass', '', true), set_config('app.household_id', $1, true)",
+        [ids.householdA],
+      );
+      const seen = await verify.query('SELECT transaction_id FROM transaction_mappings');
+      expect(seen.rows).toEqual([{ transaction_id: ids.txA }]);
+
+      // Same policies (name, command, roles); the settings are InitPlans, and the mapping
+      // policy no longer looks up transactions per row.
+      const policies = await verify.query<{
+        tablename: string;
+        policyname: string;
+        cmd: string;
+        roles: string[];
+        qual: string;
+        with_check: string;
+      }>(
+        `SELECT tablename, policyname, cmd, roles::text[] AS roles, qual, with_check FROM pg_policies
+          WHERE tablename IN ('transactions', 'transaction_mappings') ORDER BY tablename`,
+      );
+      expect(policies.rows.map((p) => [p.tablename, p.policyname, p.cmd, p.roles])).toEqual([
+        ['transaction_mappings', 'tenant_isolation', 'ALL', ['public']],
+        ['transactions', 'tenant_isolation', 'ALL', ['public']],
+      ]);
+      for (const p of policies.rows) {
+        expect(p.qual).toBe(
+          '(( SELECT app_rls_bypass() AS app_rls_bypass) OR (household_id = ( SELECT app_current_household_id() AS app_current_household_id)))',
+        );
+        expect(p.with_check).toContain('( SELECT app_rls_bypass() AS app_rls_bypass)');
+        expect(p.with_check).toContain(
+          '(household_id = ( SELECT app_current_household_id() AS app_current_household_id))',
+        );
+      }
+      const plan = await verify.query<{ 'QUERY PLAN': string }>(
+        'EXPLAIN SELECT * FROM transaction_mappings',
+      );
+      const text = plan.rows.map((r) => r['QUERY PLAN']).join('\n');
+      expect(text).toContain('InitPlan');
+      expect(text).not.toContain('SubPlan');
+      expect(text).not.toContain('transactions');
+      await verify.query('ROLLBACK');
+    } finally {
+      verify.release();
+    }
+  });
+
   it('enables and forces row level security on every tenant data table (CLN-005)', async () => {
     const pool = await createDatabase(`rls_${SUFFIX}`);
     await migrate(drizzle(pool), { migrationsFolder: MIGRATIONS });

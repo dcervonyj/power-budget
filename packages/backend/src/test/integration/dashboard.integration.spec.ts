@@ -425,8 +425,8 @@ describe('Plan and household dashboards (real app, 2-member household)', () => {
 
   async function insertMapping(transaction: string, item: string, by: Member): Promise<void> {
     await getPool().query(
-      `INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
-       SELECT id, $2, amount_minor, currency, $3 FROM transactions WHERE id = $1`,
+      `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+       SELECT id, household_id, $2, amount_minor, currency, $3 FROM transactions WHERE id = $1`,
       [transaction, item, by.userId],
     );
   }

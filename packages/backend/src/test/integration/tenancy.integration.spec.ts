@@ -224,13 +224,111 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       await expect(
         asTenant(A, () =>
           appPool.query(
-            `INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
-             VALUES ($1, $2, -1234, 'PLN', $3)`,
-            [A.txId, B.plannedItemId, A.userId],
+            `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+             VALUES ($1, $2, $3, -1234, 'PLN', $4)`,
+            [A.txId, A.householdId, B.plannedItemId, A.userId],
           ),
         ),
       ).rejects.toMatchObject({ code: '42501' });
       expect(await count('transaction_mappings')).toBe(0);
+    });
+
+    describe('transaction_mappings.household_id (CLN-051)', () => {
+      const insertMapping = (
+        tx: string,
+        household: string,
+        item: string,
+        by: string,
+      ): Promise<unknown> =>
+        appPool.query(
+          `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+           VALUES ($1, $2, $3, -1234, 'PLN', $4)`,
+          [tx, household, item, by],
+        );
+
+      async function seedMappings(): Promise<void> {
+        for (const t of [A, B]) {
+          await fixtures.query(
+            `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+             VALUES ($1, $2, $3, -1234, 'PLN', $4)`,
+            [t.txId, t.householdId, t.plannedItemId, t.userId],
+          );
+        }
+      }
+
+      it('shows only the own household mappings, and none without the settings', async () => {
+        await seedMappings();
+
+        const seen = await asTenant(A, () =>
+          appPool.query<{ transaction_id: string }>(
+            'SELECT transaction_id FROM transaction_mappings',
+          ),
+        );
+        expect(seen.rows.map((r) => r.transaction_id)).toEqual([A.txId]);
+        const unscoped = await appPool.query('SELECT * FROM transaction_mappings');
+        expect(unscoped.rows).toHaveLength(0);
+        const system = await runInDbScope({ kind: 'system', reason: 'test' }, () =>
+          appPool.query('SELECT * FROM transaction_mappings'),
+        );
+        expect(system.rows).toHaveLength(2);
+      });
+
+      it('cannot update or delete a foreign mapping', async () => {
+        await seedMappings();
+
+        const updated = await asTenant(A, () =>
+          appPool.query(
+            'UPDATE transaction_mappings SET planned_item_id = $1 WHERE transaction_id = $2',
+            [A.plannedItemId, B.txId],
+          ),
+        );
+        const deleted = await asTenant(A, () =>
+          appPool.query('DELETE FROM transaction_mappings WHERE transaction_id = $1', [B.txId]),
+        );
+
+        expect(updated.rowCount).toBe(0);
+        expect(deleted.rowCount).toBe(0);
+        expect(
+          await count('transaction_mappings WHERE transaction_id = $1 AND planned_item_id = $2', [
+            B.txId,
+            B.plannedItemId,
+          ]),
+        ).toBe(1);
+      });
+
+      it('rejects a forged household_id and a foreign transaction', async () => {
+        // Own transaction and planned item, filed under household B.
+        await expect(
+          asTenant(A, () => insertMapping(A.txId, B.householdId, A.plannedItemId, A.userId)),
+        ).rejects.toMatchObject({ code: '42501' });
+        // B's transaction filed under the caller's household.
+        await expect(
+          asTenant(A, () => insertMapping(B.txId, A.householdId, A.plannedItemId, A.userId)),
+        ).rejects.toMatchObject({ code: '42501' });
+        // Moving an own mapping to household B.
+        await seedMappings();
+        await expect(
+          asTenant(A, () =>
+            appPool.query(
+              'UPDATE transaction_mappings SET household_id = $1 WHERE transaction_id = $2',
+              [B.householdId, A.txId],
+            ),
+          ),
+        ).rejects.toMatchObject({ code: '42501' });
+        expect(await count('transaction_mappings WHERE household_id = $1', [B.householdId])).toBe(
+          1,
+        );
+      });
+
+      it('keeps household_id equal to the transaction household even for system scope', async () => {
+        // RLS bypass skips the policy; the (transaction_id, household_id) foreign key does not.
+        await expect(
+          runInDbScope({ kind: 'system', reason: 'test' }, () =>
+            insertMapping(A.txId, B.householdId, B.plannedItemId, B.userId),
+          ),
+        ).rejects.toMatchObject({ code: '23503' });
+        expect(await count('transaction_mappings')).toBe(0);
+      });
     });
 
     it('rejects a transaction whose account or suggestion belongs to another household (SYNC-001)', async () => {
@@ -493,6 +591,13 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
         }),
       );
       expect(await count('transaction_mappings')).toBe(1);
+      // CLN-051: the write path stores the transaction's household.
+      expect(
+        await count('transaction_mappings WHERE transaction_id = $1 AND household_id = $2', [
+          A.txId,
+          A.householdId,
+        ]),
+      ).toBe(1);
       const mine = await asTenant(A, () =>
         repo.findByTransaction(A.txId, { householdId: A.householdId }),
       );

@@ -47,3 +47,27 @@ Before, currency and source were filtered on the client, so a rare currency page
 reads the category's mappings once (a hashed subplan, written `NOT (id NOT IN (...))`: a plain `IN` became a semi-join
 that cost 2.7k-12k buffers). About 900 of its buffers are the `transaction_mappings` RLS subplan per mapping row, which
 CLN-051 removes.
+
+## CLN-051: RLS settings read once per statement, `transaction_mappings.household_id`
+
+Same spec, as the app role under RLS. Before = master (fd9ef1e), after = this branch, `EXPLAIN (ANALYZE, BUFFERS)` of
+the captured page query, warm.
+
+| page                                 | 1M before | 1M after | CI size before | CI size after |
+| ------------------------------------ | --------- | -------- | -------------- | ------------- |
+| first page                           | 1,109     | 1,021    | 548            | 447           |
+| unmappedOnly                         | 1,284     | 1,000    | 871            | 349           |
+| mapped                               | 1,691     | 1,262    | 1,198          | 612           |
+| transfers only                       | 1,207     | 1,021    | 565            | 469           |
+| no transfers                         | 910       | 816      | 644            | 450           |
+| `categoryId`                         | 2,806     | 1,441    | 1,648          | 615           |
+| `currency=EUR`                       | 1,082     | 992      | 583            | 444           |
+| `source=bank_sync`                   | 1,109     | 1,021    | 548            | 447           |
+| `categoryId` + `currency` + `mapped` | 2,610     | 1,245    | 1,750          | 762           |
+| `currency=USD` (no own row)          | 313       | 313      | 231            | 231           |
+| deep page                            | 900       | 893      | 460            | 282           |
+
+Before, every `transaction_mappings` row read ran the policy's `transactions` lookup (`Filter: (... OR (SubPlan n))`
+over `transactions_pkey`, 14 such SubPlans across the 11 plans) and every `transactions` / `transaction_mappings` row
+re-evaluated `current_setting(...)`. After, the policy filter is `($0 OR (household_id = $1))` with `$0`/`$1` from
+one-time InitPlans, and no RLS SubPlan is left. On master the 1M `categoryId` pages were over the 2,000 budget.

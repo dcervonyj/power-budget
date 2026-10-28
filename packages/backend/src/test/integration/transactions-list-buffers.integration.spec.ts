@@ -71,8 +71,8 @@ INSERT INTO transactions (id, household_id, account_id, external_id, occurred_on
     (date '2026-10-26' - (n * 730 / 5000)), -((n % 97) + 1) * 1000,
     CASE WHEN n % 3 = 1 THEN 'EUR' ELSE 'PLN' END, 'CARD PAYMENT SHOP ' || (n % 300), 'shop' || (n % 300), 'bank_sync'
   FROM generate_series(1, ${HOUSEHOLDS}) h, generate_series(1, 5000) n;
-INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
-  SELECT t.id, pi.id, t.amount_minor, t.currency, '00000000-0000-7000-8000-000000000001'
+INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+  SELECT t.id, t.household_id, pi.id, t.amount_minor, t.currency, '00000000-0000-7000-8000-000000000001'
   FROM transactions t
   JOIN plans p ON p.household_id = t.household_id AND t.occurred_on BETWEEN p.period_start AND p.period_end
   JOIN planned_items pi ON pi.plan_id = p.id
