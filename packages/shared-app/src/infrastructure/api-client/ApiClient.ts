@@ -18,6 +18,11 @@ interface QueuedRequest {
   reject: (reason: unknown) => void;
 }
 
+interface SessionTokens {
+  accessToken: string | null;
+  refreshToken: string;
+}
+
 type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
 
 /** The refresh answered 201 (the pair to store), or another tab's pair was adopted. */
@@ -46,6 +51,9 @@ const ABSOLUTE_URL_ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/]+/i;
 
 export class ApiClient implements HttpClient {
   private readonly _axios: AxiosInstance;
+  /** No interceptors and no client state: used for the revocation of a captured pair only. */
+  private readonly _bare: AxiosInstance;
+  private signingOut = false;
   private refreshInFlight = false;
   private refreshQueue: QueuedRequest[] = [];
   /**
@@ -63,6 +71,7 @@ export class ApiClient implements HttpClient {
     private readonly raceTiming: RefreshRaceTiming = DEFAULT_REFRESH_RACE_TIMING,
   ) {
     this._axios = axios.create({ baseURL });
+    this._bare = axios.create({ baseURL, timeout: REVOKE_TIMEOUT_MS });
     this._axios.interceptors.request.use(this.attachAccessToken.bind(this));
     this._axios.interceptors.response.use(undefined, this.handleResponseError.bind(this));
   }
@@ -130,25 +139,37 @@ export class ApiClient implements HttpClient {
   }
 
   /**
-   * Revokes the refresh token on the server (best effort, never throws, bounded by a timeout so a
-   * stalled request cannot block the local sign-out). A refresh already in flight is awaited first
-   * so the token that ends up current is the one revoked. /auth/logout needs a valid access token,
-   * so an expired one is refreshed first and the logout retried with the new pair.
+   * Signs out. The session is first marked as ending (no new refresh starts, 401 retries fail),
+   * then a refresh already in flight is awaited (bounded) so the token that is current at that
+   * moment is the one revoked. The local tokens are cleared right away; the server-side revocation
+   * then works only on the pair captured here, never reads client state again, and so cannot touch
+   * a later login. Best effort: revocation failures and timeouts never block the sign-out.
    */
-  async revokeSession(): Promise<void> {
-    await Promise.race([this.revokeBestEffort(), delay(REVOKE_TIMEOUT_MS)]);
+  async signOut(): Promise<void> {
+    const captured = await this.endSessionCapturingTokens();
+    if (captured) {
+      await Promise.race([this.revokeCaptured(captured), delay(REVOKE_TIMEOUT_MS)]);
+    }
   }
 
-  private async revokeBestEffort(): Promise<void> {
+  private async endSessionCapturingTokens(): Promise<SessionTokens | null> {
+    this.signingOut = true;
     try {
       await this.settleRefreshInFlight();
-      await this.postLogout();
-    } catch (error) {
-      if (readApiError(error).status !== UNAUTHORIZED) {
-        return;
-      }
-      await this.refreshThenLogout();
+      const captured = this.captureTokens();
+      await this.endSession();
+
+      return captured;
+    } finally {
+      this.signingOut = false;
     }
+  }
+
+  private captureTokens(): SessionTokens | null {
+    const accessToken = this.tokenStore.getAccessToken();
+    const refreshToken = this.tokenStore.getRefreshToken();
+
+    return refreshToken ? { accessToken, refreshToken } : null;
   }
 
   private async settleRefreshInFlight(): Promise<void> {
@@ -156,35 +177,39 @@ export class ApiClient implements HttpClient {
       return;
     }
     try {
-      await this.waitForRefresh();
+      await Promise.race([this.waitForRefresh(), delay(REVOKE_TIMEOUT_MS)]);
     } catch {
       // A failed refresh leaves the stored pair as it was; revoke whatever is current.
     }
   }
 
-  private async postLogout(): Promise<void> {
-    const refreshToken = this.tokenStore.getRefreshToken();
-    if (refreshToken) {
-      await this._axios.post('/auth/logout', { refreshToken });
+  /** /auth/logout needs a valid access token: an expired one is refreshed once from the captured pair. */
+  private async revokeCaptured(captured: SessionTokens): Promise<void> {
+    try {
+      await this.postLogout(captured.accessToken, captured.refreshToken);
+    } catch (error) {
+      if (readApiError(error).status !== UNAUTHORIZED) {
+        return;
+      }
+      await this.refreshThenLogout(captured.refreshToken);
     }
   }
 
-  private async refreshThenLogout(): Promise<void> {
-    const epoch = this.sessionEpoch;
-    const refreshToken = this.tokenStore.getRefreshToken();
+  private async refreshThenLogout(refreshToken: string): Promise<void> {
     try {
-      if (!refreshToken) {
-        return;
-      }
-      const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
-      if (epoch !== this.sessionEpoch) {
-        return;
-      }
-      await this.storeTokens(epoch, data, new Error('session ended'));
-      await this.postLogout();
+      const { data } = await this._bare.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
+      await this.postLogout(data.accessToken, data.refreshToken);
     } catch {
-      // Revocation is best effort; the caller ends the local session regardless.
+      // Revocation is best effort; the local session is already gone.
     }
+  }
+
+  private async postLogout(accessToken: string | null, refreshToken: string): Promise<void> {
+    await this._bare.post(
+      '/auth/logout',
+      { refreshToken },
+      accessToken ? { headers: { Authorization: bearer(accessToken) } } : {},
+    );
   }
 
   private attachAccessToken(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
@@ -205,6 +230,10 @@ export class ApiClient implements HttpClient {
     // refresh token), not an expired access token. Refreshing on it would queue
     // the refresh call behind itself and hang every request (audit H24).
     if (isAuthRequest(originalRequest.url)) {
+      throw error;
+    }
+    // A sign-out in progress owns the session: no new refresh may rotate the token it revokes.
+    if (this.signingOut) {
       throw error;
     }
     if (originalRequest._retry) {

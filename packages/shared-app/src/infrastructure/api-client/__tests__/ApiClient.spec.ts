@@ -484,7 +484,7 @@ describe('ApiClient token refresh', () => {
       data: { accessToken: 'new-access', refreshToken: 'new-refresh' },
     });
 
-    await createClient().revokeSession();
+    await createClient().signOut();
 
     expect(seen.map((request) => request.url)).toEqual([
       '/auth/logout',
@@ -492,20 +492,19 @@ describe('ApiClient token refresh', () => {
       '/auth/logout',
     ]);
     expect(seen[2]?.body).toEqual({ refreshToken: 'new-refresh' });
+    expect(store.access).toBeNull();
   });
 
-  it('revokes straight away when the access token is valid, and never throws', async () => {
-    routes['/auth/logout'] = () => ({ status: 204, data: {} });
-    const client = createClient();
-
-    await client.revokeSession();
+  it('clears the local tokens and never throws when the revocation fails', async () => {
     routes['/auth/logout'] = () => ({ status: 503, data: {} });
-    await expect(client.revokeSession()).resolves.toBeUndefined();
 
-    expect(seen.filter((request) => request.url === '/auth/refresh')).toHaveLength(0);
+    await expect(createClient().signOut()).resolves.toBeUndefined();
+
+    expect(store.access).toBeNull();
+    expect(store.refresh).toBeNull();
   });
 
-  it('revokes the token that ends up current when a refresh is in flight', async () => {
+  it('revokes the rotated token when a refresh is in flight', async () => {
     routes['/transactions'] = protectedRoute('new-access');
     routes['/auth/refresh'] = async () => {
       await new Promise((resolve) => setTimeout(resolve, 30));
@@ -517,33 +516,78 @@ describe('ApiClient token refresh', () => {
 
     const pending = withinGuard(client.get('/transactions'));
     await new Promise((resolve) => setTimeout(resolve, 10));
-    await client.revokeSession();
+    await client.signOut();
     await pending;
 
     const logout = seen.filter((request) => request.url === '/auth/logout');
     expect(logout).toHaveLength(1);
     expect(logout[0]?.body).toEqual({ refreshToken: 'new-refresh' });
+    expect(logout[0]?.authorization).toBe('Bearer new-access');
   });
 
-  it('stops waiting for a stalled revocation so the local sign-out can go on', async () => {
+  it('does not start a refresh while the sign-out is waiting', async () => {
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      return { status: 201, data: { accessToken: 'new-access', refreshToken: 'new-refresh' } };
+    };
+    routes['/auth/logout'] = () => ({ status: 204, data: {} });
+    const client = createClient();
+
+    const first = withinGuard(client.get('/transactions'));
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    const signingOut = client.signOut();
+    store.access = 'stale-access';
+    const late = withinGuard(client.get('/transactions')).catch((error: unknown) => error);
+    await signingOut;
+    await first;
+
+    expect(await late).toBeInstanceOf(Error);
+    expect(seen.filter((request) => request.url === '/auth/refresh')).toHaveLength(1);
+    const logout = seen.filter((request) => request.url === '/auth/logout');
+    expect(logout[0]?.body).toEqual({ refreshToken: 'new-refresh' });
+  });
+
+  it('leaves a later login untouched when a stalled revocation or refresh settles after the timeout', async () => {
     vi.useFakeTimers();
     try {
+      let releaseRefresh: () => void = () => undefined;
+      routes['/transactions'] = protectedRoute('new-access');
+      routes['/auth/refresh'] = () =>
+        new Promise<RouteResult>((resolve) => {
+          releaseRefresh = () => {
+            resolve({
+              status: 201,
+              data: { accessToken: 'late-access', refreshToken: 'late-refresh' },
+            });
+          };
+        });
       routes['/auth/logout'] = () => new Promise<RouteResult>(() => undefined);
       const client = createClient();
-      let settled = false;
 
-      const revoking = client.revokeSession().then(() => {
+      const pending = client.get('/transactions').catch((error: unknown) => error);
+      await vi.advanceTimersByTimeAsync(10);
+      let settled = false;
+      const signingOut = client.signOut().then(() => {
         settled = true;
       });
-      await vi.advanceTimersByTimeAsync(4000);
-      expect(settled).toBe(false);
-      await vi.advanceTimersByTimeAsync(2000);
-      await revoking;
-      await client.invalidateSession();
-
+      await vi.advanceTimersByTimeAsync(11000);
+      await signingOut;
       expect(settled).toBe(true);
       expect(store.access).toBeNull();
-      expect(store.refresh).toBeNull();
+
+      await store.setTokens('next-access', 'next-refresh');
+      releaseRefresh();
+      await vi.advanceTimersByTimeAsync(100);
+      await pending;
+
+      expect(store.access).toBe('next-access');
+      expect(store.refresh).toBe('next-refresh');
+      const logout = seen.filter((request) => request.url === '/auth/logout');
+      expect(logout.every((request) => JSON.stringify(request.body).includes('old-refresh'))).toBe(
+        true,
+      );
     } finally {
       vi.useRealTimers();
     }

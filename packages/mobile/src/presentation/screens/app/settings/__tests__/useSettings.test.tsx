@@ -22,8 +22,7 @@ jest.mock('../../../../LocaleProvider.js', () => ({
 
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
-const mockInvalidate = jest.fn();
-const mockRevoke = jest.fn();
+const mockSignOut = jest.fn();
 let mockSessionId = 1;
 const mockCanUse = jest.fn();
 const mockIsEnabled = jest.fn();
@@ -35,11 +34,10 @@ jest.mock('../../../../../infrastructure/index.js', () => ({
   apiClient: {
     get: (url: string): Promise<unknown> => mockGet(url),
     patch: (url: string, body: unknown): Promise<unknown> => mockPatch(url, body),
-    revokeSession: (): Promise<void> => mockRevoke(),
     get sessionId(): number {
       return mockSessionId;
     },
-    invalidateSession: (): Promise<void> => mockInvalidate(),
+    signOut: (): Promise<void> => mockSignOut(),
   },
   biometricUnlockService: {
     canUseBiometrics: (): Promise<boolean> => mockCanUse(),
@@ -72,7 +70,6 @@ function wrapper({ children }: { readonly children: React.ReactNode }): React.JS
 }
 
 beforeEach(() => {
-  mockRevoke.mockReset().mockResolvedValue(undefined);
   mockSessionId = 1;
   mockSetLocale.mockReset();
   mockGet.mockReset().mockResolvedValue({ data: PROFILE });
@@ -81,7 +78,7 @@ beforeEach(() => {
     .mockImplementation((_url: string, body: object) =>
       Promise.resolve({ data: { ...PROFILE, ...body } }),
     );
-  mockInvalidate.mockReset().mockResolvedValue(undefined);
+  mockSignOut.mockReset().mockResolvedValue(undefined);
   mockCanUse.mockReset().mockResolvedValue(true);
   mockIsEnabled.mockReset().mockResolvedValue(false);
   mockSetEnabled.mockReset().mockResolvedValue(undefined);
@@ -176,13 +173,13 @@ describe('useSettings', () => {
     expect(mockSetEnabled).toHaveBeenCalledWith(true);
   });
 
-  it('invalidates in-flight refreshes and ends the session on sign out', async () => {
+  it('signs out through the client, which ends the session and revokes the captured token', async () => {
     const { result } = await renderHook(useSettings, { wrapper });
     await act(async () => {
       result.current.onSignOut();
     });
 
-    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
   });
 
   it('applies concurrent saves in order, so the last choice wins', async () => {
@@ -239,29 +236,6 @@ describe('useSettings', () => {
     expect(mockSetLocale).toHaveBeenCalledWith('en', 'server', 1);
   });
 
-  it('revokes the refresh token before ending the session', async () => {
-    const { result } = await renderHook(useSettings, { wrapper });
-    await act(async () => {
-      result.current.onSignOut();
-    });
-
-    expect(mockRevoke).toHaveBeenCalledTimes(1);
-    expect(mockRevoke.mock.invocationCallOrder[0]).toBeLessThan(
-      mockInvalidate.mock.invocationCallOrder[0] ?? 0,
-    );
-  });
-
-  it('still clears the local session when the revocation fails', async () => {
-    mockRevoke.mockRejectedValueOnce(new Error('logout stalled'));
-    const { result } = await renderHook(useSettings, { wrapper });
-    await act(async () => {
-      result.current.onSignOut();
-    });
-
-    expect(mockInvalidate).toHaveBeenCalledTimes(1);
-    expect(result.current.signingOut).toBe(false);
-  });
-
   it('drops saves that are still queued when the user signs out', async () => {
     let releaseFirst: () => void = () => undefined;
     mockPatch.mockReset().mockImplementationOnce(
@@ -272,7 +246,7 @@ describe('useSettings', () => {
           };
         }),
     );
-    mockInvalidate.mockImplementation(() => {
+    mockSignOut.mockImplementation(() => {
       mockSessionId += 1;
 
       return Promise.resolve();
