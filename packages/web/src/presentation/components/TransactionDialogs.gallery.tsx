@@ -58,6 +58,7 @@ function option(id: string, categoryName: string, plannedMinor: string): Planned
       direction: 'expense',
       amount: { amountMinor: plannedMinor, currency: 'PLN' },
       note: null,
+      matchHint: null,
       createdAt: '2026-10-01T00:00:00.000Z',
       updatedAt: '2026-10-01T00:00:00.000Z',
     },

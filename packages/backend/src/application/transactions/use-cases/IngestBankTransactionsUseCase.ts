@@ -8,6 +8,7 @@ import type {
 } from '../../../domain/transactions/entities.js';
 import type { RawAmount, RawTransaction } from '../../../domain/bank/entities.js';
 import { IdempotentIngest } from '../../../domain/transactions/idempotent-ingest.js';
+import type { SuggestFromPlannedHintsUseCase } from '../../categorisation/SuggestFromPlannedHintsUseCase.js';
 import type { SuggestFromMerchantRulesUseCase } from '../../categorisation/SuggestFromMerchantRulesUseCase.js';
 
 export type { RawTransaction };
@@ -25,6 +26,7 @@ export class IngestBankTransactionsUseCase {
     private readonly transactionRepo: TransactionRepository,
     private readonly generateId: () => string,
     private readonly merchantRules: SuggestFromMerchantRulesUseCase,
+    private readonly plannedHints: SuggestFromPlannedHintsUseCase,
   ) {}
 
   async execute(input: IngestBankTransactionsInput): Promise<void> {
@@ -40,12 +42,13 @@ export class IngestBankTransactionsUseCase {
     }
 
     if (batch.length > 0) {
+      const hinted = await this.plannedHints.suggest(batch, input.ownerUserId, input.householdId);
       const suggested = await this.merchantRules.suggest(
-        batch,
+        hinted,
         input.ownerUserId,
         input.householdId,
       );
-      await this.transactionRepo.insertBankBatch(suggested);
+      await this.transactionRepo.insertBankBatch(suggested, input.ownerUserId);
     }
   }
 

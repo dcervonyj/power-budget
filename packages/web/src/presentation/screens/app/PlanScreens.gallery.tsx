@@ -7,6 +7,7 @@ import { Modal } from '../../components/Modal.js';
 import { PlannedItemHistoryView } from '../../components/PlannedItemHistoryView.js';
 import { AmbientField } from '../../glass/material/AmbientField.js';
 import {
+  EMPTY_DRAFT_MATCH_HINT,
   NO_DRAFT_ERRORS,
   PlanEditorView,
   type PlanDraftItem,
@@ -65,6 +66,7 @@ function row(
     currency,
     amountInput: `${minor.slice(0, -2)}.${minor.slice(-2)}`,
     spentMinor,
+    matchHint: null,
   };
 }
 
@@ -86,7 +88,13 @@ function noop(): void {
   // Gallery fixtures do not react to input.
 }
 
-const DRAFT: PlanDraftItem = { categoryId: '', direction: 'expense', amount: '', currency: '' };
+const DRAFT: PlanDraftItem = {
+  categoryId: '',
+  direction: 'expense',
+  amount: '',
+  currency: '',
+  matchHint: EMPTY_DRAFT_MATCH_HINT,
+};
 
 function editorProps(overrides: Partial<PlanEditorViewProps> = {}): PlanEditorViewProps {
   const items = [...INCOME, ...LIMITS];

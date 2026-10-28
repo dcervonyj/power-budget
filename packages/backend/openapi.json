@@ -3921,6 +3921,44 @@
           }
         }
       },
+      "MatchHintDto": {
+        "type": "object",
+        "properties": {
+          "counterpartyPattern": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 100,
+            "example": "landlord",
+            "description": "Text found in the merchant, counterparty or description (ignores case/accents)"
+          },
+          "amountMinor": {
+            "type": "string",
+            "nullable": true,
+            "example": "300000",
+            "description": "Expected amount in minor units of the item currency"
+          },
+          "toleranceMinor": {
+            "type": "string",
+            "nullable": true,
+            "example": "5000",
+            "description": "Allowed deviation (plus or minus) in minor units; needs amountMinor, default 0"
+          },
+          "dayOfMonth": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 1,
+            "maximum": 31,
+            "example": 5
+          },
+          "dayWindow": {
+            "type": "number",
+            "nullable": true,
+            "minimum": 0,
+            "maximum": 15,
+            "description": "Allowed deviation in days; needs dayOfMonth, default 0"
+          }
+        }
+      },
       "PlannedItemDto": {
         "type": "object",
         "properties": {
@@ -3947,6 +3985,15 @@
             "type": "string",
             "nullable": true
           },
+          "matchHint": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MatchHintDto"
+              }
+            ]
+          },
           "createdAt": {
             "type": "string",
             "format": "date-time"
@@ -3963,6 +4010,7 @@
           "direction",
           "amount",
           "note",
+          "matchHint",
           "createdAt",
           "updatedAt"
         ]
@@ -3992,6 +4040,15 @@
             "type": "string",
             "maxLength": 500,
             "nullable": true
+          },
+          "matchHint": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MatchHintDto"
+              }
+            ]
           }
         },
         "required": ["categoryId", "direction", "amountMinor", "currency"]
@@ -4013,6 +4070,16 @@
             "maxLength": 500,
             "nullable": true
           },
+          "matchHint": {
+            "nullable": true,
+            "description": "null clears the hint",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MatchHintDto"
+              }
+            ]
+          },
           "reason": {
             "type": "string",
             "maxLength": 500,
@@ -4029,6 +4096,15 @@
           "note": {
             "type": "string",
             "nullable": true
+          },
+          "matchHint": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MatchHintDto"
+              }
+            ]
           }
         }
       },

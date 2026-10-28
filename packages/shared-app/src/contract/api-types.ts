@@ -1440,6 +1440,27 @@ export interface components {
       /** @example 2026-11-30 */
       periodEnd?: string;
     };
+    MatchHintDto: {
+      /**
+       * @description Text found in the merchant, counterparty or description (ignores case/accents)
+       * @example landlord
+       */
+      counterpartyPattern?: string | null;
+      /**
+       * @description Expected amount in minor units of the item currency
+       * @example 300000
+       */
+      amountMinor?: string | null;
+      /**
+       * @description Allowed deviation (plus or minus) in minor units; needs amountMinor, default 0
+       * @example 5000
+       */
+      toleranceMinor?: string | null;
+      /** @example 5 */
+      dayOfMonth?: number | null;
+      /** @description Allowed deviation in days; needs dayOfMonth, default 0 */
+      dayWindow?: number | null;
+    };
     PlannedItemDto: {
       /** Format: uuid */
       id: string;
@@ -1451,6 +1472,7 @@ export interface components {
       direction: 'income' | 'expense';
       amount: components['schemas']['MoneyDto'];
       note: string | null;
+      matchHint: components['schemas']['MatchHintDto'] | null;
       /** Format: date-time */
       createdAt: string;
       /** Format: date-time */
@@ -1473,6 +1495,7 @@ export interface components {
       currency:
         'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
       note?: string | null;
+      matchHint?: components['schemas']['MatchHintDto'] | null;
     };
     UpdatePlannedItemDto: {
       /**
@@ -1484,12 +1507,15 @@ export interface components {
       currency?:
         'PLN' | 'EUR' | 'USD' | 'GBP' | 'UAH' | 'RUB' | 'CHF' | 'CZK' | 'SEK' | 'NOK' | 'DKK';
       note?: string | null;
+      /** @description null clears the hint */
+      matchHint?: components['schemas']['MatchHintDto'] | null;
       /** @description Stored in the item history */
       reason?: string;
     };
     PlannedItemChangeDto: {
       amount?: components['schemas']['MoneyDto'];
       note?: string | null;
+      matchHint?: components['schemas']['MatchHintDto'] | null;
     };
     PlannedItemVersionDto: {
       /** Format: uuid */

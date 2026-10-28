@@ -1,5 +1,12 @@
 import { PlannedItemId } from '@power-budget/core';
-import type { PlanId, UserId, HouseholdId, Money, CategoryId } from '@power-budget/core';
+import type {
+  PlanId,
+  UserId,
+  HouseholdId,
+  Money,
+  CategoryId,
+  PlannedItemMatchHint,
+} from '@power-budget/core';
 import type {
   PlannedItem,
   NewPlannedItem,
@@ -20,6 +27,7 @@ export interface AddPlannedItemInput {
   readonly direction: PlannedDirection;
   readonly amount: Money;
   readonly note?: string | null;
+  readonly matchHint?: PlannedItemMatchHint | null;
   readonly userId: UserId;
   readonly householdId: HouseholdId;
 }
@@ -52,6 +60,7 @@ export class AddPlannedItemUseCase {
       direction: input.direction,
       amount: input.amount,
       note: input.note ?? null,
+      matchHint: input.matchHint ?? null,
     };
     const created = await this.plannedItemRepo.add(newItem);
 

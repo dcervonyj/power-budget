@@ -1,5 +1,10 @@
 import React from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import {
+  EMPTY_MATCH_HINT_FORM,
+  type MatchHintField,
+  type MatchHintFormValues,
+} from '@power-budget/core';
 import type { SelectOption } from '@power-budget/shared-app';
 import type {
   PlanDto,
@@ -10,6 +15,7 @@ import type { PlanTotals } from '../../../application/plans/PlanTotals.js';
 import { Button } from '../../components/Button.js';
 import { CustomPeriodPicker, type CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
 import { Input } from '../../components/Input.js';
+import { MatchHintFields } from '../../components/MatchHintFields.js';
 import { Select } from '../../components/Select.js';
 import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
 import { AmountText } from '../../glass/atoms/AmountText.js';
@@ -39,6 +45,7 @@ export interface PlanDraftItem {
   readonly direction: PlannedItemDirectionDto;
   readonly amount: string;
   readonly currency: string;
+  readonly matchHint: MatchHintFormValues;
 }
 
 /** Which fields of the new-item row failed the last "Add item" attempt. */
@@ -46,9 +53,17 @@ export interface PlanDraftErrors {
   readonly category: boolean;
   readonly amount: boolean;
   readonly currency: boolean;
+  readonly matchHint: readonly MatchHintField[];
 }
 
-export const NO_DRAFT_ERRORS: PlanDraftErrors = { category: false, amount: false, currency: false };
+export const NO_DRAFT_ERRORS: PlanDraftErrors = {
+  category: false,
+  amount: false,
+  currency: false,
+  matchHint: [],
+};
+
+export const EMPTY_DRAFT_MATCH_HINT = EMPTY_MATCH_HINT_FORM;
 
 export interface PlanEditorViewProps extends PlanItemRowHandlers {
   readonly plan: PlanDto;
@@ -435,6 +450,31 @@ function NewItemRow({
           <FormattedMessage id="screen.planEditor.addItemButton" defaultMessage="Add item" />
         </Button>
       </div>
+      <h3 style={PANEL_TITLE_STYLE}>
+        <FormattedMessage id="plan.matchHint.title" defaultMessage="Match hint" />
+      </h3>
+      <p style={CAPTION_STYLE}>
+        <FormattedMessage
+          id="plan.matchHint.description"
+          defaultMessage="Helps match bank transactions to this item automatically."
+        />
+      </p>
+      <MatchHintFields
+        idPrefix="plan-new-item-hint"
+        values={draft.matchHint}
+        invalid={draftErrors.matchHint}
+        onChange={(matchHint) => {
+          onDraftChange({ ...draft, matchHint });
+        }}
+      />
+      {draftErrors.matchHint.length > 0 && (
+        <p role="alert" style={FIELD_ERROR_STYLE}>
+          <FormattedMessage
+            id="plan.matchHint.invalid"
+            defaultMessage="Check the highlighted hint fields. A tolerance needs an amount, and a day window needs a day."
+          />
+        </p>
+      )}
       {draftErrors.category && (
         <p role="alert" style={FIELD_ERROR_STYLE}>
           <FormattedMessage

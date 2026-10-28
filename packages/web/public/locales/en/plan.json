@@ -15,5 +15,14 @@
   "plan.editor.limit.label": "{category} limit",
   "plan.editor.limit.decrease": "Decrease the {category} limit",
   "plan.editor.limit.increase": "Increase the {category} limit",
-  "plan.editor.addItem.title": "Add an item"
+  "plan.editor.addItem.title": "Add an item",
+  "plan.matchHint.title": "Match hint",
+  "plan.matchHint.description": "Helps match bank transactions to this item automatically.",
+  "plan.matchHint.counterparty": "Counterparty contains",
+  "plan.matchHint.amount": "Expected amount",
+  "plan.matchHint.tolerance": "Amount tolerance (±)",
+  "plan.matchHint.dayOfMonth": "Day of month",
+  "plan.matchHint.dayWindow": "Day window (± days)",
+  "plan.matchHint.save": "Save hint",
+  "plan.matchHint.invalid": "Check the highlighted hint fields. A tolerance needs an amount, and a day window needs a day."
 }

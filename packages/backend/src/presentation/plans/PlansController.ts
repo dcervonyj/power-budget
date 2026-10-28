@@ -60,6 +60,7 @@ import {
   UpdatePlannedItemDto,
   toPlanDto,
   toPlannedItemDto,
+  matchHintFromDto,
   toPlannedItemVersionDto,
 } from './dto/plans.dto.js';
 
@@ -244,6 +245,7 @@ export class PlansController {
       direction: dto.direction,
       amount: { amountMinor: BigInt(dto.amountMinor), currency: dto.currency },
       note: dto.note ?? null,
+      matchHint: dto.matchHint === undefined ? null : matchHintFromDto(dto.matchHint),
     });
 
     return toPlannedItemDto(item);
@@ -394,6 +396,7 @@ export class PlansController {
         ? { amount: { amountMinor: BigInt(dto.amountMinor), currency: dto.currency } }
         : {}),
       ...(dto.note !== undefined ? { note: dto.note } : {}),
+      ...(dto.matchHint !== undefined ? { matchHint: matchHintFromDto(dto.matchHint) } : {}),
     };
   }
 }

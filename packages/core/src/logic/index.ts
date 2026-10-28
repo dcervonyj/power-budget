@@ -46,3 +46,20 @@ export { periodProgress } from './period-progress.js';
 export type { PeriodProgress, PeriodState } from './period-progress.js';
 export { dailyAllowance, linearForecast } from './forecast.js';
 export type { DailyAllowance } from './forecast.js';
+export {
+  matchPlannedItemHints,
+  HINT_AUTO_MAP_CONFIDENCE,
+  HINT_AMBIGUOUS_CONFIDENCE_CAP,
+} from './match-planned-item-hints.js';
+export type { HintCandidate, HintTransaction, HintMatch } from './match-planned-item-hints.js';
+export {
+  EMPTY_MATCH_HINT_FORM,
+  matchHintToFormValues,
+  parseMatchHintForm,
+} from './match-hint-form.js';
+export type {
+  MatchHintField,
+  MatchHintFormResult,
+  MatchHintFormValues,
+  MatchHintWire,
+} from './match-hint-form.js';
