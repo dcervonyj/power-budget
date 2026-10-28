@@ -98,6 +98,25 @@ const typeAwareRules = {
 };
 
 /**
+ * Directory-level ratchets (CLN-074): rules for part of one ratcheted package, as `[files, ignores, rules]`, paths
+ * relative to the package. They live here, not in the package config, so the root config (the pre-commit
+ * `eslint --fix`) sees the same rules; otherwise it would strip the `eslint-disable` comments as unused.
+ */
+const DIRECTORY_RATCHETS = {
+  // STYLE-03/05: Drizzle ids are branded in drizzle/schema.ts, so infrastructure maps rows without `as`.
+  // A cast with no other way gets a one-line `eslint-disable-next-line` with the reason.
+  backend: [
+    {
+      files: ['src/infrastructure/**/*.ts'],
+      ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**'],
+      rules: {
+        '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
+      },
+    },
+  ],
+};
+
+/**
  * Ratchet blocks for the config file that lives in `baseDir`. ESLint matches `files` relative to the config
  * file's directory, so the root config passes the repo root (`packages/<pkg>/**`) and a package-local config
  * passes its own directory (`**`). Each config file calls this once; nobody re-spreads another config's blocks.
@@ -108,8 +127,21 @@ function ratchetBlocks(baseDir) {
   return RATCHET_PACKAGES.flatMap((pkg) => {
     const relative = path.relative(baseDir, path.join(PACKAGES_DIR, pkg));
 
-    return relative.startsWith('..') ? [] : ratchetFor(relative === '' ? '' : `${relative}/`);
+    return relative.startsWith('..')
+      ? []
+      : [
+          ...ratchetFor(relative === '' ? '' : `${relative}/`),
+          ...directoryBlocks(pkg, relative === '' ? '' : `${relative}/`),
+        ];
   });
+}
+
+function directoryBlocks(pkg, prefix) {
+  return (DIRECTORY_RATCHETS[pkg] ?? []).map((block) => ({
+    files: block.files.map((file) => `${prefix}${file}`),
+    ignores: block.ignores.map((glob) => (glob.startsWith('**/') ? glob : `${prefix}${glob}`)),
+    rules: block.rules,
+  }));
 }
 
 function ratchetFor(prefix) {
