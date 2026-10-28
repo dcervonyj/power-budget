@@ -20,6 +20,10 @@ type Mocked = { [K in keyof PlanDashboardPlans]: ReturnType<typeof vi.fn> } & Pl
 
 const NEWER: PlanDashboardDto = { ...DASHBOARD, asOf: '2026-10-22' };
 
+async function settle(): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 describe('PlanDashboardStore polling and reference data', () => {
   let plans: Mocked;
   let categories: { list: ReturnType<typeof vi.fn> } & CatalogueCategories;
@@ -109,32 +113,116 @@ describe('PlanDashboardStore polling and reference data', () => {
     expect(categories.list).toHaveBeenCalledOnce();
   });
 
-  it('reads the reference data again on the next load after a local change, not on a poll', async () => {
+  it('after a local change the next tick is one dashboard request plus a separate reference refresh, no reload', async () => {
     await store.load('plan-1');
     catalogue.invalidate();
-    const afterLoad = requestCount();
+    plans.dashboard.mockClear();
+    plans.unplanned.mockClear();
 
     await store.poll('plan-1');
-    await store.poll('plan-1');
-    expect(requestCount() - afterLoad).toBe(2);
+    await settle();
 
-    await store.load('plan-1');
+    expect(plans.dashboard).toHaveBeenCalledOnce();
+    expect(plans.unplanned).not.toHaveBeenCalled();
     expect(plans.get).toHaveBeenCalledTimes(2);
     expect(plans.listItems).toHaveBeenCalledTimes(2);
     expect(categories.list).toHaveBeenCalledTimes(2);
+    expect(store.loading).toBe(false);
+
+    plans.get.mockClear();
+    await store.poll('plan-1');
+    await settle();
+    expect(plans.get).not.toHaveBeenCalled();
+    expect(plans.dashboard).toHaveBeenCalledTimes(2);
   });
 
-  it('polls with exactly one request even when the reference reads failed at load', async () => {
-    plans.listItems.mockRejectedValueOnce(new Error('down'));
+  it('shows new names after a refresh replaced the fallback of a failed read', async () => {
     categories.list.mockRejectedValueOnce(new Error('down'));
+    plans.listItems.mockRejectedValueOnce(new Error('down'));
     await store.load('plan-1');
-    const afterLoad = requestCount();
+    expect(store.dashboard?.expense.map((g) => g.categoryName)).not.toEqual(['Groceries', 'Rent']);
+    plans.dashboard.mockClear();
 
     await store.poll('plan-1');
-    await store.poll('plan-1');
+    await settle();
 
-    expect(requestCount() - afterLoad).toBe(2);
+    expect(plans.dashboard).toHaveBeenCalledOnce();
+    expect(store.dashboard?.expense.map((g) => g.categoryName)).toEqual(['Groceries', 'Rent']);
+    // Healthy again: no further reference reads.
+    categories.list.mockClear();
+    await store.poll('plan-1');
+    await settle();
+    expect(categories.list).not.toHaveBeenCalled();
+  });
+
+  it('keeps polling with one request when the plan read fails in a refresh, retries it later with backoff', async () => {
+    await store.load('plan-1');
+    catalogue.invalidate();
+    plans.get.mockRejectedValue(new Error('down'));
+    plans.dashboard.mockClear();
+    plans.get.mockClear();
+
+    await store.poll('plan-1');
+    await settle();
+    expect(plans.get).toHaveBeenCalledTimes(1);
+    // Backoff: the next tick does not retry, the one after does.
+    await store.poll('plan-1');
+    await settle();
+    expect(plans.get).toHaveBeenCalledTimes(1);
+    plans.get.mockResolvedValue({ ...PLAN, name: 'Renamed' });
+    await store.poll('plan-1');
+    await settle();
+
+    expect(plans.get).toHaveBeenCalledTimes(2);
     expect(plans.dashboard).toHaveBeenCalledTimes(3);
+    expect(store.dashboard?.planName).toBe('Renamed');
+    expect(store.error).toBeNull();
+    expect(store.dashboard).not.toBeNull();
+  });
+
+  it('starts no second reference refresh while one is in flight', async () => {
+    await store.load('plan-1');
+    catalogue.invalidate();
+    const slow = deferred<typeof PLAN>();
+    plans.get.mockReturnValueOnce(slow.promise);
+    plans.get.mockClear();
+
+    await store.poll('plan-1');
+    await store.poll('plan-1');
+    await store.poll('plan-1');
+    expect(plans.get).toHaveBeenCalledOnce();
+
+    slow.resolve(PLAN);
+    await settle();
+    expect(plans.get).toHaveBeenCalledOnce();
+  });
+
+  it('drops a reference refresh answer when the plan switched meanwhile', async () => {
+    await store.load('plan-1');
+    catalogue.invalidate();
+    const slow = deferred<typeof PLAN>();
+    plans.get.mockReturnValueOnce(slow.promise);
+    await store.poll('plan-1');
+    plans.get.mockResolvedValue({ ...PLAN, id: 'plan-2', name: 'November' });
+    plans.dashboard.mockResolvedValue({ ...DASHBOARD, planId: 'plan-2' });
+    await store.load('plan-2');
+
+    slow.resolve({ ...PLAN, name: 'Old' });
+    await settle();
+
+    expect(store.dashboard?.planName).toBe('November');
+  });
+
+  it('never loads from a poll: nothing shown yet means no request', async () => {
+    plans.dashboard.mockRejectedValueOnce(new Error('down'));
+    await store.load('plan-1');
+    expect(store.error).toBe('failed');
+    plans.dashboard.mockClear();
+
+    await store.poll('plan-1');
+
+    expect(plans.dashboard).not.toHaveBeenCalled();
+    expect(store.error).toBe('failed');
   });
 
   it('starts no unplanned request for a load that a newer load replaced', async () => {
@@ -151,18 +239,6 @@ describe('PlanDashboardStore polling and reference data', () => {
     expect(plans.unplanned).toHaveBeenCalledTimes(unplannedAfterNewer);
     expect(store.unplannedExpenses).toBe(pages);
     expect(store.dashboard?.asOf).toBe(DASHBOARD.asOf);
-  });
-
-  it('does a full load when there is no dashboard yet (first poll after a failure)', async () => {
-    plans.dashboard.mockRejectedValueOnce(new Error('down'));
-    await store.load('plan-1');
-    expect(store.error).toBe('failed');
-
-    await store.poll('plan-1');
-
-    expect(store.error).toBeNull();
-    expect(store.dashboard).not.toBeNull();
-    expect(plans.unplanned).toHaveBeenCalled();
   });
 
   it('keeps the shown dashboard when a poll fails, and tries again on the next', async () => {
