@@ -118,7 +118,7 @@ export function AddExpenseView(props: AddExpenseViewProps): React.JSX.Element {
     props.plan === null || category === null
       ? null
       : computeImpact(props.plan, category, amountMinor);
-  const editing = props.status !== 'saved';
+  const editing = props.status !== 'saved' && props.status !== 'refreshing';
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -339,7 +339,7 @@ function categoryLine(
 function Pickers(props: AddExpenseViewProps): React.JSX.Element {
   const styles = useStyles();
   const intl = useIntl();
-  const saving = props.status === 'saving';
+  const saving = props.status === 'saving' || props.status === 'retry';
 
   return (
     <View style={styles.group}>
@@ -433,6 +433,7 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
   const styles = useStyles();
   const intl = useIntl();
   const amount = money({ amountMinor: props.amountMinor, currency: props.currency }, intl);
+  const refreshing = props.status === 'refreshing';
 
   return (
     <View style={styles.actions}>
@@ -459,12 +460,12 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
               )}
             </Text>
           )}
-          <Button variant="secondary" onPress={props.onUndo}>
+          <Button variant="secondary" onPress={props.onUndo} disabled={refreshing}>
             {intl.formatMessage({ id: 'add.undo', defaultMessage: 'Undo' })}
           </Button>
         </View>
       </GlassPanel>
-      <Button variant="primary" onPress={props.onAddAnother}>
+      <Button variant="primary" onPress={props.onAddAnother} disabled={refreshing}>
         {intl.formatMessage({ id: 'add.another', defaultMessage: 'Add another' })}
       </Button>
       <Button variant="secondary" onPress={props.onBackToToday}>

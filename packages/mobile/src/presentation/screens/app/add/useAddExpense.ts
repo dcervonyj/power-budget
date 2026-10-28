@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useIntl } from 'react-intl';
+import type { IntlShape } from 'react-intl';
 import { toLocalIsoDate } from '@power-budget/core';
 import type {
   AccountDto,
@@ -50,9 +51,9 @@ export interface AddExpenseState {
 export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const intl = useIntl();
   const [load, setLoad] = useState<AddExpenseLoad>({ kind: 'loading' });
-  const [typed, setTyped] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [accountId, setAccountId] = useState('');
+  const [typed, setTypedRaw] = useState('');
+  const [categoryId, setCategoryIdRaw] = useState('');
+  const [accountId, setAccountIdRaw] = useState('');
   const [status, setStatus] = useState<AddExpenseStatus>('editing');
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -74,8 +75,8 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         }
         setLoad(next);
         if (next.kind === 'ready') {
-          setCategoryId(next.data.categories[0]?.id ?? UNPLANNED_ID);
-          setAccountId(next.data.accounts[0]?.id ?? '');
+          setCategoryIdRaw(next.data.categories[0]?.id ?? UNPLANNED_ID);
+          setAccountIdRaw(next.data.accounts[0]?.id ?? '');
         }
       },
       () => {
@@ -94,8 +95,34 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     setAttempt((current) => current + 1);
   }, []);
 
+  const locked = status !== 'editing';
+  const setTyped = useCallback(
+    (next: string) => {
+      if (!locked) {
+        setTypedRaw(next);
+      }
+    },
+    [locked],
+  );
+  const setCategoryId = useCallback(
+    (next: string) => {
+      if (!locked) {
+        setCategoryIdRaw(next);
+      }
+    },
+    [locked],
+  );
+  const setAccountId = useCallback(
+    (next: string) => {
+      if (!locked) {
+        setAccountIdRaw(next);
+      }
+    },
+    [locked],
+  );
+
   const save = useCallback(() => {
-    if (load.kind !== 'ready' || status !== 'editing') {
+    if (load.kind !== 'ready' || (status !== 'editing' && status !== 'retry')) {
       return;
     }
     const category = load.data.categories.find((option) => option.id === categoryId);
@@ -125,7 +152,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
             defaultMessage: 'Could not save the expense. Try again.',
           }),
         );
-        setStatus('editing');
+        setStatus(created.current === null ? 'editing' : 'retry');
       },
     );
   }, [accountId, categoryId, intl, load, sources.api, status, typed]);
@@ -151,23 +178,46 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     );
   }, [intl, savedId, sources.api]);
 
-  const keepReady = useCallback((next: AddExpenseLoad) => {
-    if (next.kind === 'ready') {
-      setLoad(next);
-    }
-  }, []);
+  const refresh = useCallback((): Promise<boolean> => {
+    return loadData(sources, unplannedName).then(
+      (next) => {
+        if (next.kind !== 'ready') {
+          return false;
+        }
+        setLoad(next);
 
-  const refresh = useCallback(() => {
-    void loadData(sources, unplannedName).then(keepReady, ignoreFailure);
-  }, [keepReady, sources, unplannedName]);
+        return true;
+      },
+      () => false,
+    );
+  }, [sources, unplannedName]);
+
+  const refreshOrWarn = useCallback(() => {
+    void refresh().then((ok) => {
+      if (!ok) {
+        setError(refreshError(intl));
+      }
+    });
+  }, [intl, refresh]);
 
   const addAnother = useCallback(() => {
-    setTyped('');
-    setSavedId(null);
+    if (status !== 'saved') {
+      return;
+    }
     setError(null);
-    setStatus('editing');
-    refresh();
-  }, [refresh]);
+    setStatus('refreshing');
+    void refresh().then((ok) => {
+      if (!ok) {
+        setError(refreshError(intl));
+        setStatus('saved');
+
+        return;
+      }
+      setTypedRaw('');
+      setSavedId(null);
+      setStatus('editing');
+    });
+  }, [intl, refresh, status]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
@@ -175,13 +225,24 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         return;
       }
       setToday(toLocalIsoDate(new Date()));
-      refresh();
+      refreshOrWarn();
     });
 
     return () => {
       subscription.remove();
     };
-  }, [refresh]);
+  }, [refreshOrWarn]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setToday(toLocalIsoDate(new Date()));
+      refreshOrWarn();
+    }, millisUntilNextMidnight(new Date()));
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [refreshOrWarn, today]);
 
   return {
     load,
@@ -244,6 +305,16 @@ async function persist(
   return id;
 }
 
-function ignoreFailure(): void {
-  // A failed background refresh keeps the figures already on screen.
+function refreshError(intl: IntlShape): string {
+  return intl.formatMessage({
+    id: 'add.error.refresh',
+    defaultMessage: 'Could not refresh your plan. Try again.',
+  });
+}
+
+/** Milliseconds from `now` to the next local midnight, so the date can roll over while open. */
+function millisUntilNextMidnight(now: Date): number {
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+
+  return next.getTime() - now.getTime();
 }
