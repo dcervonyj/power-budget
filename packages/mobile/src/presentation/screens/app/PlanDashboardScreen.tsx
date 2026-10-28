@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import type { AppStackScreenProps } from '../../navigation/types.js';
 import { httpOverviewApi } from '../../../infrastructure/overview/OverviewApi.js';
 import { OverviewView } from './overview/OverviewView.js';
+import { useReloadOnFocus } from './overview/useReloadOnFocus.js';
 import { useOverviewData, type OverviewTarget } from './overview/useOverviewData.js';
 
 const NO_PLANS: readonly never[] = [];
@@ -14,6 +15,7 @@ export function PlanDashboardScreen({
   const { planId } = route.params;
   const target = useMemo<OverviewTarget>(() => ({ kind: 'plan', planId }), [planId]);
   const data = useOverviewData(httpOverviewApi, target);
+  useReloadOnFocus(navigation, data.reload);
 
   function openToSort(): void {
     navigation.navigate('Tabs', { screen: 'ToSort' });

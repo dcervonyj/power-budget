@@ -38,7 +38,10 @@ export interface OverviewData {
   readonly toSortCount: number | null;
   readonly sync: SyncChipState | null;
   selectPlan(planId: string): void;
+  /** Pull to refresh: plans, dashboard and extras, with the spinner. */
   refresh(): void;
+  /** Screen focus: the same reads, no spinner (a plan may have been made on another screen). */
+  reload(): void;
   retry(): void;
 }
 
@@ -59,29 +62,52 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
   const [toSortCount, setToSortCount] = useState<number | null>(null);
   const [sync, setSync] = useState<SyncChipState | null>(null);
   const shownPlanId = useRef<string | null>(fixedPlanId);
+  const plansRef = useRef<readonly PlanDto[]>([]);
+  // Latest request per part: an older answer that lands after a newer one is dropped.
+  const plansRequest = useRef(0);
+  const dashboardRequest = useRef(0);
+  const extrasRequest = useRef(0);
 
-  const loadPlans = useCallback(async (): Promise<void> => {
-    if (fixedPlanId !== null) {
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      const active = await api.activePlans();
-      setPlans(active);
-      setPlansLoaded(true);
-      setSelectedPlanId(active[0]?.id ?? null);
-      if (active.length === 0) {
-        setLoading(false);
+  /** `silent` (focus, pull to refresh) keeps what is shown when the read fails. */
+  const loadPlans = useCallback(
+    async (silent: boolean): Promise<void> => {
+      if (fixedPlanId !== null) {
+        return;
       }
-    } catch {
-      setError('plans_failed');
-      setLoading(false);
-    }
-  }, [api, fixedPlanId]);
+      plansRequest.current += 1;
+      const request = plansRequest.current;
+      if (!silent) {
+        setError(null);
+      }
+      try {
+        const active = await api.activePlans();
+        if (request !== plansRequest.current) {
+          return;
+        }
+        plansRef.current = active;
+        setPlans(active);
+        setPlansLoaded(true);
+        // The shown plan stays selected while it is still active.
+        setSelectedPlanId((current) => keepOrFirst(current, active));
+        if (active.length === 0) {
+          shownPlanId.current = null;
+          setModel(null);
+          setLoading(false);
+        }
+      } catch {
+        if (request === plansRequest.current && !silent) {
+          setError('plans_failed');
+          setLoading(false);
+        }
+      }
+    },
+    [api, fixedPlanId],
+  );
 
   const loadDashboard = useCallback(
     async (planId: string, silent: boolean): Promise<void> => {
+      dashboardRequest.current += 1;
+      const request = dashboardRequest.current;
       if (!silent) {
         setLoading(true);
         setError(null);
@@ -90,32 +116,42 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
         const [dto, categories, planName] = await Promise.all([
           api.dashboard(planId),
           listCategories(api),
-          planNameOf(api, planId, plans),
+          planNameOf(api, planId, plansRef.current),
         ]);
-        if (shownPlanId.current === planId) {
+        if (isLatest(request, planId)) {
           setModel(toOverviewModel(dto, planName, toCategoryNames(categories)));
           setError(null);
         }
       } catch (err) {
-        if (!silent && shownPlanId.current === planId) {
+        if (!silent && isLatest(request, planId)) {
           setError(classifyDashboardError(err));
         }
       } finally {
-        if (shownPlanId.current === planId) {
+        if (isLatest(request, planId)) {
           setLoading(false);
           setRefreshing(false);
         }
       }
     },
-    [api, plans],
+    // isLatest only reads refs.
+    [api],
   );
 
+  function isLatest(request: number, planId: string): boolean {
+    return request === dashboardRequest.current && shownPlanId.current === planId;
+  }
+
   const loadExtras = useCallback(async (): Promise<void> => {
+    extrasRequest.current += 1;
+    const request = extrasRequest.current;
     const [toSort, connections, accounts] = await Promise.all([
       api.toSortPage().catch(nothing),
       api.bankConnections().catch(nothing),
       api.accounts().catch(nothing),
     ]);
+    if (request !== extrasRequest.current) {
+      return;
+    }
     if (toSort !== null) {
       setToSortCount(toSort.items.length + (toSort.hasMore ? 1 : 0));
     }
@@ -126,7 +162,7 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
   }, [api]);
 
   useEffect(() => {
-    void loadPlans();
+    void loadPlans(false);
   }, [loadPlans]);
 
   useEffect(() => {
@@ -142,26 +178,35 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
     }, POLL_INTERVAL_MS);
 
     return () => clearInterval(interval);
-    // The dashboard reload is keyed by the plan only; a new plan list must not restart polling.
-  }, [selectedPlanId]);
+  }, [selectedPlanId, loadDashboard, loadExtras]);
 
   const selectPlan = useCallback((planId: string): void => {
     setModel(null);
     setSelectedPlanId(planId);
   }, []);
 
+  /** Reads everything again without a loading state: the plan list too (a plan made elsewhere). */
+  const reloadAll = useCallback(async (): Promise<void> => {
+    const planId = shownPlanId.current;
+    await Promise.all([
+      loadPlans(true),
+      planId === null ? Promise.resolve() : loadDashboard(planId, true),
+      loadExtras(),
+    ]);
+  }, [loadPlans, loadDashboard, loadExtras]);
+
   const refresh = useCallback((): void => {
-    if (selectedPlanId === null) {
-      return;
-    }
     setRefreshing(true);
-    void loadDashboard(selectedPlanId, true);
-    void loadExtras();
-  }, [selectedPlanId, loadDashboard, loadExtras]);
+    void reloadAll().finally(() => setRefreshing(false));
+  }, [reloadAll]);
+
+  const reload = useCallback((): void => {
+    void reloadAll();
+  }, [reloadAll]);
 
   const retry = useCallback((): void => {
     if (selectedPlanId === null) {
-      void loadPlans();
+      void loadPlans(false);
 
       return;
     }
@@ -180,6 +225,7 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
     sync,
     selectPlan,
     refresh,
+    reload,
     retry,
   };
 }
@@ -234,6 +280,14 @@ function classifyDashboardError(err: unknown): OverviewError {
   }
 
   return 'failed';
+}
+
+function keepOrFirst(current: string | null, active: readonly PlanDto[]): string | null {
+  if (current !== null && active.some((plan) => plan.id === current)) {
+    return current;
+  }
+
+  return active[0]?.id ?? null;
 }
 
 function nothing(): null {
