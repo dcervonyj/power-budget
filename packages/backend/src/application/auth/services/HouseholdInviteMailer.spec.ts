@@ -3,9 +3,9 @@ import { mock } from 'vitest-mock-extended';
 import type {
   AppConfigPort,
   HouseholdRepository,
-  NotificationOutboxPort,
   UserRepository,
 } from '../../../domain/auth/ports.js';
+import type { NotificationOutbox } from '../../../domain/notifications/ports.js';
 import { HouseholdNotFoundError } from '../../../domain/auth/errors.js';
 import { HOUSEHOLD_INVITE_TTL_MS } from '../../../domain/auth/invariants.js';
 import { HouseholdInviteMailer } from './HouseholdInviteMailer.js';
@@ -25,14 +25,14 @@ const PAYLOAD = { link: LINK, inviterName: 'Ann', householdName: "Ann's househol
 describe('HouseholdInviteMailer', () => {
   let userRepo: ReturnType<typeof mock<UserRepository>>;
   let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let outbox: ReturnType<typeof mock<NotificationOutboxPort>>;
+  let outbox: ReturnType<typeof mock<NotificationOutbox>>;
   let config: ReturnType<typeof mock<AppConfigPort>>;
   let mailer: HouseholdInviteMailer;
 
   beforeEach(() => {
     userRepo = mock<UserRepository>();
     householdRepo = mock<HouseholdRepository>();
-    outbox = mock<NotificationOutboxPort>();
+    outbox = mock<NotificationOutbox>();
     config = mock<AppConfigPort>();
     config.get.mockReturnValue('https://app.example.com/');
     householdRepo.findById.mockResolvedValue(makeHousehold());
@@ -60,7 +60,7 @@ describe('HouseholdInviteMailer', () => {
     expect(userRepo.findByEmail).toHaveBeenCalledWith(PARTNER_EMAIL);
     expect(outbox.enqueue).toHaveBeenCalledWith({
       kind: 'household_invite',
-      userId: PARTNER_ID,
+      recipientUserId: PARTNER_ID,
       payload: PAYLOAD,
       dedupeKey: `household_invite:${INVITE.id}:abc`,
     });

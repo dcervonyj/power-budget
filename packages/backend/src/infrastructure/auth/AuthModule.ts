@@ -19,7 +19,6 @@ import { RedisFailedAttemptCounter } from './RedisFailedAttemptCounter.js';
 import { DrizzleMagicLinkTokenRepository } from './DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from './DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from './DrizzleHouseholdInviteRepository.js';
-import { DrizzleNotificationOutboxPort } from './DrizzleNotificationOutboxPort.js';
 import { EnvKekEncryption } from './EnvKekEncryption.js';
 
 @Module({
@@ -34,7 +33,6 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleTotpSecretRepository,
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
-    DrizzleNotificationOutboxPort,
     Argon2PasswordHashing,
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,
@@ -69,7 +67,6 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleTotpSecretRepository,
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
-    DrizzleNotificationOutboxPort,
     Argon2PasswordHashing,
     OtplibTotpVerifier,
     JwtAccessTokenIssuerAdapter,

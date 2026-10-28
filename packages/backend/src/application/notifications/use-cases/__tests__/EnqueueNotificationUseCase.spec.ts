@@ -10,7 +10,7 @@ const HOUSEHOLD = 'hh-1' as HouseholdId;
 describe('EnqueueNotificationUseCase', () => {
   it('stamps each outbox row with the next id from the IdGenerator', async () => {
     const repo = new InMemoryNotificationRepository();
-    const useCase = new EnqueueNotificationUseCase(repo, new SequentialIdGenerator());
+    const useCase = new EnqueueNotificationUseCase(repo);
 
     await useCase.execute({
       recipientUserId: USER,

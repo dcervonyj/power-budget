@@ -16,7 +16,9 @@ import { DeferredHouseholdExportQueue } from '../../infrastructure/auth/Deferred
 import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from '../../infrastructure/auth/DrizzleHouseholdInviteRepository.js';
-import { DrizzleNotificationOutboxPort } from '../../infrastructure/auth/DrizzleNotificationOutboxPort.js';
+import { NotificationsModule } from '../../infrastructure/notifications/NotificationsModule.js';
+import { NOTIFICATION_OUTBOX } from '../../infrastructure/notifications/notification-tokens.js';
+import type { NotificationOutbox } from '../../domain/notifications/ports.js';
 import { Argon2PasswordHashing } from '../../infrastructure/auth/Argon2PasswordHashing.js';
 import { OtplibTotpVerifier } from '../../infrastructure/auth/OtplibTotpVerifier.js';
 import { JwtAccessTokenIssuerAdapter } from '../../infrastructure/auth/JwtAccessTokenIssuer.js';
@@ -59,6 +61,7 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
 @Module({
   imports: [
     AuthModule,
+    NotificationsModule,
     // Per-IP and per-account limits on the credential endpoints, counted in Redis (audit H4).
     ThrottlerModule.forRootAsync({
       imports: [AuthModule],
@@ -141,13 +144,13 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
       inject: [
         DrizzleUserRepository,
         DrizzleMagicLinkTokenRepository,
-        DrizzleNotificationOutboxPort,
+        NOTIFICATION_OUTBOX,
         AppConfigAdapter,
       ],
       useFactory: (
         userRepo: DrizzleUserRepository,
         magicLinkTokenRepo: DrizzleMagicLinkTokenRepository,
-        notificationOutbox: DrizzleNotificationOutboxPort,
+        notificationOutbox: NotificationOutbox,
         config: AppConfigAdapter,
       ) => new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox, config),
     },
@@ -224,13 +227,13 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
       inject: [
         DrizzleUserRepository,
         DrizzleHouseholdRepository,
-        DrizzleNotificationOutboxPort,
+        NOTIFICATION_OUTBOX,
         AppConfigAdapter,
       ],
       useFactory: (
         userRepo: DrizzleUserRepository,
         householdRepo: DrizzleHouseholdRepository,
-        outbox: DrizzleNotificationOutboxPort,
+        outbox: NotificationOutbox,
         config: AppConfigAdapter,
       ) => new HouseholdInviteMailer(userRepo, householdRepo, outbox, config),
     },

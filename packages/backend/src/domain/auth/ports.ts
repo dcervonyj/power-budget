@@ -174,24 +174,6 @@ export interface MagicLinkTokenRepository {
   consume(tokenHash: string): Promise<{ userId: UserId } | null>;
 }
 
-export interface NotificationOutboxPort {
-  enqueue(event: {
-    kind: string;
-    userId: UserId;
-    payload: Record<string, unknown>;
-    dedupeKey: string;
-  }): Promise<void>;
-  /** For an address without an account (an invitee who has not registered yet). */
-  enqueueToAddress(event: {
-    kind: string;
-    email: string;
-    locale: LocaleCode;
-    householdId: HouseholdId;
-    payload: Record<string, unknown>;
-    dedupeKey: string;
-  }): Promise<void>;
-}
-
 export interface Encryption {
   encrypt(plaintext: string, context?: string): Promise<EncryptedString>;
   decrypt(ciphertext: EncryptedString, context?: string): Promise<string>;

@@ -5,8 +5,7 @@ import type { HouseholdId, UserId } from '@power-budget/core';
 import type {
   ExpiringConnectionRow,
   HouseholdMemberRow,
-  NewNotificationOutbox,
-  NotificationOutbox,
+  NotificationOutboxRow,
   NotificationKind,
 } from '../../domain/notifications/entities.js';
 import type {
@@ -22,22 +21,7 @@ import * as schema from '../../../drizzle/schema.js';
 export class DrizzleNotificationRepository implements NotificationRepository {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async enqueue(notification: NewNotificationOutbox): Promise<void> {
-    await this.db
-      .insert(schema.notificationsOutbox)
-      .values({
-        id: notification.id,
-        householdId: notification.householdId ?? null,
-        recipientUserId: notification.recipientUserId,
-        kind: notification.kind,
-        dedupeKey: notification.dedupeKey,
-        payload: notification.payload,
-        createdAt: new Date(),
-      })
-      .onConflictDoNothing();
-  }
-
-  async findById(id: string): Promise<NotificationOutbox | null> {
+  async findById(id: string): Promise<NotificationOutboxRow | null> {
     const [row] = await this.db
       .select()
       .from(schema.notificationsOutbox)
@@ -47,7 +31,7 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     return row === undefined ? null : this.toEntity(row);
   }
 
-  async findPendingBatch(limit: number): Promise<NotificationOutbox[]> {
+  async findPendingBatch(limit: number): Promise<NotificationOutboxRow[]> {
     const rows = await this.db
       .select()
       .from(schema.notificationsOutbox)
@@ -220,7 +204,7 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     );
   }
 
-  private toEntity(r: schema.SelectNotificationOutbox): NotificationOutbox {
+  private toEntity(r: schema.SelectNotificationOutbox): NotificationOutboxRow {
     return {
       id: r.id,
       householdId: (r.householdId as HouseholdId | null) ?? null,
