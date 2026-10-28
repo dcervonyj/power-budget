@@ -7,8 +7,13 @@ const t = rnDarkTheme;
 export type ProgressBand = 'green' | 'amber' | 'red';
 
 function getBand(ratio: number): ProgressBand {
-  if (ratio > 1) return 'red';
-  if (ratio > 0.8) return 'amber';
+  if (ratio > 1) {
+    return 'red';
+  }
+  if (ratio > 0.8) {
+    return 'amber';
+  }
+
   return 'green';
 }
 
@@ -26,6 +31,7 @@ export function ProgressBar({ ratio, band }: ProgressBarProps): React.JSX.Elemen
         ? t.colorStatusWarning
         : t.colorStatusSuccess;
   const clampedRatio = Math.min(Math.max(ratio, 0), 1);
+
   return (
     <View style={styles.track}>
       <View

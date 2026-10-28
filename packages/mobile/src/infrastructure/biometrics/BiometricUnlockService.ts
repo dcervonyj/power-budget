@@ -6,8 +6,11 @@ export const BIOMETRIC_PREF_KEY = 'pb_biometric_enabled';
 export class BiometricUnlockService {
   async canUseBiometrics(): Promise<boolean> {
     const hasHardware = await LocalAuthentication.hasHardwareAsync();
-    if (!hasHardware) return false;
+    if (!hasHardware) {
+      return false;
+    }
     const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
     return isEnrolled;
   }
 
@@ -17,11 +20,13 @@ export class BiometricUnlockService {
       fallbackLabel: 'Use Passcode',
       disableDeviceFallback: false,
     });
+
     return result.success;
   }
 
   async isBiometricEnabled(): Promise<boolean> {
     const value = await SecureStore.getItemAsync(BIOMETRIC_PREF_KEY);
+
     return value === 'true';
   }
 

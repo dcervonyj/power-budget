@@ -73,5 +73,6 @@
         "typescript"
       ]
     }
-  }
+  },
+  "eslintRatchet": true
 }
