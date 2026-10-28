@@ -34,6 +34,7 @@ export interface PlanItemChange {
 
 export interface PlanItemRowHandlers {
   readonly onChange: (id: string, change: PlanItemChange) => void;
+  readonly onInvalidAmount: (id: string) => void;
   readonly onHistory: (id: string) => void;
   readonly onRemove: (id: string) => void;
 }
@@ -150,7 +151,13 @@ function LimitRow({ row, index, ...handlers }: RowProps & { index: number }): Re
 }
 
 /** Amount and currency inputs (keyboard entry), history and remove: the same for every item. */
-function ItemControls({ row, onChange, onHistory, onRemove }: RowProps): React.JSX.Element {
+function ItemControls({
+  row,
+  onChange,
+  onInvalidAmount,
+  onHistory,
+  onRemove,
+}: RowProps): React.JSX.Element {
   const intl = useIntl();
 
   return (
@@ -162,7 +169,11 @@ function ItemControls({ row, onChange, onHistory, onRemove }: RowProps): React.J
         defaultValue={row.amountInput}
         onBlur={(event) => {
           const parsed = toMinorUnitsString(event.target.value, row.currency);
-          if (parsed !== null && parsed !== row.amountMinor) {
+          if (parsed === null) {
+            // Put the stored amount back, so the field never shows a value that was dropped.
+            event.target.value = row.amountInput;
+            onInvalidAmount(row.id);
+          } else if (parsed !== row.amountMinor) {
             onChange(row.id, { amountMinor: parsed });
           }
         }}

@@ -425,5 +425,20 @@
   "component.manualTransactionForm.error.amount": "Введите положительную сумму с допустимым для валюты числом знаков после запятой.",
   "component.manualTransactionForm.error.account": "Не удалось создать счёт. Попробуйте ещё раз.",
   "component.manualTransactionForm.error.accounts": "Не удалось загрузить счета. Попробуйте ещё раз.",
-  "component.manualTransactionForm.account.option": "{name} · {currency}"
+  "component.manualTransactionForm.account.option": "{name} · {currency}",
+  "screen.planEditor.fieldError.category": "Выберите категорию для позиции.",
+  "screen.planEditor.fieldError.amount": "Введите корректную сумму, например 250,50.",
+  "screen.planEditor.fieldError.currency": "Введите поддерживаемый код валюты, например PLN.",
+  "screen.planEditor.invalidAmountError": "Эта сумма некорректна, поэтому сохранена предыдущая.",
+  "screen.transactionDetail.actionError.conflict": "Эту транзакцию сейчас нельзя изменить, например потому, что она привязана к запланированной позиции.",
+  "screen.transactionDetail.actionError.tooMany": "Слишком много запросов. Подождите немного и повторите попытку.",
+  "screen.transactionDetail.actionError.failed": "Не удалось сохранить изменение. Попробуйте ещё раз.",
+  "settings.data.delete.close": "Закрыть",
+  "settings.data.delete.scheduled": "Удаление запланировано. Ваше домохозяйство и его данные будут удалены {date}.",
+  "settings.data.delete.ownerRequired": "Только владелец домохозяйства может его удалить.",
+  "screen.register.error.passwordTooShort": "Пароль должен содержать не менее {min} символов.",
+  "screen.register.password.hint": "Используйте не менее {min} символов.",
+  "screen.register.error.invalidInput": "Проверьте адрес электронной почты и используйте пароль не короче {min} символов.",
+  "screen.auditLog.loadMore": "Загрузить ещё",
+  "screen.auditLog.loadMoreError": "Не удалось загрузить больше событий"
 }
