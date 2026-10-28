@@ -8,6 +8,8 @@ export interface TransactionActionButtonProps {
   readonly onPress: () => void;
   readonly primary?: boolean;
   readonly disabled?: boolean;
+  /** A request is on its way: the button is disabled and says so to a screen reader. */
+  readonly busy?: boolean;
 }
 
 const useStyles = makeStyles((glass) => ({
@@ -40,13 +42,14 @@ export function TransactionActionButton({
   onPress,
   primary = false,
   disabled = false,
+  busy = false,
 }: TransactionActionButtonProps): React.JSX.Element {
   const styles = useStyles();
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled }}
+      accessibilityState={{ disabled, busy }}
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => [
