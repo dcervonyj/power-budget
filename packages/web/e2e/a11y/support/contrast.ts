@@ -60,10 +60,18 @@ function collectTextProbes(rootSelector: string): TextProbe[] {
   }
   const result: TextProbe[] = [];
   const elements = roots.flatMap((root) => [root, ...Array.from(root.querySelectorAll('*'))]);
-  // Text a field draws itself: the value, or the placeholder while it is empty.
+  // Text a field draws itself: the value, or the placeholder while it is empty; the chosen
+  // option of a select; the date a date input shows (its mask while empty).
   const textTypes = ['text', 'email', 'search', 'tel', 'url', 'number', 'password'];
+  const dateTypes = ['date', 'time', 'month', 'week', 'datetime-local'];
   function fieldText(element: Element): { text: string; placeholder: boolean } {
     const none = { text: '', placeholder: false };
+    if (element instanceof HTMLSelectElement) {
+      return { text: element.selectedOptions[0]?.text.trim() ?? '', placeholder: false };
+    }
+    if (element instanceof HTMLInputElement && dateTypes.includes(element.type)) {
+      return { text: element.value === '' ? element.type : element.value, placeholder: false };
+    }
     if (
       !(element instanceof HTMLTextAreaElement) &&
       !(element instanceof HTMLInputElement && textTypes.includes(element.type))
