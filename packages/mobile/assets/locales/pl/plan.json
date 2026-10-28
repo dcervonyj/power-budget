@@ -53,5 +53,6 @@
   "plan.archive.title": "Zarchiwizuj plan",
   "plan.archive.body": "Czy na pewno chcesz zarchiwizować ten plan?",
   "plan.archive.cancel": "Anuluj",
-  "plan.archive.confirm": "Archiwizuj"
+  "plan.archive.confirm": "Archiwizuj",
+  "plan.error.categories": "Nie udało się wczytać kategorii."
 }

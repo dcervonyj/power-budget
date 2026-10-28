@@ -14,15 +14,26 @@ jest.mock('../../../../components/CustomPeriodPicker.js', () => {
 
   return {
     CustomPeriodPicker: ({ onChange }: { onChange: (start: string, end: string) => void }) => (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Pick dates"
-        onPress={() => {
-          onChange('2026-10-02', '2026-10-20');
-        }}
-      >
-        <Text>dates</Text>
-      </Pressable>
+      <>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pick dates"
+          onPress={() => {
+            onChange('2026-10-02', '2026-10-20');
+          }}
+        >
+          <Text>dates</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Pick later dates"
+          onPress={() => {
+            onChange('2026-10-05', '2026-10-25');
+          }}
+        >
+          <Text>later</Text>
+        </Pressable>
+      </>
     ),
   };
 });
@@ -286,6 +297,72 @@ describe('PlanEditorScreen', () => {
       expect(screen.getByLabelText('Groceries amount').props.value).toBe('2200.00');
     });
     expect(mockApi.deleteItem).toHaveBeenCalledWith('plan-1', 'item-1');
+  });
+
+  it('saves rapid custom date changes in order, latest last', async () => {
+    const custom = { ...PLAN, periodKind: 'custom' };
+    mockApi.get.mockResolvedValue(custom);
+    const resolvers: Array<() => void> = [];
+    mockApi.update.mockImplementation(
+      (_id: string, body: { periodStart: string; periodEnd: string }) =>
+        new Promise((resolve) => {
+          resolvers.push(() =>
+            resolve({ ...custom, period: { start: body.periodStart, end: body.periodEnd } }),
+          );
+        }),
+    );
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole('button', { name: 'Pick dates' }));
+    await user.press(screen.getByRole('button', { name: 'Pick later dates' }));
+
+    expect(mockApi.update).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolvers[0]();
+    });
+    await waitFor(() => {
+      expect(mockApi.update).toHaveBeenCalledTimes(2);
+    });
+    expect(mockApi.update.mock.calls[1][1]).toEqual({
+      periodStart: '2026-10-05',
+      periodEnd: '2026-10-25',
+    });
+  });
+
+  it('keeps a name edited while the save is pending', async () => {
+    let resolveSave: () => void = () => undefined;
+    mockApi.update.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveSave = () => resolve({ ...PLAN, name: 'October' });
+        }),
+    );
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    await userEvent.setup().press(await screen.findByRole('button', { name: 'Save' }));
+    await fireEvent.changeText(screen.getByLabelText('Plan name'), 'Newer name');
+    await act(async () => {
+      resolveSave();
+    });
+
+    await waitFor(() => {
+      expect(mockApi.update).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByLabelText('Plan name').props.value).toBe('Newer name');
+  });
+
+  it('shows an error and retries when categories fail to load', async () => {
+    mockCategories.list.mockRejectedValueOnce(new Error('offline'));
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    expect(await screen.findByText('Could not load categories.')).toBeTruthy();
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Try again' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('Could not load categories.')).toBeNull();
+    });
+    expect(mockCategories.list).toHaveBeenCalledTimes(2);
   });
 
   it('shows a retry when the plan cannot be loaded', async () => {
