@@ -92,9 +92,9 @@ async function seedHousehold(
     [txId, householdId, accountId],
   );
   await q.query(
-    `INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
-     VALUES ($1, $2, -1234, 'PLN', $3)`,
-    [txId, randomUUID(), owner],
+    `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+     VALUES ($1, $2, $3, -1234, 'PLN', $4)`,
+    [txId, householdId, randomUUID(), owner],
   );
   await q.query(
     `INSERT INTO plans (id, household_id, owner_user_id, name, type, period_kind, period_start, period_end, base_currency)

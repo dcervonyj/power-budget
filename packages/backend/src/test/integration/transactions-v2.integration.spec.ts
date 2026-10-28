@@ -287,9 +287,9 @@ describe('Integration: transactions v2 repository and dashboard reads (SYNC-001)
       [id, H.plannedItemId],
     );
     await fixtures.query(
-      `INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
-       VALUES ($1, $2, -2000, 'PLN', $3)`,
-      [id, H.plannedItemId, H.userId],
+      `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+       VALUES ($1, $4, $2, -2000, 'PLN', $3)`,
+      [id, H.plannedItemId, H.userId, H.householdId],
     );
     const upgrade = {
       id,
@@ -421,9 +421,9 @@ describe('Integration: transactions v2 repository and dashboard reads (SYNC-001)
       const expired = await insertRow('expired', '2026-10-15', -100);
       // Mappings of excluded rows are not loaded either.
       await fixtures.query(
-        `INSERT INTO transaction_mappings (transaction_id, planned_item_id, amount_minor, currency, mapped_by)
-         VALUES ($1, $3, -100, 'PLN', $4), ($2, $3, -100, 'PLN', $4)`,
-        [cancelled, expired, H.plannedItemId, H.userId],
+        `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
+         VALUES ($1, $5, $3, -100, 'PLN', $4), ($2, $5, $3, -100, 'PLN', $4)`,
+        [cancelled, expired, H.plannedItemId, H.userId, H.householdId],
       );
 
       const activity = await asHousehold(() =>
