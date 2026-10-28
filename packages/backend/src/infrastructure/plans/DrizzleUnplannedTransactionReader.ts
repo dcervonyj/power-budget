@@ -52,7 +52,7 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
     ];
 
     // A forged cursor throws InvalidCursorError, mapped to 400 invalid_cursor.
-    if (query.cursor) {
+    if (query.cursor !== undefined) {
       const parsed = decodeTransactionCursor(query.cursor);
       conditions.push(
         or(

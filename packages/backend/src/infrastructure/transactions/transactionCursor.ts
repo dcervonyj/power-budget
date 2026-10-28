@@ -22,7 +22,9 @@ export function decodeTransactionCursor(raw: string): TransactionCursor {
   if (rest.length > 0 || !occurredOn || !id || !DATE.test(occurredOn) || !UUID.test(id)) {
     throw new InvalidCursorError();
   }
-  if (Number.isNaN(Date.parse(`${occurredOn}T00:00:00Z`))) {
+  const parsed = new Date(`${occurredOn}T00:00:00Z`);
+  // Date.parse rolls 2026-02-30 over to March, so compare the round trip.
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== occurredOn) {
     throw new InvalidCursorError();
   }
 
