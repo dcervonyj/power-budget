@@ -7,7 +7,8 @@ export interface TransactionCursor {
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const BASE64URL = /^[A-Za-z0-9_-]+$/;
+/** base64url, plus the padded standard base64 the unplanned reader issued before CLN-043. */
+const CURSOR_CHARS = /^(?:[A-Za-z0-9_-]+|[A-Za-z0-9+/]+={0,2})$/;
 
 /** Opaque keyset cursor for the `(occurredOn DESC, id DESC)` order, base64url of `occurredOn|id`. */
 export function encodeTransactionCursor(cursor: TransactionCursor): string {
@@ -15,7 +16,7 @@ export function encodeTransactionCursor(cursor: TransactionCursor): string {
 }
 
 export function decodeTransactionCursor(raw: string): TransactionCursor {
-  if (!BASE64URL.test(raw)) {
+  if (!CURSOR_CHARS.test(raw)) {
     throw new InvalidCursorError();
   }
   const [occurredOn, id, ...rest] = Buffer.from(raw, 'base64url').toString('utf8').split('|');
