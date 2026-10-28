@@ -38,7 +38,10 @@ export const defineId = <B extends string>(
     return typeof raw === 'string' && pattern.test(raw);
   },
   of(raw) {
-    if (!this.isValid(raw)) throw new InvalidIdError(brand, raw);
+    if (!this.isValid(raw)) {
+      throw new InvalidIdError(brand, raw);
+    }
+
     return raw as Brand<string, B>;
   },
 });
@@ -48,7 +51,10 @@ export const Uuidv7 = {
     return UUIDV7_RE.test(raw);
   },
   of(raw: string): Uuidv7 {
-    if (!Uuidv7.isValid(raw)) throw new InvalidIdError('Uuidv7', raw);
+    if (!Uuidv7.isValid(raw)) {
+      throw new InvalidIdError('Uuidv7', raw);
+    }
+
     return raw;
   },
 };
@@ -58,7 +64,10 @@ export const IsoDate = {
     return ISO_DATE_RE.test(s);
   },
   of(s: string): IsoDate {
-    if (!IsoDate.isValid(s)) throw new InvalidIdError('IsoDate', s);
+    if (!IsoDate.isValid(s)) {
+      throw new InvalidIdError('IsoDate', s);
+    }
+
     return s;
   },
 };
@@ -68,7 +77,10 @@ export const IsoDateTime = {
     return ISO_DATETIME_RE.test(s);
   },
   of(s: string): IsoDateTime {
-    if (!IsoDateTime.isValid(s)) throw new InvalidIdError('IsoDateTime', s);
+    if (!IsoDateTime.isValid(s)) {
+      throw new InvalidIdError('IsoDateTime', s);
+    }
+
     return s;
   },
 };
