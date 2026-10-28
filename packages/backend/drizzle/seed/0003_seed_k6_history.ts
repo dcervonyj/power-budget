@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import { uuidv7 } from 'uuidv7';
 
 // CLN-060: history fixture for the k6 gate (tests/perf/dashboard.k6.js), so the gate runs on
@@ -142,13 +142,7 @@ async function seed(): Promise<void> {
       throw new Error(`user ${EMAIL} has no household`);
     }
     const accountId = await ensureAccount(pool, row.id, row.household_id);
-    await pool.query(
-      'DELETE FROM transaction_mappings WHERE transaction_id IN (SELECT id FROM transactions WHERE account_id = $1)',
-      [accountId],
-    );
-    await pool.query('DELETE FROM transactions WHERE account_id = $1', [accountId]);
-    await insertTransactions(pool, accountId, row.household_id);
-    await insertMappings(pool, accountId, row.household_id, row.id, plannedItemId);
+    await replaceFixtureRows(pool, accountId, row.household_id, row.id, plannedItemId);
     await pool.query('ANALYZE transactions');
     await pool.query('ANALYZE transaction_mappings');
   } finally {
@@ -156,6 +150,40 @@ async function seed(): Promise<void> {
   }
 
   console.error(`seeded ${TX_COUNT} transactions (${MAPPED_PERCENT}% mapped) for ${EMAIL}`);
+}
+
+// The fixture rows carry the external id prefix below; a re-run replaces only those, in one
+// transaction, so other rows on the account survive and a failed run leaves the old set intact.
+const FIXTURE_PREFIX = 'k6-tx-';
+
+async function replaceFixtureRows(
+  pool: Pool,
+  accountId: string,
+  householdId: string,
+  userId: string,
+  plannedItemId: string,
+): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `DELETE FROM transaction_mappings WHERE transaction_id IN
+         (SELECT id FROM transactions WHERE account_id = $1 AND external_id LIKE $2)`,
+      [accountId, `${FIXTURE_PREFIX}%`],
+    );
+    await client.query('DELETE FROM transactions WHERE account_id = $1 AND external_id LIKE $2', [
+      accountId,
+      `${FIXTURE_PREFIX}%`,
+    ]);
+    await insertTransactions(client, accountId, householdId);
+    await insertMappings(client, accountId, householdId, userId, plannedItemId);
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 async function ensureAccount(pool: Pool, userId: string, householdId: string): Promise<string> {
@@ -198,7 +226,7 @@ async function insertTransactions(
        counterparty_iban_hash, remittance, mcc, bank_tx_code, entry_reference, fingerprint, source_kind)
      SELECT encode(set_bit(set_bit(overlay(uuid_send(gen_random_uuid()) placing
               substring(int8send(floor(extract(epoch from (current_date - (g % 730)))*1000)::bigint + g) from 3)
-              from 1 for 6), 52, 1), 53, 1), 'hex')::uuid, $2, $1, 'k6-tx-' || g,
+              from 1 for 6), 52, 1), 53, 1), 'hex')::uuid, $2, $1, '${FIXTURE_PREFIX}' || g,
             (current_date - (g % 730))::date,
             CASE WHEN g % 9 = 0 THEN ((g % 40) + 1) * 10000 ELSE -(((g % 50) + 1) * 1000) END,
             'PLN', 'k6 transaction ' || g, 'Merchant ' || (g % 40), 'bank_sync',
@@ -213,7 +241,7 @@ async function insertTransactions(
 }
 
 async function insertMappings(
-  pool: Pool,
+  pool: PoolClient,
   accountId: string,
   householdId: string,
   userId: string,
@@ -223,7 +251,7 @@ async function insertMappings(
     `INSERT INTO transaction_mappings (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by)
      SELECT id, household_id, $3, abs(amount_minor), currency, $4
        FROM transactions
-      WHERE account_id = $1 AND household_id = $2 AND status = 'booked'
+      WHERE account_id = $1 AND household_id = $2 AND status = 'booked' AND external_id LIKE '${FIXTURE_PREFIX}%'
         AND (('x' || substr(md5(id::text), 1, 4))::bit(16)::int % 100) < $5`,
     [accountId, householdId, plannedItemId, userId, MAPPED_PERCENT],
   );
