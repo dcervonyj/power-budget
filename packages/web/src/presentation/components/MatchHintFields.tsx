@@ -1,5 +1,5 @@
 import React from 'react';
-import { useIntl } from 'react-intl';
+import { defineMessages, useIntl, type MessageDescriptor } from 'react-intl';
 import { type MatchHintField, type MatchHintFormValues } from '@power-budget/core';
 import { Input } from './Input.js';
 
@@ -18,6 +18,14 @@ const GRID_STYLE: React.CSSProperties = {
   alignItems: 'end',
 };
 
+const MESSAGES = defineMessages({
+  counterparty: { id: 'plan.matchHint.counterparty', defaultMessage: 'Counterparty contains' },
+  amount: { id: 'plan.matchHint.amount', defaultMessage: 'Expected amount' },
+  tolerance: { id: 'plan.matchHint.tolerance', defaultMessage: 'Amount tolerance (±)' },
+  dayOfMonth: { id: 'plan.matchHint.dayOfMonth', defaultMessage: 'Day of month' },
+  dayWindow: { id: 'plan.matchHint.dayWindow', defaultMessage: 'Day window (± days)' },
+});
+
 /** AI-004: the planned item's match hint (counterparty, amount +- tolerance, day +- window). */
 export function MatchHintFields({
   idPrefix,
@@ -26,10 +34,10 @@ export function MatchHintFields({
   onChange,
 }: MatchHintFieldsProps): React.JSX.Element {
   const intl = useIntl();
-  const field = (name: MatchHintField, id: string, defaultMessage: string): React.JSX.Element => (
+  const field = (name: MatchHintField, message: MessageDescriptor): React.JSX.Element => (
     <Input
       id={`${idPrefix}-${name}`}
-      label={intl.formatMessage({ id, defaultMessage })}
+      label={intl.formatMessage(message)}
       value={values[name]}
       state={invalid.includes(name) ? 'error' : 'default'}
       onChange={(value) => {
@@ -40,11 +48,11 @@ export function MatchHintFields({
 
   return (
     <div style={GRID_STYLE}>
-      {field('counterpartyPattern', 'plan.matchHint.counterparty', 'Counterparty contains')}
-      {field('amount', 'plan.matchHint.amount', 'Expected amount')}
-      {field('tolerance', 'plan.matchHint.tolerance', 'Amount tolerance (±)')}
-      {field('dayOfMonth', 'plan.matchHint.dayOfMonth', 'Day of month')}
-      {field('dayWindow', 'plan.matchHint.dayWindow', 'Day window (± days)')}
+      {field('counterpartyPattern', MESSAGES.counterparty)}
+      {field('amount', MESSAGES.amount)}
+      {field('tolerance', MESSAGES.tolerance)}
+      {field('dayOfMonth', MESSAGES.dayOfMonth)}
+      {field('dayWindow', MESSAGES.dayWindow)}
     </div>
   );
 }
