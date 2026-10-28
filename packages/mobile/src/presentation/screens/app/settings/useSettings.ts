@@ -18,9 +18,7 @@ const SAVED_VISIBLE_MS = 2500;
 export function useSettings(): SettingsViewProps {
   const intl = useIntl();
   const { preference, setPreference } = useTheme();
-  const { locale: appLocale, setLocale } = useAppLocale();
-  const appLocaleRef = useRef(appLocale);
-  appLocaleRef.current = appLocale;
+  const { setLocale } = useAppLocale();
   const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
   const [profile, setProfile] = useState<UserProfileDto | null>(null);
   const [loadState, setLoadState] = useState<SettingsLoadState>('loading');
@@ -36,9 +34,7 @@ export function useSettings(): SettingsViewProps {
     try {
       const loaded = (await apiClient.get<UserProfileDto>('/users/me')).data;
       setProfile(loaded);
-      if (loaded.locale !== appLocaleRef.current) {
-        setLocale(loaded.locale);
-      }
+      setLocale(loaded.locale, 'server');
       setNameDraft(loaded.displayName);
       setLoadState('ready');
     } catch {
@@ -96,7 +92,7 @@ export function useSettings(): SettingsViewProps {
     const ok = await patchProfile({ locale });
     setPreferencesError(!ok);
     if (ok) {
-      setLocale(locale);
+      setLocale(locale, 'user');
     }
   }
 

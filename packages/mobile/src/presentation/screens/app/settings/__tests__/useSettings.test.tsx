@@ -129,7 +129,7 @@ describe('useSettings', () => {
       result.current.onLocaleChange('pl');
     });
     expect(mockPatch).toHaveBeenCalledWith('/users/me', { locale: 'pl' });
-    expect(mockSetLocale).toHaveBeenCalledWith('pl');
+    expect(mockSetLocale).toHaveBeenCalledWith('pl', 'user');
 
     mockPatch.mockRejectedValue(new Error('500'));
     await act(async () => {
@@ -219,15 +219,15 @@ describe('useSettings', () => {
     await waitFor(() => {
       expect(result.current.loadState).toBe('ready');
     });
-    expect(mockSetLocale).toHaveBeenCalledWith('pl');
+    expect(mockSetLocale).toHaveBeenCalledWith('pl', 'server');
   });
 
-  it('leaves the app language alone when the server locale already matches', async () => {
+  it('reports the server locale as the server source even when it matches', async () => {
     const { result } = await renderHook(useSettings, { wrapper });
 
     await waitFor(() => {
       expect(result.current.loadState).toBe('ready');
     });
-    expect(mockSetLocale).not.toHaveBeenCalled();
+    expect(mockSetLocale).toHaveBeenCalledWith('en', 'server');
   });
 });

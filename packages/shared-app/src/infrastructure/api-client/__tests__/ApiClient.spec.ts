@@ -451,4 +451,26 @@ describe('ApiClient token refresh', () => {
     expect(store.refresh).toBeNull();
     expect(unauthenticated).toBe(1);
   });
+
+  it('clears the tokens when sign-out lands while the refreshed pair is being stored', async () => {
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = () => ({
+      status: 201,
+      data: { accessToken: 'new-access', refreshToken: 'new-refresh' },
+    });
+    store.setTokens = async (accessToken, refreshToken) => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+      store.access = accessToken;
+      store.refresh = refreshToken;
+    };
+    const client = createClient();
+
+    const pending = withinGuard(client.get('/transactions')).catch((error: unknown) => error);
+    await new Promise((resolve) => setTimeout(resolve, 15));
+    await client.invalidateSession();
+    await pending;
+
+    expect(store.access).toBeNull();
+    expect(store.refresh).toBeNull();
+  });
 });

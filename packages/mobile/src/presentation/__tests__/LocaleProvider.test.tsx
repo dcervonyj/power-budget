@@ -19,7 +19,8 @@ jest.mock('../../infrastructure/locale/index.js', () => {
   };
 });
 
-let switchTo: (locale: 'pl') => void = () => undefined;
+let switchTo: (locale: 'pl' | 'en', source?: 'stored' | 'server' | 'user') => void = () =>
+  undefined;
 
 function Probe(): React.JSX.Element {
   const intl = useIntl();
@@ -49,7 +50,7 @@ describe('LocaleProvider', () => {
     });
   });
 
-  it('ignores a delayed stored-locale read once a language was chosen', async () => {
+  it('user choice beats a delayed stored read', async () => {
     let releaseRead: (value: string | null) => void = () => undefined;
     jest.spyOn(AsyncStorage, 'getItem').mockReturnValueOnce(
       new Promise((resolve) => {
@@ -73,5 +74,70 @@ describe('LocaleProvider', () => {
     });
 
     expect(screen.getByText('Cześć')).toBeOnTheScreen();
+  });
+
+  async function renderWithDelayedStoredRead(): Promise<(value: string | null) => void> {
+    let releaseRead: (value: string | null) => void = () => undefined;
+    jest.spyOn(AsyncStorage, 'getItem').mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseRead = resolve;
+      }),
+    );
+    await render(
+      <LocaleProvider deviceLanguage="en">
+        <Probe />
+      </LocaleProvider>,
+    );
+
+    return releaseRead;
+  }
+
+  it('server locale beats a delayed stored read', async () => {
+    const releaseRead = await renderWithDelayedStoredRead();
+
+    await act(async () => {
+      switchTo('pl', 'server');
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Cześć')).toBeOnTheScreen();
+    });
+    await act(async () => {
+      releaseRead('en');
+    });
+
+    expect(screen.getByText('Cześć')).toBeOnTheScreen();
+  });
+
+  it('user choice beats a later server locale', async () => {
+    await render(
+      <LocaleProvider deviceLanguage="en">
+        <Probe />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      switchTo('pl', 'user');
+    });
+    await act(async () => {
+      switchTo('en', 'server');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Cześć')).toBeOnTheScreen();
+    });
+  });
+
+  it('server locale beats a later stored read', async () => {
+    const releaseRead = await renderWithDelayedStoredRead();
+    await act(async () => {
+      switchTo('pl', 'server');
+    });
+    await act(async () => {
+      releaseRead('en');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Cześć')).toBeOnTheScreen();
+    });
   });
 });

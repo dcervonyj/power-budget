@@ -10,9 +10,17 @@ import type { SupportedLocale } from '../infrastructure/locale/index.js';
 
 export interface LocaleContextValue {
   readonly locale: SupportedLocale;
-  /** Switches the active language at runtime and stores it for the next launch. */
-  readonly setLocale: (locale: SupportedLocale) => void;
+  /**
+   * Switches the active language at runtime. Priority: user choice > server profile > stored
+   * launch value; a lower source never overrides a higher one that was already applied.
+   * A user choice is also stored for the next launch.
+   */
+  readonly setLocale: (locale: SupportedLocale, source?: LocaleSource) => void;
 }
+
+export type LocaleSource = 'stored' | 'server' | 'user';
+
+const SOURCE_RANK: Record<LocaleSource, number> = { stored: 1, server: 2, user: 3 };
 
 const LocaleContext = createContext<LocaleContextValue>({
   locale: 'en',
@@ -36,31 +44,33 @@ export function LocaleProvider({
   );
   const [messages, setMessages] = useState<Record<string, string>>({});
 
-  // Counts explicit language choices; the launch-time stored read must not overwrite one.
-  const choices = useRef(0);
-  const apply = useCallback(async (next: SupportedLocale): Promise<void> => {
-    const loaded = await loadMessages(next);
-    setMessages(loaded);
-    setLocaleState(next);
+  const appliedRank = useRef(0);
+  const request = useRef(0);
+
+  const setLocale = useCallback((next: SupportedLocale, source: LocaleSource = 'user'): void => {
+    const rank = SOURCE_RANK[source];
+    if (rank < appliedRank.current) {
+      return;
+    }
+    appliedRank.current = rank;
+    request.current += 1;
+    const id = request.current;
+    if (source === 'user') {
+      void AsyncStorage.setItem(LOCALE_STORAGE_KEY, next);
+    }
+    void loadMessages(next).then((loaded) => {
+      if (id === request.current) {
+        setMessages(loaded);
+        setLocaleState(next);
+      }
+    });
   }, []);
 
   useEffect(() => {
-    const choicesAtStart = choices.current;
-    void AsyncStorage.getItem(LOCALE_STORAGE_KEY).then((stored) =>
-      choices.current === choicesAtStart
-        ? apply(resolver.resolve(deviceLanguage, stored))
-        : undefined,
-    );
-  }, [apply, deviceLanguage]);
-
-  const setLocale = useCallback(
-    (next: SupportedLocale): void => {
-      choices.current += 1;
-      void AsyncStorage.setItem(LOCALE_STORAGE_KEY, next);
-      void apply(next);
-    },
-    [apply],
-  );
+    void AsyncStorage.getItem(LOCALE_STORAGE_KEY).then((stored) => {
+      setLocale(resolver.resolve(deviceLanguage, stored), 'stored');
+    });
+  }, [setLocale, deviceLanguage]);
 
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>

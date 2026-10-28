@@ -48,6 +48,8 @@ export class ApiClient implements HttpClient {
   private refreshQueue: QueuedRequest[] = [];
   /** Bumped on every deliberate sign-out; a refresh that started earlier must not store tokens. */
   private sessionEpoch = 0;
+  /** Token writes and session clearing run strictly one after another through this chain. */
+  private storageChain: Promise<unknown> = Promise.resolve();
 
   constructor(
     baseURL: string,
@@ -197,9 +199,30 @@ export class ApiClient implements HttpClient {
       return outcome.accessToken;
     }
     // Outside the refresh-error classification: a storage failure is not an HTTP answer.
-    await this.tokenStore.setTokens(outcome.tokens.accessToken, outcome.tokens.refreshToken);
+    await this.storeTokens(epoch, outcome.tokens, originalError);
 
     return outcome.tokens.accessToken;
+  }
+
+  /** Writes the pair unless the session was invalidated; a later clear waits for this write. */
+  private storeTokens(
+    epoch: number,
+    tokens: RefreshResponse,
+    originalError: AxiosError,
+  ): Promise<void> {
+    return this.serialize(async () => {
+      if (epoch !== this.sessionEpoch) {
+        throw originalError;
+      }
+      await this.tokenStore.setTokens(tokens.accessToken, tokens.refreshToken);
+    });
+  }
+
+  private serialize<T>(task: () => Promise<T>): Promise<T> {
+    const run = this.storageChain.then(task, task);
+    this.storageChain = run.then(ignore, ignore);
+
+    return run;
   }
 
   private async requestRefresh(refreshToken: string): Promise<RefreshOutcome> {
@@ -279,7 +302,7 @@ export class ApiClient implements HttpClient {
   }
 
   private async endSession(): Promise<void> {
-    await this.tokenStore.clearTokens();
+    await this.serialize(() => this.tokenStore.clearTokens());
     this.onUnauthenticated?.();
   }
 }
@@ -291,6 +314,10 @@ function isAuthRequest(url: string | undefined): boolean {
   const path = url.replace(ABSOLUTE_URL_ORIGIN, '');
 
   return path.startsWith(AUTH_PATH_PREFIX);
+}
+
+function ignore(): void {
+  // The chain only orders tasks; each caller handles its own result.
 }
 
 function delay(ms: number): Promise<void> {
