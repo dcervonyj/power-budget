@@ -29,6 +29,7 @@ function resolveLocale(): SupportedLocale {
     return stored as SupportedLocale;
   }
   const browser = navigator.language.split('-')[0] ?? 'en';
+
   return (SUPPORTED_LOCALES as readonly string[]).includes(browser)
     ? (browser as SupportedLocale)
     : 'en';

@@ -46,6 +46,7 @@ export function MappingModal({
       setSelectedItemId(null);
       setItems([]);
       setError(null);
+
       return;
     }
     setPlansLoading(true);
@@ -64,6 +65,7 @@ export function MappingModal({
     if (!selectedPlanId) {
       setItems([]);
       setSelectedItemId(null);
+
       return;
     }
     setItemsLoading(true);
@@ -84,7 +86,9 @@ export function MappingModal({
   }, [selectedPlanId]);
 
   const handleConfirm = async (): Promise<void> => {
-    if (!selectedItemId) return;
+    if (!selectedItemId) {
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {

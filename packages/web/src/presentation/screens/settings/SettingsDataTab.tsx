@@ -37,7 +37,9 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
   }
 
   async function handleConfirmDelete(): Promise<void> {
-    if (confirmText !== CONFIRM_WORD) return;
+    if (confirmText !== CONFIRM_WORD) {
+      return;
+    }
     // On success the modal stays open: it shows the date the household will be deleted.
     await settingsStore.deleteAccount(needsTotp ? totpCode : '');
   }

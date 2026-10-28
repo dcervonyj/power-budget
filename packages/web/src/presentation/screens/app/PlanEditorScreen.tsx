@@ -68,7 +68,9 @@ export function PlanEditorScreen(): React.JSX.Element {
   const [draftErrors, setDraftErrors] = useState<PlanDraftErrors>(NO_DRAFT_ERRORS);
 
   const fetchData = useCallback(async (): Promise<void> => {
-    if (!id) return;
+    if (!id) {
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -113,7 +115,9 @@ export function PlanEditorScreen(): React.JSX.Element {
   }, []);
 
   const handleSave = async (): Promise<void> => {
-    if (!plan) return;
+    if (!plan) {
+      return;
+    }
     setSaving(true);
     setSaveError(null);
     try {
@@ -137,7 +141,9 @@ export function PlanEditorScreen(): React.JSX.Element {
   };
 
   const handlePeriodChange = (newPeriod: PlanPeriodKindDto): void => {
-    if (!plan || newPeriod === plan.periodKind) return;
+    if (!plan || newPeriod === plan.periodKind) {
+      return;
+    }
     // UpdatePlanDto has no periodKind (CLN-011): a weekly or monthly plan becomes
     // another kind only through "Clone".
     setSaveError(
@@ -149,7 +155,9 @@ export function PlanEditorScreen(): React.JSX.Element {
   };
 
   const handleCustomDatesChange = async (dates: CustomPeriodValue): Promise<void> => {
-    if (!plan) return;
+    if (!plan) {
+      return;
+    }
     const prevPlan = plan;
     setPlan({ ...plan, period: { start: dates.startDate, end: dates.endDate } });
     try {
@@ -169,7 +177,9 @@ export function PlanEditorScreen(): React.JSX.Element {
   };
 
   const handleAddItem = async (): Promise<void> => {
-    if (!plan) return;
+    if (!plan) {
+      return;
+    }
     const currency = draftItem.currency.trim().toUpperCase();
     const amountMinor = toMinorUnitsString(draftItem.amount, currency);
     // An empty or unsupported currency makes the amount unparsable too: report the currency only.
@@ -214,7 +224,9 @@ export function PlanEditorScreen(): React.JSX.Element {
   };
 
   const handleUpdateItem = async (item: PlannedItemDto, changes: PlanItemChange): Promise<void> => {
-    if (!plan) return;
+    if (!plan) {
+      return;
+    }
     setSaveError(null);
     const prevItems = items;
     const amount = {
@@ -245,7 +257,9 @@ export function PlanEditorScreen(): React.JSX.Element {
   };
 
   const handleRemoveItem = async (itemId: string): Promise<void> => {
-    if (!plan) return;
+    if (!plan) {
+      return;
+    }
     const prevItems = items;
     setItems((prev) => prev.filter((i) => i.id !== itemId));
     try {

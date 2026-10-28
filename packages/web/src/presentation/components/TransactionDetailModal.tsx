@@ -71,7 +71,9 @@ export function TransactionDetailModal({
 
   // Reset state when opening a new transaction
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      return;
+    }
     setTransaction(null);
     setFetchError(null);
     setNotes('');
@@ -88,7 +90,9 @@ export function TransactionDetailModal({
     void (async () => {
       try {
         const res = await apiClient.get<TransactionDetailDto>(`/transactions/${transactionId}`);
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         const tx = TransactionMapper.fromDetail(res.data);
         setTransaction(tx);
         setNotes(tx.notes ?? '');
@@ -111,7 +115,9 @@ export function TransactionDetailModal({
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     })();
 
