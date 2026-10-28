@@ -2,6 +2,7 @@ import { defineConfig, loadEnv, type Plugin, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { precompiledMessages } from './src/i18n/precompiledMessages.js';
 import {
   buildSecurityHeaders,
   renderHeadersFile,
@@ -34,7 +35,11 @@ export default defineConfig(({ mode }) => {
   // `vite build --mode gallery` (build:gallery) builds only gallery.html into dist-gallery,
   // so the gallery never reaches the production dist.
   const gallery = mode === 'gallery';
-  const plugins: PluginOption[] = [react(), securityHeadersFile(productionHeaders)];
+  const plugins: PluginOption[] = [
+    react({ babel: { plugins: [['formatjs', { ast: true }]] } }),
+    precompiledMessages(),
+    securityHeadersFile(productionHeaders),
+  ];
   // Source maps are built only to upload them to Sentry (CI), never referenced
   // from the bundle and deleted from dist afterwards, so they are not public.
   if (sentryAuthToken && !gallery) {
@@ -65,6 +70,8 @@ export default defineConfig(({ mode }) => {
       // One MobX instance: workspace packages must not bring their own copy.
       dedupe: ['mobx', 'mobx-react-lite', 'react', 'react-dom'],
       alias: {
+        // Messages are precompiled to ASTs, so react-intl never parses ICU at runtime.
+        '@formatjs/icu-messageformat-parser': '@formatjs/icu-messageformat-parser/no-parser.js',
         '@web': path.resolve(__dirname, './src'),
       },
     },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { defineMessages, FormattedMessage, useIntl, type MessageDescriptor } from 'react-intl';
 import { NavLink } from 'react-router-dom';
 import { Button } from '../../components/Button.js';
 import '../../glass/controls/controls.css';
@@ -12,19 +12,26 @@ export interface SettingsViewProps {
   readonly children: React.ReactNode;
 }
 
+const TAB_MESSAGES = defineMessages({
+  profile: { id: 'settings.tab.profile', defaultMessage: 'Profile' },
+  appearance: { id: 'settings.tab.appearance', defaultMessage: 'Appearance' },
+  locale: { id: 'settings.tab.locale', defaultMessage: 'Language' },
+  currency: { id: 'settings.tab.currency', defaultMessage: 'Currency' },
+  data: { id: 'settings.tab.data', defaultMessage: 'Data & Privacy' },
+});
+
 interface SettingsTabLink {
   readonly to: string;
-  readonly labelId: string;
-  readonly defaultMessage: string;
+  readonly label: MessageDescriptor;
 }
 
 // No notifications tab: the API has no notification-preferences endpoint yet.
 const TABS: readonly SettingsTabLink[] = [
-  { to: 'profile', labelId: 'settings.tab.profile', defaultMessage: 'Profile' },
-  { to: 'appearance', labelId: 'settings.tab.appearance', defaultMessage: 'Appearance' },
-  { to: 'locale', labelId: 'settings.tab.locale', defaultMessage: 'Language' },
-  { to: 'currency', labelId: 'settings.tab.currency', defaultMessage: 'Currency' },
-  { to: 'data', labelId: 'settings.tab.data', defaultMessage: 'Data & Privacy' },
+  { to: 'profile', label: TAB_MESSAGES.profile },
+  { to: 'appearance', label: TAB_MESSAGES.appearance },
+  { to: 'locale', label: TAB_MESSAGES.locale },
+  { to: 'currency', label: TAB_MESSAGES.currency },
+  { to: 'data', label: TAB_MESSAGES.data },
 ];
 
 const NAV_STYLE: React.CSSProperties = {
@@ -58,7 +65,7 @@ function renderTab(tab: SettingsTabLink): React.JSX.Element {
       className="pbg-ctl"
       style={({ isActive }) => tabStyle(isActive)}
     >
-      <FormattedMessage id={tab.labelId} defaultMessage={tab.defaultMessage} />
+      <FormattedMessage {...tab.label} />
     </NavLink>
   );
 }
