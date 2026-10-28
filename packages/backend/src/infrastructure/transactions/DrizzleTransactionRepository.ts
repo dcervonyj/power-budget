@@ -75,6 +75,9 @@ import { TransactionRowMapper } from './TransactionRowMapper.js';
 const transferAsA = alias(schema.transfers, 'transfer_as_a');
 const transferAsB = alias(schema.transfers, 'transfer_as_b');
 
+/** Rows per bank-ingest INSERT, so one statement stays far below Postgres' 65535 parameter cap. */
+const BANK_INSERT_CHUNK = 500;
+
 /** LIMIT that never cuts rows; it only stops the planner from merging the subquery (see `pageOf`). */
 const PLANNER_FENCE = Number.MAX_SAFE_INTEGER;
 
@@ -101,31 +104,19 @@ export class DrizzleTransactionRepository implements TransactionRepository {
 
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
 
-  async upsertByExternalId(
-    input: NewTransaction,
-  ): Promise<{ id: TransactionId; created: boolean }> {
-    const inserted = await this.db
-      .insert(schema.transactions)
-      .values(this.rows.toInsert(input))
-      .onConflictDoNothing()
-      .returning({ id: schema.transactions.id });
-    if (inserted[0]) {
-      return { id: inserted[0].id as TransactionId, created: true };
+  async insertBankBatch(inputs: readonly NewTransaction[]): Promise<number> {
+    let created = 0;
+    for (let start = 0; start < inputs.length; start += BANK_INSERT_CHUNK) {
+      const chunk = inputs.slice(start, start + BANK_INSERT_CHUNK);
+      const inserted = await this.db
+        .insert(schema.transactions)
+        .values(chunk.map(this.toBankInsert, this))
+        .onConflictDoNothing()
+        .returning({ id: schema.transactions.id });
+      created += inserted.length;
     }
 
-    const existing = await this.db
-      .select({ id: schema.transactions.id })
-      .from(schema.transactions)
-      .where(
-        and(
-          eq(schema.transactions.householdId, input.householdId),
-          eq(schema.transactions.accountId, input.accountId),
-          eq(schema.transactions.externalId, input.externalId ?? ''),
-        ),
-      )
-      .limit(1);
-
-    return { id: existing[0]!.id as TransactionId, created: false };
+    return created;
   }
 
   async insertManual(input: NewManualTransaction): Promise<Transaction> {
@@ -693,6 +684,10 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       notInArray(t.id, this.transferSide('a', scope)),
       notInArray(t.id, this.transferSide('b', scope)),
     ];
+  }
+
+  private toBankInsert(input: NewTransaction): typeof schema.transactions.$inferInsert {
+    return this.rows.toInsert(input);
   }
 
   private toListItem(row: ListRow): TransactionListItem {

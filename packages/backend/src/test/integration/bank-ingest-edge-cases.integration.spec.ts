@@ -1,13 +1,11 @@
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import { uuidv7 } from 'uuidv7';
-import { mock } from 'vitest-mock-extended';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BankAccountId, HouseholdId, IsoDate, TransactionId, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
 import { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import type { RawTransaction } from '../../domain/bank/entities.js';
-import type { MappingRepository, MappingSuggestionPort } from '../../domain/transactions/ports.js';
 import { runInDbScope } from '../../infrastructure/database/DbScope.js';
 import { ScopedPool } from '../../infrastructure/database/ScopedPool.js';
 import { DrizzlePlanActivityReader } from '../../infrastructure/plans/DrizzlePlanActivityReader.js';
@@ -26,9 +24,7 @@ let householdId: HouseholdId;
 let userId: UserId;
 let accountId: BankAccountId;
 let useCase: IngestBankTransactionsUseCase;
-
-const NO_MAPPINGS = mock<MappingRepository>();
-const NO_SUGGESTIONS: MappingSuggestionPort = { suggest: () => null };
+let statements: string[];
 
 function raw(overrides: Partial<RawTransaction> = {}): RawTransaction {
   return {
@@ -75,15 +71,18 @@ describe('Integration: bank ingest edge cases (CLN-039)', () => {
     fixtures = getPool();
     appPool = ScopedPool.create({ connectionString: containers.appDatabaseUrl, max: 1 }, null);
     db = drizzle(appPool, { schema });
+    const countingDb = drizzle(appPool, {
+      schema,
+      logger: { logQuery: (query: string) => statements.push(query) },
+    });
     useCase = new IngestBankTransactionsUseCase(
-      new DrizzleTransactionRepository(db),
-      NO_MAPPINGS,
-      NO_SUGGESTIONS,
+      new DrizzleTransactionRepository(countingDb),
       uuidv7,
     );
   });
 
   beforeEach(async () => {
+    statements = [];
     await resetState();
     householdId = HouseholdId.of(uuidv7());
     userId = UserId.of(uuidv7());
@@ -147,6 +146,25 @@ describe('Integration: bank ingest edge cases (CLN-039)', () => {
     const second = await storedRows();
 
     expect(first).toHaveLength(3);
+    expect(second).toEqual(first);
+  });
+
+  it('writes an account batch with one INSERT and a re-run with one that adds nothing (CLN-054)', async () => {
+    const rows = Array.from({ length: 40 }, (_, i) =>
+      raw({ entryReference: `ref-${i % 30}`, remittance: `Row ${i}` }),
+    );
+
+    await ingest(rows);
+    const insertsAfterFirst = statements.filter((sql) => sql.startsWith('insert into'));
+    const first = await storedRows();
+    await ingest(rows);
+    const insertsAfterRerun = statements.filter((sql) => sql.startsWith('insert into'));
+    const second = await storedRows();
+
+    expect(insertsAfterFirst).toHaveLength(1);
+    expect(statements.filter((sql) => sql.startsWith('select'))).toHaveLength(0);
+    expect(first).toHaveLength(30);
+    expect(insertsAfterRerun).toHaveLength(2);
     expect(second).toEqual(first);
   });
 
