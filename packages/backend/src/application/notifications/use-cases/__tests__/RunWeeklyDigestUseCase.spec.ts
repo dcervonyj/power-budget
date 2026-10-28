@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { formatMoney } from '@power-budget/core';
-import type { CurrencyCode, HouseholdId, IsoDate, UserId } from '@power-budget/core';
+import { HouseholdId, IsoDate, UserId } from '@power-budget/core';
+import type { CurrencyCode } from '@power-budget/core';
 import type {
   HouseholdMemberRow,
   WeeklyDigestSummary,
@@ -15,17 +16,17 @@ import { EnqueueNotificationUseCase } from '../EnqueueNotificationUseCase.js';
 import { FixedClock } from '../../../../test/doubles/FixedClock.js';
 import { DEFAULT_DIGEST_TIME_ZONE, RunWeeklyDigestUseCase } from '../RunWeeklyDigestUseCase.js';
 
-const HH_ID = 'hh-1' as HouseholdId;
-const USER_ID = 'u-1' as UserId;
+const HH_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const USER_ID = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
 
-const PLN = 'PLN' as CurrencyCode;
+const PLN: CurrencyCode = 'PLN';
 
 const SUMMARY: WeeklyDigestSummary = {
   planName: 'October',
   totalSpent: { amountMinor: 123456n, currency: PLN },
   totalPlanned: { amountMinor: 500000n, currency: PLN },
-  periodStart: '2026-10-01' as IsoDate,
-  periodEnd: '2026-10-31' as IsoDate,
+  periodStart: IsoDate.of('2026-10-01'),
+  periodEnd: IsoDate.of('2026-10-31'),
 };
 
 const MEMBER: HouseholdMemberRow = {
@@ -153,8 +154,12 @@ describe('RunWeeklyDigestUseCase', () => {
   });
 
   it('skips members without an active plan and bouncing members', async () => {
-    const noPlan = { ...MEMBER, userId: 'u-2' as UserId };
-    const bouncing = { ...MEMBER, userId: 'u-3' as UserId, emailBouncing: true };
+    const noPlan = { ...MEMBER, userId: UserId.of('01900000-0be0-7d09-88f5-537d3c8c6168') };
+    const bouncing = {
+      ...MEMBER,
+      userId: UserId.of('01900000-3a3c-7c29-806e-84b73dd1adb7'),
+      emailBouncing: true,
+    };
     summaries.set(bouncing.userId, SUMMARY);
     members = [MEMBER, noPlan, bouncing];
 
@@ -164,8 +169,12 @@ describe('RunWeeklyDigestUseCase', () => {
   });
 
   it('skips a failing member, counts it and still digests the other members', async () => {
-    const failing = { ...MEMBER, userId: 'u-2' as UserId };
-    const later = { ...MEMBER, userId: 'u-3' as UserId, householdId: 'hh-2' as HouseholdId };
+    const failing = { ...MEMBER, userId: UserId.of('01900000-0be0-7d09-88f5-537d3c8c6168') };
+    const later = {
+      ...MEMBER,
+      userId: UserId.of('01900000-3a3c-7c29-806e-84b73dd1adb7'),
+      householdId: HouseholdId.of('01900000-8480-7e59-8da3-b6f79934c1c9'),
+    };
     summaries.set(later.userId, SUMMARY);
     failures.set(failing.userId, new Error('FX_RATE_UNAVAILABLE: no EUR/PLN'));
     members = [failing, MEMBER, later];
@@ -173,9 +182,17 @@ describe('RunWeeklyDigestUseCase', () => {
     const result = await useCase.execute();
 
     expect(result).toEqual({
-      skipped: [{ userId: 'u-2', reason: 'FX_RATE_UNAVAILABLE: no EUR/PLN' }],
+      skipped: [
+        {
+          userId: '01900000-0be0-7d09-88f5-537d3c8c6168',
+          reason: 'FX_RATE_UNAVAILABLE: no EUR/PLN',
+        },
+      ],
     });
-    expect(enqueued.map((n) => n.recipientUserId)).toEqual([USER_ID, 'u-3']);
+    expect(enqueued.map((n) => n.recipientUserId)).toEqual([
+      USER_ID,
+      '01900000-3a3c-7c29-806e-84b73dd1adb7',
+    ]);
   });
 
   it('counts a failing enqueue as a skipped member too', async () => {
@@ -202,7 +219,7 @@ describe('RunWeeklyDigestUseCase', () => {
 
   it('starts one run at the cron time and reads every member through it', async () => {
     const now = new Date('2026-10-19T07:00:00Z');
-    const second = { ...MEMBER, userId: 'u-2' as UserId };
+    const second = { ...MEMBER, userId: UserId.of('01900000-0be0-7d09-88f5-537d3c8c6168') };
     members = [MEMBER, second];
 
     await useCase.execute();

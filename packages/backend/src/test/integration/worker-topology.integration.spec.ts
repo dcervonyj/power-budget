@@ -6,14 +6,14 @@ import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { ScheduleModule, SchedulerRegistry } from '@nestjs/schedule';
 import { BullModule } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import type { BankConnectionId, HouseholdId } from '@power-budget/core';
+import { BankConnectionId, HouseholdId } from '@power-budget/core';
 import { startContainers, stopContainers } from './setup.js';
 import { createTestApp } from './app.js';
 import { WorkerModule } from '../../worker/worker.module.js';
 import { BullMQBankSyncQueue } from '../../infrastructure/bank/BullMQBankSyncQueue.js';
 
-const CONNECTION_ID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b' as BankConnectionId;
-const HOUSEHOLD_ID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c' as HouseholdId;
+const CONNECTION_ID = BankConnectionId.of('0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b');
+const HOUSEHOLD_ID = HouseholdId.of('0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c');
 
 describe('worker topology against real Redis + Postgres', () => {
   let redisUrl: string;

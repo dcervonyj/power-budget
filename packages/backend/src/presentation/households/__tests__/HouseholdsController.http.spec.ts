@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type {
-  CategoryAggregate,
-  CategoryId,
-  HouseholdId,
-  PlanId,
-  UserId,
-} from '@power-budget/core';
+import { CategoryId, HouseholdId, PlanId, UserId } from '@power-budget/core';
+import type { CategoryAggregate } from '@power-budget/core';
 import { HouseholdsController } from '../HouseholdsController.js';
 import { GetHouseholdDashboardUseCase } from '../../../application/households/use-cases/GetHouseholdDashboardUseCase.js';
 import {
@@ -15,11 +10,11 @@ import {
   type HttpTestApp,
 } from '../../../test/http/createHttpTestApp.js';
 
-const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;
-const ALICE_HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
-const BOB_HOUSEHOLD = '01900000-0000-7000-8000-0000000000b1' as HouseholdId;
-const PLAN = '01900000-0000-7000-8000-0000000000c1' as PlanId;
-const CATEGORY = '01900000-0000-7000-8000-0000000000f1' as CategoryId;
+const ALICE = UserId.of('01900000-0000-7000-8000-00000000000a');
+const ALICE_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
+const BOB_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000b1');
+const PLAN = PlanId.of('01900000-0000-7000-8000-0000000000c1');
+const CATEGORY = CategoryId.of('01900000-0000-7000-8000-0000000000f1');
 
 describe('GET /households/:id/dashboard (HTTP)', () => {
   let app: HttpTestApp;
@@ -64,7 +59,7 @@ describe('GET /households/:id/dashboard (HTTP)', () => {
     const res = await app.inject({
       method: 'GET',
       url: `/households/${ALICE_HOUSEHOLD}/dashboard?planId=${PLAN}`,
-      headers: { authorization: bearerFor('not-a-user-id' as UserId, ALICE_HOUSEHOLD) },
+      headers: { authorization: bearerFor('not-a-user-id', ALICE_HOUSEHOLD) },
     });
 
     expect(res.statusCode).toBe(401);

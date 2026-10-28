@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import { UserId, HouseholdId } from '@power-budget/core';
 import type { HouseholdRepository, UserRepository } from '../../../domain/auth/ports.js';
 import { CreateHouseholdUseCase } from './CreateHouseholdUseCase.js';
 import { AlreadyInHouseholdError } from '../../../domain/auth/errors.js';
 import type { Household } from '../../../domain/auth/entities.js';
 
-const USER_ID = 'u1' as UserId;
-const HH_ID = 'hh1' as HouseholdId;
+const USER_ID = UserId.of('01900000-c5ea-7715-854c-774daf7fab32');
+const HH_ID = HouseholdId.of('01900000-4f02-71b0-8217-0a755747dab8');
 
 function makeHousehold(): Household {
   return { id: HH_ID, name: 'Test HH', baseCurrency: 'PLN', createdAt: new Date() };

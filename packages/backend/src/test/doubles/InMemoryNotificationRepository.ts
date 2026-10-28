@@ -1,4 +1,5 @@
-import type { UserId, NotificationEventId } from '@power-budget/core';
+import { NotificationEventId } from '@power-budget/core';
+import type { UserId } from '@power-budget/core';
 import {
   SECRET_PAYLOAD_KEYS,
   type ExpiringConnectionRow,
@@ -87,7 +88,7 @@ export class InMemoryNotificationRepository implements NotificationRepository, N
     }
     this._outbox.push({
       ...notification,
-      id: this.ids.next() as NotificationEventId,
+      id: NotificationEventId.of(this.ids.next()),
       payload: { ...notification.payload },
       householdId: notification.householdId ?? null,
       recipientEmail: null,
@@ -101,7 +102,7 @@ export class InMemoryNotificationRepository implements NotificationRepository, N
 
   async enqueueToAddress(notification: NewAddressNotification): Promise<void> {
     this.seedAddressRow({
-      id: this.ids.next() as NotificationEventId,
+      id: NotificationEventId.of(this.ids.next()),
       householdId: notification.householdId,
       kind: notification.kind,
       dedupeKey: notification.dedupeKey,

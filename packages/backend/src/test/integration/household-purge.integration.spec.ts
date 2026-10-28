@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
 import { ScopedPool } from '../../infrastructure/database/ScopedPool.js';
 import { runInDbScope } from '../../infrastructure/database/DbScope.js';
@@ -26,7 +26,7 @@ interface Seeded {
 }
 
 async function seedUser(label: string): Promise<UserId> {
-  const id = randomUUID() as UserId;
+  const id = UserId.of(randomUUID());
   await fixtures.query(
     `INSERT INTO users (id, email, display_name, default_locale) VALUES ($1, $2, $3, 'en')`,
     [id, `${label}-${id}@example.com`, label],
@@ -53,7 +53,7 @@ async function seedHousehold(
   members: readonly UserId[],
   scheduledAt: Date | null,
 ): Promise<Seeded> {
-  const householdId = randomUUID() as HouseholdId;
+  const householdId = HouseholdId.of(randomUUID());
   const connectionId = randomUUID();
   const accountId = randomUUID();
   const txId = randomUUID();

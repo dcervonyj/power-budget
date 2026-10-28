@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
+import { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
 import type {
   HouseholdExportRepository,
   HouseholdExportQueuePort,
 } from '../../../domain/auth/ports.js';
 import { ExportHouseholdDataUseCase } from './ExportHouseholdDataUseCase.js';
 
-const HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000001' as HouseholdId;
-const USER_ID = '01900000-0000-7000-8000-000000000002' as UserId;
-const EXPORT_ID = '01900000-0000-7000-8000-000000000010' as HouseholdExportId;
+const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000001');
+const USER_ID = UserId.of('01900000-0000-7000-8000-000000000002');
+const EXPORT_ID = HouseholdExportId.of('01900000-0000-7000-8000-000000000010');
 
 describe('ExportHouseholdDataUseCase', () => {
   let exportRepo: ReturnType<typeof mock<HouseholdExportRepository>>;

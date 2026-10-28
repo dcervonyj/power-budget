@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdPurgeRepository } from '../../../domain/auth/ports.js';
 import { PurgeDeletedHouseholdsUseCase } from './PurgeDeletedHouseholdsUseCase.js';
 
-const H1 = '01900000-0000-7000-8000-000000000001' as HouseholdId;
-const H2 = '01900000-0000-7000-8000-000000000002' as HouseholdId;
-const H3 = '01900000-0000-7000-8000-000000000003' as HouseholdId;
-const USER = '01900000-0000-7000-8000-0000000000a1' as UserId;
+const H1 = HouseholdId.of('01900000-0000-7000-8000-000000000001');
+const H2 = HouseholdId.of('01900000-0000-7000-8000-000000000002');
+const H3 = HouseholdId.of('01900000-0000-7000-8000-000000000003');
+const USER = UserId.of('01900000-0000-7000-8000-0000000000a1');
 const NOW = new Date('2026-12-01T03:30:00Z');
 
 describe('PurgeDeletedHouseholdsUseCase', () => {

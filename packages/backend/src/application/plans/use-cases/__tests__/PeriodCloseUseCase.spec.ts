@@ -1,27 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { PlanId, HouseholdId, IsoDate, IsoDateTime, UserId } from '@power-budget/core';
+import { PlanId, HouseholdId, IsoDate, IsoDateTime, UserId } from '@power-budget/core';
 import type { Plan } from '../../../../domain/plans/entities.js';
 import type { PlanRepository } from '../../../../domain/plans/ports.js';
 import { ClosePeriodSnapshotUseCase } from '../ClosePeriodSnapshotUseCase.js';
 import { PeriodCloseFailedError, PeriodCloseUseCase } from '../PeriodCloseUseCase.js';
 
-const PLAN_ID_1 = 'plan-1' as PlanId;
-const PLAN_ID_2 = 'plan-2' as PlanId;
-const HH_ID = 'hh-1' as HouseholdId;
+const PLAN_ID_1 = PlanId.of('01900000-9df3-7cd5-8459-d2fb1d3f0b7c');
+const PLAN_ID_2 = PlanId.of('01900000-1e38-78c5-8214-74c7d1dc7342');
+const HH_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
 
 function makePlan(id: PlanId, periodEnd: IsoDate): Plan {
   return {
     id,
     householdId: HH_ID,
-    ownerUserId: 'u-1' as UserId,
+    ownerUserId: UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768'),
     name: 'Test Plan',
     type: 'personal',
     periodKind: 'monthly',
-    period: { start: '2024-01-01' as IsoDate, end: periodEnd },
+    period: { start: IsoDate.of('2024-01-01'), end: periodEnd },
     baseCurrency: 'PLN',
     archivedAt: null,
-    createdAt: '2024-01-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2024-01-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
   };
 }
 
@@ -44,11 +44,11 @@ describe('PeriodCloseUseCase', () => {
   });
 
   it('closes every plan due before the job day, stamping the snapshots with the run time', async () => {
-    const day = '2024-02-01' as IsoDate;
+    const day = IsoDate.of('2024-02-01');
     const now = new Date('2024-02-01T00:30:00Z');
     const duePlans = [
-      makePlan(PLAN_ID_1, '2024-01-31' as IsoDate),
-      makePlan(PLAN_ID_2, '2024-01-15' as IsoDate),
+      makePlan(PLAN_ID_1, IsoDate.of('2024-01-31')),
+      makePlan(PLAN_ID_2, IsoDate.of('2024-01-15')),
     ];
     vi.mocked(planRepo.findDueForClose).mockResolvedValue(duePlans);
     vi.mocked(closePeriodSnapshot.execute).mockResolvedValue(undefined);
@@ -72,7 +72,7 @@ describe('PeriodCloseUseCase', () => {
   it('uses the job day, not the processing time, to pick the plans', async () => {
     vi.mocked(planRepo.findDueForClose).mockResolvedValue([]);
 
-    await useCase.execute('2024-02-01' as IsoDate, new Date('2024-02-03T09:00:00Z'));
+    await useCase.execute(IsoDate.of('2024-02-01'), new Date('2024-02-03T09:00:00Z'));
 
     expect(planRepo.findDueForClose).toHaveBeenCalledWith('2024-02-01');
   });
@@ -80,7 +80,10 @@ describe('PeriodCloseUseCase', () => {
   it('returns plansProcessed 0 when no plan is due', async () => {
     vi.mocked(planRepo.findDueForClose).mockResolvedValue([]);
 
-    const result = await useCase.execute('2024-02-01' as IsoDate, new Date('2024-02-01T00:30:00Z'));
+    const result = await useCase.execute(
+      IsoDate.of('2024-02-01'),
+      new Date('2024-02-01T00:30:00Z'),
+    );
 
     expect(result).toEqual({ plansProcessed: 0 });
     expect(closePeriodSnapshot.execute).not.toHaveBeenCalled();
@@ -89,8 +92,8 @@ describe('PeriodCloseUseCase', () => {
   it('closes the remaining plans, then fails the job so BullMQ retries the failed one', async () => {
     const now = new Date('2024-02-01T00:30:00Z');
     const duePlans = [
-      makePlan(PLAN_ID_1, '2024-01-31' as IsoDate),
-      makePlan(PLAN_ID_2, '2024-01-31' as IsoDate),
+      makePlan(PLAN_ID_1, IsoDate.of('2024-01-31')),
+      makePlan(PLAN_ID_2, IsoDate.of('2024-01-31')),
     ];
     vi.mocked(planRepo.findDueForClose).mockResolvedValue(duePlans);
     vi.mocked(closePeriodSnapshot.execute)
@@ -98,7 +101,7 @@ describe('PeriodCloseUseCase', () => {
       .mockResolvedValueOnce(undefined);
 
     const failure = await useCase
-      .execute('2024-02-01' as IsoDate, now)
+      .execute(IsoDate.of('2024-02-01'), now)
       .catch((err: unknown) => err);
 
     expect(failure).toBeInstanceOf(PeriodCloseFailedError);

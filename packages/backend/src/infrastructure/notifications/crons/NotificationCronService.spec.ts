@@ -1,4 +1,4 @@
-import type { NotificationEventId } from '@power-budget/core';
+import { NotificationEventId } from '@power-budget/core';
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type {
@@ -34,26 +34,33 @@ function makeService(pendingIds: NotificationEventId[]): {
 describe('NotificationCronService', () => {
   it('schedules each pending outbox row once', async () => {
     const { service, queue } = makeService([
-      'n-1' as NotificationEventId,
-      'n-2' as NotificationEventId,
+      NotificationEventId.of('01900000-81f9-798c-8571-3fded10a77db'),
+      NotificationEventId.of('01900000-5b16-7bff-801e-7f18bc3813b4'),
     ]);
 
     await service.relayOutbox();
 
-    expect(queue.schedule.mock.calls).toEqual([['n-1'], ['n-2']]);
+    expect(queue.schedule.mock.calls).toEqual([
+      ['01900000-81f9-798c-8571-3fded10a77db'],
+      ['01900000-5b16-7bff-801e-7f18bc3813b4'],
+    ]);
   });
 
   it('keeps scheduling the remaining rows when one schedule fails', async () => {
     const { service, queue } = makeService([
-      'n-1' as NotificationEventId,
-      'n-2' as NotificationEventId,
-      'n-3' as NotificationEventId,
+      NotificationEventId.of('01900000-81f9-798c-8571-3fded10a77db'),
+      NotificationEventId.of('01900000-5b16-7bff-801e-7f18bc3813b4'),
+      NotificationEventId.of('01900000-b506-7e80-8d33-5ecb613c3710'),
     ]);
     queue.schedule.mockRejectedValueOnce(new Error('Queue unavailable'));
 
     await expect(service.relayOutbox()).resolves.toBeUndefined();
 
-    expect(queue.schedule.mock.calls).toEqual([['n-1'], ['n-2'], ['n-3']]);
+    expect(queue.schedule.mock.calls).toEqual([
+      ['01900000-81f9-798c-8571-3fded10a77db'],
+      ['01900000-5b16-7bff-801e-7f18bc3813b4'],
+      ['01900000-b506-7e80-8d33-5ecb613c3710'],
+    ]);
   });
 
   it('runs the weekly digest in the Europe/Warsaw zone', async () => {

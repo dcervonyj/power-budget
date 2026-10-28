@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { HouseholdId, TransactionId, UserId } from '@power-budget/core';
+import { HouseholdId, TransactionId, UserId } from '@power-budget/core';
 import { DrizzleTransactionRepository } from '../DrizzleTransactionRepository.js';
 import { NO_BANK_DETAILS } from '../../../domain/transactions/entities.js';
+import { testUuid } from '../../../test/doubles/testUuid.js';
 
 const BASE_ROW = {
-  id: 'new-id' as TransactionId,
-  householdId: 'h-1' as HouseholdId,
+  id: TransactionId.of('01900000-5c5d-7e7d-8413-10854ca054d0'),
+  householdId: HouseholdId.of('01900000-3a12-768a-84e1-7ff1aae8835b'),
   accountId: 'acc-1' as import('@power-budget/core').BankAccountId,
   externalId: 'ext-123',
   occurredOn: '2024-01-01' as import('@power-budget/core').IsoDate,
@@ -19,7 +20,7 @@ const BASE_ROW = {
   ignored: false,
 };
 
-const OWNER = '00000000-0000-7000-8000-000000000001' as UserId;
+const OWNER = UserId.of('00000000-0000-7000-8000-000000000001');
 
 describe('DrizzleTransactionRepository', () => {
   it('returns null when findById gets no rows', async () => {
@@ -39,8 +40,8 @@ describe('DrizzleTransactionRepository', () => {
     };
 
     const repo = new DrizzleTransactionRepository(mockDb as never);
-    const result = await repo.findById('tx-1' as TransactionId, {
-      householdId: 'h-1' as HouseholdId,
+    const result = await repo.findById(TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f'), {
+      householdId: HouseholdId.of('01900000-3a12-768a-84e1-7ff1aae8835b'),
     });
 
     expect(result).toBeNull();
@@ -49,7 +50,7 @@ describe('DrizzleTransactionRepository', () => {
   function bankRow(id: string, externalId: string) {
     return {
       ...BASE_ROW,
-      id: id as TransactionId,
+      id: TransactionId.of(testUuid(id)),
       externalId,
     };
   }

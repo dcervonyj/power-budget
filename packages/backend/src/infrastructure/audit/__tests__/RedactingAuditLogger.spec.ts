@@ -3,10 +3,10 @@ import { mock } from 'vitest-mock-extended';
 import type { AuditLogger } from '../../../domain/audit/ports.js';
 import type { NewAuditEvent } from '../../../domain/audit/entities.js';
 import { REDACTED, RedactingAuditLogger } from '../RedactingAuditLogger.js';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 
-const HOUSEHOLD_ID = 'hh-1' as HouseholdId;
-const ACTOR_ID = 'user-1' as UserId;
+const HOUSEHOLD_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const ACTOR_ID = UserId.of('01900000-9dff-7fe4-8508-52c20c8876f6');
 
 function makeEvent(meta: Record<string, unknown>): NewAuditEvent {
   return {

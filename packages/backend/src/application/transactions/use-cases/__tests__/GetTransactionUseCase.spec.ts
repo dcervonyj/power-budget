@@ -12,11 +12,11 @@ import type {
   TransactionMapping,
   Transfer,
 } from '../../../../domain/transactions/entities.js';
-import type { TransactionId, HouseholdId, UserId } from '@power-budget/core';
+import { TransactionId, HouseholdId, UserId } from '@power-budget/core';
 
-const txId = 'tx-1' as unknown as TransactionId;
-const householdId = 'hh-1' as unknown as HouseholdId;
-const viewer = 'user-1' as unknown as UserId;
+const txId = TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f');
+const householdId = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const viewer = UserId.of('01900000-9dff-7fe4-8508-52c20c8876f6');
 
 const fakeTx = { id: txId, householdId } as unknown as Transaction;
 const fakeMapping = { id: 'mapping-1', transactionId: txId } as unknown as TransactionMapping;

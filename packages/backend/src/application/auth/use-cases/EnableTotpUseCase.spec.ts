@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId } from '@power-budget/core';
+import { UserId } from '@power-budget/core';
 import type { UserRepository } from '../../../domain/auth/ports.js';
 import { EnableTotpUseCase } from './EnableTotpUseCase.js';
 import { UserNotFoundError } from '../../../domain/auth/errors.js';
 import type { User } from '../../../domain/auth/entities.js';
 import type { TotpAuthenticator } from '../services/TotpAuthenticator.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 
 function makeUser(): User {
   return {

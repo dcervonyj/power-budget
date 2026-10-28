@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, PlannedItemId, UserId, MerchantRuleId } from '@power-budget/core';
+import { HouseholdId, PlannedItemId, UserId, MerchantRuleId } from '@power-budget/core';
 import { IsoDate, Money } from '@power-budget/core';
 import { SuggestFromMerchantRulesUseCase } from './SuggestFromMerchantRulesUseCase.js';
 import type { MerchantRule } from '../../domain/categorisation/entities.js';
@@ -13,9 +13,9 @@ import type {
   TransactionSuggestionFields,
 } from '../../domain/transactions/entities.js';
 
-const household = 'hh-1' as HouseholdId;
-const owner = 'u-1' as UserId;
-const hintItem = 'item-hint' as PlannedItemId;
+const household = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const owner = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
+const hintItem = PlannedItemId.of('01900000-4887-725c-8516-662967c45e4c');
 
 const WEAK_HINT: TransactionSuggestionFields = {
   suggestedPlannedItemId: hintItem,
@@ -43,7 +43,12 @@ function useCaseWith(
 ): SuggestFromMerchantRulesUseCase {
   const rules = mock<MerchantRuleRepository>();
   rules.findMatching.mockResolvedValue([
-    mock<MerchantRule>({ id: 'r1' as MerchantRuleId, alwaysAsk: false, hits, planKindPref: null }),
+    mock<MerchantRule>({
+      id: MerchantRuleId.of('01900000-5573-7e39-8b66-00496d40f493'),
+      alwaysAsk: false,
+      hits,
+      planKindPref: null,
+    }),
   ]);
   const items = mock<PlannedItemResolver>();
   items.resolveActive.mockResolvedValue(resolved === null ? null : { plannedItemId: resolved });
@@ -62,11 +67,10 @@ describe('SuggestFromMerchantRulesUseCase over a weak planned hint (AI-004)', ()
   });
 
   it('keeps the hint when the rule is not more confident than the hint', async () => {
-    const [result] = await useCaseWith(1, 'item-rule' as PlannedItemId).suggest(
-      [row()],
-      owner,
-      household,
-    );
+    const [result] = await useCaseWith(
+      1,
+      PlannedItemId.of('01900000-56f7-768d-804b-f5a2bc0a6fa6'),
+    ).suggest([row()], owner, household);
 
     expect(result?.suggestion).toMatchObject({
       suggestionSource: 'planned_hint',
@@ -75,14 +79,13 @@ describe('SuggestFromMerchantRulesUseCase over a weak planned hint (AI-004)', ()
   });
 
   it('replaces the hint with a rule that resolves to a planned item with higher confidence', async () => {
-    const [result] = await useCaseWith(3, 'item-rule' as PlannedItemId).suggest(
-      [row()],
-      owner,
-      household,
-    );
+    const [result] = await useCaseWith(
+      3,
+      PlannedItemId.of('01900000-56f7-768d-804b-f5a2bc0a6fa6'),
+    ).suggest([row()], owner, household);
 
     expect(result?.suggestion).toMatchObject({
-      suggestedPlannedItemId: 'item-rule',
+      suggestedPlannedItemId: '01900000-56f7-768d-804b-f5a2bc0a6fa6',
       suggestionSource: 'merchant_rule',
       autoMapped: false,
     });
