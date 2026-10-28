@@ -10,14 +10,9 @@ import '../../design-tokens/dist/glass.css';
 import { IntlProvider } from 'react-intl';
 import { AppProviders } from './AppProviders.js';
 import { AppCrashFallback } from './presentation/shell/AppCrashFallback.js';
-import { reloadOnStaleChunk } from './infrastructure/reloadOnStaleChunk.js';
+import { staleChunkRecovery } from './infrastructure/lazyChunk.js';
 
-reloadOnStaleChunk({
-  addEventListener: (type, listener) => window.addEventListener(type, listener),
-  location: window.location,
-  sessionStorage: () => window.sessionStorage,
-  now: () => Date.now(),
-});
+staleChunkRecovery.install();
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,

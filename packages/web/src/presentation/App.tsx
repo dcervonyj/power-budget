@@ -1,4 +1,5 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
+import { lazyChunk } from '../infrastructure/lazyChunk.js';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import { RequireAuth } from './guards/RequireAuth.js';
@@ -12,76 +13,76 @@ import { AppearanceSettings } from './shell/AppearanceSettings.js';
 import { AuthLayout } from './shell/AuthLayout.js';
 
 // Auth screens — lazy loaded
-const LoginScreen = lazy(() =>
+const LoginScreen = lazyChunk(() =>
   import('./screens/auth/LoginScreen.js').then((m) => ({ default: m.LoginScreen })),
 );
-const RegisterScreen = lazy(() =>
+const RegisterScreen = lazyChunk(() =>
   import('./screens/auth/RegisterScreen.js').then((m) => ({ default: m.RegisterScreen })),
 );
-const MagicLinkScreen = lazy(() =>
+const MagicLinkScreen = lazyChunk(() =>
   import('./screens/auth/MagicLinkScreen.js').then((m) => ({ default: m.MagicLinkScreen })),
 );
-const TotpEnrollmentScreen = lazy(() =>
+const TotpEnrollmentScreen = lazyChunk(() =>
   import('./screens/auth/TotpEnrollmentScreen.js').then((m) => ({
     default: m.TotpEnrollmentScreen,
   })),
 );
-const BankConsentCallbackScreen = lazy(() =>
+const BankConsentCallbackScreen = lazyChunk(() =>
   import('./screens/auth/BankConsentCallbackScreen.js').then((m) => ({
     default: m.BankConsentCallbackScreen,
   })),
 );
 
 // Onboarding screen — lazy loaded
-const OnboardingScreen = lazy(() =>
+const OnboardingScreen = lazyChunk(() =>
   import('./screens/onboarding/OnboardingScreen.js').then((m) => ({
     default: m.OnboardingScreen,
   })),
 );
 
 // App screens — lazy loaded
-const DashboardScreen = lazy(() =>
+const DashboardScreen = lazyChunk(() =>
   import('./screens/app/DashboardScreen.js').then((m) => ({ default: m.DashboardScreen })),
 );
-const TransactionDetailScreen = lazy(() =>
+const TransactionDetailScreen = lazyChunk(() =>
   import('./screens/app/TransactionDetailScreen.js').then((m) => ({
     default: m.TransactionDetailScreen,
   })),
 );
-const PlansListScreen = lazy(() =>
+const PlansListScreen = lazyChunk(() =>
   import('./screens/app/PlansListScreen.js').then((m) => ({ default: m.PlansListScreen })),
 );
-const PlanEditorScreen = lazy(() =>
+const PlanEditorScreen = lazyChunk(() =>
   import('./screens/app/PlanEditorScreen.js').then((m) => ({ default: m.PlanEditorScreen })),
 );
-const PlanDashboardScreen = lazy(() =>
+const PlanDashboardScreen = lazyChunk(() =>
   import('./screens/app/PlanDashboardScreen.js').then((m) => ({
     default: m.PlanDashboardScreen,
   })),
 );
-const BankConnectionsScreen = lazy(() =>
+const BankConnectionsScreen = lazyChunk(() =>
   import('./screens/app/BankConnectionsScreen.js').then((m) => ({
     default: m.BankConnectionsScreen,
   })),
 );
-const AddBankConnectionScreen = lazy(() =>
+const AddBankConnectionScreen = lazyChunk(() =>
   import('./screens/app/AddBankConnectionScreen.js').then((m) => ({
     default: m.AddBankConnectionScreen,
   })),
 );
-const CategoriesScreen = lazy(() =>
+const CategoriesScreen = lazyChunk(() =>
   import('./screens/app/CategoriesScreen.js').then((m) => ({ default: m.CategoriesScreen })),
 );
-const HouseholdScreen = lazy(() =>
+const HouseholdScreen = lazyChunk(() =>
   import('./screens/app/HouseholdScreen.js').then((m) => ({ default: m.HouseholdScreen })),
 );
-const SettingsScreen = lazy(() =>
+const SettingsScreen = lazyChunk(() =>
   import('./screens/app/SettingsScreen.js').then((m) => ({ default: m.SettingsScreen })),
 );
-const AcceptInviteScreen = lazy(() =>
+const AcceptInviteScreen = lazyChunk(() =>
   import('./screens/app/AcceptInviteScreen.js').then((m) => ({ default: m.AcceptInviteScreen })),
 );
-const AuditLogScreen = lazy(() =>
+const AuditLogScreen = lazyChunk(() =>
   import('./screens/app/AuditLogScreen.js').then((m) => ({ default: m.AuditLogScreen })),
 );
 

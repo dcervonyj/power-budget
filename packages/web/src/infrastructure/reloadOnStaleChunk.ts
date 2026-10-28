@@ -1,47 +1,60 @@
 export const RELOAD_FLAG_KEY = 'pb_chunk_reload';
-export const RELOAD_COOLDOWN_MS = 30_000;
 
 export interface StaleChunkTarget {
   addEventListener(type: 'vite:preloadError', listener: (event: Event) => void): void;
   location: { reload(): void };
   /** May throw (storage disabled or blocked); the guard treats that as "cannot persist". */
-  sessionStorage(): Pick<Storage, 'getItem' | 'setItem'>;
-  now(): number;
+  sessionStorage(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
 }
 
 /**
- * Reload guard, one rule: the time of the last automatic reload is kept in sessionStorage,
- * whatever the build, and a vite:preloadError triggers a reload only if no reload happened in
- * the last RELOAD_COOLDOWN_MS.
- *  (a) A failure that survives a reload (same or new build) arrives inside the cooldown, so it
- *      is left to the error boundary: at most one automatic reload per failure, never a loop.
- *  (b) A later deploy in a long-lived tab fails after the cooldown and reloads again.
- *  (c) Storage that is unavailable or throws is caught: without a persisted guard we do not
- *      reload (a loop could not be prevented) and the error goes to the boundary. Nothing
- *      here touches storage at start-up, so the app always boots.
+ * Reload guard, one rule, driven by a recovery signal and no timers:
+ *  - When we reload automatically we first set the guard (sessionStorage, no build id).
+ *  - While the guard is set, every vite:preloadError goes to the error boundary: no reload,
+ *    whatever the build. So a failure that survives a reload (same or new build, however slow
+ *    the retry) never causes a second reload: at most one automatic reload per failure.
+ *  - The guard is cleared only by a positive signal that chunks load again: a successful lazy
+ *    chunk import (see lazyChunk) calls chunkLoaded(). A later deploy in a long-lived tab
+ *    therefore recovers with one more reload.
+ *  - Storage is only touched inside try/catch, lazily. If it throws we cannot persist the
+ *    guard, so we do not reload (the boundary shows Reload) and the app still starts.
  */
-export function reloadOnStaleChunk(target: StaleChunkTarget): void {
-  target.addEventListener('vite:preloadError', (event) => {
-    const now = target.now();
-    if (!claimReload(target, now)) {
-      return;
-    }
-    event.preventDefault();
-    target.location.reload();
-  });
-}
+export class StaleChunkRecovery {
+  constructor(private readonly target: StaleChunkTarget) {}
 
-function claimReload(target: StaleChunkTarget, now: number): boolean {
-  try {
-    const storage = target.sessionStorage();
-    const last = Number(storage.getItem(RELOAD_FLAG_KEY));
-    if (now - last < RELOAD_COOLDOWN_MS) {
+  install(): void {
+    this.target.addEventListener('vite:preloadError', (event) => {
+      if (!this.claimReload()) {
+        return;
+      }
+      event.preventDefault();
+      this.target.location.reload();
+    });
+  }
+
+  /** A lazy chunk loaded fine: the reload (if any) has recovered. */
+  chunkLoaded(): void {
+    try {
+      const storage = this.target.sessionStorage();
+      if (storage.getItem(RELOAD_FLAG_KEY) !== null) {
+        storage.removeItem(RELOAD_FLAG_KEY);
+      }
+    } catch {
+      // Storage unavailable: there is no guard to clear.
+    }
+  }
+
+  private claimReload(): boolean {
+    try {
+      const storage = this.target.sessionStorage();
+      if (storage.getItem(RELOAD_FLAG_KEY) !== null) {
+        return false;
+      }
+      storage.setItem(RELOAD_FLAG_KEY, '1');
+
+      return true;
+    } catch {
       return false;
     }
-    storage.setItem(RELOAD_FLAG_KEY, String(now));
-
-    return true;
-  } catch {
-    return false;
   }
 }

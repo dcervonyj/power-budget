@@ -1,17 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  reloadOnStaleChunk,
-  RELOAD_COOLDOWN_MS,
+  StaleChunkRecovery,
   RELOAD_FLAG_KEY,
   type StaleChunkTarget,
 } from '../reloadOnStaleChunk.js';
 
 function setup(overrides: Partial<StaleChunkTarget> = {}) {
   const store = new Map<string, string>();
-  const clock = { value: 1_000_000 };
   const reload = vi.fn();
   let listener: (event: Event) => void = () => undefined;
-  reloadOnStaleChunk({
+  const recovery = new StaleChunkRecovery({
     addEventListener: (_type, fn) => {
       listener = fn;
     },
@@ -19,80 +17,91 @@ function setup(overrides: Partial<StaleChunkTarget> = {}) {
     sessionStorage: () => ({
       getItem: (key) => store.get(key) ?? null,
       setItem: (key, value) => void store.set(key, value),
+      removeItem: (key) => void store.delete(key),
     }),
-    now: () => clock.value,
     ...overrides,
   });
+  recovery.install();
 
   return {
     reload,
     store,
-    clock,
+    recovery,
     fire: () => listener(new Event('vite:preloadError', { cancelable: true })),
   };
 }
 
-describe('reloadOnStaleChunk', () => {
-  it('reloads on the first preload error and records the time', () => {
+const throwingStorage = (): never => {
+  throw new Error('SecurityError');
+};
+
+describe('StaleChunkRecovery', () => {
+  it('reloads on the first preload error and sets the guard', () => {
     const { reload, store, fire } = setup();
 
     fire();
 
     expect(reload).toHaveBeenCalledTimes(1);
-    expect(store.get(RELOAD_FLAG_KEY)).toBe('1000000');
+    expect(store.get(RELOAD_FLAG_KEY)).toBe('1');
   });
 
-  describe('(a) never a loop', () => {
-    it('does not reload again for a failure right after the reload', () => {
-      const { reload, clock, fire } = setup();
+  it('persistent failure across a slow retry never reloads twice', () => {
+    const { reload, fire } = setup();
 
-      fire();
-      clock.value += RELOAD_COOLDOWN_MS - 1;
-      fire();
+    fire();
+    vi.useFakeTimers();
+    vi.advanceTimersByTime(10 * 60_000);
+    fire();
+    vi.useRealTimers();
 
-      expect(reload).toHaveBeenCalledTimes(1);
-    });
-
-    it('holds across a build change: the guard is the stored time, not a build id', () => {
-      const { reload, store, clock, fire } = setup();
-      store.set(RELOAD_FLAG_KEY, String(clock.value - 1000));
-
-      fire();
-
-      expect(reload).not.toHaveBeenCalled();
-    });
+    expect(reload).toHaveBeenCalledTimes(1);
   });
 
-  describe('(b) later deploy in a long-lived tab', () => {
-    it('reloads again once the cooldown has passed', () => {
-      const { reload, clock, fire } = setup();
+  it('a failure on the new build after an old-build reload does not reload twice', () => {
+    const first = setup();
+    first.fire();
+    const newBuild = setup();
+    newBuild.store.set(RELOAD_FLAG_KEY, '1');
 
-      fire();
-      clock.value += RELOAD_COOLDOWN_MS;
-      fire();
+    newBuild.fire();
 
-      expect(reload).toHaveBeenCalledTimes(2);
-    });
+    expect(first.reload).toHaveBeenCalledTimes(1);
+    expect(newBuild.reload).not.toHaveBeenCalled();
   });
 
-  describe('(c) unavailable sessionStorage', () => {
-    it('registers without touching storage, so the app can start', () => {
-      const sessionStorage = vi.fn(() => {
-        throw new Error('SecurityError');
-      });
+  it('after a successful chunk load a later stale chunk reloads once', () => {
+    const { reload, store, recovery, fire } = setup();
+    fire();
+
+    recovery.chunkLoaded();
+    expect(store.has(RELOAD_FLAG_KEY)).toBe(false);
+    fire();
+    fire();
+
+    expect(reload).toHaveBeenCalledTimes(2);
+  });
+
+  it('a chunk load without a prior reload leaves storage untouched', () => {
+    const { store, recovery } = setup();
+
+    recovery.chunkLoaded();
+
+    expect(store.size).toBe(0);
+  });
+
+  describe('throwing sessionStorage', () => {
+    it('does not touch storage while starting, so the app starts', () => {
+      const sessionStorage = vi.fn(throwingStorage);
 
       expect(() => setup({ sessionStorage })).not.toThrow();
       expect(sessionStorage).not.toHaveBeenCalled();
     });
 
-    it('does not reload or throw when storage throws, leaving the error to the boundary', () => {
-      const { reload, fire } = setup({
-        sessionStorage: () => {
-          throw new Error('SecurityError');
-        },
-      });
+    it('does not reload or throw on a preload error, nor on a chunk load', () => {
+      const { reload, recovery, fire } = setup({ sessionStorage: throwingStorage });
 
       expect(() => fire()).not.toThrow();
+      expect(() => recovery.chunkLoaded()).not.toThrow();
       expect(reload).not.toHaveBeenCalled();
     });
   });
