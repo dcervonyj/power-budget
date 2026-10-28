@@ -37,6 +37,15 @@ describe('NotificationCronService', () => {
     expect(queue.schedule.mock.calls).toEqual([['n-1'], ['n-2']]);
   });
 
+  it('keeps scheduling the remaining rows when one schedule fails', async () => {
+    const { service, queue } = makeService(['n-1', 'n-2', 'n-3']);
+    queue.schedule.mockRejectedValueOnce(new Error('Queue unavailable'));
+
+    await expect(service.relayOutbox()).resolves.toBeUndefined();
+
+    expect(queue.schedule.mock.calls).toEqual([['n-1'], ['n-2'], ['n-3']]);
+  });
+
   it('runs the weekly digest in the Europe/Warsaw zone', async () => {
     const { service, digest } = makeService([]);
 
