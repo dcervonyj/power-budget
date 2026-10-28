@@ -20,7 +20,8 @@
   "add.save.empty": "Wpisz kwotę",
   "add.save.saving": "Zapisywanie…",
   "add.saved.title": "Dodano",
-  "add.saved.unsorted": "Zapisano, ale nie dodano do kategorii {category}. Znajdziesz to w Do sortowania.",
+  "add.saved.unsorted": "Zapisano, ale jeszcze nie dodano do kategorii {category}.",
+  "add.retryCategory": "Ponów kategorię",
   "add.saved.line": "{amount} · {category}",
   "add.saved.safe": "Bezpiecznie do wydania dziś jest teraz {amount} dziennie.",
   "add.undo": "Cofnij",
@@ -28,6 +29,7 @@
   "add.today": "Wróć do Dziś",
   "add.empty.noPlan": "Brak aktywnego planu",
   "add.error.refresh": "Nie udało się odświeżyć planu. Spróbuj ponownie.",
+  "add.error.category": "Nie udało się przypisać kategorii. Spróbuj ponownie.",
   "add.error.load": "Nie udało się wczytać planu. Spróbuj ponownie.",
   "add.error.save": "Nie udało się zapisać wydatku. Spróbuj ponownie.",
   "add.error.undo": "Nie udało się cofnąć wydatku. Spróbuj ponownie."

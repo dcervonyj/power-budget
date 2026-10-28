@@ -2,6 +2,7 @@ import type { HttpClient } from '@power-budget/shared-app/infrastructure';
 import type {
   AccountDto,
   AddManualTransactionDto,
+  TransactionDetailDto,
   TransactionDto,
 } from '@power-budget/shared-app/contract';
 
@@ -39,6 +40,13 @@ export class AddExpenseApi {
     const res = await this.http.post<TransactionDto>('/transactions', body);
 
     return res.data;
+  }
+
+  /** The planned item the server has the transaction mapped to, or null when it is unmapped. */
+  async mappedTo(transactionId: string): Promise<string | null> {
+    const res = await this.http.get<TransactionDetailDto>(`/transactions/${transactionId}`);
+
+    return res.data.mapping === null ? null : res.data.mapping.plannedItemId;
   }
 
   async map(transactionId: string, plannedItemId: string): Promise<void> {

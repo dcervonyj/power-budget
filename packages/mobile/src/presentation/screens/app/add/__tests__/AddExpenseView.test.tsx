@@ -30,6 +30,7 @@ function props(overrides: Partial<AddExpenseViewProps> = {}): AddExpenseViewProp
     onUndo: jest.fn(),
     onAddAnother: jest.fn(),
     onRetryRefresh: jest.fn(),
+    onRetryCategory: jest.fn(),
     onBackToToday: jest.fn(),
     ...overrides,
   };

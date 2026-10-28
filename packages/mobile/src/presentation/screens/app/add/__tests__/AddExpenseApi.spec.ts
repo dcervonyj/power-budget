@@ -84,4 +84,15 @@ describe('AddExpenseApi', () => {
     expect(accounts).toHaveLength(1);
     expect(http.calls).toEqual([{ method: 'GET', url: '/accounts' }]);
   });
+
+  it('reads the mapping a transaction has on the server', async () => {
+    const http = new RecordingHttpClient();
+    http.respondWith({ transaction: { id: 'tx-1' }, mapping: { plannedItemId: 'item-groceries' } });
+    http.respondWith({ transaction: { id: 'tx-2' }, mapping: null });
+    const api = new AddExpenseApi(http);
+
+    expect(await api.mappedTo('tx-1')).toBe('item-groceries');
+    expect(await api.mappedTo('tx-2')).toBeNull();
+    expect(http.calls[0]).toEqual({ method: 'GET', url: '/transactions/tx-1' });
+  });
 });

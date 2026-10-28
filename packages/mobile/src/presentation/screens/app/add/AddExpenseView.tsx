@@ -50,6 +50,8 @@ export interface AddExpenseViewProps {
   readonly onAddAnother: () => void;
   /** Retries the totals read that failed after Add another or Undo. */
   readonly onRetryRefresh: () => void;
+  /** Re-sends only the category of an expense that is already saved. */
+  readonly onRetryCategory: () => void;
   readonly onBackToToday: () => void;
 }
 
@@ -126,6 +128,7 @@ export function AddExpenseView(props: AddExpenseViewProps): React.JSX.Element {
     props.status !== 'saved' &&
     props.status !== 'refreshing' &&
     props.status !== 'undoing' &&
+    props.status !== 'mapping' &&
     props.status !== 'stale';
   const stale = props.status === 'stale';
 
@@ -447,7 +450,8 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
   const styles = useStyles();
   const intl = useIntl();
   const amount = money({ amountMinor: props.amountMinor, currency: props.currency }, intl);
-  const refreshing = props.status === 'refreshing' || props.status === 'undoing';
+  const refreshing =
+    props.status === 'refreshing' || props.status === 'undoing' || props.status === 'mapping';
 
   return (
     <View style={styles.actions}>
@@ -464,15 +468,20 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
             )}
           </Text>
           {props.unsorted ? (
-            <Text style={styles.savedLine}>
-              {intl.formatMessage(
-                {
-                  id: 'add.saved.unsorted',
-                  defaultMessage: 'Saved, but not added to {category}. Find it in To sort.',
-                },
-                { category: props.category?.name ?? '' },
-              )}
-            </Text>
+            <>
+              <Text style={styles.savedLine}>
+                {intl.formatMessage(
+                  {
+                    id: 'add.saved.unsorted',
+                    defaultMessage: 'Saved, but not added to {category} yet.',
+                  },
+                  { category: props.category?.name ?? '' },
+                )}
+              </Text>
+              <Button variant="secondary" onPress={props.onRetryCategory} disabled={refreshing}>
+                {intl.formatMessage({ id: 'add.retryCategory', defaultMessage: 'Retry category' })}
+              </Button>
+            </>
           ) : null}
           {props.impact === null ? null : (
             <Text style={styles.savedLine}>

@@ -8,6 +8,7 @@ import type {
 } from '@power-budget/shared-app/contract';
 import { renderAdd } from './renderAdd.js';
 import { AddExpenseScreen } from '../../AddExpenseScreen.js';
+import { pendingCategory } from '../addExpenseRecovery.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -78,7 +79,14 @@ describe('AddExpenseScreen', () => {
     mockPlansList.mockResolvedValue([PLAN]);
     mockDashboard.mockResolvedValue(DASHBOARD);
     mockCategoriesList.mockResolvedValue([{ id: 'cat-groceries', name: 'Groceries' }]);
-    mockGet.mockResolvedValue({ data: [ACCOUNT] });
+    mockGet.mockImplementation((url: string) =>
+      Promise.resolve(
+        url === '/accounts'
+          ? { data: [ACCOUNT] }
+          : { data: { transaction: { id: 'tx-1' }, mapping: null } },
+      ),
+    );
+    pendingCategory.current = null;
     mockPost.mockResolvedValue({ data: { id: 'tx-1' } });
     mockPatch.mockResolvedValue({ data: {} });
   });
@@ -169,7 +177,7 @@ describe('AddExpenseScreen', () => {
     await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
 
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
-    expect(screen.getByText('Saved, but not added to Groceries. Find it in To sort.')).toBeTruthy();
+    expect(screen.getByText('Saved, but not added to Groceries yet.')).toBeTruthy();
     expect(screen.queryByText('Could not save the expense. Try again.')).toBeNull();
     expect(mockPost).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('button', { name: /^Add PLN 5\.00/ })).toBeNull();
@@ -392,5 +400,73 @@ describe('AddExpenseScreen', () => {
     await userEvent.setup().press(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     expect(mockDashboard).toHaveBeenCalledTimes(3);
+  });
+
+  async function saveWithFailedMapping() {
+    mockPatch.mockRejectedValueOnce(new Error('offline'));
+    const rendered = await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+
+    return rendered;
+  }
+
+  it('R2b-F2: a partly saved expense is still shown after leaving and reopening, and is not created again', async () => {
+    const first = await saveWithFailedMapping();
+    await act(async () => first.unmount());
+    await renderAdd(<AddExpenseScreen />);
+
+    await waitFor(() =>
+      expect(screen.getByText('Saved, but not added to Groceries yet.')).toBeTruthy(),
+    );
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Retry category' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Saved, but not added to Groceries yet.')).toBeNull(),
+    );
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPatch).toHaveBeenLastCalledWith('/transactions/tx-1/mapping', {
+      plannedItemId: 'item-groceries',
+    });
+  });
+
+  it('R2b-F3: Retry category re-sends only the mapping in place and reports a failed retry', async () => {
+    await saveWithFailedMapping();
+    mockPatch.mockRejectedValueOnce(new Error('offline'));
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Retry category' }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Could not apply the category. Try again.')).toBeTruthy(),
+    );
+    expect(screen.getByRole('button', { name: 'Retry category' })).toBeTruthy();
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Retry category' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Retry category' })).toBeNull(),
+    );
+    expect(mockPost).toHaveBeenCalledTimes(1);
+    expect(mockPatch).toHaveBeenCalledTimes(3);
+  });
+
+  it('R2b-F4: a lost mapping response is not reported as unsorted when the server has the mapping', async () => {
+    mockGet.mockImplementation((url: string) =>
+      Promise.resolve(
+        url === '/accounts'
+          ? { data: [ACCOUNT] }
+          : {
+              data: {
+                transaction: { id: 'tx-1' },
+                mapping: { plannedItemId: 'item-groceries' },
+              },
+            },
+      ),
+    );
+
+    await saveWithFailedMapping();
+
+    expect(mockGet).toHaveBeenCalledWith('/transactions/tx-1');
+    expect(screen.queryByText('Saved, but not added to Groceries yet.')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Retry category' })).toBeNull();
   });
 });

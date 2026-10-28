@@ -11,6 +11,7 @@ import type {
 } from '@power-budget/shared-app/contract';
 import { buildAddExpenseData, UNPLANNED_ID } from './addExpenseData.js';
 import type { AddExpenseData } from './addExpenseData.js';
+import { pendingCategory } from './addExpenseRecovery.js';
 import { typedAmountMinor } from './addExpenseImpact.js';
 import type { AddExpenseStatus } from './addExpenseModel.js';
 import type { AddExpenseApi, NewExpense } from './AddExpenseApi.js';
@@ -47,6 +48,7 @@ export interface AddExpenseState {
   readonly undo: () => void;
   readonly addAnother: () => void;
   readonly retryRefresh: () => void;
+  readonly retryCategory: () => void;
 }
 
 /** Loads the plan, categories and accounts, and runs save / undo / add another. */
@@ -73,6 +75,23 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     defaultMessage: 'Unplanned',
   });
 
+  /** Reopening Add expense after leaving with a half-saved expense shows it again, not a blank form. */
+  const restorePending = useCallback(
+    (data: AddExpenseData) => {
+      const pending = pendingCategory.current;
+      if (pending === null || !data.categories.some((option) => option.id === pending.categoryId)) {
+        return;
+      }
+      setTypedRaw(pending.typed);
+      setCategoryIdRaw(pending.categoryId);
+      setAccountIdRaw(pending.accountId);
+      setSavedId(pending.transactionId);
+      setUnsorted(true);
+      changeStatus('saved');
+    },
+    [changeStatus],
+  );
+
   useEffect(() => {
     let active = true;
     setLoad({ kind: 'loading' });
@@ -85,6 +104,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         if (next.kind === 'ready') {
           setCategoryIdRaw(next.data.categories[0]?.id ?? UNPLANNED_ID);
           setAccountIdRaw(next.data.accounts[0]?.id ?? '');
+          restorePending(next.data);
         }
       },
       () => {
@@ -97,7 +117,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     return () => {
       active = false;
     };
-  }, [sources, unplannedName, attempt]);
+  }, [sources, unplannedName, attempt, restorePending]);
 
   const reload = useCallback(() => {
     setAttempt((current) => current + 1);
@@ -149,6 +169,9 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       plannedItemId: category.plannedItemId,
     }).then(
       (result) => {
+        pendingCategory.current = result.mapped
+          ? null
+          : { transactionId: result.id, typed, categoryId, accountId };
         setSavedId(result.id);
         setUnsorted(!result.mapped);
         changeStatus('saved');
@@ -213,6 +236,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         if (resetAmount) {
           setTypedRaw('');
         }
+        pendingCategory.current = null;
         setSavedId(null);
         setUnsorted(false);
         changeStatus('editing');
@@ -229,6 +253,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     changeStatus('undoing');
     void sources.api.undo(savedId).then(
       () => {
+        pendingCategory.current = null;
         refreshThenEdit(false);
       },
       () => {
@@ -260,6 +285,36 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     }
     refreshThenEdit(true);
   }, [refreshThenEdit, status]);
+
+  const retryCategory = useCallback(() => {
+    if (statusRef.current !== 'saved' || savedId === null || load.kind !== 'ready') {
+      return;
+    }
+    const plannedItemId = load.data.categories.find(
+      (option) => option.id === categoryId,
+    )?.plannedItemId;
+    if (plannedItemId === undefined || plannedItemId === null) {
+      return;
+    }
+    setError(null);
+    changeStatus('mapping');
+    void sources.api.map(savedId, plannedItemId).then(
+      () => {
+        pendingCategory.current = null;
+        setUnsorted(false);
+        changeStatus('saved');
+      },
+      () => {
+        setError(
+          intl.formatMessage({
+            id: 'add.error.category',
+            defaultMessage: 'Could not apply the category. Try again.',
+          }),
+        );
+        changeStatus('saved');
+      },
+    );
+  }, [categoryId, changeStatus, intl, load, savedId, sources.api]);
 
   const retryRefresh = useCallback(() => {
     if (status !== 'stale') {
@@ -310,6 +365,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     undo,
     addAnother,
     retryRefresh,
+    retryCategory,
   };
 }
 
@@ -340,8 +396,8 @@ interface Persisted {
 }
 
 /**
- * Creates the transaction once. If only the mapping fails the expense is already saved: it is
- * left as an uncategorized transaction (the To sort list shows it) and is never posted again.
+ * Creates the transaction once. If only the mapping fails the expense is already saved and is
+ * never posted again; Retry category re-sends the (idempotent) mapping for the same id.
  */
 async function persist(api: AddExpenseApi, expense: NewExpense): Promise<Persisted> {
   const transaction = await api.create(expense);
@@ -351,10 +407,26 @@ async function persist(api: AddExpenseApi, expense: NewExpense): Promise<Persist
   try {
     await api.map(transaction.id, expense.plannedItemId);
   } catch {
-    return { id: transaction.id, mapped: false };
+    return {
+      id: transaction.id,
+      mapped: await mappedOnServer(api, transaction.id, expense.plannedItemId),
+    };
   }
 
   return { id: transaction.id, mapped: true };
+}
+
+/** A lost mapping response may still have been applied, so ask the server before saying it was not. */
+async function mappedOnServer(
+  api: AddExpenseApi,
+  transactionId: string,
+  plannedItemId: string,
+): Promise<boolean> {
+  try {
+    return (await api.mappedTo(transactionId)) === plannedItemId;
+  } catch {
+    return false;
+  }
 }
 
 function refreshError(intl: IntlShape): string {
