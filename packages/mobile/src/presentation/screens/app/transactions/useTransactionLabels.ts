@@ -43,6 +43,7 @@ export interface TransactionLabels {
   pickerEmpty(): string;
   pickerError(): string;
   categoryError(): string;
+  transferUnresolved(): string;
   statusTransfer(): string;
   statusToSort(): string;
   sourceBank(): string;
@@ -152,6 +153,8 @@ export function useTransactionLabels(): TransactionLabels {
     saveError: () => text('tx.detail.saveError', 'Could not save.'),
     mappingError: () => text('tx.detail.mappingError', 'Could not change the category.'),
     pickerTitle: () => text('tx.detail.pickerTitle', 'Choose a category'),
+    transferUnresolved: () =>
+      text('tx.detail.transferUnresolved', 'Could not confirm the transfer status.'),
     categoryError: () =>
       text('tx.detail.categoryError', 'Could not load the category of this transaction.'),
     pickerError: () => text('tx.detail.pickerError', 'Could not load the categories.'),

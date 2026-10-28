@@ -89,6 +89,16 @@ describe('TransactionDetailView', () => {
     expect(onRetryCategory).toHaveBeenCalledTimes(1);
   });
 
+  it('says the transfer status is unconfirmed and offers a retry', async () => {
+    const onRetryTransfer = jest.fn();
+    await renderDetail({ transferUnresolved: true, onRetryTransfer });
+
+    expect(screen.getByText('Could not confirm the transfer status.')).toBeTruthy();
+    await userEvent.press(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(onRetryTransfer).toHaveBeenCalledTimes(1);
+  });
+
   it('does not claim there are no categories while they load', async () => {
     await renderDetail({ pickerOpen: true, options: [], optionsStatus: 'loading' });
 

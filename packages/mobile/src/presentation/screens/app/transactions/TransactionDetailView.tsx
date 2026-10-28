@@ -30,6 +30,9 @@ export interface TransactionDetailViewProps {
   readonly onRetryOptions: () => void;
   /** The mapped item's category could not be looked up: say so instead of showing a blank. */
   readonly categoryFailed?: boolean;
+  /** The transfer status could not be confirmed with the server: the switch is only the user's intent. */
+  readonly transferUnresolved?: boolean;
+  readonly onRetryTransfer?: () => void;
   readonly onRetryCategory?: () => void;
   readonly pickerOpen: boolean;
   readonly notes: string;
@@ -122,6 +125,9 @@ export function TransactionDetailView(props: TransactionDetailViewProps): React.
 
   return (
     <ScrollView testID="tx-detail" contentContainerStyle={styles.page}>
+      {props.transferUnresolved === true ? (
+        <ErrorBanner message={labels.transferUnresolved()} onRetry={props.onRetryTransfer} />
+      ) : null}
       {props.categoryFailed === true ? (
         <ErrorBanner message={labels.categoryError()} onRetry={props.onRetryCategory} />
       ) : null}
