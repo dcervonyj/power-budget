@@ -119,6 +119,22 @@ describe('TransactionListView', () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
+  it('says when the month summary or the categories could not be loaded, with one retry', async () => {
+    const onRetrySupport = jest.fn();
+    await renderList({
+      month: undefined,
+      monthFailed: true,
+      categoriesFailed: true,
+      onRetrySupport,
+    });
+
+    expect(screen.getByText('Could not load the month summary.')).toBeTruthy();
+    expect(screen.getByText(/Could not load the categories/)).toBeTruthy();
+    await userEvent.press(screen.getAllByRole('button', { name: 'Retry' })[0]!);
+
+    expect(onRetrySupport).toHaveBeenCalledTimes(1);
+  });
+
   it('says the totals cover the loaded rows while more pages remain', async () => {
     await renderList({ hasMore: true, onLoadMore: jest.fn() });
 

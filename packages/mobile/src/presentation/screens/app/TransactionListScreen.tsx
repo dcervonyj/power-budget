@@ -38,6 +38,9 @@ export function TransactionListScreen({ navigation }: Props): React.JSX.Element 
         hasMore={list.hasMore}
         loadingMore={list.loadingMore}
         reloadFailed={list.reloadFailed}
+        monthFailed={list.monthFailed}
+        categoriesFailed={list.categoriesFailed}
+        onRetrySupport={list.retrySupport}
         onRefresh={list.refresh}
         onRetry={list.retry}
         onLoadMore={list.loadMore}

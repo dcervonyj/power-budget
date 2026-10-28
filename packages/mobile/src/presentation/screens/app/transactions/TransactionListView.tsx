@@ -41,6 +41,10 @@ export interface TransactionListViewProps {
   readonly loadingMore?: boolean;
   /** A reload failed: the rows may be stale, so offer a retry above them. */
   readonly reloadFailed?: boolean;
+  /** The month summary or the category names failed to load: say so instead of hiding them. */
+  readonly monthFailed?: boolean;
+  readonly categoriesFailed?: boolean;
+  readonly onRetrySupport?: () => void;
   readonly onRefresh?: () => void;
   readonly onRetry?: () => void;
   readonly onLoadMore?: () => void;
@@ -124,6 +128,12 @@ export function TransactionListView(props: TransactionListViewProps): React.JSX.
     >
       {props.reloadFailed === true ? (
         <ErrorBanner message={labels.reloadError()} onRetry={props.onRetry} />
+      ) : null}
+      {props.monthFailed === true ? (
+        <ErrorBanner message={labels.monthError()} onRetry={props.onRetrySupport} />
+      ) : null}
+      {props.categoriesFailed === true ? (
+        <ErrorBanner message={labels.categoriesError()} onRetry={props.onRetrySupport} />
       ) : null}
       {props.month === undefined ? null : <MonthPanel {...props} month={props.month} />}
       <FilterChips

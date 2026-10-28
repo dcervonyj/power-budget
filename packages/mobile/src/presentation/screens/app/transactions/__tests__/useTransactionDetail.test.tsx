@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { TransactionDetailDto } from '@power-budget/shared-app/contract';
-import { transactionsGateway } from '../transactionsGateway.js';
+import { transactionsGateway, writeQueue } from '../transactionsGateway.js';
 import { useTransactionDetail } from '../useTransactionDetail.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -58,7 +58,26 @@ function deferred(): { promise: Promise<undefined>; resolve: () => void } {
   return { promise, resolve: holder.resolve };
 }
 
+beforeEach(() => {
+  detail.mockReset();
+  setMapping.mockReset();
+});
+
 describe('useTransactionDetail category changes', () => {
+  it('waits for a pending write before reading the mapping', async () => {
+    const pending = deferred();
+    setMapping.mockReturnValueOnce(pending.promise as never);
+    void writeQueue.run(() => transactionsGateway.setMapping('t1', 'item-1'));
+    detail.mockResolvedValue(detailDto());
+    const { result } = await renderHook(() => useTransactionDetail('t1'));
+
+    expect(detail).not.toHaveBeenCalled();
+    await act(async () => pending.resolve());
+
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    expect(detail).toHaveBeenCalledTimes(1);
+  });
+
   it('sends rapid changes in order and ends on the last selection', async () => {
     detail.mockResolvedValue(detailDto());
     const first = deferred();

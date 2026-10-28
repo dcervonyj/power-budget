@@ -40,6 +40,10 @@ export interface TransactionListState {
   readonly failure: ListFailure | null;
   /** The last reload failed: the rows shown may be stale. */
   readonly reloadFailed: boolean;
+  /** The month summary or the category names could not be loaded. */
+  readonly monthFailed: boolean;
+  readonly categoriesFailed: boolean;
+  retrySupport(): void;
   readonly setFilter: (filter: ListFilter) => void;
   readonly refresh: () => void;
   /** Reloads without the skeleton or the spinner, e.g. when the screen gets focus again. */
@@ -62,6 +66,8 @@ export function useTransactionList(): TransactionListState {
   const [applied, setApplied] = useState<ReadonlySet<string>>(new Set());
   const [failure, setFailure] = useState<ListFailure | null>(null);
   const [month, setMonth] = useState<MonthSummary | undefined>(undefined);
+  const [monthFailed, setMonthFailed] = useState(false);
+  const [categoriesFailed, setCategoriesFailed] = useState(false);
   const [categoryOfItem, setCategoryOfItem] = useState<ReadonlyMap<string, string>>(new Map());
   const moreInFlight = useRef(false);
   // Rows the user changed: their state is laid over every server load until that load is newer
@@ -118,23 +124,31 @@ export function useTransactionList(): TransactionListState {
         plan === undefined ? undefined : monthSummaryOf(await plansApi.dashboard(plan.id));
       if (request === monthRequest.current) {
         setMonth(summary);
+        setMonthFailed(false);
       }
     } catch {
-      // Without a plan the rod stays out; the list still works.
+      // No rod, but the list still works; the failure is shown so it is not read as "no plan".
       if (request === monthRequest.current) {
         setMonth(undefined);
+        setMonthFailed(true);
       }
+    }
+  }, []);
+
+  const loadCategories = useCallback(async (): Promise<void> => {
+    try {
+      setCategoryOfItem(categoryNameByItem(await loadPlannedItemOptions(plansApi, categoriesApi)));
+      setCategoriesFailed(false);
+    } catch {
+      setCategoriesFailed(true);
     }
   }, []);
 
   useEffect(() => {
     void loadFirstPage(false);
     void loadMonth();
-    void loadPlannedItemOptions(plansApi, categoriesApi).then(
-      (options) => setCategoryOfItem(categoryNameByItem(options)),
-      () => undefined,
-    );
-  }, [loadFirstPage, loadMonth]);
+    void loadCategories();
+  }, [loadFirstPage, loadMonth, loadCategories]);
 
   const rows = useMemo(
     () => toListRows(items, categoryOfItem).map((row) => shownRow(row, undone, confirmed)),
@@ -257,6 +271,11 @@ export function useTransactionList(): TransactionListState {
     void loadFirstPage(false);
   }, [loadFirstPage, reloadFailed]);
 
+  const retrySupport = useCallback((): void => {
+    void loadMonth();
+    void loadCategories();
+  }, [loadMonth, loadCategories]);
+
   const dismissFailure = useCallback((): void => setFailure(null), []);
 
   return {
@@ -272,6 +291,9 @@ export function useTransactionList(): TransactionListState {
     loadingMore,
     failure,
     reloadFailed,
+    monthFailed,
+    categoriesFailed,
+    retrySupport,
     setFilter,
     refresh,
     reload,

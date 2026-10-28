@@ -179,7 +179,10 @@ function kindOf(item: TransactionListItemDto): RowKind {
     return 'transfer';
   }
 
-  return item.mapping === undefined || item.mapping === null ? 'toSort' : 'sorted';
+  // An ignored transaction has nothing left to sort, mapped or not.
+  const hasMapping = item.mapping !== undefined && item.mapping !== null;
+
+  return hasMapping || item.ignored ? 'sorted' : 'toSort';
 }
 
 function rowStatusOf(item: TransactionListItemDto, kind: RowKind): TxRowData['status'] {

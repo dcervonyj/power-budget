@@ -76,6 +76,13 @@ describe('toListRows', () => {
     expect(ROWS.map((row) => row.data.status)).toEqual(['booked', 'to-sort', 'transfer', 'booked']);
   });
 
+  it('counts an ignored, unmapped transaction as sorted, not as waiting', () => {
+    const rows = toListRows([item({ id: 'z', ignored: true, mapping: null })], new Map());
+
+    expect(rows[0]?.kind).toBe('sorted');
+    expect(waitingToSort(rows, new Set(), 'PLN')).toBeUndefined();
+  });
+
   it('names the suggested category of a row to sort', () => {
     expect(ROWS[1]?.data.suggestionLabel).toBe('Transport');
     expect(ROWS[1]?.suggestedPlannedItemId).toBe('p-9');
