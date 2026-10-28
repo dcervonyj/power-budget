@@ -10,11 +10,12 @@ import { APP_ROLE } from './app-role.js';
 import { getPool, resetState, startContainers, stopContainers } from './setup.js';
 
 /**
- * Households in the fixture; each has 2 users, 3 accounts and 5,000 transactions. The audit
- * fixture has 200 (1M rows); every query is household-scoped, so the per-page cost is the same and
- * 2 keep the seed fast for CI. The 1M-row measurements are in the CLN-048 PR.
+ * Households in the fixture; each has 2 users, 3 accounts and 5,000 transactions. `PERF_1M=1` seeds
+ * the full audit fixture, 200 households = 1,000,000 rows (about 100 s); CI seeds 2, because every
+ * query is household-scoped and the per-page plan is the same. Results on 1M rows, before and
+ * after: transactions-list-buffers.results.md.
  */
-const HOUSEHOLDS = 2;
+const HOUSEHOLDS = process.env['PERF_1M'] === '1' ? 200 : 2;
 /** Upper bound of shared buffers (hit + read) for one `GET /transactions` page. */
 const BUFFERS_PER_PAGE = 2_000;
 
@@ -132,9 +133,13 @@ describe('Integration: GET /transactions page cost does not grow with history (C
     await startContainers();
     await resetState();
     await getPool().query(FIXTURE_SQL);
+    const seeded = await getPool().query<{ n: number }>(
+      'SELECT count(*)::int AS n FROM transactions',
+    );
+    expect(seeded.rows[0]?.n).toBe(HOUSEHOLDS * 5_000);
     repository = new DrizzleTransactionRepository(drizzle(getPool(), { schema, logger }));
     midCursor = await cursorAtOwnRow(2_500);
-  }, 300_000);
+  }, 1_800_000);
 
   afterAll(async () => {
     await stopContainers();
