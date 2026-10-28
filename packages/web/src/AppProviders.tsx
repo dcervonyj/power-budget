@@ -107,6 +107,11 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
     loadMessages(locale).then(onMessagesLoaded, setLoadError);
   }, [locale]);
 
+  // Screen readers pick the voice from <html lang>, which index.html fixes to "en".
+  useEffect(() => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
   if (loadError !== undefined) {
     // Rethrown during render so the outer error boundary shows the Reload fallback.
     throw loadError;
