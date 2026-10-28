@@ -20,6 +20,8 @@
     "test:visual": "bash e2e/visual/run-in-docker.sh",
     "test:visual:update": "bash e2e/visual/run-in-docker.sh --update-snapshots",
     "test:e2e:stack": "TEST_ENV=e2e playwright test --project=chromium",
+    "test:a11y": "pnpm run build:gallery && PW_VISUAL=1 playwright test --project=a11y",
+    "test:a11y:stack": "TEST_ENV=e2e playwright test --project=a11y-stack",
     "i18n:extract": "formatjs extract 'src/**/*.{ts,tsx}' --out-file /tmp/power-budget-web-message-ids.json --format simple --id-interpolation-pattern '[sha512:contenthash:base64:6]' && node src/i18n/ExtractedMessageFilter.mjs /tmp/power-budget-web-message-ids.json public/locales/en public/locales/en.json /tmp/power-budget-web-needs-translation.json"
   },
   "dependencies": {

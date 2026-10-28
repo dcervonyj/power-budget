@@ -230,7 +230,7 @@ function CategoryItem({
 
   return (
     <div
-      style={{ ...CATEGORY_ROW_STYLE, opacity: category.archived ? 0.7 : 1 }}
+      style={{ ...CATEGORY_ROW_STYLE, opacity: category.archived ? 0.85 : 1 }}
       data-testid={`category-row-${category.id}`}
     >
       <span style={TILE_STYLE}>
