@@ -1,14 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type {
+import {
   IsoDate,
   IsoDateTime,
   UserId,
   HouseholdId,
-  PlanActualsView,
-  CurrencyCode,
   PlannedItemId,
   CategoryId,
 } from '@power-budget/core';
+import type { PlanActualsView, CurrencyCode } from '@power-budget/core';
 import { CurrencyMismatchError, PlanId } from '@power-budget/core';
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { uuidv7 } from 'uuidv7';
@@ -20,11 +19,13 @@ import type {
 } from '../../../domain/plans/ports.js';
 import { ClosePeriodSnapshotUseCase } from './ClosePeriodSnapshotUseCase.js';
 
+const PLN: CurrencyCode = 'PLN';
+
 const PLAN_ID = PlanId.of('01900000-0000-7000-8000-000000000001');
-const HH_ID = 'hh-1' as HouseholdId;
-const USER_ID = 'u-1' as UserId;
+const HH_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const USER_ID = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
 // The close job runs the day after the period ends.
-const CLOSED_AT = '2024-02-01T00:30:00.000Z' as IsoDateTime;
+const CLOSED_AT = IsoDateTime.of('2024-02-01T00:30:00.000Z');
 
 function makeMockPlan(overrides: Partial<Plan> = {}): Plan {
   return {
@@ -34,11 +35,11 @@ function makeMockPlan(overrides: Partial<Plan> = {}): Plan {
     name: 'My Plan',
     type: 'personal',
     periodKind: 'monthly',
-    period: { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate },
+    period: { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-31') },
     baseCurrency: 'PLN',
     archivedAt: null,
-    createdAt: '2024-01-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2024-01-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
     ...overrides,
   };
 }
@@ -47,20 +48,20 @@ function makeMockView(
   expenseRemaining: bigint = 2000n,
   expenseCurrency: CurrencyCode = 'PLN',
 ): PlanActualsView {
-  const planned = { amountMinor: 5000n, currency: 'PLN' as CurrencyCode };
-  const actual = { amountMinor: 5000n - expenseRemaining, currency: 'PLN' as CurrencyCode };
+  const planned = { amountMinor: 5000n, currency: PLN };
+  const actual = { amountMinor: 5000n - expenseRemaining, currency: PLN };
   const remaining = { amountMinor: expenseRemaining, currency: expenseCurrency };
-  const zero = { amountMinor: 0n, currency: 'PLN' as CurrencyCode };
+  const zero = { amountMinor: 0n, currency: PLN };
 
   return {
     planId: PLAN_ID,
-    period: { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate },
+    period: { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-31') },
     baseCurrency: 'PLN',
     // Income that fell short of plan must never count as leftover.
     incomeLines: [
       {
-        plannedItemId: '01900000-0000-7000-8000-000000000011' as PlannedItemId,
-        categoryId: 'cat-salary' as CategoryId,
+        plannedItemId: PlannedItemId.of('01900000-0000-7000-8000-000000000011'),
+        categoryId: CategoryId.of('01900000-e3ad-7e80-84a8-ba4337b10f34'),
         direction: 'income',
         planned: { amountMinor: 900000n, currency: 'PLN' },
         actual: { amountMinor: 100000n, currency: 'PLN' },
@@ -70,8 +71,8 @@ function makeMockView(
     ],
     expenseLines: [
       {
-        plannedItemId: '01900000-0000-7000-8000-000000000010' as PlannedItemId,
-        categoryId: 'cat-1' as CategoryId,
+        plannedItemId: PlannedItemId.of('01900000-0000-7000-8000-000000000010'),
+        categoryId: CategoryId.of('01900000-2548-776e-8414-dc1c91b1b01c'),
         direction: 'expense',
         planned,
         actual,
@@ -86,7 +87,7 @@ function makeMockView(
     unplannedExpenses: zero,
     unplannedIncome: zero,
     net: zero,
-    asOf: '2024-01-31' as IsoDate,
+    asOf: IsoDate.of('2024-01-31'),
   };
 }
 
@@ -140,7 +141,7 @@ describe('ClosePeriodSnapshotUseCase', () => {
           snapshotId: '01900000-0000-7000-8000-000000000020',
           planId: PLAN_ID,
           plannedItemId: '01900000-0000-7000-8000-000000000010',
-          categoryId: 'cat-1',
+          categoryId: '01900000-2548-776e-8414-dc1c91b1b01c',
           plannedAmount: { amountMinor: 5000n, currency: 'PLN' },
           actualAmount: { amountMinor: 3000n, currency: 'PLN' },
           leftover: { amountMinor: 2000n, currency: 'PLN' },

@@ -1,7 +1,7 @@
 import { SequentialIdGenerator } from '../../../../test/doubles/SequentialIdGenerator.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
+import { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
 import type {
   BankConnectionRepository,
   BankConnectorRegistry,
@@ -13,12 +13,12 @@ import { InitiateBankConnectionUseCase } from '../InitiateBankConnectionUseCase.
 import { BankConnectionAlreadyActiveError } from '../../../../domain/bank/errors.js';
 import { TotpEnrollmentRequiredError } from '../../../../domain/auth/errors.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const TEST_HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
+const TEST_HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 
 function makeConnection(overrides?: Partial<BankConnection>): BankConnection {
   return {
-    id: '01900000-0000-7000-8000-000000000003' as BankConnectionId,
+    id: BankConnectionId.of('01900000-0000-7000-8000-000000000003'),
     householdId: TEST_HOUSEHOLD_ID,
     userId: TEST_USER_ID,
     provider: 'gocardless',
@@ -36,7 +36,7 @@ function makeConnection(overrides?: Partial<BankConnection>): BankConnection {
 function makeTotp(verifiedAt: Date | null = new Date()): TotpSecret {
   return {
     userId: TEST_USER_ID,
-    encryptedSecret: 'enc-secret' as EncryptedString,
+    encryptedSecret: EncryptedString.of('enc-secret'),
     enrolledAt: new Date(),
     verifiedAt,
     lastUsedTimeStep: null,

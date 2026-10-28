@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { createHash } from 'node:crypto';
 import { mock } from 'vitest-mock-extended';
-import type { UserId } from '@power-budget/core';
+import { UserId } from '@power-budget/core';
 import type { FailedAttemptCounter, MagicLinkTokenRepository } from '../../../domain/auth/ports.js';
 import { ConsumeMagicLinkUseCase } from './ConsumeMagicLinkUseCase.js';
 import {
@@ -13,7 +13,7 @@ import {
 } from '../../../domain/auth/errors.js';
 import type { LoginPolicy } from '../services/LoginPolicy.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 const RAW_TOKEN = 'raw-token-value';
 const TOKEN_HASH = createHash('sha256').update(RAW_TOKEN).digest('hex');
 const SESSION = {

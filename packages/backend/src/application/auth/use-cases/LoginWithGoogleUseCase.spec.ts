@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import { UserId, HouseholdId } from '@power-budget/core';
 import type {
   UserRepository,
   HouseholdRepository,
@@ -11,8 +11,8 @@ import { LoginWithGoogleUseCase } from './LoginWithGoogleUseCase.js';
 import { InvalidCredentialsError, TotpRequiredError } from '../../../domain/auth/errors.js';
 import type { User, Household } from '../../../domain/auth/entities.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const TEST_HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
+const TEST_HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 
 function makeUser(): User {
   return {

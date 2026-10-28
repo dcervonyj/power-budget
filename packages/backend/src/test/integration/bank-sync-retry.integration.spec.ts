@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from
 import { Queue, Worker, type Job } from 'bullmq';
 import { mock } from 'vitest-mock-extended';
 import { uuidv7 } from 'uuidv7';
-import type { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
+import { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
 import { getDb, resetState, startContainers, stopContainers } from './setup.js';
 import { insertTestHousehold, insertTestUser } from './test-helpers.js';
 import * as schema from '../../../drizzle/schema.js';
@@ -49,8 +49,8 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
     await resetState();
     const user = await insertTestUser(getDb());
     const household = await insertTestHousehold(getDb());
-    householdId = household.id as HouseholdId;
-    connectionId = uuidv7() as BankConnectionId;
+    householdId = HouseholdId.of(household.id);
+    connectionId = BankConnectionId.of(uuidv7());
     await getDb().insert(schema.bankConnections).values({
       id: connectionId,
       householdId: household.id,
@@ -65,7 +65,7 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
     const connection: BankConnection = {
       id: connectionId,
       householdId,
-      userId: user.id as UserId,
+      userId: UserId.of(user.id),
       provider: 'in_memory' as never,
       bankId: 'test-bank',
       externalConsentRef: null,

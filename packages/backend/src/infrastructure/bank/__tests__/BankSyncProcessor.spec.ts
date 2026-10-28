@@ -11,12 +11,12 @@ import type {
 import type { IngestBankTransactionsUseCase } from '../../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import { BankSyncProcessor, type BankSyncJobPayload } from '../BankSyncProcessor.js';
 import type { BankConnection, RawTransaction } from '../../../domain/bank/entities.js';
-import type { BankConnectionId, HouseholdId, SyncRunId } from '@power-budget/core';
+import { BankConnectionId, HouseholdId, SyncRunId } from '@power-budget/core';
 import { IsoDate } from '@power-budget/core';
 
-const CONNECTION_ID = 'conn-1' as BankConnectionId;
-const HOUSEHOLD_ID = 'hh-1' as HouseholdId;
-const SYNC_RUN_ID = 'run-1' as SyncRunId;
+const CONNECTION_ID = BankConnectionId.of('01900000-78db-7ecf-8203-561e43789f28');
+const HOUSEHOLD_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const SYNC_RUN_ID = SyncRunId.of('01900000-bc3f-7172-888b-8556e34db1e3');
 
 function makeJob(overrides: Partial<BankSyncJobPayload> = {}): Job<BankSyncJobPayload> {
   return {

@@ -1,8 +1,9 @@
+import { uuidv7 } from 'uuidv7';
 import { randomUUID } from 'node:crypto';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { Pool } from 'pg';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { BankAccountId, BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
+import { BankAccountId, BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
 import { runInDbScope } from '../../infrastructure/database/DbScope.js';
 import { ScopedPool } from '../../infrastructure/database/ScopedPool.js';
@@ -26,10 +27,10 @@ let B: Tenant;
 
 async function seedTenant(label: string): Promise<Tenant> {
   const t: Tenant = {
-    householdId: randomUUID() as HouseholdId,
-    userId: randomUUID() as UserId,
-    connectionId: randomUUID() as BankConnectionId,
-    accountId: randomUUID() as BankAccountId,
+    householdId: HouseholdId.of(randomUUID()),
+    userId: UserId.of(randomUUID()),
+    connectionId: BankConnectionId.of(uuidv7()),
+    accountId: BankAccountId.of(randomUUID()),
   };
   await fixtures.query(`INSERT INTO users (id, email) VALUES ($1, $2)`, [
     t.userId,
@@ -78,7 +79,7 @@ describe('Integration: bank v2 repositories (BNK-003)', () => {
 
   it('stores and finds an account identity, unique per household', async () => {
     const repo = new DrizzleBankAccountIdentityRepository(db);
-    const otherAccount = randomUUID() as BankAccountId;
+    const otherAccount = BankAccountId.of(randomUUID());
     await fixtures.query(
       `INSERT INTO bank_accounts (id, household_id, owner_user_id, connection_id, external_id, name, currency)
        VALUES ($1, $2, $3, $4, 'ext-2', 'Second', 'PLN')`,

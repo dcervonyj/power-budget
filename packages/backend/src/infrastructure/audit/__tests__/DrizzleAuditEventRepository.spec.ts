@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { DrizzleAuditEventRepository } from '../DrizzleAuditEventRepository.js';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type * as schema from '../../../../drizzle/schema.js';
 
@@ -13,8 +13,8 @@ describe('DrizzleAuditEventRepository', () => {
 
     const repo = new DrizzleAuditEventRepository(db);
     await repo.insertAuditEvent({
-      householdId: 'h-1' as HouseholdId,
-      actorId: 'u-1' as UserId,
+      householdId: HouseholdId.of('01900000-3a12-768a-84e1-7ff1aae8835b'),
+      actorId: UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768'),
       subjectType: 'plan',
       subjectId: 'p-1',
       action: 'create',
@@ -24,8 +24,8 @@ describe('DrizzleAuditEventRepository', () => {
     expect(db.insert).toHaveBeenCalledTimes(1);
     expect(insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
-        householdId: 'h-1',
-        actorUserId: 'u-1',
+        householdId: '01900000-3a12-768a-84e1-7ff1aae8835b',
+        actorUserId: '01900000-8ccf-7eb7-88be-5e5b937e1768',
         action: 'create',
         subjectType: 'plan',
         subjectId: 'p-1',
@@ -44,7 +44,10 @@ describe('DrizzleAuditEventRepository', () => {
     } as unknown as NodePgDatabase<typeof schema>;
 
     const repo = new DrizzleAuditEventRepository(db);
-    const result = await repo.listByHousehold({}, { householdId: 'h-1' as HouseholdId });
+    const result = await repo.listByHousehold(
+      {},
+      { householdId: HouseholdId.of('01900000-3a12-768a-84e1-7ff1aae8835b') },
+    );
 
     expect(result).toEqual({ items: [], nextCursor: null, hasMore: false });
   });
@@ -57,8 +60,8 @@ describe('DrizzleAuditEventRepository', () => {
 
     const repo = new DrizzleAuditEventRepository(db);
     await repo.record({
-      householdId: 'h-1' as HouseholdId,
-      actorUserId: 'u-2' as UserId,
+      householdId: HouseholdId.of('01900000-3a12-768a-84e1-7ff1aae8835b'),
+      actorUserId: UserId.of('01900000-0be0-7d09-88f5-537d3c8c6168'),
       action: 'update',
       subjectType: 'plan',
       subjectId: 'p-2',
@@ -66,7 +69,7 @@ describe('DrizzleAuditEventRepository', () => {
 
     expect(insertValues).toHaveBeenCalledWith(
       expect.objectContaining({
-        actorUserId: 'u-2',
+        actorUserId: '01900000-0be0-7d09-88f5-537d3c8c6168',
         action: 'update',
       }),
     );

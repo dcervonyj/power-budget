@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type { HouseholdId, IsoDate, UserId } from '@power-budget/core';
+import { HouseholdId, IsoDate, UserId } from '@power-budget/core';
 import { DrizzleUnplannedTransactionReader } from './DrizzleUnplannedTransactionReader.js';
 import { InvalidCursorError } from '../../domain/transactions/errors.js';
 import type * as schema from '../../../drizzle/schema.js';
@@ -19,10 +19,10 @@ describe('DrizzleUnplannedTransactionReader', () => {
 
     await expect(
       reader.list({
-        householdId: 'hh-1' as HouseholdId,
-        ownerUserId: 'user-1' as UserId,
-        periodStart: '2026-10-01' as IsoDate,
-        periodEnd: '2026-10-31' as IsoDate,
+        householdId: HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6'),
+        ownerUserId: UserId.of('01900000-9dff-7fe4-8508-52c20c8876f6'),
+        periodStart: IsoDate.of('2026-10-01'),
+        periodEnd: IsoDate.of('2026-10-31'),
         direction: 'expense',
         cursor,
         limit: 10,

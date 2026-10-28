@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock, type MockProxy } from 'vitest-mock-extended';
 import type { Job, Queue } from 'bullmq';
-import type { BankConnectionId, HouseholdId } from '@power-budget/core';
+import { BankConnectionId, HouseholdId } from '@power-budget/core';
 import { BullMQBankSyncQueue } from '../BullMQBankSyncQueue.js';
 import { DEFAULT_JOB_OPTIONS } from '../../queue/retry-config.js';
 
-const CONNECTION_ID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b' as BankConnectionId;
-const HOUSEHOLD_ID = 'hh-1' as HouseholdId;
+const CONNECTION_ID = BankConnectionId.of('0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b');
+const HOUSEHOLD_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
 
 describe('BullMQBankSyncQueue', () => {
   let queue: MockProxy<Queue>;

@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
+import { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
 import type { HouseholdExport, HouseholdExportRepository } from '../../../domain/auth/ports.js';
 import { GetHouseholdExportStatusUseCase } from './GetHouseholdExportStatusUseCase.js';
 
-const HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000001' as HouseholdId;
+const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000001');
 const NOW = new Date('2026-10-22T12:00:00Z');
 
 function makeExport(overrides: Partial<HouseholdExport>): HouseholdExport {
   return {
-    id: '01900000-0000-7000-8000-000000000010' as HouseholdExportId,
+    id: HouseholdExportId.of('01900000-0000-7000-8000-000000000010'),
     householdId: HOUSEHOLD_ID,
-    requestedByUserId: '01900000-0000-7000-8000-000000000002' as UserId,
+    requestedByUserId: UserId.of('01900000-0000-7000-8000-000000000002'),
     status: 'pending',
     downloadUrl: null,
     expiresAt: null,

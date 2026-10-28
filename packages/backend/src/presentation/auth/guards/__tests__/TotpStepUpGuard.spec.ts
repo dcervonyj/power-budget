@@ -3,12 +3,12 @@ import { Reflector } from '@nestjs/core';
 import { ForbiddenException } from '@nestjs/common';
 import { mock } from 'vitest-mock-extended';
 import type { ExecutionContext } from '@nestjs/common';
-import type { EncryptedString, UserId } from '@power-budget/core';
+import { EncryptedString, UserId } from '@power-budget/core';
 import type { TotpSecretRepository, TotpStepUpStore } from '../../../../domain/auth/ports.js';
 import type { TotpSecret } from '../../../../domain/auth/entities.js';
 import { TotpStepUpGuard } from '../TotpStepUpGuard.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 
 function makeContext(userId: UserId | null): ExecutionContext {
   const request = userId ? { user: { userId, householdId: null } } : {};
@@ -25,7 +25,7 @@ function makeContext(userId: UserId | null): ExecutionContext {
 function makeSecret(verifiedAt: Date | null): TotpSecret {
   return {
     userId: TEST_USER_ID,
-    encryptedSecret: 'env-v1:aes-256-gcm:iv:ct:tag' as EncryptedString,
+    encryptedSecret: EncryptedString.of('env-v1:aes-256-gcm:iv:ct:tag'),
     enrolledAt: new Date(),
     verifiedAt,
     lastUsedTimeStep: null,

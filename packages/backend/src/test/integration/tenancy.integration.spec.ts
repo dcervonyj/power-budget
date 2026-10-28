@@ -1,3 +1,4 @@
+import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -5,7 +6,7 @@ import { Pool } from 'pg';
 import jwt from 'jsonwebtoken';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { IsoDate, IsoDateTime } from '@power-budget/core';
-import type {
+import {
   BankAccountId,
   BankConnectionId,
   HouseholdId,
@@ -60,14 +61,14 @@ function asTenant<T>(t: Tenant, fn: () => Promise<T>): Promise<T> {
 
 async function seedTenant(label: string, description: string): Promise<Tenant> {
   const t: Tenant = {
-    householdId: randomUUID() as HouseholdId,
-    userId: randomUUID() as UserId,
-    connectionId: randomUUID() as BankConnectionId,
-    accountId: randomUUID() as BankAccountId,
-    txId: randomUUID() as TransactionId,
-    liveTxId: randomUUID() as TransactionId,
+    householdId: HouseholdId.of(randomUUID()),
+    userId: UserId.of(randomUUID()),
+    connectionId: BankConnectionId.of(uuidv7()),
+    accountId: BankAccountId.of(randomUUID()),
+    txId: TransactionId.of(randomUUID()),
+    liveTxId: TransactionId.of(randomUUID()),
     liveSignalId: randomUUID(),
-    plannedItemId: randomUUID() as PlannedItemId,
+    plannedItemId: PlannedItemId.of(randomUUID()),
   };
   const planId = randomUUID();
   const q = fixtures;

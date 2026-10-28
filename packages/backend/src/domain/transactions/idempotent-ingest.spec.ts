@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import type { BankAccountId, IsoDate } from '@power-budget/core';
+import { BankAccountId, IsoDate } from '@power-budget/core';
 import { IdempotentIngest } from './idempotent-ingest.js';
 
 const BASE_INPUT = {
-  accountId: 'acc-1' as BankAccountId,
-  occurredOn: '2024-01-15' as IsoDate,
+  accountId: BankAccountId.of('01900000-998a-733e-8778-f641457f6a29'),
+  occurredOn: IsoDate.of('2024-01-15'),
   amountMinor: 5000n,
   currency: 'PLN',
   normalisedDescription: 'Coffee at Starbucks',
@@ -48,7 +48,7 @@ describe('IdempotentIngest', () => {
     });
 
     it('produces different keys for different dates', () => {
-      const other = { ...BASE_INPUT, occurredOn: '2024-02-01' as IsoDate };
+      const other = { ...BASE_INPUT, occurredOn: IsoDate.of('2024-02-01') };
       expect(IdempotentIngest.computeHashKey(BASE_INPUT)).not.toBe(
         IdempotentIngest.computeHashKey(other),
       );

@@ -1,12 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import type {
-  CategoryId,
-  IsoDate,
-  Money,
-  PlanActualsView,
-  PlanId,
-  PlannedItemId,
-} from '@power-budget/core';
+import { CategoryId, IsoDate, PlanId, PlannedItemId } from '@power-budget/core';
+import type { Money, PlanActualsView } from '@power-budget/core';
 import { toMoneyDto } from '../money.js';
 import { toPlanDashboardDto } from '../../plans/dto/plan-dashboard.dto.js';
 
@@ -29,14 +23,14 @@ describe('toMoneyDto', () => {
 
 describe('toPlanDashboardDto', () => {
   const view: PlanActualsView = {
-    planId: '01900000-0000-7000-8000-0000000000c1' as PlanId,
-    period: { start: '2024-06-01' as IsoDate, end: '2024-06-30' as IsoDate },
+    planId: PlanId.of('01900000-0000-7000-8000-0000000000c1'),
+    period: { start: IsoDate.of('2024-06-01'), end: IsoDate.of('2024-06-30') },
     baseCurrency: 'PLN',
     incomeLines: [],
     expenseLines: [
       {
-        plannedItemId: '01900000-0000-7000-8000-0000000000e1' as PlannedItemId,
-        categoryId: '01900000-0000-7000-8000-0000000000f1' as CategoryId,
+        plannedItemId: PlannedItemId.of('01900000-0000-7000-8000-0000000000e1'),
+        categoryId: CategoryId.of('01900000-0000-7000-8000-0000000000f1'),
         direction: 'expense',
         planned: pln(100000n),
         actual: pln(BEYOND_SAFE),
@@ -51,7 +45,7 @@ describe('toPlanDashboardDto', () => {
     unplannedExpenses: pln(0n),
     unplannedIncome: pln(0n),
     net: pln(-BEYOND_SAFE),
-    asOf: '2024-06-15' as IsoDate,
+    asOf: IsoDate.of('2024-06-15'),
   };
 
   it('maps every Money to string minor units so JSON.stringify succeeds', () => {

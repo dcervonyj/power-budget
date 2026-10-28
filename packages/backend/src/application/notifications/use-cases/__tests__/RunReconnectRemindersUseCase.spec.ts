@@ -1,15 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
-import type { HouseholdId, UserId, BankConnectionId } from '@power-budget/core';
+import { HouseholdId, UserId, BankConnectionId } from '@power-budget/core';
 import type { ExpiringConnectionRow } from '../../../../domain/notifications/entities.js';
 import type { NotificationRepository } from '../../../../domain/notifications/ports.js';
 import { EnqueueNotificationUseCase } from '../EnqueueNotificationUseCase.js';
 import { RunReconnectRemindersUseCase } from '../RunReconnectRemindersUseCase.js';
 import { FixedClock } from '../../../../test/doubles/FixedClock.js';
+import { testUuid } from '../../../../test/doubles/testUuid.js';
 
 const CONNECTION: ExpiringConnectionRow = {
-  connectionId: 'conn-1' as BankConnectionId,
-  householdId: 'hh-1' as HouseholdId,
-  userId: 'user-1' as UserId,
+  connectionId: BankConnectionId.of('01900000-78db-7ecf-8203-561e43789f28'),
+  householdId: HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6'),
+  userId: UserId.of('01900000-9dff-7fe4-8508-52c20c8876f6'),
   email: 'a@example.com',
   displayName: 'Ann',
   locale: 'en',
@@ -39,7 +40,7 @@ describe('RunReconnectRemindersUseCase', () => {
       recipientUserId: CONNECTION.userId,
       householdId: CONNECTION.householdId,
       kind: 'reconnect_reminder',
-      dedupeKey: 'conn-1:expires:2026-10-29:window7d',
+      dedupeKey: `${testUuid('conn-1')}:expires:2026-10-29:window7d`,
       payload: { name: 'Ann', connectionName: 'PKO', daysUntilExpiry: 3 },
     });
   });

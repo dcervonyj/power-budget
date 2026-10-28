@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId } from '@power-budget/core';
+import { UserId } from '@power-budget/core';
 import type { UserRepository, PasswordHashing } from '../../../domain/auth/ports.js';
 import { LoginWithPasswordUseCase } from './LoginWithPasswordUseCase.js';
 import { InvalidCredentialsError, TotpRequiredError } from '../../../domain/auth/errors.js';
 import type { User } from '../../../domain/auth/entities.js';
 import type { LoginPolicy } from '../services/LoginPolicy.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 const SESSION = {
   accessToken: 'access-token',
   refreshToken: 'refresh-token',

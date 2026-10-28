@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { IsoDate, IsoDateTime } from '@power-budget/core';
+import { IsoDate, IsoDateTime } from '@power-budget/core';
 import { PlanCloning, PlanPeriods } from './plan-cloning.js';
 import type { Plan } from './entities.js';
 
@@ -11,11 +11,11 @@ function makePlan(overrides: Partial<Plan> = {}): Plan {
     name: 'Jan Plan',
     type: 'personal',
     periodKind: 'monthly',
-    period: { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate },
+    period: { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-31') },
     baseCurrency: 'PLN',
     archivedAt: null,
-    createdAt: '2024-01-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2024-01-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
     ...overrides,
   };
 }
@@ -25,7 +25,7 @@ describe('PlanCloning', () => {
     it('returns next contiguous month', () => {
       const plan = makePlan({
         periodKind: 'monthly',
-        period: { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate },
+        period: { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-31') },
       });
       const next = PlanCloning.computeClonePeriod(plan);
       expect(next.start).toBe('2024-02-01');
@@ -36,7 +36,7 @@ describe('PlanCloning', () => {
   describe('computeClonePeriod — monthly month-end anchors', () => {
     function roll(firstStart: string, count: number): string[] {
       const starts: string[] = [];
-      let period = PlanPeriods.resolve('monthly', firstStart as IsoDate);
+      let period = PlanPeriods.resolve('monthly', IsoDate.of(firstStart));
       for (let i = 0; i < count; i += 1) {
         starts.push(period.start);
         period = PlanCloning.computeClonePeriod(makePlan({ period }));
@@ -96,14 +96,14 @@ describe('PlanCloning', () => {
     });
 
     it('ends a 31 Jan period on 27 Feb and a 31 Mar period on 29 Apr', () => {
-      const jan = PlanPeriods.resolve('monthly', '2025-01-31' as IsoDate);
+      const jan = PlanPeriods.resolve('monthly', IsoDate.of('2025-01-31'));
       expect(jan.end).toBe('2025-02-27');
-      const mar = PlanPeriods.resolve('monthly', '2025-03-31' as IsoDate);
+      const mar = PlanPeriods.resolve('monthly', IsoDate.of('2025-03-31'));
       expect(mar.end).toBe('2025-04-29');
     });
 
     it('keeps contiguous periods without gaps or overlaps', () => {
-      const jan = PlanPeriods.resolve('monthly', '2025-01-31' as IsoDate);
+      const jan = PlanPeriods.resolve('monthly', IsoDate.of('2025-01-31'));
       const feb = PlanCloning.computeClonePeriod(makePlan({ period: jan }));
       expect(feb).toEqual({ start: '2025-02-28', end: '2025-03-30' });
     });
@@ -113,7 +113,7 @@ describe('PlanCloning', () => {
     it('returns next 7-day period', () => {
       const plan = makePlan({
         periodKind: 'weekly',
-        period: { start: '2024-01-01' as IsoDate, end: '2024-01-07' as IsoDate },
+        period: { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-07') },
       });
       const next = PlanCloning.computeClonePeriod(plan);
       expect(next.start).toBe('2024-01-08');
@@ -125,7 +125,7 @@ describe('PlanCloning', () => {
     it('shifts by the same duration', () => {
       const plan = makePlan({
         periodKind: 'custom',
-        period: { start: '2024-01-10' as IsoDate, end: '2024-01-24' as IsoDate },
+        period: { start: IsoDate.of('2024-01-10'), end: IsoDate.of('2024-01-24') },
       });
       const next = PlanCloning.computeClonePeriod(plan);
       expect(next.start).toBe('2024-01-25');
@@ -136,15 +136,15 @@ describe('PlanCloning', () => {
   describe('computeClonePeriod — override', () => {
     it('uses override period when provided', () => {
       const plan = makePlan();
-      const override = { start: '2024-06-01' as IsoDate, end: '2024-06-30' as IsoDate };
+      const override = { start: IsoDate.of('2024-06-01'), end: IsoDate.of('2024-06-30') };
       const next = PlanCloning.computeClonePeriod(plan, override);
       expect(next.start).toBe('2024-06-01');
     });
   });
 
   describe('assertNoDuplicateActivePlan', () => {
-    const JAN = { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate };
-    const FEB = { start: '2024-02-01' as IsoDate, end: '2024-02-29' as IsoDate };
+    const JAN = { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-31') };
+    const FEB = { start: IsoDate.of('2024-02-01'), end: IsoDate.of('2024-02-29') };
     const candidate = {
       type: 'personal' as const,
       periodKind: 'monthly' as const,
@@ -158,7 +158,7 @@ describe('PlanCloning', () => {
 
     it('throws when an active plan of the same type and kind overlaps the period', () => {
       const existing = makePlan({
-        period: { start: '2024-01-15' as IsoDate, end: '2024-02-14' as IsoDate },
+        period: { start: IsoDate.of('2024-01-15'), end: IsoDate.of('2024-02-14') },
       });
       expect(() => PlanCloning.assertNoDuplicateActivePlan([existing], candidate)).toThrow(
         'PLAN_DUPLICATE',
@@ -172,7 +172,7 @@ describe('PlanCloning', () => {
     });
 
     it('ignores archived plans and the candidate itself', () => {
-      const archived = makePlan({ archivedAt: '2024-01-02T00:00:00Z' as IsoDateTime });
+      const archived = makePlan({ archivedAt: IsoDateTime.of('2024-01-02T00:00:00Z') });
       const self = makePlan();
       expect(() =>
         PlanCloning.assertNoDuplicateActivePlan([archived, self], { ...candidate, id: self.id }),
@@ -210,14 +210,14 @@ describe('PlanCloning', () => {
 
   describe('PlanPeriods.resolve', () => {
     it('derives a weekly end', () => {
-      expect(PlanPeriods.resolve('weekly', '2024-01-01' as IsoDate)).toEqual({
+      expect(PlanPeriods.resolve('weekly', IsoDate.of('2024-01-01'))).toEqual({
         start: '2024-01-01',
         end: '2024-01-07',
       });
     });
 
     it('derives a monthly end', () => {
-      expect(PlanPeriods.resolve('monthly', '2024-02-01' as IsoDate)).toEqual({
+      expect(PlanPeriods.resolve('monthly', IsoDate.of('2024-02-01'))).toEqual({
         start: '2024-02-01',
         end: '2024-02-29',
       });
@@ -225,19 +225,19 @@ describe('PlanCloning', () => {
 
     it('keeps an explicit end', () => {
       expect(
-        PlanPeriods.resolve('custom', '2024-01-01' as IsoDate, '2024-01-10' as IsoDate),
+        PlanPeriods.resolve('custom', IsoDate.of('2024-01-01'), IsoDate.of('2024-01-10')),
       ).toEqual({ start: '2024-01-01', end: '2024-01-10' });
     });
 
     it('requires an end for custom plans', () => {
-      expect(() => PlanPeriods.resolve('custom', '2024-01-01' as IsoDate)).toThrow(
+      expect(() => PlanPeriods.resolve('custom', IsoDate.of('2024-01-01'))).toThrow(
         'PLAN_PERIOD_INVALID',
       );
     });
 
     it('rejects an end before the start', () => {
       expect(() =>
-        PlanPeriods.resolve('monthly', '2024-01-10' as IsoDate, '2024-01-01' as IsoDate),
+        PlanPeriods.resolve('monthly', IsoDate.of('2024-01-10'), IsoDate.of('2024-01-01')),
       ).toThrow('PLAN_PERIOD_INVALID');
     });
   });

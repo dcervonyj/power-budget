@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import { DbScopeInterceptor } from '../DbScopeInterceptor.js';
 import { currentDbScope, toDbScopeSettings, type DbScope } from '../DbScope.js';
 import { ScopedPool } from '../ScopedPool.js';
 
-const USER = '01900000-0000-7000-8000-000000000001' as UserId;
-const HOUSEHOLD = '01900000-0000-7000-8000-0000000000a1' as HouseholdId;
+const USER = UserId.of('01900000-0000-7000-8000-000000000001');
+const HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
 
 function httpContext(user: unknown): ExecutionContext {
   const context: Partial<ExecutionContext> = {
@@ -82,6 +82,7 @@ describe('DbScope settings', () => {
   it('writes session-level, escaped set_config calls', () => {
     const sql = ScopedPool.settingsSql({
       kind: 'household',
+      // The point of this spec is that a hostile id is escaped; the brand constructor would refuse it.
       householdId: "x'; DROP TABLE users; --" as HouseholdId,
       userId: USER,
     });

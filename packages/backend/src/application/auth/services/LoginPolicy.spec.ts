@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import type {
   FailedAttemptCounter,
   HouseholdRepository,
@@ -15,8 +15,8 @@ import {
 import { LoginPolicy } from './LoginPolicy.js';
 import type { TotpAuthenticator } from './TotpAuthenticator.js';
 
-const USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
+const USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
+const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 
 describe('LoginPolicy', () => {
   let totp: ReturnType<typeof mock<TotpAuthenticator>>;

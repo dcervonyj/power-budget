@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { EncryptedString } from '@power-budget/core';
+import { EncryptedString } from '@power-budget/core';
 import { IsoDate } from '@power-budget/core';
 import type { RawBankAccount, RawTransaction } from '../../../domain/bank/entities.js';
 import type { FetchTransactionsInput } from '../../../domain/bank/ports.js';
@@ -21,7 +21,7 @@ class ManualClock implements InMemoryBankClock {
 const DAY_1 = new Date('2026-10-01T09:00:00Z');
 const DAY_2 = new Date('2026-10-02T09:00:00Z');
 const DAY_3 = new Date('2026-10-03T09:00:00Z');
-const CONSENT = 'inmem-token:ref' as EncryptedString;
+const CONSENT = EncryptedString.of('inmem-token:ref');
 
 const ACCOUNT: RawBankAccount = {
   externalId: 'acc-pln',
