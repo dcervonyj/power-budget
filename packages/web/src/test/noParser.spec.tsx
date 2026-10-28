@@ -57,7 +57,7 @@ describe('formatting without the ICU parser', () => {
         </IntlProvider>,
       );
 
-      expect(html.replaceAll('&#x27;', "'")).toContain(copy);
+      expect(html.split('&#x27;').join("'")).toContain(copy);
     },
   );
 });
