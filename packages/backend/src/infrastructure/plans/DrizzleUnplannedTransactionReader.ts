@@ -10,22 +10,10 @@ import type {
 import { UNCOUNTED_TRANSACTION_STATUSES } from '../../domain/transactions/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
-
-/** Cursor encodes `occurredOn|id` as base64 to support compound DESC ordering. */
-function encodeCursor(occurredOn: string, id: string): string {
-  return Buffer.from(`${occurredOn}|${id}`).toString('base64');
-}
-
-function decodeCursor(cursor: string): { occurredOn: string; id: string } | null {
-  try {
-    const decoded = Buffer.from(cursor, 'base64').toString('utf-8');
-    const idx = decoded.indexOf('|');
-    if (idx === -1) return null;
-    return { occurredOn: decoded.slice(0, idx), id: decoded.slice(idx + 1) };
-  } catch {
-    return null;
-  }
-}
+import {
+  decodeTransactionCursor,
+  encodeTransactionCursor,
+} from '../transactions/transactionCursor.js';
 
 export class DrizzleUnplannedTransactionReader implements UnplannedTransactionReader {
   constructor(@Inject(DRIZZLE_DB) private readonly db: NodePgDatabase<typeof schema>) {}
@@ -63,8 +51,9 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
         : sql`${schema.transactions.amountMinor} < 0`,
     ];
 
-    const parsed = query.cursor ? decodeCursor(query.cursor) : null;
-    if (parsed) {
+    // A forged cursor throws InvalidCursorError, mapped to 400 invalid_cursor.
+    if (query.cursor !== undefined) {
+      const parsed = decodeTransactionCursor(query.cursor);
       conditions.push(
         or(
           lt(schema.transactions.occurredOn, parsed.occurredOn),
@@ -95,7 +84,10 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
     const items = hasMore ? rows.slice(0, limit) : rows;
     const lastItem = items[items.length - 1];
 
-    const nextCursor = hasMore && lastItem ? encodeCursor(lastItem.occurredOn, lastItem.id) : null;
+    const nextCursor =
+      hasMore && lastItem
+        ? encodeTransactionCursor({ occurredOn: lastItem.occurredOn, id: lastItem.id })
+        : null;
 
     return {
       items: items.map((row) => ({
