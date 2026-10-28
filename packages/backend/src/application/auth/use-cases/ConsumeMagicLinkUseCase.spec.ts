@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { createHash } from 'node:crypto';
 import { mock } from 'vitest-mock-extended';
 import type { UserId } from '@power-budget/core';

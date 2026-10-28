@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { uuidv7 } from 'uuidv7';
 import type { UserId, HouseholdId } from '@power-budget/core';
 import type { Household, NewHousehold } from '../../../domain/auth/entities.js';

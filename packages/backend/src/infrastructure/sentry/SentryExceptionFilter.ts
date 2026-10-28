@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import * as Sentry from '@sentry/node';
 import type { FastifyReply } from 'fastify';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import {
   codeForStatus,
   headersForDomainError,

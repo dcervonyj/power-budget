@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { createHash } from 'node:crypto';
 import type { UserId } from '@power-budget/core';
 import type { FailedAttemptCounter, MagicLinkTokenRepository } from '../../../domain/auth/ports.js';

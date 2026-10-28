@@ -26,6 +26,7 @@ import {
   PlannedItemNotFoundError,
   TransactionNotFoundError,
 } from '../../../domain/transactions/errors.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { toValidationException } from '../../../presentation/http/validation.js';
 
 vi.mock('@sentry/node', () => ({ captureException: vi.fn() }));

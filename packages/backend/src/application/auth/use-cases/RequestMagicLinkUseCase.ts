@@ -1,3 +1,4 @@
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { createHash, randomBytes } from 'node:crypto';
 import type {
   UserRepository,
