@@ -34,6 +34,10 @@ export const PlanDashboardScreen = observer(function PlanDashboardScreen(): Reac
     if (id !== '') {
       void planDashboardStore.load(id);
     }
+
+    return () => {
+      planDashboardStore.stop();
+    };
   }, [id]);
 
   const poll = useCallback((): void => {

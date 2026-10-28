@@ -38,12 +38,12 @@ describe('PlanDashboardStore polling and reference data', () => {
     vi.useRealTimers();
   });
 
+  /** Dashboard and reference requests; the unplanned lists are counted by their own tests. */
   function requestCount(): number {
     return (
       plans.get.mock.calls.length +
       plans.dashboard.mock.calls.length +
       plans.listItems.mock.calls.length +
-      plans.unplanned.mock.calls.length +
       categories.list.mock.calls.length
     );
   }
@@ -65,19 +65,93 @@ describe('PlanDashboardStore polling and reference data', () => {
     store = new PlanDashboardStore(plans, catalogue);
   });
 
-  it('sends one request per poll', async () => {
+  it('sends one dashboard request per poll for a list the user paged, nothing for the reference data', async () => {
     await store.load('plan-1');
-    const afterLoad = requestCount();
+    plans.unplanned.mockResolvedValueOnce(UNPLANNED_LAST_PAGE);
+    await store.loadMoreUnplanned('expense');
+    plans.unplanned.mockClear();
 
     await store.poll('plan-1');
     await store.poll('plan-1');
 
-    expect(requestCount() - afterLoad).toBe(2);
     expect(plans.dashboard).toHaveBeenCalledTimes(3);
+    expect(plans.unplanned.mock.calls).toEqual([
+      ['plan-1', 'income', null],
+      ['plan-1', 'income', null],
+    ]);
     expect(plans.get).toHaveBeenCalledOnce();
     expect(plans.listItems).toHaveBeenCalledOnce();
     expect(categories.list).toHaveBeenCalledOnce();
-    expect(plans.unplanned).toHaveBeenCalledTimes(2);
+  });
+
+  it('reconciles the first unplanned page on a poll while the list was not paged', async () => {
+    await store.load('plan-1');
+    plans.unplanned.mockImplementation((_planId: string, direction: string) =>
+      Promise.resolve(direction === 'expense' ? UNPLANNED_LAST_PAGE : EMPTY_PAGE),
+    );
+
+    await store.poll('plan-1');
+
+    expect(store.unplannedExpenses.items.map((t) => t.id)).toEqual(
+      UNPLANNED_LAST_PAGE.items.map((t) => t.id),
+    );
+    expect(plans.unplanned).toHaveBeenLastCalledWith('plan-1', 'income', null);
+    expect(plans.get).toHaveBeenCalledOnce();
+    expect(categories.list).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the list when the unplanned reconcile of a poll fails', async () => {
+    await store.load('plan-1');
+    const before = store.unplannedExpenses;
+    plans.unplanned.mockRejectedValue(new Error('down'));
+
+    await store.poll('plan-1');
+
+    expect(store.unplannedExpenses).toBe(before);
+  });
+
+  it('drops a reconciled page that arrives after the user paged', async () => {
+    await store.load('plan-1');
+    const late = deferred<typeof UNPLANNED_PAGE>();
+    plans.unplanned.mockReturnValueOnce(late.promise);
+    const polling = store.poll('plan-1');
+    await advance(0);
+    plans.unplanned.mockResolvedValue(UNPLANNED_LAST_PAGE);
+    await store.loadMoreUnplanned('expense');
+    const paged = store.unplannedExpenses;
+    late.resolve(UNPLANNED_PAGE);
+    await polling;
+
+    expect(store.unplannedExpenses).toBe(paged);
+  });
+
+  it('starts no timer after stop, and a failed load in flight does not retry', async () => {
+    plans.dashboard.mockRejectedValue(new Error('down'));
+    const loading = store.load('plan-1');
+    store.stop();
+    await loading;
+    plans.dashboard.mockResolvedValue(DASHBOARD);
+
+    await advance(LOAD_RETRY * 4);
+
+    expect(plans.dashboard).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('cancels a pending load retry and reference refresh on stop, and loads again after a new load', async () => {
+    plans.dashboard.mockRejectedValueOnce(new Error('down'));
+    await store.load('plan-1');
+    expect(vi.getTimerCount()).toBe(1);
+
+    store.stop();
+    await advance(LOAD_RETRY * 4);
+
+    expect(plans.dashboard).toHaveBeenCalledOnce();
+    expect(vi.getTimerCount()).toBe(0);
+
+    await store.load('plan-1');
+    catalogue.invalidate();
+    expect(vi.getTimerCount()).toBe(1);
   });
 
   it('shows the polled dashboard with the names from the first load', async () => {
@@ -132,6 +206,7 @@ describe('PlanDashboardStore polling and reference data', () => {
     await store.poll('plan-1');
     expect(requestCount() - before).toBe(1);
     expect(plans.dashboard).toHaveBeenCalledOnce();
+    plans.unplanned.mockClear();
 
     await advance(REFRESH_DEBOUNCE);
     expect(plans.get).toHaveBeenCalledTimes(2);

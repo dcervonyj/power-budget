@@ -31,6 +31,10 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
     void bankConnectionStore.fetchConnections();
 
     void dashboardStore.open();
+
+    return () => {
+      dashboardStore.close();
+    };
   }, []);
 
   useVisiblePolling(pollDashboard, POLL_INTERVAL_MS);

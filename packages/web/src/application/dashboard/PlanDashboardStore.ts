@@ -104,6 +104,10 @@ export class PlanDashboardStore implements PlanDashboardSource {
   /** Bumped by every load and by sign-out: an answer of an older one is dropped. */
   private token = 0;
   private polling = false;
+  /** Directions whose list the user paged past the first page: a poll leaves those alone. */
+  private pagedDirections = new Set<LineDirection>();
+  /** False after the dashboard was left: no timer may be started until the next load. */
+  private active = true;
 
   constructor(plans: PlanDashboardPlans, reference: PlanDashboardReference) {
     this.plans = plans;
@@ -123,6 +127,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
       | 'loadRetryTimer'
       | 'token'
       | 'polling'
+      | 'pagedDirections'
+      | 'active'
     >(this, {
       plans: false,
       catalogue: false,
@@ -137,6 +143,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
       loadRetryTimer: false,
       token: false,
       polling: false,
+      pagedDirections: false,
+      active: false,
     });
     reference.subscribe(() => {
       this.onCatalogueChanged();
@@ -151,6 +159,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
   async load(planId: string): Promise<void> {
     this.token += 1;
     const token = this.token;
+    this.active = true;
+    this.pagedDirections.clear();
     this.polling = false;
     this.refreshing = false;
     this.cancelRefreshTimer();
@@ -187,8 +197,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
   }
 
   /**
-   * One dashboard request while a dashboard is shown, and nothing else: reference data is never
-   * read here. Skipped while a load or another poll is in flight and for a plan that is not shown;
+   * One dashboard request while a dashboard is shown, plus the first unplanned page of a list the
+   * user has not paged (so new and mapped transactions show up); reference data is never read here. Skipped while a load or another poll is in flight and for a plan that is not shown;
    * a failed poll keeps the shown data. With nothing shown (the load failed) it does nothing: the
    * load is retried by its own timer.
    */
@@ -203,6 +213,10 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.polling = true;
     try {
       this.showPolled(planId, token, await this.plans.dashboard(planId));
+      await Promise.all([
+        this.reconcileUnplanned(planId, token, 'expense'),
+        this.reconcileUnplanned(planId, token, 'income'),
+      ]);
     } catch {
       // The shown data stays; the next poll tries again.
     } finally {
@@ -212,12 +226,20 @@ export class PlanDashboardStore implements PlanDashboardSource {
     }
   }
 
+  /** The dashboard is left: every timer goes and none starts until the next load. */
+  stop(): void {
+    this.active = false;
+    this.cancelRefreshTimer();
+    this.cancelLoadRetry();
+  }
+
   /**
    * Sign-out or session end: the shown dashboard goes; a late answer is dropped
    * because it no longer matches `planId`.
    */
   resetSession(): void {
     this.token += 1;
+    this.pagedDirections.clear();
     this.polling = false;
     this.refreshing = false;
     this.cancelRefreshTimer();
@@ -254,6 +276,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
     }
     const token = this.token;
     const before = this.unplannedOf(direction);
+    if (cursor !== null) {
+      this.pagedDirections.add(direction);
+    }
     this.setUnplanned(direction, { ...before, loading: true, failed: false });
     try {
       const page = await this.plans.unplanned(planId, direction, cursor);
@@ -265,6 +290,25 @@ export class PlanDashboardStore implements PlanDashboardSource {
       );
     } catch {
       this.applyUnplanned(planId, token, direction, { ...before, loading: false, failed: true });
+    }
+  }
+
+  /** A poll replaces the first page of a list that was never paged; a failure keeps the list. */
+  private async reconcileUnplanned(
+    planId: string,
+    token: number,
+    direction: LineDirection,
+  ): Promise<void> {
+    if (this.pagedDirections.has(direction) || this.unplannedOf(direction).loading) {
+      return;
+    }
+    try {
+      const page = await this.plans.unplanned(planId, direction, null);
+      if (this.token === token && this.planId === planId && !this.pagedDirections.has(direction)) {
+        this.setUnplanned(direction, appendPage(EMPTY_LIST, page));
+      }
+    } catch {
+      // The listed transactions stay; the next poll tries again.
     }
   }
 
@@ -308,6 +352,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
   /** After a failed load: the next try comes by timer, not by a poll tick. */
   private scheduleLoadRetry(planId: string): void {
     this.cancelLoadRetry();
+    if (!this.active) {
+      return;
+    }
     const delay = Math.min(LOAD_RETRY_MS * 2 ** (this.loadFailures - 1), MAX_LOAD_RETRY_MS);
     this.loadRetryTimer = setTimeout(() => {
       this.loadRetryTimer = null;
@@ -317,7 +364,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
 
   /** A hidden tab waits; a plan that is no longer shown or a load that works needs no retry. */
   private retryLoad(planId: string, delay: number): void {
-    if (planId !== this.planId || this.error === null || this.loading) {
+    if (!this.active || planId !== this.planId || this.error === null || this.loading) {
       return;
     }
     if (document.visibilityState === 'hidden') {
@@ -356,7 +403,7 @@ export class PlanDashboardStore implements PlanDashboardSource {
 
   /** At most one timer and one refresh at a time; a later request waits for them. */
   private scheduleRefresh(delayMs: number): void {
-    if (this.refreshTimer !== null || this.refreshing) {
+    if (!this.active || this.refreshTimer !== null || this.refreshing) {
       return;
     }
     this.refreshTimer = setTimeout(() => {
