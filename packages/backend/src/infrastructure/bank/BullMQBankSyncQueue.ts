@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { boundedEnqueue } from '../queue/bounded-enqueue.js';
 import { InjectQueue } from '@nestjs/bullmq';
 import type { JobsOptions, Queue } from 'bullmq';
 import type { BankConnectionId, HouseholdId } from '@power-budget/core';
@@ -19,10 +20,9 @@ export class BullMQBankSyncQueue implements BankSyncQueuePort {
     scheduledAt?: Date;
   }): Promise<{ jobId: string }> {
     const { scheduledAt, ...data } = payload;
-    const job = await this.queue.add(
-      'sync',
-      data,
-      this.jobOptions(payload.connectionId, scheduledAt),
+    const job = await boundedEnqueue(
+      this.queue.add('sync', data, this.jobOptions(payload.connectionId, scheduledAt)),
+      `bank sync for ${payload.connectionId}`,
     );
 
     return { jobId: job.id ?? '' };

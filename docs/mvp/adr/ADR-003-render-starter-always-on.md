@@ -63,3 +63,7 @@ the old service because it decrypts secrets already stored in Neon.
   optional (a Render background worker is another $7).
 - HOST-003 (domain) is unchanged: Wise webhooks and Resend need a custom domain, which
   Render serves with its own certificate.
+- Response compression is done by Render's Cloudflare edge, so the API registers no
+  `@fastify/compress` (CLN-056). Checked 28 Oct 2026:
+  `curl -sD- -o/dev/null -H 'Accept-Encoding: gzip, br' https://power-budget-api-eu.onrender.com/health`
+  returns `content-encoding: br`, `server: cloudflare`. Re-check if the API leaves Render.

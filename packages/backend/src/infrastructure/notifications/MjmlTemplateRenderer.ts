@@ -1,12 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-// mjml 5 renders asynchronously: the result is a Promise (v4 returned it directly).
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const mjml2html = require('mjml') as (
+import type { TemplateRenderer } from '../../domain/notifications/ports.js';
+
+type MjmlRender = (
   input: string,
   opts?: { validationLevel?: string },
 ) => Promise<{ html: string; errors: Array<{ formattedMessage: string }> }>;
-import type { TemplateRenderer } from '../../domain/notifications/ports.js';
 
 const HTML_ESCAPES: Record<string, string> = {
   '&': '&amp;',
@@ -19,6 +18,7 @@ const HTML_ESCAPES: Record<string, string> = {
 export class MjmlTemplateRenderer implements TemplateRenderer {
   private readonly templateDir: string;
   private readonly cache = new Map<string, string>();
+  private mjml2html: MjmlRender | undefined;
 
   constructor(templateDir?: string) {
     this.templateDir = templateDir ?? join(__dirname, 'templates');
@@ -40,7 +40,7 @@ export class MjmlTemplateRenderer implements TemplateRenderer {
     }
 
     const interpolated = this.interpolate(mjmlTemplate, variables);
-    const { html, errors } = await mjml2html(interpolated, { validationLevel: 'soft' });
+    const { html, errors } = await this.loadMjml()(interpolated, { validationLevel: 'soft' });
 
     if (errors.length > 0) {
       const msgs = errors.map((e) => e.formattedMessage).join('; ');
@@ -48,6 +48,20 @@ export class MjmlTemplateRenderer implements TemplateRenderer {
     }
 
     return html;
+  }
+
+  /**
+   * mjml costs about 37 MB RSS and 170-280 ms to load, so it is required on the first render
+   * instead of at boot (an API-only process never sends an email).
+   * mjml 5 renders asynchronously: the result is a Promise (v4 returned it directly).
+   */
+  private loadMjml(): MjmlRender {
+    if (this.mjml2html === undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      this.mjml2html = require('mjml') as MjmlRender;
+    }
+
+    return this.mjml2html;
   }
 
   /** Values are HTML-escaped: names and plan names are user input. */

@@ -5,11 +5,11 @@ import type { INestApplication } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
-import { WorkerModule } from './worker/worker.module';
 import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
 import { configureHttpSecurity } from './bootstrap/http-security.js';
 import { type AppConfig } from './config/AppConfig.js';
 import { loadAppConfig } from './config/load-app-config.js';
+import { startEmbeddedWorker } from './bootstrap/embedded-worker.js';
 
 function initSentry(config: AppConfig): void {
   Sentry.init({
@@ -54,6 +54,14 @@ async function bootstrap() {
   });
 
   app.useGlobalFilters(new SentryExceptionFilter());
+  // SIGTERM (Render deploy) closes queues and the shared queue Redis connection (CLN-056).
+  nestApp.enableShutdownHooks();
+
+  // Response compression is deliberately NOT registered here (CLN-056 / PERF-16). Checked
+  // 28 Oct 2026: `curl -sD- -o/dev/null -H 'Accept-Encoding: gzip, br'
+  // https://power-budget-api-eu.onrender.com/health` returns `content-encoding: br` with
+  // `server: cloudflare`; Render's edge already compresses application/json (a 400 from
+  // POST /auth/login too). See docs/mvp/adr/ADR-003-render-starter-always-on.md.
 
   const port = config.port;
   await app.listen(port, '0.0.0.0');
@@ -61,13 +69,7 @@ async function bootstrap() {
 
   // Free-tier topology (ADR-002): a single container runs API + worker.
   // Standalone worker deployments use dist/src/worker.main.js instead.
-  if (config.startWorker) {
-    const worker = await NestFactory.createApplicationContext(WorkerModule, {
-      logger: ['log', 'warn', 'error'],
-    });
-    worker.enableShutdownHooks();
-    console.log('Embedded worker started (single-process free-tier topology)');
-  }
+  await startEmbeddedWorker(config);
 }
 
 bootstrap().catch((err: unknown) => {
