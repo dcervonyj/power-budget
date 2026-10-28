@@ -170,6 +170,15 @@ describe('normaliseTransaction extraction', () => {
     ).toBe('biedronka');
   });
 
+  it.each([
+    'Card transaction of 12.34 PLN issued by',
+    'Card transaction of 12.34 PLN issued by ****1234',
+    'Card transaction of 12.34 PLN issued by Warszawa',
+    'Card transaction of 12.34 PLN issued by 123456',
+  ])('keeps the original title key when no merchant follows the Wise wrapper: %s', (title) => {
+    expect(normaliseTransaction(title).merchantKey).toBe('card transaction of 12 34 pln issued by');
+  });
+
   it('strips card masks and times from the merchant', () => {
     expect(normaliseTransaction('Card payment to Lidl ****1234 14:32').merchant).toBe('Lidl');
   });
