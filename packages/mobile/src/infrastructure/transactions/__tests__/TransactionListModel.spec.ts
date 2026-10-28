@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type {
   PlanDashboardResponseDto,
+  PlanDto,
   TransactionListItemDto,
 } from '@power-budget/shared-app/contract';
 import {
+  currentPlanOf,
   filterCounts,
   groupByDay,
   monthSummaryOf,
@@ -81,6 +83,17 @@ describe('toListRows', () => {
 
     expect(rows[0]?.kind).toBe('sorted');
     expect(waitingToSort(rows, new Set(), 'PLN')).toBeUndefined();
+  });
+
+  it('picks the plan whose period covers today, not just the first active one', () => {
+    const plans = [
+      { id: 'past', period: { start: '2026-09-01', end: '2026-09-30' } },
+      { id: 'now', period: { start: '2026-10-01', end: '2026-10-31' } },
+    ] as PlanDto[];
+
+    expect(currentPlanOf(plans, '2026-10-31')?.id).toBe('now');
+    expect(currentPlanOf(plans, '2026-09-01')?.id).toBe('past');
+    expect(currentPlanOf(plans, '2026-11-01')).toBeUndefined();
   });
 
   it('names the suggested category of a row to sort', () => {

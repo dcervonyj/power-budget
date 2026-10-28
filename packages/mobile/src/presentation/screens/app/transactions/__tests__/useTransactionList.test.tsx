@@ -285,3 +285,36 @@ describe('useTransactionList supporting loads', () => {
     expect(result.current.categoriesFailed).toBe(false);
   });
 });
+
+describe('useTransactionList month plan and focus reload', () => {
+  afterEach(() => {
+    jest.mocked(plansApi.list).mockResolvedValue([]);
+    jest.mocked(categoriesApi.list).mockResolvedValue([]);
+  });
+
+  it('reads the dashboard of the plan that covers today', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    jest.mocked(plansApi.list).mockResolvedValue([
+      { id: 'past', period: { start: '2000-01-01', end: '2000-01-31' } },
+      { id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } },
+    ] as never);
+    jest.mocked(plansApi.dashboard).mockRejectedValue(new Error('not needed'));
+    await renderHook(() => useTransactionList());
+
+    await waitFor(() => expect(plansApi.dashboard).toHaveBeenCalledWith('now'));
+    expect(plansApi.dashboard).not.toHaveBeenCalledWith('past');
+  });
+
+  it('reloads the categories together with the rows on focus', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+    const before = jest.mocked(categoriesApi.list).mock.calls.length;
+
+    await act(async () => result.current.reload());
+
+    await waitFor(() =>
+      expect(jest.mocked(categoriesApi.list).mock.calls.length).toBeGreaterThan(before),
+    );
+  });
+});

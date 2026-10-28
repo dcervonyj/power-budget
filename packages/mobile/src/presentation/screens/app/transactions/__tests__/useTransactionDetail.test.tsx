@@ -156,3 +156,42 @@ describe('useTransactionDetail notes and category lookup', () => {
     expect(result.current.categoryName).toBeUndefined();
   });
 });
+
+describe('useTransactionDetail transfer switch', () => {
+  it('moves at once and lets a second tap reverse a pending change, last intent last', async () => {
+    detail.mockResolvedValue(detailDto());
+    const first = deferred();
+    jest.mocked(transactionsGateway.setTransfer).mockReset();
+    jest
+      .mocked(transactionsGateway.setTransfer)
+      .mockReturnValueOnce(first.promise as never)
+      .mockResolvedValue(undefined as never);
+    const { result } = await renderHook(() => useTransactionDetail('t1'));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(async () => result.current.toggleTransfer(true));
+    expect(result.current.transaction?.isTransfer).toBe(true);
+    await act(async () => result.current.toggleTransfer(false));
+    expect(result.current.transaction?.isTransfer).toBe(false);
+
+    await act(async () => first.resolve());
+    await waitFor(() => expect(transactionsGateway.setTransfer).toHaveBeenCalledTimes(2));
+    expect(transactionsGateway.setTransfer).toHaveBeenNthCalledWith(1, 't1', true);
+    expect(transactionsGateway.setTransfer).toHaveBeenNthCalledWith(2, 't1', false);
+    expect(result.current.transaction?.isTransfer).toBe(false);
+  });
+
+  it('re-reads the server state when the write fails', async () => {
+    detail.mockResolvedValue(detailDto());
+    jest.mocked(transactionsGateway.setTransfer).mockReset();
+    jest.mocked(transactionsGateway.setTransfer).mockRejectedValue(new Error('offline'));
+    const { result } = await renderHook(() => useTransactionDetail('t1'));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(async () => result.current.toggleTransfer(true));
+
+    await waitFor(() => expect(result.current.failure).toBe('save'));
+    await waitFor(() => expect(result.current.transaction?.isTransfer).toBe(false));
+    expect(detail).toHaveBeenCalledTimes(2);
+  });
+});

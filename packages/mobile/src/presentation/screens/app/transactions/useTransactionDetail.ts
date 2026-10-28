@@ -145,19 +145,31 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
     void changeMapping(null);
   }, [changeMapping]);
 
+  const reread = useCallback(async (): Promise<void> => {
+    try {
+      await writeQueue.run(() => Promise.resolve());
+      const view = TransactionView.fromDetail(await transactionsGateway.detail(transactionId));
+      setTransaction(view);
+    } catch {
+      // The failure toast is already up; the switch keeps its last position until a reload.
+    }
+  }, [transactionId]);
+
   const toggleTransfer = useCallback(
     (isTransfer: boolean): void => {
+      // The switch moves at once, so the next tap can reverse it; the writes queue up in tap order
+      // and the last intent wins. A failure re-reads the server state instead of guessing.
+      setTransaction((previous) =>
+        previous === undefined ? previous : { ...previous, isTransfer },
+      );
       void writeQueue
         .run(() => transactionsGateway.setTransfer(transactionId, isTransfer))
-        .then(
-          () =>
-            setTransaction((previous) =>
-              previous === undefined ? previous : { ...previous, isTransfer },
-            ),
-          () => setFailure('save'),
-        );
+        .catch(() => {
+          setFailure('save');
+          void reread();
+        });
     },
-    [transactionId],
+    [transactionId, reread],
   );
 
   const saveNotes = useCallback((): void => {
