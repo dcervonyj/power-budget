@@ -71,6 +71,13 @@ export class DashboardStore {
     }
   }
 
+  /** The Overview is left: timers of the shown dashboard stop and a late plan list is dropped. */
+  close(): void {
+    this.session += 1;
+    this.loading = false;
+    this.planDashboard.stop();
+  }
+
   /** Sign-out or session end: nothing of the previous user's plans stays. */
   resetSession(): void {
     this.session += 1;

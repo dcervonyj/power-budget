@@ -77,6 +77,21 @@ describe('DashboardStore', () => {
     expect(load).not.toHaveBeenCalled();
   });
 
+  it('stops the dashboard timers and drops a late plan list when the Overview is left', async () => {
+    const stop = vi.spyOn(planDashboard, 'stop');
+    const late = deferred<PlanDto[]>();
+    list.mockReturnValue(late.promise);
+    const opening = store.open();
+
+    store.close();
+    late.resolve([PLAN]);
+    await opening;
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(load).not.toHaveBeenCalled();
+    expect(store.loading).toBe(false);
+  });
+
   it('flags a failed plan list and selects nothing', async () => {
     list.mockRejectedValue(new Error('down'));
 
