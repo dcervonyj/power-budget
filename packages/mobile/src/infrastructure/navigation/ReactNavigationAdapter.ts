@@ -1,5 +1,6 @@
 import type { Navigator } from '@power-budget/shared-app/infrastructure';
 import type { AppRoute } from '@power-budget/shared-app/contract';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import type {
   AppStackParamList,
   AppTabParamList,

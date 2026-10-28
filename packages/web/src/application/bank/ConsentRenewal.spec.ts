@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import type { BankConnection } from '../../infrastructure/api/BankConnectionMapper.js';
 import { connectionsToRenew, consentStateOf } from './ConsentRenewal.js';
 

@@ -13,6 +13,7 @@ import {
   BankConsentNotFoundError,
   BankConnectionInvalidStateError,
 } from '../../../../domain/bank/errors.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { BankController } from '../../../../presentation/bank/BankController.js';
 
 const ALICE = '01900000-0000-7000-8000-00000000000a' as UserId;

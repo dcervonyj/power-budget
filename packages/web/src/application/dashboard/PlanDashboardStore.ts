@@ -11,6 +11,7 @@ import type {
   PlanDashboard,
   UnplannedTransaction,
 } from '../../domain/dashboard/PlanDashboard.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import {
   toPlanDashboard,
   toUnplannedTransaction,

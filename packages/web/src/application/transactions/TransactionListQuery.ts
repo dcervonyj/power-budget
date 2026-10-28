@@ -1,9 +1,11 @@
 import type { Transaction } from '../../domain/transactions/Transaction.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import type { TransactionFilters } from '../../presentation/components/TransactionFilterBar.js';
 import type {
   ListTransactionsQueryDto,
   TransactionPageDto,
 } from '@power-budget/shared-app/contract';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { TransactionMapper } from '../../infrastructure/api/TransactionMapper.js';
 
 const LIMIT = 50;

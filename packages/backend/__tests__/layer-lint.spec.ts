@@ -6,11 +6,11 @@ import { describe, expect, it } from 'vitest';
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, '../../..');
 const tsParser = require('@typescript-eslint/parser');
-const { layerLintBlocks, layerAllowListBlocks, LAYER_ALLOW_LIST } = require(
+const { layerLintBlocks, backendLayerBlocks, LAYER_ALLOW_LIST } = require(
   path.join(root, 'eslint.layers.js'),
 ) as {
   layerLintBlocks: unknown[];
-  layerAllowListBlocks: unknown[];
+  backendLayerBlocks: (prefix: string) => unknown[];
   LAYER_ALLOW_LIST: string[];
 };
 
@@ -21,7 +21,6 @@ const eslint = new ESLint({
   overrideConfig: [
     { files: ['**/*.ts', '**/*.tsx'], languageOptions: { parser: tsParser } },
     ...layerLintBlocks,
-    ...layerAllowListBlocks,
   ] as never,
 });
 
@@ -82,13 +81,51 @@ describe('layer lint (no-restricted-imports)', () => {
     expect(await ruleIds(file, code)).toEqual([]);
   });
 
-  it('allow-listed file may keep its violation', async () => {
-    expect(LAYER_ALLOW_LIST).toContain('packages/web/src/application/bank/ConsentRenewal.ts');
-    expect(
-      await ruleIds(
-        'packages/web/src/application/bank/ConsentRenewal.ts',
-        `import { A } from '../../infrastructure/api/A.js';`,
-      ),
-    ).toEqual([]);
+  it.each([
+    ['packages/web/src/application/x/x.ts', `import { A } from '../../presentation';`],
+    ['packages/web/src/application/x/x.ts', `import { A } from '../../presentation/index.js';`],
+    ['packages/web/src/application/x/x.ts', `import { A } from '../../infrastructure';`],
+    ['packages/backend/src/domain/plans/x.ts', `import { A } from '../../application';`],
+    ['packages/backend/src/infrastructure/db/x.ts', `import { A } from '../presentation';`],
+  ])('bare or index layer import errors for %s: %s', async (file, code) => {
+    expect(await ruleIds(file, code)).toEqual(RESTRICTED);
+  });
+
+  describe('allow-list uses per-import disable comments', () => {
+    const file = 'packages/web/src/application/bank/ConsentRenewal.ts';
+    const known = `// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list\nimport { A } from '../../infrastructure/api/A.js';\n`;
+
+    it('is documented in the central list', () => {
+      expect(LAYER_ALLOW_LIST).toContain(file);
+    });
+
+    it('the known import passes', async () => {
+      expect(await ruleIds(file, known)).toEqual([]);
+    });
+
+    it('a NEW forbidden import in the same file still errors', async () => {
+      expect(
+        await ruleIds(file, `${known}import { B } from '../../infrastructure/api/B.js';\n`),
+      ).toEqual(RESTRICTED);
+    });
+  });
+
+  it('backend blocks also fire when linting from packages/backend (its own config base dir)', async () => {
+    const backendRoot = path.join(root, 'packages/backend');
+    const fromBackend = new ESLint({
+      cwd: backendRoot,
+      overrideConfigFile: true,
+      overrideConfig: [
+        { files: ['**/*.ts'], languageOptions: { parser: tsParser } },
+        ...backendLayerBlocks(''),
+      ] as never,
+    });
+    const [result] = await fromBackend.lintText(
+      `import { A } from '../../infrastructure/db/A.js';`,
+      {
+        filePath: path.join(backendRoot, 'src/application/plans/x.ts'),
+      },
+    );
+    expect(result.messages.map((m) => m.ruleId)).toEqual(RESTRICTED);
   });
 });
