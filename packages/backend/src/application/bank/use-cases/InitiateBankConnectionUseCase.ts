@@ -1,10 +1,10 @@
-import { uuidv7 } from 'uuidv7';
 import type { UserId, HouseholdId, BankConnectionId } from '@power-budget/core';
 import type { BankProvider, BankId } from '../../../domain/bank/entities.js';
 import type {
   BankConnectionRepository,
   BankConnectorRegistry,
 } from '../../../domain/bank/ports.js';
+import type { IdGenerator } from '../../../domain/shared/ports.js';
 import type { TotpSecretRepository } from '../../../domain/auth/ports.js';
 import { BankConnectionAlreadyActiveError } from '../../../domain/bank/errors.js';
 import { TotpEnrollmentRequiredError } from '../../../domain/auth/errors.js';
@@ -27,6 +27,7 @@ export class InitiateBankConnectionUseCase {
     private readonly connectionRepo: BankConnectionRepository,
     private readonly registry: BankConnectorRegistry,
     private readonly totpSecretRepo: TotpSecretRepository,
+    private readonly ids: IdGenerator,
   ) {}
 
   async execute(input: InitiateBankConnectionInput): Promise<InitiateBankConnectionOutput> {
@@ -52,7 +53,7 @@ export class InitiateBankConnectionUseCase {
       historyDays: 90,
     });
 
-    const connectionId = uuidv7() as BankConnectionId;
+    const connectionId = this.ids.next() as BankConnectionId;
     await this.connectionRepo.create({
       id: connectionId,
       householdId: input.householdId,

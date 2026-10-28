@@ -40,7 +40,7 @@ describe('CreateManualAccountUseCase', () => {
     repo.createManual.mockResolvedValue(cash);
 
     await expect(
-      new CreateManualAccountUseCase(repo, () => ACCOUNT_ID).execute({
+      new CreateManualAccountUseCase(repo, { next: () => ACCOUNT_ID }).execute({
         userId: USER,
         householdId: HOUSEHOLD,
         name: '  Cash ',

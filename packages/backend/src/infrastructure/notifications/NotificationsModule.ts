@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
+import { SystemModule, ID_GENERATOR } from '../system/SystemModule.js';
+import type { IdGenerator } from '../../domain/shared/ports.js';
 import { DatabaseModule } from '../database/database.module.js';
 import { QueueModule } from '../queue/queue.module.js';
 import { QUEUE_NOTIFICATION_DISPATCH } from '../queue/queue.constants.js';
@@ -18,7 +20,7 @@ import { EnqueueNotificationUseCase } from '../../application/notifications/use-
  * which only the worker loads.
  */
 @Module({
-  imports: [DatabaseModule, QueueModule],
+  imports: [DatabaseModule, QueueModule, SystemModule],
   providers: [
     DrizzleNotificationRepository,
     {
@@ -29,8 +31,9 @@ import { EnqueueNotificationUseCase } from '../../application/notifications/use-
     },
     {
       provide: EnqueueNotificationUseCase,
-      inject: [DrizzleNotificationRepository],
-      useFactory: (repo: DrizzleNotificationRepository) => new EnqueueNotificationUseCase(repo),
+      inject: [DrizzleNotificationRepository, ID_GENERATOR],
+      useFactory: (repo: DrizzleNotificationRepository, ids: IdGenerator) =>
+        new EnqueueNotificationUseCase(repo, ids),
     },
   ],
   exports: [

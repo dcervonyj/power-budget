@@ -9,6 +9,7 @@ import type {
   WeeklyDigestRun,
   WeeklyDigestSummaryReader,
 } from '../../../domain/notifications/ports.js';
+import type { Clock } from '../../../domain/shared/ports.js';
 import type { EnqueueNotificationUseCase } from './EnqueueNotificationUseCase.js';
 
 const SUPPORTED_LOCALES: readonly SupportedLocale[] = ['en', 'uk', 'ru', 'pl'];
@@ -34,12 +35,11 @@ export class RunWeeklyDigestUseCase {
     private readonly notificationRepo: NotificationRepository,
     private readonly enqueueNotification: EnqueueNotificationUseCase,
     private readonly summaryReader: WeeklyDigestSummaryReader,
+    private readonly clock: Clock,
   ) {}
 
-  async execute(
-    now: Date = new Date(),
-    timeZone: string = DEFAULT_DIGEST_TIME_ZONE,
-  ): Promise<WeeklyDigestResult> {
+  async execute(timeZone: string = DEFAULT_DIGEST_TIME_ZONE): Promise<WeeklyDigestResult> {
+    const now = this.clock.now();
     const members = await this.notificationRepo.listAllHouseholdMembers();
     const periodLabel = this.getIsoWeekLabel(now, timeZone);
 
