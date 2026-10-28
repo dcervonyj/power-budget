@@ -1,4 +1,4 @@
-import { normaliseTransaction } from '@power-budget/core';
+import { normaliseTransaction, type DescriptorClass } from '@power-budget/core';
 import type { MerchantRuleKey } from './entities.js';
 
 export interface MerchantRuleSource {
@@ -19,8 +19,13 @@ export function merchantRuleKeysOf(source: MerchantRuleSource): MerchantRuleKey[
     keys.push({ matchKind: 'counterparty_iban_hash', pattern: source.counterpartyIbanHash });
   }
 
-  for (const text of [source.counterpartyName, source.merchant, source.description]) {
-    const key = text === null ? null : normaliseTransaction(text).merchantKey;
+  const texts: Array<{ text: string | null; isDescription: boolean }> = [
+    { text: source.counterpartyName, isDescription: false },
+    { text: source.merchant, isDescription: false },
+    { text: source.description, isDescription: true },
+  ];
+  for (const { text, isDescription } of texts) {
+    const key = text === null ? null : merchantKeyOf(text, isDescription);
     if (key !== null && !keys.some((existing) => existing.pattern === key)) {
       keys.push({ matchKind: 'merchant', pattern: key });
     }
@@ -34,4 +39,24 @@ export function merchantRuleConfidence(hits: number): number {
   const thousandths = Math.min(950, 800 + 50 * Math.max(0, hits - 1));
 
   return thousandths / 1000;
+}
+
+/** Descriptor classes whose free text names no merchant ("Faktura 1/2026", "Zwrot"). */
+const GENERIC_DESCRIPTOR_CLASSES: readonly DescriptorClass[] = [
+  'unclassified',
+  'transfer',
+  'fee',
+  'atm',
+];
+
+function merchantKeyOf(text: string, isDescription: boolean): string | null {
+  const normalised = normaliseTransaction(text);
+  if (normalised.merchantKey === null || normalised.merchantKey === '') {
+    return null;
+  }
+  if (isDescription && GENERIC_DESCRIPTOR_CLASSES.includes(normalised.descriptorClass)) {
+    return null;
+  }
+
+  return normalised.merchantKey;
 }

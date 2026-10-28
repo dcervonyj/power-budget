@@ -3,6 +3,7 @@ import type {
   MappingRepository,
   TransactionRepository,
 } from '../../../domain/transactions/ports.js';
+import type { LearnMerchantRuleUseCase } from '../../categorisation/LearnMerchantRuleUseCase.js';
 import { TransactionNotFoundError } from '../../../domain/transactions/errors.js';
 
 export interface BulkMapTransactionsInput {
@@ -16,6 +17,7 @@ export class BulkMapTransactionsUseCase {
   constructor(
     private readonly transactionRepo: TransactionRepository,
     private readonly mappingRepo: MappingRepository,
+    private readonly merchantMemory: LearnMerchantRuleUseCase,
   ) {}
 
   /**
@@ -36,5 +38,25 @@ export class BulkMapTransactionsUseCase {
 
     // The repository also rejects the whole batch if any planned item is foreign.
     await this.mappingRepo.bulkSet([...input.mappings], input.by, scope);
+    for (const mapping of input.mappings) {
+      await this.learn(mapping, input, scope);
+    }
+  }
+
+  private async learn(
+    mapping: { transactionId: TransactionId; plannedItemId: PlannedItemId },
+    input: BulkMapTransactionsInput,
+    scope: { householdId: HouseholdId },
+  ): Promise<void> {
+    const transaction = await this.transactionRepo.findById(mapping.transactionId, scope);
+    if (transaction === null) {
+      return;
+    }
+    await this.merchantMemory.learnFromMapping({
+      transaction,
+      plannedItemId: mapping.plannedItemId,
+      by: input.by,
+      householdId: input.householdId,
+    });
   }
 }

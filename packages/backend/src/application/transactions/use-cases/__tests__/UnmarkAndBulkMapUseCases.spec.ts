@@ -8,6 +8,7 @@ import type {
 } from '../../../../domain/transactions/ports.js';
 import type { Transaction } from '../../../../domain/transactions/entities.js';
 import { TransactionNotFoundError } from '../../../../domain/transactions/errors.js';
+import type { LearnMerchantRuleUseCase } from '../../../categorisation/LearnMerchantRuleUseCase.js';
 import { BulkMapTransactionsUseCase } from '../BulkMapTransactionsUseCase.js';
 import { UnmarkTransferUseCase } from '../UnmarkTransferUseCase.js';
 
@@ -68,10 +69,43 @@ describe('BulkMapTransactionsUseCase', () => {
     const mappingRepo = mock<MappingRepository>();
     txRepo.findOwnedIds.mockResolvedValue([TX_1, TX_2]);
 
-    await new BulkMapTransactionsUseCase(txRepo, mappingRepo).execute(input);
+    await new BulkMapTransactionsUseCase(
+      txRepo,
+      mappingRepo,
+      mock<LearnMerchantRuleUseCase>(),
+    ).execute(input);
 
     expect(txRepo.findOwnedIds).toHaveBeenCalledWith([TX_1, TX_2], USER, scope);
     expect(mappingRepo.bulkSet).toHaveBeenCalledWith(input.mappings, USER, scope);
+  });
+
+  it('teaches merchant memory for each mapped transaction', async () => {
+    const txRepo = mock<TransactionRepository>();
+    const mappingRepo = mock<MappingRepository>();
+    const memory = mock<LearnMerchantRuleUseCase>();
+    const tx1 = { id: TX_1 } as Transaction;
+    const tx2 = { id: TX_2 } as Transaction;
+    txRepo.findOwnedIds.mockResolvedValue([TX_1, TX_2]);
+    txRepo.findById.mockImplementation(async (id) => (id === TX_1 ? tx1 : tx2));
+
+    await new BulkMapTransactionsUseCase(txRepo, mappingRepo, memory).execute({
+      ...input,
+      mappings: input.mappings.slice(0, 2),
+    });
+
+    expect(memory.learnFromMapping).toHaveBeenCalledTimes(2);
+    expect(memory.learnFromMapping).toHaveBeenCalledWith({
+      transaction: tx1,
+      plannedItemId: ITEM,
+      by: USER,
+      householdId: HOUSEHOLD,
+    });
+    expect(memory.learnFromMapping).toHaveBeenCalledWith({
+      transaction: tx2,
+      plannedItemId: ITEM,
+      by: USER,
+      householdId: HOUSEHOLD,
+    });
   });
 
   it('rejects the whole batch when one transaction is not the caller’s own', async () => {
@@ -80,7 +114,9 @@ describe('BulkMapTransactionsUseCase', () => {
     txRepo.findOwnedIds.mockResolvedValue([TX_1]);
 
     await expect(
-      new BulkMapTransactionsUseCase(txRepo, mappingRepo).execute(input),
+      new BulkMapTransactionsUseCase(txRepo, mappingRepo, mock<LearnMerchantRuleUseCase>()).execute(
+        input,
+      ),
     ).rejects.toThrow(TransactionNotFoundError);
     expect(mappingRepo.bulkSet).not.toHaveBeenCalled();
   });
@@ -89,7 +125,11 @@ describe('BulkMapTransactionsUseCase', () => {
     const txRepo = mock<TransactionRepository>();
     const mappingRepo = mock<MappingRepository>();
 
-    await new BulkMapTransactionsUseCase(txRepo, mappingRepo).execute({ ...input, mappings: [] });
+    await new BulkMapTransactionsUseCase(
+      txRepo,
+      mappingRepo,
+      mock<LearnMerchantRuleUseCase>(),
+    ).execute({ ...input, mappings: [] });
 
     expect(txRepo.findOwnedIds).not.toHaveBeenCalled();
     expect(mappingRepo.bulkSet).not.toHaveBeenCalled();

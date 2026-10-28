@@ -33,6 +33,17 @@ describe('merchantRuleKeysOf', () => {
     expect(fromDescriptor).toEqual(fromName);
   });
 
+  it('learns no key from noise-only text or a generic transfer title', () => {
+    const keys = merchantRuleKeysOf({
+      counterpartyIbanHash: null,
+      counterpartyName: '123456789',
+      merchant: null,
+      description: 'Faktura 123/2026',
+    });
+
+    expect(keys).toEqual([]);
+  });
+
   it('lists a merchant key once', () => {
     const keys = merchantRuleKeysOf({
       counterpartyIbanHash: null,
