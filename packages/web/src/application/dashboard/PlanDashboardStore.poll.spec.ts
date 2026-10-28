@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlanDashboardResponseDto as PlanDashboardDto } from '@power-budget/shared-app/contract';
 import { ClientSession } from '../auth/ClientSession.js';
 import type { ReferenceCatalogue } from '../catalogue/ReferenceCatalogue.js';
@@ -20,8 +20,11 @@ type Mocked = { [K in keyof PlanDashboardPlans]: ReturnType<typeof vi.fn> } & Pl
 
 const NEWER: PlanDashboardDto = { ...DASHBOARD, asOf: '2026-10-22' };
 
-async function settle(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+const REFRESH_DEBOUNCE = 250;
+const REFRESH_RETRY = 1000;
+
+async function advance(ms: number): Promise<void> {
+  await vi.advanceTimersByTimeAsync(ms);
 }
 
 describe('PlanDashboardStore polling and reference data', () => {
@@ -29,6 +32,10 @@ describe('PlanDashboardStore polling and reference data', () => {
   let categories: { list: ReturnType<typeof vi.fn> } & CatalogueCategories;
   let catalogue: ReferenceCatalogue;
   let store: PlanDashboardStore;
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   function requestCount(): number {
     return (
@@ -41,6 +48,7 @@ describe('PlanDashboardStore polling and reference data', () => {
   }
 
   beforeEach(() => {
+    vi.useFakeTimers();
     plans = {
       get: vi.fn().mockResolvedValue(PLAN),
       dashboard: vi.fn().mockResolvedValue(DASHBOARD),
@@ -113,30 +121,43 @@ describe('PlanDashboardStore polling and reference data', () => {
     expect(categories.list).toHaveBeenCalledOnce();
   });
 
-  it('after a local change the next tick is one dashboard request plus a separate reference refresh, no reload', async () => {
+  it('after a local change a tick sends exactly one request; the reference refresh runs on its own timer, no reload', async () => {
     await store.load('plan-1');
     catalogue.invalidate();
     plans.dashboard.mockClear();
     plans.unplanned.mockClear();
+    const before = requestCount();
 
     await store.poll('plan-1');
-    await settle();
-
+    expect(requestCount() - before).toBe(1);
     expect(plans.dashboard).toHaveBeenCalledOnce();
-    expect(plans.unplanned).not.toHaveBeenCalled();
+
+    await advance(REFRESH_DEBOUNCE);
     expect(plans.get).toHaveBeenCalledTimes(2);
     expect(plans.listItems).toHaveBeenCalledTimes(2);
     expect(categories.list).toHaveBeenCalledTimes(2);
+    expect(plans.dashboard).toHaveBeenCalledOnce();
+    expect(plans.unplanned).not.toHaveBeenCalled();
     expect(store.loading).toBe(false);
 
-    plans.get.mockClear();
+    const afterRefresh = requestCount();
     await store.poll('plan-1');
-    await settle();
-    expect(plans.get).not.toHaveBeenCalled();
-    expect(plans.dashboard).toHaveBeenCalledTimes(2);
+    expect(requestCount() - afterRefresh).toBe(1);
   });
 
-  it('shows new names after a refresh replaced the fallback of a failed read', async () => {
+  it('refreshes right after a local change even with no tick, once for a burst', async () => {
+    await store.load('plan-1');
+    plans.get.mockClear();
+
+    catalogue.invalidate();
+    catalogue.invalidate();
+    catalogue.invalidate();
+    await advance(REFRESH_DEBOUNCE);
+
+    expect(plans.get).toHaveBeenCalledOnce();
+  });
+
+  it('shows names after a refresh replaced the fallback of a failed read, retried on its own timer', async () => {
     categories.list.mockRejectedValueOnce(new Error('down'));
     plans.listItems.mockRejectedValueOnce(new Error('down'));
     await store.load('plan-1');
@@ -144,40 +165,40 @@ describe('PlanDashboardStore polling and reference data', () => {
     plans.dashboard.mockClear();
 
     await store.poll('plan-1');
-    await settle();
-
     expect(plans.dashboard).toHaveBeenCalledOnce();
+    expect(categories.list).toHaveBeenCalledTimes(1);
+
+    await advance(REFRESH_RETRY);
+
     expect(store.dashboard?.expense.map((g) => g.categoryName)).toEqual(['Groceries', 'Rent']);
-    // Healthy again: no further reference reads.
     categories.list.mockClear();
-    await store.poll('plan-1');
-    await settle();
+    await advance(120_000);
     expect(categories.list).not.toHaveBeenCalled();
   });
 
-  it('keeps polling with one request when the plan read fails in a refresh, retries it later with backoff', async () => {
+  it('keeps polling with one request when a plan read fails in a refresh and retries with backoff', async () => {
     await store.load('plan-1');
     catalogue.invalidate();
     plans.get.mockRejectedValue(new Error('down'));
     plans.dashboard.mockClear();
     plans.get.mockClear();
 
-    await store.poll('plan-1');
-    await settle();
+    await advance(REFRESH_DEBOUNCE);
     expect(plans.get).toHaveBeenCalledTimes(1);
-    // Backoff: the next tick does not retry, the one after does.
+    const before = requestCount();
     await store.poll('plan-1');
-    await settle();
-    expect(plans.get).toHaveBeenCalledTimes(1);
-    plans.get.mockResolvedValue({ ...PLAN, name: 'Renamed' });
-    await store.poll('plan-1');
-    await settle();
+    expect(requestCount() - before).toBe(1);
 
+    await advance(REFRESH_RETRY);
     expect(plans.get).toHaveBeenCalledTimes(2);
-    expect(plans.dashboard).toHaveBeenCalledTimes(3);
+    await advance(REFRESH_RETRY);
+    expect(plans.get).toHaveBeenCalledTimes(2);
+    plans.get.mockResolvedValue({ ...PLAN, name: 'Renamed' });
+    await advance(REFRESH_RETRY);
+
+    expect(plans.get).toHaveBeenCalledTimes(3);
     expect(store.dashboard?.planName).toBe('Renamed');
     expect(store.error).toBeNull();
-    expect(store.dashboard).not.toBeNull();
   });
 
   it('starts no second reference refresh while one is in flight', async () => {
@@ -186,15 +207,16 @@ describe('PlanDashboardStore polling and reference data', () => {
     const slow = deferred<typeof PLAN>();
     plans.get.mockReturnValueOnce(slow.promise);
     plans.get.mockClear();
+    await advance(REFRESH_DEBOUNCE);
 
-    await store.poll('plan-1');
-    await store.poll('plan-1');
-    await store.poll('plan-1');
+    catalogue.invalidate();
+    await advance(REFRESH_DEBOUNCE * 4);
     expect(plans.get).toHaveBeenCalledOnce();
 
     slow.resolve(PLAN);
-    await settle();
-    expect(plans.get).toHaveBeenCalledOnce();
+    await advance(REFRESH_DEBOUNCE);
+    // The change that came during the read gets its own refresh afterwards.
+    expect(plans.get).toHaveBeenCalledTimes(2);
   });
 
   it('drops a reference refresh answer when the plan switched meanwhile', async () => {
@@ -202,27 +224,70 @@ describe('PlanDashboardStore polling and reference data', () => {
     catalogue.invalidate();
     const slow = deferred<typeof PLAN>();
     plans.get.mockReturnValueOnce(slow.promise);
-    await store.poll('plan-1');
+    await advance(REFRESH_DEBOUNCE);
     plans.get.mockResolvedValue({ ...PLAN, id: 'plan-2', name: 'November' });
     plans.dashboard.mockResolvedValue({ ...DASHBOARD, planId: 'plan-2' });
     await store.load('plan-2');
 
     slow.resolve({ ...PLAN, name: 'Old' });
-    await settle();
+    await advance(REFRESH_DEBOUNCE);
 
     expect(store.dashboard?.planName).toBe('November');
   });
 
-  it('never loads from a poll: nothing shown yet means no request', async () => {
+  it('stops the reference timer when the session ends', async () => {
+    await store.load('plan-1');
+    catalogue.invalidate();
+    plans.get.mockClear();
+
+    store.resetSession();
+    await advance(60_000);
+
+    expect(plans.get).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('retries a failed first load on later ticks with backoff, one at a time, and shows the data', async () => {
     plans.dashboard.mockRejectedValueOnce(new Error('down'));
     await store.load('plan-1');
     expect(store.error).toBe('failed');
     plans.dashboard.mockClear();
 
     await store.poll('plan-1');
+    expect(plans.dashboard).not.toHaveBeenCalled();
+
+    const slow = deferred<PlanDashboardDto>();
+    plans.dashboard.mockReturnValueOnce(slow.promise);
+    const retry = store.poll('plan-1');
+    await store.poll('plan-1');
+    expect(plans.dashboard).toHaveBeenCalledOnce();
+    slow.resolve(DASHBOARD);
+    await retry;
+
+    expect(store.error).toBeNull();
+    expect(store.dashboard).not.toBeNull();
+    expect(plans.unplanned).toHaveBeenCalled();
+  });
+
+  it('backs off longer after a second failed load retry', async () => {
+    plans.dashboard.mockRejectedValue(new Error('down'));
+    await store.load('plan-1');
+    plans.dashboard.mockClear();
+
+    await store.poll('plan-1');
+    await store.poll('plan-1');
+    expect(plans.dashboard).toHaveBeenCalledTimes(1);
+    await store.poll('plan-1');
+    await store.poll('plan-1');
+    expect(plans.dashboard).toHaveBeenCalledTimes(1);
+    await store.poll('plan-1');
+    expect(plans.dashboard).toHaveBeenCalledTimes(2);
+  });
+
+  it('does nothing on a tick when no load was ever started or it did not fail', async () => {
+    await store.poll('plan-1');
 
     expect(plans.dashboard).not.toHaveBeenCalled();
-    expect(store.error).toBe('failed');
   });
 
   it('starts no unplanned request for a load that a newer load replaced', async () => {
