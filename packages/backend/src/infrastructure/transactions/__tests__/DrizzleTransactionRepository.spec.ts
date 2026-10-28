@@ -52,29 +52,22 @@ describe('DrizzleTransactionRepository', () => {
     };
   }
 
-  it('insertBankBatch writes the batch with one insert and counts the created rows', async () => {
-    const mockDb = {
-      insert: vi.fn().mockReturnThis(),
-      values: vi.fn().mockReturnThis(),
-      onConflictDoNothing: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockResolvedValue([{ id: 'a' }]),
-    };
+  it('insertBankBatch writes the batch with one statement and counts the created rows', async () => {
+    const mockDb = { execute: vi.fn().mockResolvedValue({ rows: [{ id: 'a' }] }) };
 
     const repo = new DrizzleTransactionRepository(mockDb as never);
     const created = await repo.insertBankBatch([bankRow('a', 'e1'), bankRow('b', 'e2')]);
 
     expect(created).toBe(1);
-    expect(mockDb.insert).toHaveBeenCalledTimes(1);
-    expect(mockDb.values.mock.calls[0]![0]).toHaveLength(2);
-    expect(mockDb.onConflictDoNothing).toHaveBeenCalledTimes(1);
+    expect(mockDb.execute).toHaveBeenCalledTimes(1);
   });
 
   it('insertBankBatch runs no statement for an empty batch', async () => {
-    const mockDb = { insert: vi.fn() };
+    const mockDb = { execute: vi.fn() };
 
     const created = await new DrizzleTransactionRepository(mockDb as never).insertBankBatch([]);
 
     expect(created).toBe(0);
-    expect(mockDb.insert).not.toHaveBeenCalled();
+    expect(mockDb.execute).not.toHaveBeenCalled();
   });
 });

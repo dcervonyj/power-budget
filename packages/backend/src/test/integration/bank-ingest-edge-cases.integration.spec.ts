@@ -155,17 +155,28 @@ describe('Integration: bank ingest edge cases (CLN-039)', () => {
     );
 
     await ingest(rows);
-    const insertsAfterFirst = statements.filter((sql) => sql.startsWith('insert into'));
+    const insertsAfterFirst = statements.filter((sql) => /^\s*insert into/i.test(sql));
     const first = await storedRows();
     await ingest(rows);
-    const insertsAfterRerun = statements.filter((sql) => sql.startsWith('insert into'));
+    const insertsAfterRerun = statements.filter((sql) => /^\s*insert into/i.test(sql));
     const second = await storedRows();
 
     expect(insertsAfterFirst).toHaveLength(1);
-    expect(statements.filter((sql) => sql.startsWith('select'))).toHaveLength(0);
+    expect(statements.filter((sql) => /^\s*select/i.test(sql))).toHaveLength(0);
     expect(first).toHaveLength(30);
     expect(insertsAfterRerun).toHaveLength(2);
     expect(second).toEqual(first);
+  });
+
+  it('writes a batch over 500 rows with exactly one INSERT (CLN-054)', async () => {
+    const rows = Array.from({ length: 1200 }, (_, i) =>
+      raw({ entryReference: `big-${i}`, remittance: `Row ${i}`, amountMinor: BigInt(-i - 1) }),
+    );
+
+    await ingest(rows);
+
+    expect(statements.filter((sql) => /^\s*insert into/i.test(sql))).toHaveLength(1);
+    expect(await storedRows()).toHaveLength(1200);
   });
 
   describe('readers leave an unsupported-currency row out instead of throwing', () => {
