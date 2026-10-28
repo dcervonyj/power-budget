@@ -67,6 +67,8 @@ export function useTransactionList(): TransactionListState {
   // Rows the user changed: their state is laid over every server load until that load is newer
   // than the change, so a reload cannot show a confirmed row as unsorted or the other way round.
   const [undone, setUndone] = useState<ReadonlySet<string>>(new Set());
+  // The row as the user confirmed it: shown (with Undo) until the write settles and a later load.
+  const [confirmed, setConfirmed] = useState<ReadonlyMap<string, TransactionListRow>>(new Map());
   const inFlight = useRef(new Map<string, number>());
   const changedAt = useRef(new Map<string, number>());
   const clock = useRef(0);
@@ -90,6 +92,7 @@ export function useTransactionList(): TransactionListState {
         isLaidOver(id, startedAt, inFlight.current, changedAt.current);
       setApplied((previous) => new Set([...previous].filter(keep)));
       setUndone((previous) => new Set([...previous].filter(keep)));
+      setConfirmed((previous) => new Map([...previous].filter(([id]) => keep(id))));
       setReloadFailed(false);
       setStatus('ready');
     } catch {
@@ -134,11 +137,8 @@ export function useTransactionList(): TransactionListState {
   }, [loadFirstPage, loadMonth]);
 
   const rows = useMemo(
-    () =>
-      toListRows(items, categoryOfItem).map((row) =>
-        undone.has(row.data.id) ? asUnsorted(row) : row,
-      ),
-    [items, categoryOfItem, undone],
+    () => toListRows(items, categoryOfItem).map((row) => shownRow(row, undone, confirmed)),
+    [items, categoryOfItem, undone, confirmed],
   );
   const groups = useMemo(
     () => groupByDay(visibleRows(rows, filter, applied)),
@@ -206,9 +206,11 @@ export function useTransactionList(): TransactionListState {
       }
       setApplied((previous) => new Set(previous).add(id));
       setUndone((previous) => withoutId(previous, id));
+      setConfirmed((previous) => new Map(previous).set(id, row));
       void setMapping(row, row.suggestedPlannedItemId).then((saved) => {
         if (!saved) {
           setApplied((previous) => withoutId(previous, id));
+          setConfirmed((previous) => withoutKey(previous, id));
         }
       });
     },
@@ -223,6 +225,7 @@ export function useTransactionList(): TransactionListState {
       }
       setApplied((previous) => withoutId(previous, id));
       setUndone((previous) => new Set(previous).add(id));
+      setConfirmed((previous) => withoutKey(previous, id));
       void setMapping(row, null).then((saved) => {
         if (!saved) {
           setApplied((previous) => new Set(previous).add(id));
@@ -319,4 +322,22 @@ function asUnsorted(row: TransactionListRow): TransactionListRow {
     kind: 'toSort',
     data: { ...row.data, status: 'to-sort', categoryLabel: undefined },
   };
+}
+
+function withoutKey<V>(map: ReadonlyMap<string, V>, id: string): ReadonlyMap<string, V> {
+  return new Map([...map].filter(([key]) => key !== id));
+}
+
+/** What the user did wins over what a load shows, until a load newer than the change replaces it. */
+function shownRow(
+  row: TransactionListRow,
+  undone: ReadonlySet<string>,
+  confirmed: ReadonlyMap<string, TransactionListRow>,
+): TransactionListRow {
+  const mine = confirmed.get(row.data.id);
+  if (mine !== undefined) {
+    return mine;
+  }
+
+  return undone.has(row.data.id) ? asUnsorted(row) : row;
 }
