@@ -46,7 +46,8 @@ export class SuggestFromMerchantRulesUseCase {
     householdId: HouseholdId,
     itemByRuleAndDate: Map<string, PlannedItemId | null>,
   ): Promise<TransactionSuggestionFields | null> {
-    if (row.ignored) {
+    // A planned item hint (AI-004) is tried first and wins.
+    if (row.ignored || row.suggestion !== undefined) {
       return null;
     }
 

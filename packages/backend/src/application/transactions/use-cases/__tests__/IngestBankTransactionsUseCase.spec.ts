@@ -4,6 +4,7 @@ import { IngestBankTransactionsUseCase } from '../IngestBankTransactionsUseCase.
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import type { NewTransaction } from '../../../../domain/transactions/entities.js';
 import type { HouseholdId, BankAccountId, UserId } from '@power-budget/core';
+import type { SuggestFromPlannedHintsUseCase } from '../../../categorisation/SuggestFromPlannedHintsUseCase.js';
 import type { SuggestFromMerchantRulesUseCase } from '../../../categorisation/SuggestFromMerchantRulesUseCase.js';
 import { IsoDate } from '@power-budget/core';
 import type { RawTransaction } from '../../../../domain/bank/entities.js';
@@ -47,6 +48,7 @@ function insertedRows(repo: ReturnType<typeof mock<TransactionRepository>>): New
 describe('IngestBankTransactionsUseCase', () => {
   let txRepo: ReturnType<typeof mock<TransactionRepository>>;
   let merchantRules: ReturnType<typeof mock<SuggestFromMerchantRulesUseCase>>;
+  let plannedHints: ReturnType<typeof mock<SuggestFromPlannedHintsUseCase>>;
   let useCase: IngestBankTransactionsUseCase;
 
   beforeEach(() => {
@@ -54,7 +56,9 @@ describe('IngestBankTransactionsUseCase', () => {
     txRepo.insertBankBatch.mockResolvedValue(0);
     merchantRules = mock<SuggestFromMerchantRulesUseCase>();
     merchantRules.suggest.mockImplementation((rows) => Promise.resolve([...rows]));
-    useCase = new IngestBankTransactionsUseCase(txRepo, makeId, merchantRules);
+    plannedHints = mock<SuggestFromPlannedHintsUseCase>();
+    plannedHints.suggest.mockImplementation((rows) => Promise.resolve([...rows]));
+    useCase = new IngestBankTransactionsUseCase(txRepo, makeId, merchantRules, plannedHints);
   });
 
   it('writes all booked rows of an account with one insertBankBatch call', async () => {

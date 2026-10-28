@@ -1,5 +1,6 @@
 import type {
   CategoryId,
+  HintCandidate,
   HouseholdId,
   IsoDate,
   PlanType,
@@ -59,6 +60,22 @@ export interface PlannedItemQuery {
   readonly planKindPref: PlanType | null;
   readonly direction: 'income' | 'expense';
   readonly occurredOn: IsoDate;
+}
+
+/** A planned item with a match hint that may pay a transaction (AI-004). */
+export interface HintedPlannedItem extends HintCandidate {
+  readonly categoryId: CategoryId;
+  /** The period of the item's plan: the hint only applies to dates inside it. */
+  readonly periodStart: IsoDate;
+  readonly periodEnd: IsoDate;
+}
+
+export interface HintedPlannedItemQuery {
+  readonly householdId: HouseholdId;
+  readonly ownerUserId: UserId;
+  /** Plans overlapping [from, to] are returned. */
+  readonly from: IsoDate;
+  readonly to: IsoDate;
 }
 
 export interface ResolvedPlannedItem {

@@ -21,6 +21,8 @@ import { DrizzleTransferRepository } from '../../infrastructure/transactions/Dri
 import { DrizzleMerchantRuleRepository } from '../../infrastructure/categorisation/DrizzleMerchantRuleRepository.js';
 import { DrizzlePlannedItemResolver } from '../../infrastructure/categorisation/DrizzlePlannedItemResolver.js';
 import { LearnMerchantRuleUseCase } from '../../application/categorisation/LearnMerchantRuleUseCase.js';
+import { SuggestFromPlannedHintsUseCase } from '../../application/categorisation/SuggestFromPlannedHintsUseCase.js';
+import { DrizzlePlannedHintReader } from '../../infrastructure/categorisation/DrizzlePlannedHintReader.js';
 import { SuggestFromMerchantRulesUseCase } from '../../application/categorisation/SuggestFromMerchantRulesUseCase.js';
 import { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import { MapTransactionUseCase } from '../../application/transactions/use-cases/MapTransactionUseCase.js';
@@ -208,6 +210,7 @@ describe('Integration: merchant memory (AI-003)', () => {
       txRepo,
       uuidv7,
       new SuggestFromMerchantRulesUseCase(rules, items),
+      new SuggestFromPlannedHintsUseCase(new DrizzlePlannedHintReader(db)),
     );
     mapUseCase = new MapTransactionUseCase(
       txRepo,
@@ -277,6 +280,43 @@ describe('Integration: merchant memory (AI-003)', () => {
     expect(await suggestionOf(november)).toMatchObject({
       suggested_planned_item_id: F.novDining,
       suggested_category_id: F.dining,
+    });
+  });
+
+  it('suggests from a unique planned item hint before merchant memory and flags it auto-mapped (AI-004)', async () => {
+    await fixtures.query(`UPDATE planned_items SET match_hint = $2::jsonb WHERE id = $1`, [
+      F.octGroceries,
+      JSON.stringify({
+        counterpartyPattern: 'biedronka',
+        amountMinor: '4500',
+        toleranceMinor: '0',
+      }),
+    ]);
+    await map(await ingestRow('2026-10-02', 'oct-0'), F.octDining);
+
+    const october = await ingestRow('2026-10-05', 'oct-1');
+
+    expect(await suggestionOf(october)).toEqual({
+      suggested_planned_item_id: F.octGroceries,
+      suggested_category_id: F.groceries,
+      suggestion_source: 'planned_hint',
+      auto_mapped: true,
+    });
+  });
+
+  it('only suggests when two planned items match the same hint (AI-004)', async () => {
+    const hint = JSON.stringify({ counterpartyPattern: 'biedronka' });
+    await fixtures.query(`UPDATE planned_items SET match_hint = $3::jsonb WHERE id IN ($1, $2)`, [
+      F.octGroceries,
+      F.octDining,
+      hint,
+    ]);
+
+    const october = await ingestRow('2026-10-05', 'oct-1');
+
+    expect(await suggestionOf(october)).toMatchObject({
+      suggestion_source: 'planned_hint',
+      auto_mapped: false,
     });
   });
 });

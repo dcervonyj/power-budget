@@ -315,7 +315,11 @@ describe('Plans, categories and preferences API (real app)', () => {
         {
           id: expect.any(String),
           plannedItemId: item.id,
-          before: { amount: { amountMinor: '150000', currency: 'PLN' }, note: null },
+          before: {
+            amount: { amountMinor: '150000', currency: 'PLN' },
+            note: null,
+            matchHint: null,
+          },
           after: { amount: { amountMinor: '9007199254740993', currency: 'PLN' }, note: 'more' },
           changedBy: anna.userId,
           changedAt: expect.any(String),
@@ -353,6 +357,101 @@ describe('Plans, categories and preferences API (real app)', () => {
         headers: anna.auth,
       });
       expect(after.json()).toEqual([]);
+    });
+
+    it('round-trips a match hint through create, update, history, clone and clear (AI-004)', async () => {
+      const anna = await register('anna-hint@example.com');
+      const plan = await createPlan(anna, monthly('household'));
+      const hint = {
+        counterpartyPattern: 'Landlord',
+        amountMinor: '340000',
+        toleranceMinor: '500',
+        dayOfMonth: 5,
+        dayWindow: 2,
+      };
+
+      const created = await app.inject({
+        method: 'POST',
+        url: `/plans/${plan.id}/items`,
+        headers: anna.auth,
+        payload: {
+          categoryId: SYSTEM_CATEGORY_ID,
+          direction: 'expense',
+          amountMinor: '340000',
+          currency: 'PLN',
+          matchHint: hint,
+        },
+      });
+      expect(created.statusCode).toBe(201);
+      expect(created.json()).toMatchObject({ matchHint: hint });
+      const item = created.json<{ id: string }>();
+
+      const listed = await app.inject({
+        method: 'GET',
+        url: `/plans/${plan.id}/items`,
+        headers: anna.auth,
+      });
+      expect(listed.json()).toMatchObject([{ id: item.id, matchHint: hint }]);
+
+      const changed = {
+        counterpartyPattern: 'Landlord',
+        amountMinor: '350000',
+        toleranceMinor: '0',
+      };
+      const updated = await app.inject({
+        method: 'PATCH',
+        url: `/plans/${plan.id}/items/${item.id}`,
+        headers: anna.auth,
+        payload: { matchHint: changed },
+      });
+      expect(updated.statusCode).toBe(200);
+      expect(updated.json()).toMatchObject({
+        matchHint: { ...changed, dayOfMonth: null, dayWindow: null },
+      });
+
+      const history = await app.inject({
+        method: 'GET',
+        url: `/plans/${plan.id}/items/${item.id}/history`,
+        headers: anna.auth,
+      });
+      expect(history.json()).toMatchObject([
+        {
+          before: { matchHint: hint },
+          after: { matchHint: { ...changed, dayOfMonth: null, dayWindow: null } },
+        },
+      ]);
+
+      const cloned = await app.inject({
+        method: 'POST',
+        url: `/plans/${plan.id}/clone`,
+        headers: anna.auth,
+        payload: {},
+      });
+      const clone = cloned.json<PlanBody>();
+      const cloneItems = await app.inject({
+        method: 'GET',
+        url: `/plans/${clone.id}/items`,
+        headers: anna.auth,
+      });
+      expect(cloneItems.json()).toMatchObject([
+        { matchHint: { ...changed, dayOfMonth: null, dayWindow: null } },
+      ]);
+
+      const cleared = await app.inject({
+        method: 'PATCH',
+        url: `/plans/${plan.id}/items/${item.id}`,
+        headers: anna.auth,
+        payload: { matchHint: null },
+      });
+      expect(cleared.json()).toMatchObject({ matchHint: null });
+
+      const empty = await app.inject({
+        method: 'PATCH',
+        url: `/plans/${plan.id}/items/${item.id}`,
+        headers: anna.auth,
+        payload: { matchHint: { counterpartyPattern: ' ' } },
+      });
+      expect(empty.statusCode).toBe(400);
     });
 
     it("rejects another household's items and categories, and bad amounts", async () => {
