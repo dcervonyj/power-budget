@@ -80,6 +80,7 @@ function item(id: string, categoryId: CategoryId): PlannedItem {
     direction: 'expense',
     amount: { amountMinor: 50_000n, currency: 'PLN' },
     note: null,
+    matchHint: null,
     createdAt: '2026-10-01T00:00:00Z' as IsoDateTime,
     updatedAt: '2026-10-01T00:00:00Z' as IsoDateTime,
   };

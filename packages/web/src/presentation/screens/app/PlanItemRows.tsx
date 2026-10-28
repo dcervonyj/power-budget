@@ -1,5 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
+import {
+  matchHintToFormValues,
+  parseMatchHintForm,
+  type MatchHintField,
+  type MatchHintWire,
+} from '@power-budget/core';
 import type { CategoryRowData } from '@power-budget/shared-app';
 import type { PlannedItemDirectionDto } from '@power-budget/shared-app/contract';
 import {
@@ -8,6 +14,7 @@ import {
   toSteppableMinor,
 } from '../../../application/plans/PlanAmounts.js';
 import { Button } from '../../components/Button.js';
+import { MatchHintFields } from '../../components/MatchHintFields.js';
 import { Stepper } from '../../glass/controls/Stepper.js';
 import { CategoryRow } from '../../glass/rows/CategoryRow.js';
 import { formatAmount } from '../../i18n/formatAmount.js';
@@ -24,12 +31,15 @@ export interface PlanItemRowModel {
   readonly amountInput: string;
   /** Spent so far, in the plan currency; null when the dashboard is not available. */
   readonly spentMinor: bigint | null;
+  readonly matchHint: MatchHintWire | null;
 }
 
 /** The amount and currency of a planned item; PATCH sends them together. */
 export interface PlanItemChange {
   readonly amountMinor?: string;
   readonly currency?: string;
+  /** null clears the match hint. */
+  readonly matchHint?: MatchHintWire | null;
 }
 
 export interface PlanItemRowHandlers {
@@ -72,6 +82,25 @@ const NAME_STYLE: React.CSSProperties = {
   overflowWrap: 'anywhere',
 };
 
+const HINT_SUMMARY_STYLE: React.CSSProperties = {
+  cursor: 'pointer',
+  color: 'var(--pb-glass-dim)',
+  fontSize: 'var(--pb-glass-type-small-web)',
+};
+
+const HINT_BODY_STYLE: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 'var(--pb-glass-space-sm)',
+  paddingTop: 'var(--pb-glass-space-sm)',
+};
+
+const HINT_NOTE_STYLE: React.CSSProperties = {
+  margin: 0,
+  color: 'var(--pb-glass-dim)',
+  fontSize: 'var(--pb-glass-type-small-web)',
+};
+
 export function PlanLimitList({
   rows,
   ...handlers
@@ -99,6 +128,7 @@ export function PlanIncomeList({
             <span style={NAME_STYLE}>{row.name}</span>
             <ItemControls row={row} {...handlers} />
           </div>
+          <MatchHintEditor row={row} onChange={handlers.onChange} />
         </li>
       ))}
     </ul>
@@ -146,7 +176,72 @@ function LimitRow({ row, index, ...handlers }: RowProps & { index: number }): Re
         )}
         <ItemControls row={row} {...handlers} />
       </div>
+      <MatchHintEditor row={row} onChange={handlers.onChange} />
     </>
+  );
+}
+
+/** The item's match hint: edited in place, saved with the button (empty fields clear it). */
+function MatchHintEditor({
+  row,
+  onChange,
+}: {
+  readonly row: PlanItemRowModel;
+  readonly onChange: PlanItemRowHandlers['onChange'];
+}): React.JSX.Element {
+  const intl = useIntl();
+  const stored = matchHintToFormValues(row.matchHint, row.currency);
+  const [values, setValues] = useState(stored);
+  const [invalid, setInvalid] = useState<readonly MatchHintField[]>([]);
+
+  const save = (): void => {
+    const result = parseMatchHintForm(values, row.currency);
+    if (result.kind === 'invalid') {
+      setInvalid(result.fields);
+
+      return;
+    }
+    setInvalid([]);
+    onChange(row.id, { matchHint: result.kind === 'ok' ? result.hint : null });
+  };
+
+  return (
+    <details>
+      <summary style={HINT_SUMMARY_STYLE}>
+        <FormattedMessage id="plan.matchHint.title" defaultMessage="Match hint" />
+      </summary>
+      <div style={HINT_BODY_STYLE}>
+        <p style={HINT_NOTE_STYLE}>
+          <FormattedMessage
+            id="plan.matchHint.description"
+            defaultMessage="Helps match bank transactions to this item automatically."
+          />
+        </p>
+        <MatchHintFields
+          idPrefix={`plan-item-${row.id}-hint`}
+          values={values}
+          invalid={invalid}
+          onChange={(next) => {
+            setValues(next);
+            setInvalid([]);
+          }}
+        />
+        {invalid.length > 0 && (
+          <p role="alert" style={HINT_NOTE_STYLE}>
+            {intl.formatMessage({
+              id: 'plan.matchHint.invalid',
+              defaultMessage:
+                'Check the highlighted hint fields. A tolerance needs an amount, and a day window needs a day.',
+            })}
+          </p>
+        )}
+        <div>
+          <Button variant="secondary" onClick={save}>
+            <FormattedMessage id="plan.matchHint.save" defaultMessage="Save hint" />
+          </Button>
+        </div>
+      </div>
+    </details>
   );
 }
 
