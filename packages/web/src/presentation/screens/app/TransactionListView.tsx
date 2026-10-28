@@ -4,7 +4,7 @@ import { parseLocalIsoDate } from '@power-budget/core';
 import type { RodData } from '@power-budget/shared-app';
 import type { MoneyAmount } from '../../../domain/dashboard/PlanDashboard.js';
 import { Icon } from '../../glass/atoms/Icon.js';
-import { formatAmount } from '../../i18n/formatAmount.js';
+import { formatAmount, formatIsoDate } from '../../i18n/formatAmount.js';
 import { Rod } from '../../glass/light/Rod.js';
 import { useLightLabels } from '../../glass/light/useLightLabels.js';
 import { GlassPanel } from '../../glass/material/GlassPanel.js';
@@ -300,8 +300,15 @@ function SelectableRow(props: TransactionListViewProps & { tx: Transaction }): R
       <input
         type="checkbox"
         aria-label={intl.formatMessage(
-          { id: 'screen.transactionList.selectRow', defaultMessage: 'Select transaction {id}' },
-          { id: tx.id },
+          {
+            id: 'screen.transactionList.selectRow',
+            defaultMessage: 'Select transaction {description}, {date}, {amount}',
+          },
+          {
+            description: tx.merchant ?? tx.description,
+            date: formatIsoDate(tx.occurredOn, intl.locale),
+            amount: formatAmount(tx.amount, intl.locale),
+          },
         )}
         checked={props.selectedIds.has(tx.id)}
         onChange={() => {

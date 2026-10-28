@@ -460,5 +460,5 @@
   "modal.transactionDetail.planAndDirection": "{planName} · {direction}",
   "screen.planEditor.historyButton": "История",
   "screen.transactionList.selectAll": "Выбрать все",
-  "screen.transactionList.selectRow": "Выбрать транзакцию {id}"
+  "screen.transactionList.selectRow": "Выбрать транзакцию {description}, {date}, {amount}"
 }

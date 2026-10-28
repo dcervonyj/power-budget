@@ -460,5 +460,5 @@
   "modal.transactionDetail.planAndDirection": "{planName} · {direction}",
   "screen.planEditor.historyButton": "Historia",
   "screen.transactionList.selectAll": "Zaznacz wszystko",
-  "screen.transactionList.selectRow": "Zaznacz transakcję {id}"
+  "screen.transactionList.selectRow": "Zaznacz transakcję {description}, {date}, {amount}"
 }

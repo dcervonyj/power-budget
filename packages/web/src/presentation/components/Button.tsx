@@ -44,16 +44,37 @@ export function Button({
       type={type}
       onClick={onClick}
       disabled={isDisabled}
+      aria-busy={loading}
       className="pbg-ctl"
       style={{ ...variantStyle(variant), ...BASE_STYLE }}
     >
       {variant === 'danger' && DANGER_ICON}
-      {loading ? <FormattedMessage id="button.loading" defaultMessage="…" /> : children}
+      {loading ? (
+        <>
+          <span style={VISUALLY_HIDDEN}>{children}</span>
+          <span aria-hidden="true">
+            <FormattedMessage id="button.loading" defaultMessage="…" />
+          </span>
+        </>
+      ) : (
+        children
+      )}
     </button>
   );
 }
 
+/** Keeps the label in the accessible name (children are text; an icon-only child needs its own aria-label) while the visible text is the loading mark. */
+const VISUALLY_HIDDEN: React.CSSProperties = {
+  position: 'absolute',
+  width: 1,
+  height: 1,
+  overflow: 'hidden',
+  clip: 'rect(0 0 0 0)',
+  whiteSpace: 'nowrap',
+};
+
 const BASE_STYLE: React.CSSProperties = {
+  position: 'relative',
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
