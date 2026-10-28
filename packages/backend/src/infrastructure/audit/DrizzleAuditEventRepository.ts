@@ -110,9 +110,9 @@ export class DrizzleAuditEventRepository
       id: row.id,
       // The listing filters on householdId, so it is set; actor_user_id is nulled when a purge anonymises the row
       // (SET NULL), which AuditEvent does not model yet.
-
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       householdId: row.householdId as HouseholdId,
-
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       actorId: row.actorUserId as UserId,
       subjectType: row.subjectType,
       subjectId: row.subjectId,

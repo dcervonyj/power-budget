@@ -39,7 +39,7 @@ export class RedisRefreshTokenStore implements RefreshTokenStore {
     await this.redis.set(newKey, userId, 'EX', ttl);
 
     // The value was written from a UserId in this store (`redis.set(newKey, userId)`); Redis returns it as a string.
-
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     return { userId: userId as UserId, newToken };
   }
 

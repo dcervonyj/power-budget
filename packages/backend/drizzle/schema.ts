@@ -469,8 +469,8 @@ export const plans = pgTable(
     name: varchar('name', { length: 255 }).notNull(),
     type: varchar('type', { length: 20 }).$type<PlanType>().notNull(),
     periodKind: varchar('period_kind', { length: 20 }).notNull(),
-    periodStart: date('period_start').notNull(),
-    periodEnd: date('period_end').notNull(),
+    periodStart: date('period_start').$type<IsoDate>().notNull(),
+    periodEnd: date('period_end').$type<IsoDate>().notNull(),
     baseCurrency: char('base_currency', { length: 3 }).notNull(),
     archivedAt: timestamp('archived_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -611,7 +611,7 @@ export const leftoverSnapshots = pgTable(
     planId: uuid('plan_id')
       .$type<PlanId>()
       .references(() => plans.id),
-    periodEnd: date('period_end').notNull(),
+    periodEnd: date('period_end').$type<IsoDate>().notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
     computedAt: timestamp('computed_at', { withTimezone: true }).notNull().defaultNow(),

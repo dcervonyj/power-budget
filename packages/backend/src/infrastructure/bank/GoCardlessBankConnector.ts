@@ -391,12 +391,13 @@ export class GoCardlessBankConnector implements BankConnector {
 
     if (response.status === 204) {
       // `T` is `void` for calls without a body; there is no value to build for a generic return type.
-
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       return undefined as T;
     }
 
     const contentType = response.headers.get('content-type');
     if (contentType === null || !contentType.includes('application/json')) {
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- no body to parse, same as the 204 case
       return undefined as T;
     }
 
