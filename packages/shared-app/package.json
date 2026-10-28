@@ -70,6 +70,7 @@
   ],
   "scripts": {
     "build": "tsup",
+    "dev": "tsup --watch",
     "codegen": "openapi-typescript ../../packages/backend/openapi.json --output src/contract/api-types.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" --max-warnings 0",

@@ -13,7 +13,7 @@ The monorepo scaffold is complete, but the product is a **pre-alpha scaffold**: 
 ```bash
 pnpm install                          # install all workspace dependencies
 pnpm build                            # turbo run build (all packages)
-pnpm dev                              # turbo run dev
+pnpm dev                              # turbo run dev: builds deps once, then watches (see docs/local-setup.md)
 pnpm lint                             # turbo run lint
 pnpm typecheck                        # turbo run typecheck  (alias: pnpm -r typecheck)
 pnpm test                             # turbo run test
