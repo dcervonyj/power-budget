@@ -238,6 +238,56 @@ describe('PlanEditorScreen', () => {
     expect(screen.getByLabelText('Rent amount').props.value).toBe('30.00');
   });
 
+  it('keeps another item edit that already saved when one item fails', async () => {
+    const second = { ...ITEM, id: 'item-2', categoryId: 'cat-rent' };
+    mockApi.listItems.mockResolvedValue([ITEM, second]);
+    mockCategories.list.mockResolvedValue([FOOD, { ...FOOD, id: 'cat-rent', name: 'Rent' }]);
+    mockApi.updateItem.mockImplementation(
+      (_plan: string, itemId: string, body: { amountMinor: string }) =>
+        itemId === 'item-2'
+          ? Promise.resolve({
+              ...second,
+              amount: { amountMinor: body.amountMinor, currency: 'PLN' },
+            })
+          : new Promise((_resolve, reject) => setTimeout(() => reject(new Error('boom')), 60)),
+    );
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    const food = await screen.findByLabelText('Groceries amount');
+    await fireEvent.changeText(food, '10');
+    await fireEvent(food, 'endEditing');
+    const rent = screen.getByLabelText('Rent amount');
+    await fireEvent.changeText(rent, '45');
+    await fireEvent(rent, 'endEditing');
+
+    expect(await screen.findByText('Could not update the item.')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Groceries amount').props.value).toBe('2200.00');
+    });
+    expect(screen.getByLabelText('Rent amount').props.value).toBe('45.00');
+  });
+
+  it('restores the confirmed amount when an update and then the delete both fail', async () => {
+    mockApi.updateItem.mockImplementation(
+      () => new Promise((_resolve, reject) => setTimeout(() => reject(new Error('boom')), 60)),
+    );
+    mockApi.deleteItem.mockImplementation(
+      () => new Promise((_resolve, reject) => setTimeout(() => reject(new Error('gone')), 20)),
+    );
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    const field = await screen.findByLabelText('Groceries amount');
+    await fireEvent.changeText(field, '10');
+    await fireEvent(field, 'endEditing');
+    await userEvent.setup().press(screen.getByRole('button', { name: /Remove/ }));
+
+    expect(await screen.findByText('Could not remove the item.')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Groceries amount').props.value).toBe('2200.00');
+    });
+    expect(mockApi.deleteItem).toHaveBeenCalledWith('plan-1', 'item-1');
+  });
+
   it('shows a retry when the plan cannot be loaded', async () => {
     mockApi.get.mockRejectedValueOnce(new Error('offline'));
     await renderGlass(<PlanEditorScreen {...editorProps()} />);

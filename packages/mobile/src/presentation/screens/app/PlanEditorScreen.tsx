@@ -179,10 +179,8 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
         setItems((current) => current.map((entry) => (entry.id === itemId ? updated : entry)));
       }
     } catch {
-      const confirmed = confirmedItems.current.get(itemId);
-      if (pendingSaves.current.get(itemId) === 1 && confirmed !== undefined) {
-        // Only this item goes back to its last saved value; other edits stay.
-        setItems((current) => current.map((entry) => (entry.id === itemId ? confirmed : entry)));
+      if (pendingSaves.current.get(itemId) === 1) {
+        restoreConfirmed(itemId, null);
       }
       setSaveError(text('plan.error.itemUpdate', 'Could not update the item.'));
     } finally {
@@ -195,16 +193,35 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       return;
     }
     const index = items.findIndex((entry) => entry.id === itemId);
-    const removed = items[index];
     setItems((current) => current.filter((entry) => entry.id !== itemId));
     try {
+      // Pending amount saves settle first, so the last confirmed value is the server's.
+      await saveQueues.current.get(itemId);
       await plansApi.deleteItem(plan.id, itemId);
+      confirmedItems.current.delete(itemId);
     } catch {
-      if (removed !== undefined) {
-        setItems((current) => [...current.slice(0, index), removed, ...current.slice(index)]);
-      }
+      restoreConfirmed(itemId, index);
       setSaveError(text('plan.error.itemRemove', 'Could not remove the item.'));
     }
+  }
+
+  /** Every rollback puts back the item as the server last confirmed it, never an unsaved edit. */
+  function restoreConfirmed(itemId: string, insertAt: number | null): void {
+    const confirmed = confirmedItems.current.get(itemId);
+    if (confirmed === undefined) {
+      return;
+    }
+    setItems((current) => {
+      if (current.some((entry) => entry.id === itemId)) {
+        return current.map((entry) => (entry.id === itemId ? confirmed : entry));
+      }
+      if (insertAt === null) {
+        // The item is being deleted; only a failed delete brings it back.
+        return current;
+      }
+
+      return [...current.slice(0, insertAt), confirmed, ...current.slice(insertAt)];
+    });
   }
 
   function handleArchive(): void {
