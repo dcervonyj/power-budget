@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { BackendApi, signInWithTokens, uniqueEmail, type PlanDto } from '../../support/api.js';
 import { FULL_STACK } from '../../support/stack.js';
 import { THEMES, type Theme } from '../support/gallery.js';
+import { seedCashTransactions } from '../support/seed.js';
 import { runAxe } from '../support/axe.js';
 
 // DSN-050: axe on the real pages of the e2e stack, in both themes. Serious and critical findings fail.
@@ -11,6 +12,7 @@ const PUBLIC_PAGES = ['/login', '/register', '/auth/magic-link'] as const;
 const APP_PAGES = [
   '/dashboard',
   '/transactions',
+  '/transactions/:transactionId',
   '/plans',
   '/plans/:planId',
   '/plans/:planId/dashboard',
@@ -60,10 +62,14 @@ for (const theme of THEMES) {
           baseCurrency: 'PLN',
         });
         await api.addExpenseItem(tokens.accessToken, plan.id, category.id, '25050', 'PLN');
+        const [transactionId] = await seedCashTransactions(api, tokens.accessToken, [
+          'Corner shop',
+          'Bakery',
+        ]);
         await signInWithTokens(page, tokens);
         await prefer(page, theme);
 
-        await openAppPage(page, template, plan);
+        await openAppPage(page, template, plan, transactionId ?? '');
         const { blocking } = await runAxe(page, testInfo);
 
         expect(blocking).toEqual([]);
@@ -72,8 +78,13 @@ for (const theme of THEMES) {
   });
 }
 
-async function openAppPage(page: Page, template: string, plan: PlanDto): Promise<void> {
-  await page.goto(template.replace(':planId', plan.id));
+async function openAppPage(
+  page: Page,
+  template: string,
+  plan: PlanDto,
+  transactionId: string,
+): Promise<void> {
+  await page.goto(template.replace(':planId', plan.id).replace(':transactionId', transactionId));
   await page.waitForLoadState('networkidle');
   // A page that bounced to the sign-in screen would audit /login again instead of itself.
   await expect(page).not.toHaveURL(/\/login/);

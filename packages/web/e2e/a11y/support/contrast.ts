@@ -15,9 +15,13 @@ export interface TextMeasurement {
   readonly worst: number;
   /** Background colour of that worst pixel. */
   readonly worstBackground: string;
+  /** False when no glyph pixel of the text could be found where it should be drawn. */
+  readonly measured: boolean;
 }
 
 interface TextProbe {
+  /** Position in the page's probe list; the element carries it as `data-a11y-probe`. */
+  readonly id: number;
   readonly text: string;
   readonly tag: string;
   readonly color: readonly [number, number, number, number];
@@ -37,13 +41,53 @@ export async function measureRenderedText(
   page: Page,
   rootSelector = 'body',
 ): Promise<TextMeasurement[]> {
-  const probes = await page.evaluate(collectTextProbes, rootSelector);
+  // A viewport as tall as the page: fixed overlays then sit where the full-page capture shows
+  // them and the window itself never scrolls.
+  const size = page.viewportSize();
+  const pageHeight = await page.evaluate(() => document.documentElement.scrollHeight);
+  if (size !== null && pageHeight > size.height) {
+    await page.setViewportSize({ width: size.width, height: pageHeight });
+  }
+  const all = await page.evaluate(collectTextProbes, { rootSelector, ids: null });
+  const scored = new Map<number, TextMeasurement>();
+  let pending = all;
+  // Text inside a scrolling panel may be out of view: bring the first unmeasured probe into
+  // view and score again, until everything is measured or nothing more can be.
+  for (let round = 0; round < 12 && pending.length > 0; round += 1) {
+    if (round > 0) {
+      pending = await page.evaluate(collectTextProbes, {
+        rootSelector,
+        ids: pending.map((probe) => probe.id),
+      });
+    }
+    const rows = await scoreProbes(page, pending);
+    const missed = pending.filter((_probe, index) => rows[index]?.measured !== true);
+    pending.forEach((probe, index) => {
+      const row = rows[index];
+      if (row !== undefined && (row.measured || !scored.has(probe.id))) {
+        scored.set(probe.id, row);
+      }
+    });
+    if (missed.length === pending.length && round > 0) {
+      break;
+    }
+    pending = missed;
+  }
+  await page.evaluate(clearProbeMarks);
+
+  return all.map((probe) => scored.get(probe.id)).filter(isRow);
+}
+
+function isRow(row: TextMeasurement | undefined): row is TextMeasurement {
+  return row !== undefined;
+}
+
+async function scoreProbes(page: Page, probes: TextProbe[]): Promise<TextMeasurement[]> {
+  await page.evaluate(setTextHidden, false);
   const shown = await page.screenshot({ fullPage: true, animations: 'disabled' });
-  await page.addStyleTag({
-    content:
-      '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; } ::placeholder { color: transparent !important; }',
-  });
+  await page.evaluate(setTextHidden, true);
   const hidden = await page.screenshot({ fullPage: true, animations: 'disabled' });
+  await page.evaluate(setTextHidden, false);
 
   return page.evaluate(measureAgainstScreenshot, {
     shown: shown.toString('base64'),
@@ -52,13 +96,36 @@ export async function measureRenderedText(
   });
 }
 
+/** Browser side: switches the stylesheet that makes every glyph transparent on or off. */
+function setTextHidden(hide: boolean): void {
+  let style = document.getElementById('a11y-hide-text');
+  if (style === null) {
+    style = document.createElement('style');
+    style.id = 'a11y-hide-text';
+    style.textContent =
+      '*, *::before, *::after { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; caret-color: transparent !important; } ::placeholder { color: transparent !important; }';
+    document.head.appendChild(style);
+  }
+  style.setAttribute('media', hide ? 'all' : 'not all');
+}
+
+function clearProbeMarks(): void {
+  document.getElementById('a11y-hide-text')?.remove();
+  for (const element of Array.from(document.querySelectorAll('[data-a11y-probe]'))) {
+    element.removeAttribute('data-a11y-probe');
+  }
+}
+
 /** Browser side: one probe per visible element that owns text. Self-contained (serialised). */
-function collectTextProbes(rootSelector: string): TextProbe[] {
+function collectTextProbes(input: { rootSelector: string; ids: number[] | null }): TextProbe[] {
+  const { rootSelector, ids } = input;
   const roots = Array.from(document.querySelectorAll(rootSelector));
   if (roots.length === 0) {
     throw new Error(`contrast: nothing matches ${rootSelector}`);
   }
   const result: TextProbe[] = [];
+  let scrolled = false;
+  let nextId = 0;
   const elements = roots.flatMap((root) => [root, ...Array.from(root.querySelectorAll('*'))]);
   // Text a field draws itself: the value, or the placeholder while it is empty; the chosen
   // option of a select; the date a date input shows (its mask while empty).
@@ -90,6 +157,14 @@ function collectTextProbes(rootSelector: string): TextProbe[] {
     const own = Array.from(element.childNodes).filter(
       (node) => node.nodeType === Node.TEXT_NODE && (node.textContent ?? '').trim() !== '',
     );
+    const known = element.getAttribute('data-a11y-probe');
+    if (ids !== null && (known === null || !ids.includes(Number(known)))) {
+      continue;
+    }
+    if (ids !== null && !scrolled) {
+      element.scrollIntoView({ block: 'center', inline: 'center' });
+      scrolled = true;
+    }
     const field = fieldText(element);
     const drawn = field.text;
     if (own.length === 0 && drawn === '') {
@@ -121,7 +196,12 @@ function collectTextProbes(rootSelector: string): TextProbe[] {
       ? getComputedStyle(element, '::placeholder').color
       : style.color;
     const match = /rgba?\(([^)]+)\)/.exec(colorText);
-    const parts = (match?.[1] ?? '0,0,0').split(/[ ,/]+/).filter((part) => part !== '');
+    if (match?.[1] === undefined) {
+      throw new Error(
+        `contrast: cannot parse the colour "${colorText}" of <${element.tagName.toLowerCase()}>`,
+      );
+    }
+    const parts = match[1].split(/[ ,/]+/).filter((part) => part !== '');
     const alpha = (parts[3] === undefined ? 1 : Number(parts[3])) * opacity;
     const rects: { x: number; y: number; width: number; height: number }[] = [];
     for (const node of own) {
@@ -160,7 +240,11 @@ function collectTextProbes(rootSelector: string): TextProbe[] {
     }
     const fontSize = parseFloat(style.fontSize);
     const bold = Number(style.fontWeight) >= 700;
+    const id = known === null ? nextId : Number(known);
+    nextId = Math.max(nextId, id) + 1;
+    element.setAttribute('data-a11y-probe', String(id));
     result.push({
+      id,
       text: (drawn !== ''
         ? drawn
         : own.map((node) => (node.textContent ?? '').trim()).join(' ')
@@ -219,7 +303,7 @@ async function measureAgainstScreenshot(input: {
     const [tr, tg, tb, ta] = probe.color;
     let worst = Infinity;
     let worstBackground = '';
-    function measure(onlyGlyphs: boolean): number {
+    function measure(minAlong: number): number {
       let counted = 0;
       for (const rect of probe.rects) {
         const x = Math.max(0, Math.floor(rect.x));
@@ -236,7 +320,7 @@ async function measureAgainstScreenshot(input: {
           const r = tr * ta + br * (1 - ta);
           const g = tg * ta + bg * (1 - ta);
           const b = tb * ta + bb * (1 - ta);
-          if (onlyGlyphs) {
+          if (minAlong > 0) {
             // A glyph pixel of this text lies on the line from the background to that colour,
             // and (near) the end of it. Pixels of other text drawn in the box fall off it.
             const dr = r - br;
@@ -247,11 +331,22 @@ async function measureAgainstScreenshot(input: {
             const sb = (withText[index + 2] ?? 0) - bb;
             const span = dr * dr + dg * dg + db * db;
             if (span < 100) {
+              // Text colour within 10 units of its background: unreadable wherever it is drawn.
+              // Any pixel that changed with the text is scored as it shows, about 1:1.
+              if (sr === 0 && sg === 0 && sb === 0) {
+                continue;
+              }
+              counted += 1;
+              const flat = ratio(luminance(r, g, b), luminance(br, bg, bb));
+              if (flat < worst) {
+                worst = flat;
+                worstBackground = `rgb(${String(br)},${String(bg)},${String(bb)})`;
+              }
               continue;
             }
             const along = (sr * dr + sg * dg + sb * db) / span;
             const off = Math.hypot(sr - along * dr, sg - along * dg, sb - along * db);
-            if (along < 0.85 || along > 1.15 || off > 16) {
+            if (along < minAlong || along > 1.15 || off > 16) {
               continue;
             }
           }
@@ -266,11 +361,11 @@ async function measureAgainstScreenshot(input: {
 
       return counted;
     }
-    // Glyph pixels first; when none can be told apart (text almost the colour of its background)
-    // every pixel of the text box counts.
-    if (measure(true) === 0) {
-      measure(false);
-    }
+    // Glyph pixels only. None found means the text is not drawn where it should be: the probe
+    // is reported unmeasured (and fails) instead of passing on the pixels around it.
+    // Thin glyphs (a minus sign, a hairline) never reach full coverage: a second pass takes
+    // pixels at least a third covered. Their ratio is still against the full text colour.
+    const measured = measure(0.85) > 0 || measure(0.3) > 0;
 
     return {
       text: probe.text,
@@ -279,8 +374,9 @@ async function measureAgainstScreenshot(input: {
       fontSize: probe.fontSize,
       large: probe.large,
       required: probe.large ? 3 : 4.5,
-      worst: worst === Infinity ? 21 : worst,
+      worst: measured ? worst : 0,
       worstBackground,
+      measured,
     };
   });
 }
