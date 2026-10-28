@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal as RNModal, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, Modal as RNModal, TouchableOpacity, Platform } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { FormattedMessage, useIntl } from 'react-intl';
-import { rnDarkTheme } from '@power-budget/design-tokens/rn';
-
-const t = rnDarkTheme;
+import { makeStyles, useTheme } from '../theme/index.js';
+import { BODY_FONT, LABEL_FONT, TOUCH_TARGET } from '../glass/controls/fonts.js';
 
 function toIsoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -25,6 +24,8 @@ type Picking = 'start' | 'end' | null;
 
 export function CustomPeriodPicker({ startDate, endDate, onChange }: Props): React.JSX.Element {
   const intl = useIntl();
+  const styles = useStyles();
+  const { resolvedName } = useTheme();
   const [picking, setPicking] = useState<Picking>(null);
 
   const handleChange = (_event: DateTimePickerEvent, date: Date | undefined): void => {
@@ -53,6 +54,8 @@ export function CustomPeriodPicker({ startDate, endDate, onChange }: Props): Rea
             <FormattedMessage id="plan.period.start" defaultMessage="Start date" />
           </Text>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`${intl.formatMessage({ id: 'plan.period.start', defaultMessage: 'Start date' })}: ${startDate}`}
             style={styles.dateButton}
             onPress={() => {
               setPicking('start');
@@ -69,6 +72,8 @@ export function CustomPeriodPicker({ startDate, endDate, onChange }: Props): Rea
             <FormattedMessage id="plan.period.end" defaultMessage="End date" />
           </Text>
           <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`${intl.formatMessage({ id: 'plan.period.end', defaultMessage: 'End date' })}: ${endDate}`}
             style={styles.dateButton}
             onPress={() => {
               setPicking('end');
@@ -94,6 +99,8 @@ export function CustomPeriodPicker({ startDate, endDate, onChange }: Props): Rea
                       : intl.formatMessage({ id: 'plan.period.end', defaultMessage: 'End date' })}
                   </Text>
                   <TouchableOpacity
+                    accessibilityRole="button"
+                    style={styles.done}
                     onPress={() => {
                       setPicking(null);
                     }}
@@ -108,7 +115,7 @@ export function CustomPeriodPicker({ startDate, endDate, onChange }: Props): Rea
                   mode="date"
                   display="spinner"
                   onChange={handleChange}
-                  themeVariant="dark"
+                  themeVariant={resolvedName}
                 />
               </View>
             </View>
@@ -125,60 +132,54 @@ export function CustomPeriodPicker({ startDate, endDate, onChange }: Props): Rea
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  flex1: {
-    flex: 1,
-  },
-  separator: {
-    width: t.spaceMd,
-  },
+const useStyles = makeStyles((glass) => ({
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: glass.space.md },
+  flex1: { flex: 1 },
+  separator: { width: glass.space.md },
   label: {
-    color: t.colorTextSecondary,
-    fontSize: t.fontSizeSm,
-    marginBottom: t.spaceXs,
+    color: glass.colors.dim,
+    fontFamily: LABEL_FONT,
+    fontSize: glass.type.small.mobile,
+    marginBottom: glass.space.xxs,
   },
   dateButton: {
-    backgroundColor: t.colorSurfaceRaised,
+    minHeight: TOUCH_TARGET,
+    justifyContent: 'center',
+    backgroundColor: glass.colors.clear,
     borderWidth: 1,
-    borderColor: t.colorBorderSubtle,
-    borderRadius: t.radiusSm,
-    paddingVertical: t.spaceSm,
-    paddingHorizontal: t.spaceMd,
+    borderColor: glass.colors.sep,
+    borderRadius: glass.radius.control,
+    paddingHorizontal: glass.space.md,
   },
   dateText: {
-    color: t.colorTextPrimary,
-    fontSize: t.fontSizeMd,
-    fontFamily: 'monospace',
+    color: glass.colors.fg,
+    fontFamily: BODY_FONT,
+    fontSize: glass.type.body.mobile,
+    fontVariant: ['tabular-nums'],
   },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
+  modalBackdrop: { flex: 1, backgroundColor: glass.colors.scrim, justifyContent: 'flex-end' },
   modalCard: {
-    backgroundColor: t.colorSurfaceRaised,
-    borderTopLeftRadius: t.radiusLg,
-    borderTopRightRadius: t.radiusLg,
-    padding: t.spaceLg,
+    backgroundColor: glass.colors.base,
+    borderTopLeftRadius: glass.radius.mobilePanel,
+    borderTopRightRadius: glass.radius.mobilePanel,
+    padding: glass.space.lg,
+    boxShadow: glass.colors.clearRim,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: t.spaceMd,
+    marginBottom: glass.space.md,
   },
   modalTitle: {
-    color: t.colorTextPrimary,
-    fontSize: t.fontSizeLg,
-    fontWeight: t.fontWeightBold,
+    color: glass.colors.fg,
+    fontFamily: 'Geist_600SemiBold',
+    fontSize: glass.type.heading.mobile,
   },
+  done: { minHeight: TOUCH_TARGET, justifyContent: 'center' },
   doneText: {
-    color: t.colorAccentDefault,
-    fontSize: t.fontSizeMd,
-    fontWeight: t.fontWeightMedium,
+    color: glass.colors.accent,
+    fontFamily: LABEL_FONT,
+    fontSize: glass.type.body.mobile,
   },
-});
+}));
