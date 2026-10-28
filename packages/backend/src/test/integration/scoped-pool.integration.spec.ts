@@ -244,6 +244,57 @@ describe('Integration: ScopedPool keeps the DbScope on the pooled connection (CL
     expect(statements().filter((s) => s.includes('set_config'))).toHaveLength(1);
   });
 
+  it('destroys a connection released inside a transaction, so a rollback cannot restore an older scope', async () => {
+    const { pool } = recordedPool(1);
+    const first = await observe(pool, householdScope(A));
+
+    const open = await runInDbScope(householdScope(A), () => pool.connect());
+    await open.query('BEGIN');
+    open.release();
+    const next = await runInDbScope(householdScope(B), () => pool.connect());
+    await next.query('ROLLBACK');
+    next.release();
+    const after = await observe(pool, householdScope(B));
+
+    expect(after).toEqual({
+      householdId: B.householdId,
+      userId: B.userId,
+      rlsBypass: 'off',
+      plans: 1,
+      pid: after.pid,
+    });
+    expect(after.pid).not.toBe(first.pid);
+  });
+
+  it('destroys a connection left in a transaction by pool.query or by a failed transaction', async () => {
+    const { pool } = recordedPool(1);
+    const first = await observe(pool, householdScope(A));
+
+    await runInDbScope(householdScope(A), () => pool.query('BEGIN'));
+    const afterOpen = await observe(pool, householdScope(B));
+    const failed = await runInDbScope(householdScope(B), () => pool.connect());
+    await failed.query('BEGIN');
+    await expect(failed.query('SELECT 1/0')).rejects.toMatchObject({ code: '22012' });
+    failed.release();
+    const afterFailed = await observe(pool, householdScope(A));
+
+    expect(afterOpen).toEqual({
+      householdId: B.householdId,
+      userId: B.userId,
+      rlsBypass: 'off',
+      plans: 1,
+      pid: afterOpen.pid,
+    });
+    expect(afterFailed).toEqual({
+      householdId: A.householdId,
+      userId: A.userId,
+      rlsBypass: 'off',
+      plans: 1,
+      pid: afterFailed.pid,
+    });
+    expect(new Set([first.pid, afterOpen.pid, afterFailed.pid]).size).toBe(3);
+  });
+
   it('scopes the callback forms of query and connect too', async () => {
     const { pool } = recordedPool(1);
     await observe(pool, householdScope(B));
