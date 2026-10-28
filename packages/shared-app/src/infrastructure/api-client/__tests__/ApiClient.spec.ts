@@ -431,4 +431,24 @@ describe('ApiClient token refresh', () => {
       { url: '/transactions/tx1', authorization: 'Bearer old-access', body: { ignored: true } },
     ]);
   });
+
+  it('does not store tokens from a refresh that was in flight when the session was invalidated', async () => {
+    routes['/transactions'] = protectedRoute('new-access');
+    routes['/auth/refresh'] = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      return { status: 201, data: { accessToken: 'new-access', refreshToken: 'new-refresh' } };
+    };
+    const client = createClient();
+
+    const pending = withinGuard(client.get('/transactions')).catch((error: unknown) => error);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await client.invalidateSession();
+    const outcome = await pending;
+
+    expect(outcome).toBeInstanceOf(Error);
+    expect(store.access).toBeNull();
+    expect(store.refresh).toBeNull();
+    expect(unauthenticated).toBe(1);
+  });
 });
