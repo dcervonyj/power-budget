@@ -1,5 +1,5 @@
 import React from 'react';
-import { useIntl, type IntlShape, type MessageDescriptor } from 'react-intl';
+import { defineMessages, useIntl, type IntlShape, type MessageDescriptor } from 'react-intl';
 import { Icon } from './Icon.js';
 import type { IconName } from './iconPaths.js';
 import type { SyncChipState } from './syncChipState.js';
@@ -20,7 +20,7 @@ interface BankAgeMessages {
   readonly days: MessageDescriptor;
 }
 
-const BANK_AGE_OWNER: BankAgeMessages = {
+const BANK_AGE_OWNER: BankAgeMessages = defineMessages({
   minutes: {
     id: 'glass-atoms.sync.bankAge.owner.minutes',
     defaultMessage: 'Your bank updated {count, plural, one {# minute} other {# minutes}} ago',
@@ -33,9 +33,9 @@ const BANK_AGE_OWNER: BankAgeMessages = {
     id: 'glass-atoms.sync.bankAge.owner.days',
     defaultMessage: 'Your bank updated {count, plural, one {# day} other {# days}} ago',
   },
-};
+});
 
-const BANK_AGE_PARTNER: BankAgeMessages = {
+const BANK_AGE_PARTNER: BankAgeMessages = defineMessages({
   minutes: {
     id: 'glass-atoms.sync.bankAge.partner.minutes',
     defaultMessage: "Partner's bank updated {count, plural, one {# minute} other {# minutes}} ago",
@@ -48,7 +48,7 @@ const BANK_AGE_PARTNER: BankAgeMessages = {
     id: 'glass-atoms.sync.bankAge.partner.days',
     defaultMessage: "Partner's bank updated {count, plural, one {# day} other {# days}} ago",
   },
-};
+});
 
 const HOUR_MINUTES = 60;
 const DAY_MINUTES = 24 * HOUR_MINUTES;

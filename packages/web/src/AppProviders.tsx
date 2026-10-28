@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
+import type { MessageFormatElement } from '@formatjs/icu-messageformat-parser';
 import { staleChunkRecovery } from './infrastructure/lazyChunk.js';
 import { navigationAdapter } from './composition.js';
 import { ThemeProvider } from './presentation/theme/ThemeProvider.js';
@@ -35,7 +36,9 @@ function resolveLocale(): SupportedLocale {
     : 'en';
 }
 
-type MessagesModule = { default: Record<string, string> };
+// Vite precompiles the locale JSON into ICU ASTs (precompiledMessages plugin); specs load the raw strings.
+type Messages = Record<string, string> | Record<string, MessageFormatElement[]>;
+type MessagesModule = { default: Messages };
 
 const featureMessageModules = import.meta.glob<MessagesModule>('../public/locales/*/*.json');
 
@@ -55,7 +58,7 @@ function importMessages(locale: SupportedLocale): Promise<MessagesModule> {
   }
 }
 
-export async function loadMessages(locale: SupportedLocale): Promise<Record<string, string>> {
+export async function loadMessages(locale: SupportedLocale): Promise<Messages> {
   const legacyMessages = await importMessages(locale);
   const featureEntries = Object.entries(featureMessageModules)
     .filter(([path]) => path.includes(`/locales/${locale}/`))
@@ -95,11 +98,11 @@ function NavigationWirer(): null {
  */
 export function AppProviders({ children }: AppProvidersProps): React.JSX.Element {
   const [locale, setLocale] = useState<SupportedLocale>(resolveLocale);
-  const [messages, setMessages] = useState<Record<string, string>>({});
+  const [messages, setMessages] = useState<Messages>({});
 
   const [loadError, setLoadError] = useState<unknown>(undefined);
 
-  function onMessagesLoaded(loaded: Record<string, string>): void {
+  function onMessagesLoaded(loaded: Messages): void {
     staleChunkRecovery.chunkLoaded('locale');
     setMessages(loaded);
   }

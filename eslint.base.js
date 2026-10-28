@@ -91,6 +91,20 @@ module.exports = [
     },
   },
 
+  // ─── formatjs: static descriptors in the web app (CLN-074d) ─────────────
+  // The web build precompiles every message (babel-plugin-formatjs `ast: true`) and ships no ICU
+  // parser, so a descriptor that is not a literal would reach runtime as an unparsable string.
+  // babel-plugin-formatjs fails the build on a non-static descriptor; this rule keeps every
+  // default message valid ICU so the same build step never meets a parse error.
+  {
+    files: ['packages/web/src/**/*.{ts,tsx}'],
+    ignores: ['packages/web/src/**/__tests__/**', 'packages/web/src/**/*.spec.{ts,tsx}'],
+    plugins: { formatjs: formatjsPlugin },
+    rules: {
+      'formatjs/no-invalid-icu': 'error',
+    },
+  },
+
   // ─── Mobile screens: no hand-typed HTTP responses ──────────────────────
   // A local response type (anything not a contract *Dto) passed to `apiClient.get<T>(...)` hides a contract mismatch
   // from tsc (CLN-036). Screens call the typed `*Api` classes from shared-app instead.
