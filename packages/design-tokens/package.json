@@ -19,7 +19,7 @@
     "typecheck": "tsc -b --pretty",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo tsconfig.tsbuildinfo"
   },
   "devDependencies": {
     "@types/node": "^25.7.0",
