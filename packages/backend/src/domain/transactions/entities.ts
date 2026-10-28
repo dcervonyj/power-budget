@@ -188,6 +188,8 @@ export interface NewTransaction {
   readonly bank: BankTransactionDetails;
   /** True for rows the app cannot count, e.g. an unsupported currency; reversible via the patch. */
   readonly ignored: boolean;
+  /** The categorisation suggestion stored with the row; none when absent. */
+  readonly suggestion?: TransactionSuggestionFields;
 }
 
 /** The statuses a provisional row can be upgraded to (plan-banking.md §1.7). */

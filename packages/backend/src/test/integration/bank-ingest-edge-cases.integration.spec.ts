@@ -4,6 +4,9 @@ import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BankAccountId, HouseholdId, IsoDate, TransactionId, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
+import { SuggestFromMerchantRulesUseCase } from '../../application/categorisation/SuggestFromMerchantRulesUseCase.js';
+import { DrizzleMerchantRuleRepository } from '../../infrastructure/categorisation/DrizzleMerchantRuleRepository.js';
+import { DrizzlePlannedItemResolver } from '../../infrastructure/categorisation/DrizzlePlannedItemResolver.js';
 import { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import type { RawTransaction } from '../../domain/bank/entities.js';
 import { runInDbScope } from '../../infrastructure/database/DbScope.js';
@@ -53,7 +56,9 @@ function inScope<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 function ingest(rows: readonly RawTransaction[]): Promise<void> {
-  return inScope(() => useCase.execute({ accountId, rawTransactions: rows, householdId }));
+  return inScope(() =>
+    useCase.execute({ accountId, rawTransactions: rows, householdId, ownerUserId: userId }),
+  );
 }
 
 async function storedRows(): Promise<{ currency: string; ignored: boolean; ext: string }[]> {
@@ -78,6 +83,10 @@ describe('Integration: bank ingest edge cases (CLN-039)', () => {
     useCase = new IngestBankTransactionsUseCase(
       new DrizzleTransactionRepository(countingDb),
       uuidv7,
+      new SuggestFromMerchantRulesUseCase(
+        new DrizzleMerchantRuleRepository(db),
+        new DrizzlePlannedItemResolver(db),
+      ),
     );
   });
 

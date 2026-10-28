@@ -1,4 +1,4 @@
-import type { BankAccountId, HouseholdId, IsoDate, Money } from '@power-budget/core';
+import type { BankAccountId, HouseholdId, IsoDate, Money, UserId } from '@power-budget/core';
 import { TransactionId, isSupportedCurrency } from '@power-budget/core';
 import type { TransactionRepository } from '../../../domain/transactions/ports.js';
 import type {
@@ -8,6 +8,7 @@ import type {
 } from '../../../domain/transactions/entities.js';
 import type { RawAmount, RawTransaction } from '../../../domain/bank/entities.js';
 import { IdempotentIngest } from '../../../domain/transactions/idempotent-ingest.js';
+import type { SuggestFromMerchantRulesUseCase } from '../../categorisation/SuggestFromMerchantRulesUseCase.js';
 
 export type { RawTransaction };
 
@@ -15,12 +16,15 @@ export interface IngestBankTransactionsInput {
   readonly accountId: BankAccountId;
   readonly rawTransactions: readonly RawTransaction[];
   readonly householdId: HouseholdId;
+  /** The account owner: merchant rules are theirs and their plans are the candidates. */
+  readonly ownerUserId: UserId;
 }
 
 export class IngestBankTransactionsUseCase {
   constructor(
     private readonly transactionRepo: TransactionRepository,
     private readonly generateId: () => string,
+    private readonly merchantRules: SuggestFromMerchantRulesUseCase,
   ) {}
 
   async execute(input: IngestBankTransactionsInput): Promise<void> {
@@ -36,7 +40,12 @@ export class IngestBankTransactionsUseCase {
     }
 
     if (batch.length > 0) {
-      await this.transactionRepo.insertBankBatch(batch);
+      const suggested = await this.merchantRules.suggest(
+        batch,
+        input.ownerUserId,
+        input.householdId,
+      );
+      await this.transactionRepo.insertBankBatch(suggested);
     }
   }
 

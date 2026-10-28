@@ -106,6 +106,11 @@ const BANK_INSERT_COLUMNS: readonly (readonly [string, string])[] = [
   ['fingerprint', 'text'],
   ['original_amount_minor', 'bigint'],
   ['original_currency', 'text'],
+  ['suggested_planned_item_id', 'uuid'],
+  ['suggested_category_id', 'uuid'],
+  ['suggestion_confidence', 'numeric'],
+  ['suggestion_source', 'text'],
+  ['auto_mapped', 'boolean'],
 ];
 
 function columnName(column: readonly [string, string]): string {
@@ -731,8 +736,14 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   /** The insert row keyed by SQL column name, as jsonb_to_recordset reads it. */
   private toBankInsert(input: NewTransaction): Record<string, unknown> {
     const row = this.rows.toInsert(input);
+    const suggestion = input.suggestion;
 
     return {
+      suggested_planned_item_id: suggestion?.suggestedPlannedItemId ?? null,
+      suggested_category_id: suggestion?.suggestedCategoryId ?? null,
+      suggestion_confidence: suggestion?.suggestionConfidence ?? null,
+      suggestion_source: suggestion?.suggestionSource ?? null,
+      auto_mapped: suggestion?.autoMapped ?? false,
       id: row.id,
       household_id: row.householdId,
       account_id: row.accountId,

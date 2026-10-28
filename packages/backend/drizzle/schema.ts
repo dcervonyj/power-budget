@@ -715,6 +715,57 @@ export const liveSignals = pgTable(
   ],
 );
 
+// ─── Merchant memory (AI-003, plan-banking 1.13) ─────────────────────────────
+
+export const merchantRules = pgTable(
+  'merchant_rules',
+  {
+    id: uuid('id').primaryKey(),
+    householdId: uuid('household_id')
+      .notNull()
+      .references(() => households.id),
+    // The account owner whose correction taught the rule; NULL would mean household-wide.
+    ownerUserId: uuid('owner_user_id').references(() => users.id),
+    matchKind: varchar('match_kind', { length: 30 }).notNull(),
+    // The normalised merchant key, or the counterparty IBAN hash (never a raw IBAN).
+    pattern: varchar('pattern', { length: 255 }).notNull(),
+    categoryId: uuid('category_id')
+      .notNull()
+      .references(() => categories.id),
+    planKindPref: varchar('plan_kind_pref', { length: 20 }),
+    alwaysAsk: boolean('always_ask').notNull().default(false),
+    hits: integer('hits').notNull().default(0),
+    lastHitAt: timestamp('last_hit_at', { withTimezone: true }),
+    createdFromTx: uuid('created_from_tx').references(() => transactions.id, {
+      onDelete: 'set null',
+    }),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => users.id),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('merchant_rules_key_unique').on(
+      t.householdId,
+      t.ownerUserId,
+      t.matchKind,
+      t.pattern,
+    ),
+    index('merchant_rules_household_idx').on(t.householdId),
+    check(
+      'merchant_rules_match_kind_check',
+      sql`match_kind IN ('merchant', 'counterparty_iban_hash', 'descriptor_regex')`,
+    ),
+    check(
+      'merchant_rules_plan_kind_pref_check',
+      sql`plan_kind_pref IS NULL OR plan_kind_pref IN ('personal', 'household')`,
+    ),
+    check('merchant_rules_hits_check', sql`hits >= 0`),
+  ],
+);
+
+export type SelectMerchantRule = InferSelectModel<typeof merchantRules>;
 export type SelectSyncRun = InferSelectModel<typeof syncRuns>;
 export type InsertSyncRun = InferInsertModel<typeof syncRuns>;
 
