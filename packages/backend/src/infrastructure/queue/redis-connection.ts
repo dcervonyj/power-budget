@@ -48,14 +48,6 @@ export async function releaseSharedQueueConnection(url: string): Promise<void> {
   await connection?.quit().catch(() => undefined);
 }
 
-/** Closes the shared connections (graceful shutdown in tests). */
-export async function closeSharedQueueConnections(): Promise<void> {
-  const open = [...sharedConnections.values()];
-  sharedConnections.clear();
-  holders.clear();
-  await Promise.all(open.map((connection) => connection.quit().catch(() => undefined)));
-}
-
 export function buildQueueConnectionOptions(
   config: Pick<AppConfig, 'redisUrl'>,
 ): Pick<QueueOptions, 'connection'> {
