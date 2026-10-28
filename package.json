@@ -4,7 +4,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.12"
   },
   "scripts": {
     "preinstall": "node -e \"if (!process.env.npm_config_user_agent?.startsWith('pnpm')) { console.error('Use pnpm'); process.exit(1); }\"",

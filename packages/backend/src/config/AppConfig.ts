@@ -53,6 +53,9 @@ const DEFAULT_REDIS_URL = 'redis://localhost:6379';
 const DEFAULT_APP_BASE_URL = 'http://localhost:3000';
 const DEFAULT_WISE_API_BASE_URL = 'https://api.wise.com';
 const DEFAULT_AUDIT_THRESHOLD = '1000000';
+const POSTGRES_SCHEMES: readonly string[] = ['postgres:', 'postgresql:'];
+const REDIS_SCHEMES: readonly string[] = ['redis:', 'rediss:'];
+const HTTP_SCHEMES: readonly string[] = ['http:', 'https:'];
 const KEK_BYTES = 32;
 const MAX_PORT = 65535;
 
@@ -60,11 +63,11 @@ export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
   const problems: string[] = [];
   const nodeEnv = text(env['NODE_ENV']) ?? 'development';
   const jwtSecret = attempt(
-    () => resolveJwtSecret(text(env['JWT_SECRET']) ?? undefined, nodeEnv),
+    () => resolveJwtSecret(secret(env['JWT_SECRET']) ?? undefined, nodeEnv),
     '',
     problems,
   );
-  const kekBase64 = text(env['KEK_BASE64']) ?? '';
+  const kekBase64 = secret(env['KEK_BASE64']) ?? '';
   if (Buffer.from(kekBase64, 'base64').length !== KEK_BYTES) {
     problems.push(
       `KEK_BASE64 must be ${KEK_BYTES} random bytes, base64-encoded (for example \`openssl rand -base64 32\`).`,
@@ -73,13 +76,32 @@ export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
   const port = parsePort(env['PORT'], problems);
   const startWorker = parseBoolean('START_WORKER', env['START_WORKER'], problems);
   const swaggerEnabled = parseBoolean('SWAGGER_ENABLED', env['SWAGGER_ENABLED'], problems);
-  const databaseUrl = parseUrl('DATABASE_URL', env['DATABASE_URL'], DEFAULT_DATABASE_URL, problems);
-  const redisUrl = parseUrl('REDIS_URL', env['REDIS_URL'], DEFAULT_REDIS_URL, problems);
-  const appBaseUrl = parseUrl('APP_BASE_URL', env['APP_BASE_URL'], DEFAULT_APP_BASE_URL, problems);
+  const databaseUrl = parseUrl(
+    'DATABASE_URL',
+    env['DATABASE_URL'],
+    DEFAULT_DATABASE_URL,
+    POSTGRES_SCHEMES,
+    problems,
+  );
+  const redisUrl = parseUrl(
+    'REDIS_URL',
+    env['REDIS_URL'],
+    DEFAULT_REDIS_URL,
+    REDIS_SCHEMES,
+    problems,
+  );
+  const appBaseUrl = parseUrl(
+    'APP_BASE_URL',
+    env['APP_BASE_URL'],
+    DEFAULT_APP_BASE_URL,
+    HTTP_SCHEMES,
+    problems,
+  );
   const wiseApiBaseUrl = parseUrl(
     'WISE_API_BASE_URL',
     env['WISE_API_BASE_URL'],
     DEFAULT_WISE_API_BASE_URL,
+    HTTP_SCHEMES,
     problems,
   );
   const threshold = parseThreshold(env['AUDIT_REDACTION_THRESHOLD_MINOR'], problems);
@@ -116,11 +138,11 @@ export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
     appBaseUrl,
     resendApiKey: email.resendApiKey,
     emailFrom: email.from,
-    resendWebhookSecret: text(env['RESEND_WEBHOOK_SECRET']),
+    resendWebhookSecret: secret(env['RESEND_WEBHOOK_SECRET']),
     auditRedactionThresholdMinor: threshold,
     wiseApiBaseUrl,
-    gocardlessSecretId: text(env['GOCARDLESS_SECRET_ID']) ?? '',
-    gocardlessSecretKey: text(env['GOCARDLESS_SECRET_KEY']) ?? '',
+    gocardlessSecretId: secret(env['GOCARDLESS_SECRET_ID']) ?? '',
+    gocardlessSecretKey: secret(env['GOCARDLESS_SECRET_KEY']) ?? '',
     sentryDsn: text(env['SENTRY_DSN']),
     sentryRelease: text(env['SENTRY_RELEASE']),
   };
@@ -138,6 +160,11 @@ function attempt<T, F>(run: () => T, fallback: F, problems: string[]): T | F {
 
 function toBullet(problem: string): string {
   return `  - ${problem}`;
+}
+
+/** A secret is validated on its trimmed copy but used byte-for-byte as given. */
+function secret(raw: string | undefined): string | null {
+  return text(raw) === null ? null : (raw ?? null);
 }
 
 function text(raw: string | undefined): string | null {
@@ -178,6 +205,7 @@ function parseUrl(
   name: string,
   raw: string | undefined,
   fallback: string,
+  schemes: readonly string[],
   problems: string[],
 ): string {
   const value = text(raw);
@@ -187,6 +215,11 @@ function parseUrl(
   if (!URL.canParse(value)) {
     // Never echo the value: a DB/Redis URL can embed credentials.
     problems.push(`${name} must be a valid URL.`);
+
+    return fallback;
+  }
+  if (!schemes.includes(new URL(value).protocol)) {
+    problems.push(`${name} must use one of the schemes: ${schemes.join(' ')}.`);
 
     return fallback;
   }
