@@ -1,5 +1,5 @@
 import React from 'react';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 import type {
   CurrentTiming,
   DashboardOverview,
@@ -47,26 +47,29 @@ const SWATCH_STYLE: React.CSSProperties = {
  * Pace (tinted glass): the share of the plan still left as light against the share of the month
  * still to come (the mark), the under / over pace words and the forecast sentence.
  */
+const ROD_ARIA = defineMessages({
+  under: {
+    id: 'overview.pace.aria.under',
+    defaultMessage:
+      'Pace: {left} of the plan is still left as light, {month} of the month is still to come. The light reaches past the mark, so spending is under pace.',
+  },
+  over: {
+    id: 'overview.pace.aria.over',
+    defaultMessage:
+      'Pace: {left} of the plan is still left as light, {month} of the month is still to come. The light stops before the mark, so spending is over pace.',
+  },
+});
+
 export function PacePanel({ dashboard, overview, timing }: PacePanelProps): React.JSX.Element {
   const intl = useIntl();
   const { pace } = timing;
   const under = pace.kind === 'under';
   const leftPercent = formatPercent(pace.leftPercent, intl.locale);
   const monthPercent = formatPercent(pace.monthLeftPercent, intl.locale);
-  const rodAria = intl.formatMessage(
-    under
-      ? {
-          id: 'overview.pace.aria.under',
-          defaultMessage:
-            'Pace: {left} of the plan is still left as light, {month} of the month is still to come. The light reaches past the mark, so spending is under pace.',
-        }
-      : {
-          id: 'overview.pace.aria.over',
-          defaultMessage:
-            'Pace: {left} of the plan is still left as light, {month} of the month is still to come. The light stops before the mark, so spending is over pace.',
-        },
-    { left: leftPercent, month: monthPercent },
-  );
+  const rodAria = intl.formatMessage(under ? ROD_ARIA.under : ROD_ARIA.over, {
+    left: leftPercent,
+    month: monthPercent,
+  });
 
   return (
     <GlassPanel

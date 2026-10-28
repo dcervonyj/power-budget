@@ -37,7 +37,7 @@ export default defineConfig(({ mode }) => {
   // so the gallery never reaches the production dist.
   const gallery = mode === 'gallery';
   const plugins: PluginOption[] = [
-    react({ babel: { plugins: [['formatjs', { ast: true }]] } }),
+    react({ babel: { plugins: [['formatjs', { ast: true, preserveWhitespace: true }]] } }),
     precompiledMessages(),
     securityHeadersFile(productionHeaders),
   ];
