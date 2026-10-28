@@ -1,3 +1,4 @@
+import { DEFAULT_LOCALE } from '../../../../domain/locale.js';
 import { NO_LABEL } from '../../../../domain/display.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -149,7 +150,7 @@ export function useSettings(): SettingsViewProps {
     nameDraft,
     nameSave,
     preference,
-    locale: profile?.locale ?? 'en',
+    locale: profile?.locale ?? DEFAULT_LOCALE,
     baseCurrency: profile?.baseCurrency ?? null,
     preferencesError,
     biometricAvailable,

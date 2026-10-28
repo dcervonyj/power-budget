@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../domain/display.js';
 import { parseMinorUnits } from '@power-budget/core';
 import type { MinorUnitAmount } from '@power-budget/core';
 import type { TxRowData } from '@power-budget/shared-app';
@@ -157,7 +158,7 @@ function toListRow(
   const data: TxRowData = {
     id: item.id,
     title,
-    subtitle: categoryName ?? (item.merchant === null ? '' : item.description),
+    subtitle: categoryName ?? (item.merchant === null ? NO_LABEL : item.description),
     amountMinor: parseMinorUnits(item.amount.amountMinor),
     currency: item.amount.currency,
     status: rowStatusOf(item, kind),
