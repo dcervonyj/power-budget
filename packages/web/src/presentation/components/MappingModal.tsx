@@ -12,6 +12,7 @@ import {
   optionStyle,
 } from './transactionDialogStyles.js';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
+import { NO_SELECTION } from '../../domain/display.js';
 
 export interface MappingModalProps {
   readonly isOpen: boolean;
@@ -150,7 +151,7 @@ export function MappingModal({
           </label>
           <select
             id="mapping-plan-select"
-            value={selectedPlanId ?? ''}
+            value={selectedPlanId ?? NO_SELECTION}
             onChange={(e) => {
               setSelectedPlanId(e.target.value || null);
             }}

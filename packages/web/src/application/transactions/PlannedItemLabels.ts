@@ -1,5 +1,6 @@
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
 import type { ReferenceCatalogue } from '../catalogue/ReferenceCatalogue.js';
+import { NO_LABEL } from '../../domain/display.js';
 
 export type PlannedItemSource = Pick<ReferenceCatalogue, 'activePlans' | 'items' | 'categoryNames'>;
 
@@ -26,7 +27,7 @@ export async function loadPlannedItems(source: PlannedItemSource): Promise<Plann
   const options = perPlan.flat().map(({ plan, item }) => ({
     item,
     planName: plan.name,
-    categoryName: names.get(item.categoryId) ?? '',
+    categoryName: names.get(item.categoryId) ?? NO_LABEL,
   }));
 
   return {

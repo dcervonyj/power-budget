@@ -29,15 +29,17 @@ export const HouseholdScreen = observer(function HouseholdScreen(): React.JSX.El
   }, []);
 
   useEffect(() => {
-    if (profileLoaded && householdId !== '') {
+    if (profileLoaded && householdId !== null) {
       void householdStore.load(userId, householdId);
     }
   }, [profileLoaded, userId, householdId]);
 
-  const drillIn = categoryId !== null && planId !== null && householdId !== '';
+  const drillIn = categoryId !== null && planId !== null && householdId !== null;
 
   function retry(): void {
-    void householdStore.load(userId, householdId);
+    if (householdId !== null) {
+      void householdStore.load(userId, householdId);
+    }
   }
 
   return (
@@ -51,7 +53,7 @@ export const HouseholdScreen = observer(function HouseholdScreen(): React.JSX.El
         />
       )}
 
-      {!drillIn && profileLoaded && householdId === '' && (
+      {!drillIn && profileLoaded && householdId === null && (
         <EmptyState
           title={
             <FormattedMessage
@@ -74,7 +76,7 @@ export const HouseholdScreen = observer(function HouseholdScreen(): React.JSX.El
         />
       )}
 
-      {!drillIn && !householdStore.loaded && !householdStore.loadFailed && householdId !== '' && (
+      {!drillIn && !householdStore.loaded && !householdStore.loadFailed && householdId !== null && (
         <SkeletonList rows={3} rowHeight={56} />
       )}
 

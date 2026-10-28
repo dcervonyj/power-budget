@@ -97,6 +97,8 @@ function effectOfFailure(failure: BankConnectorFailure): string {
       return 'backoff';
     case 'provider_auth':
       return 'pause_all';
+    case 'provider_data':
+      return 'fail_without_retry';
     default: {
       const unreachable: never = failure;
       throw new Error(`Unknown failure ${String(unreachable)}`);

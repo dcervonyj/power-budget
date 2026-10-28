@@ -44,11 +44,12 @@ export class AcceptInvite {
       return { kind: 'failed', error: 'missing_token' };
     }
     try {
-      const joined = await this.households.acceptInvite(token);
+      // Read before joining: the join cannot be undone, so a missing session must stop it first.
       const refreshToken = this.tokens.getRefreshToken();
       if (refreshToken === null) {
-        throw new Error('Accepting an invite needs the signed-in session refresh token');
+        return { kind: 'failed', error: 'failed' };
       }
+      const joined = await this.households.acceptInvite(token);
       await this.tokens.setTokens(joined.accessToken, refreshToken);
 
       return { kind: 'joined', householdId: joined.householdId };

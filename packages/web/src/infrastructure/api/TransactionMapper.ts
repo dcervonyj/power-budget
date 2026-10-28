@@ -11,6 +11,7 @@ import type {
   Transaction,
   TransactionMapping,
 } from '../../domain/transactions/Transaction.js';
+import { NO_LABEL } from '../../domain/display.js';
 
 export const TransactionMapper = {
   /** A `GET /transactions` row: it carries its mapping (with names), provenance and transfer. */
@@ -74,7 +75,7 @@ function fromListMapping(
     plannedItemId: dto.plannedItemId,
     planName: dto.planName,
     planArchived: dto.planArchived,
-    categoryName: dto.categoryName ?? '',
+    categoryName: dto.categoryName ?? NO_LABEL,
     by: mappedBy(source),
   };
 }

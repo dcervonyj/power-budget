@@ -63,6 +63,15 @@ describe('SettingsStore.deleteAccount', () => {
     store.householdId = 'hh-1';
   });
 
+  it('refuses to delete without a household and calls nothing', async () => {
+    store.householdId = null;
+
+    await store.deleteAccount();
+
+    expect(store.deleteError).toBe('delete_failed');
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
   it('reports requires_totp when the API wants a recent TOTP verification', async () => {
     mockDelete.mockRejectedValueOnce(apiError(403, 'requires_totp'));
 
@@ -157,7 +166,7 @@ describe('SettingsStore profile (UserProfileDto)', () => {
     await store.loadProfile();
 
     expect(store.baseCurrency).toBe('EUR');
-    expect(store.householdId).toBe('');
+    expect(store.householdId).toBeNull();
   });
 
   it('saves the display name and time zone with PATCH /users/me and applies the answer', async () => {
@@ -300,7 +309,7 @@ describe('SettingsStore.resetSession', () => {
     expect(store.userId).toBe('');
     expect(store.displayName).toBe('');
     expect(store.email).toBe('');
-    expect(store.householdId).toBe('');
+    expect(store.householdId).toBeNull();
     expect(store.timezone).toBe('');
     expect(store.baseCurrency).toBe('EUR');
     expect(store.interestingCurrencies).toEqual([]);

@@ -16,6 +16,7 @@ import {
   TITLE_STYLE,
 } from './rowStyles.js';
 import { useRowLabels, type RowLabels, type TxProvenance, type TxRowKind } from './useRowLabels.js';
+import { NO_LABEL } from '../../../domain/display.js';
 
 export interface TxRowProps {
   readonly transaction: TxRowData;
@@ -231,7 +232,7 @@ function TxSuggestion({
   onUndo,
   onChoose,
 }: TxSuggestionProps): React.JSX.Element {
-  const category = transaction.suggestionLabel ?? '';
+  const category = transaction.suggestionLabel ?? NO_LABEL;
   const percent =
     transaction.suggestionConfidence === undefined
       ? undefined
