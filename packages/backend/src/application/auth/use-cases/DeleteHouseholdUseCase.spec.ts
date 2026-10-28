@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdRepository } from '../../../domain/auth/ports.js';
 import type { Household, HouseholdMembership } from '../../../domain/auth/entities.js';
 import { DeleteHouseholdUseCase } from './DeleteHouseholdUseCase.js';
@@ -9,8 +9,8 @@ import {
   HouseholdOwnerRequiredError,
 } from '../../../domain/auth/errors.js';
 
-const HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000001' as HouseholdId;
-const USER_ID = '01900000-0000-7000-8000-000000000002' as UserId;
+const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000001');
+const USER_ID = UserId.of('01900000-0000-7000-8000-000000000002');
 
 const MOCK_HOUSEHOLD: Household = {
   id: HOUSEHOLD_ID,

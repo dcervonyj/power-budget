@@ -1,22 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import { ConsentExpiryPolicy } from './consent-expiry-policy.js';
-import type {
-  BankConnection,
-  BankConnectionId,
-  HouseholdId,
-  UserId,
-  EncryptedString,
-} from './entities.js';
+import { BankConnectionId, HouseholdId, UserId, EncryptedString } from '@power-budget/core';
+import type { BankConnection } from './entities.js';
 
 function makeConn(overrides: Partial<BankConnection> = {}): BankConnection {
   return {
-    id: 'conn-1' as BankConnectionId,
-    householdId: 'hh-1' as HouseholdId,
-    userId: 'u-1' as UserId,
+    id: BankConnectionId.of('01900000-78db-7ecf-8203-561e43789f28'),
+    householdId: HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6'),
+    userId: UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768'),
     provider: 'gocardless',
     bankId: 'BPKOPLPW',
     externalConsentRef: 'ref-1',
-    encryptedConsent: 'encrypted' as EncryptedString,
+    encryptedConsent: EncryptedString.of('encrypted'),
     expiresAt: null,
     status: 'active',
     disconnectedAt: null,

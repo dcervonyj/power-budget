@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type {
+import {
   CategoryId,
   HouseholdId,
   IsoDate,
@@ -12,14 +12,15 @@ import type { HintedPlannedItem } from '../../../domain/categorisation/entities.
 import type { PlannedHintReader } from '../../../domain/categorisation/ports.js';
 import type { NewTransaction } from '../../../domain/transactions/entities.js';
 import { SuggestFromPlannedHintsUseCase } from '../SuggestFromPlannedHintsUseCase.js';
+import { testUuid } from '../../../test/doubles/testUuid.js';
 
-const householdId = 'hh-1' as HouseholdId;
-const userId = 'u-1' as UserId;
-const categoryId = 'cat-rent' as CategoryId;
+const householdId = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const userId = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
+const categoryId = CategoryId.of('01900000-14d6-7e74-84a3-1f4de45f1374');
 
 function item(id: string, overrides: Partial<HintedPlannedItem> = {}): HintedPlannedItem {
   return {
-    plannedItemId: id as PlannedItemId,
+    plannedItemId: PlannedItemId.of(testUuid(id)),
     categoryId,
     direction: 'expense',
     amount: { amountMinor: 340000n, currency: 'PLN' },
@@ -28,19 +29,19 @@ function item(id: string, overrides: Partial<HintedPlannedItem> = {}): HintedPla
       amount: { amountMinor: 340000n, toleranceMinor: 0n },
       day: { dayOfMonth: 5, window: 2 },
     },
-    periodStart: '2026-10-01' as IsoDate,
-    periodEnd: '2026-10-31' as IsoDate,
+    periodStart: IsoDate.of('2026-10-01'),
+    periodEnd: IsoDate.of('2026-10-31'),
     ...overrides,
   };
 }
 
 function row(overrides: Partial<NewTransaction> = {}): NewTransaction {
   return {
-    id: 'tx-1' as TransactionId,
+    id: TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f'),
     householdId,
     accountId: 'acc-1',
     externalId: 'e-1',
-    occurredOn: '2026-10-05' as IsoDate,
+    occurredOn: IsoDate.of('2026-10-05'),
     amount: { amountMinor: -340000n, currency: 'PLN' },
     description: 'Czynsz',
     merchant: 'Landlord Sp. z o.o.',
@@ -62,7 +63,7 @@ describe('SuggestFromPlannedHintsUseCase', () => {
     const [result] = await useCase([item('rent')]).suggest([row()], userId, householdId);
 
     expect(result?.suggestion).toEqual({
-      suggestedPlannedItemId: 'rent',
+      suggestedPlannedItemId: testUuid('rent'),
       suggestedCategoryId: categoryId,
       suggestionConfidence: 0.99,
       suggestionSource: 'planned_hint',
@@ -86,8 +87,8 @@ describe('SuggestFromPlannedHintsUseCase', () => {
 
   it('ignores a plan that does not cover the transaction date', async () => {
     const november = item('rent-nov', {
-      periodStart: '2026-11-01' as IsoDate,
-      periodEnd: '2026-11-30' as IsoDate,
+      periodStart: IsoDate.of('2026-11-01'),
+      periodEnd: IsoDate.of('2026-11-30'),
     });
     const [result] = await useCase([november]).suggest([row()], userId, householdId);
 
@@ -106,7 +107,7 @@ describe('SuggestFromPlannedHintsUseCase', () => {
     const [result] = await useCase([salary]).suggest([income], userId, householdId);
 
     expect(result?.suggestion).toMatchObject({
-      suggestedPlannedItemId: 'salary',
+      suggestedPlannedItemId: testUuid('salary'),
       suggestionConfidence: 0.9,
       autoMapped: false,
     });

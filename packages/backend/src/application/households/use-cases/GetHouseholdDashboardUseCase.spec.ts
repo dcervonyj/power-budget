@@ -1,20 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type {
+import {
   BankAccountId,
   CategoryId,
-  FxRateTable,
   HouseholdId,
   IsoDate,
   IsoDateTime,
-  Mapping,
   PlanId,
   PlannedItemId,
-  Transaction,
   TransactionId,
   TransactionMappingId,
   UserId,
 } from '@power-budget/core';
+import type { FxRateTable, Mapping, Transaction } from '@power-budget/core';
 import type { Category } from '../../../domain/categories/entities.js';
 import type {
   CategoryPrivacyRepository,
@@ -29,14 +27,15 @@ import type {
 import type { FxRateRepository } from '../../../domain/fx/index.js';
 import { PlanFxRatesLoader } from '../../plans/plan-fx-rates.js';
 import { GetHouseholdDashboardUseCase } from './GetHouseholdDashboardUseCase.js';
+import { testUuid } from '../../../test/doubles/testUuid.js';
 
-const HH = 'hh-1' as HouseholdId;
-const ANN = 'u-ann' as UserId;
-const BOB = 'u-bob' as UserId;
-const PLAN = 'plan-1' as PlanId;
-const GROCERIES = 'cat-groceries' as CategoryId;
-const OLD = 'cat-old' as CategoryId;
-const UNUSED_OLD = 'cat-unused-old' as CategoryId;
+const HH = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const ANN = UserId.of('01900000-df75-7d2d-8df4-707b8b171d37');
+const BOB = UserId.of('01900000-2f5d-7fe5-8e88-c03764db3083');
+const PLAN = PlanId.of('01900000-9df3-7cd5-8459-d2fb1d3f0b7c');
+const GROCERIES = CategoryId.of('01900000-6531-7012-80f0-ce400ebdf7c3');
+const OLD = CategoryId.of('01900000-4af7-73c5-8af7-121d4d750401');
+const UNUSED_OLD = CategoryId.of('01900000-d2ef-7f14-848b-c910834e1a29');
 const AS_OF = new Date('2026-10-20T12:00:00Z');
 
 function plan(overrides: Partial<Plan> = {}): Plan {
@@ -47,11 +46,11 @@ function plan(overrides: Partial<Plan> = {}): Plan {
     name: 'October',
     type: 'household',
     periodKind: 'monthly',
-    period: { start: '2026-10-01' as IsoDate, end: '2026-10-31' as IsoDate },
+    period: { start: IsoDate.of('2026-10-01'), end: IsoDate.of('2026-10-31') },
     baseCurrency: 'PLN',
     archivedAt: null,
-    createdAt: '2026-10-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2026-10-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
     ...overrides,
   };
 }
@@ -66,14 +65,14 @@ function category(id: CategoryId, overrides: Partial<Category> = {}): Category {
     color: '#000000',
     kind: 'expense',
     archivedAt: null,
-    createdAt: '2026-01-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2026-01-01T00:00:00Z'),
     ...overrides,
   };
 }
 
 function item(id: string, categoryId: CategoryId): PlannedItem {
   return {
-    id: id as PlannedItemId,
+    id: PlannedItemId.of(testUuid(id)),
     planId: PLAN,
     householdId: HH,
     categoryId,
@@ -81,36 +80,36 @@ function item(id: string, categoryId: CategoryId): PlannedItem {
     amount: { amountMinor: 50_000n, currency: 'PLN' },
     note: null,
     matchHint: null,
-    createdAt: '2026-10-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2026-10-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
   };
 }
 
 function tx(id: string, amountMinor: bigint, currency: 'PLN' | 'EUR' = 'PLN'): Transaction {
   return {
-    id: id as TransactionId,
+    id: TransactionId.of(testUuid(id)),
     householdId: HH,
-    accountId: 'acc-1' as BankAccountId,
+    accountId: BankAccountId.of('01900000-998a-733e-8778-f641457f6a29'),
     externalId: null,
     source: 'bank',
     status: 'booked',
     amount: { amountMinor, currency },
     description: id,
     merchantName: null,
-    bookedAt: '2026-10-10' as IsoDate,
-    createdAt: '2026-10-10T00:00:00Z' as IsoDateTime,
+    bookedAt: IsoDate.of('2026-10-10'),
+    createdAt: IsoDateTime.of('2026-10-10T00:00:00Z'),
     ignored: false,
   };
 }
 
 function mapping(txId: string, itemId: string): Mapping {
   return {
-    id: txId as TransactionMappingId,
+    id: TransactionMappingId.of(testUuid(txId)),
     householdId: HH,
-    transactionId: txId as TransactionId,
-    plannedItemId: itemId as PlannedItemId,
+    transactionId: TransactionId.of(testUuid(txId)),
+    plannedItemId: PlannedItemId.of(testUuid(itemId)),
     createdByUserId: ANN,
-    createdAt: '2026-10-10T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2026-10-10T00:00:00Z'),
   };
 }
 
@@ -142,8 +141,8 @@ function setup(table: FxRateTable = new Map()): {
   const categories = mock<CategoryRepository>();
   categories.list.mockResolvedValue([
     category(GROCERIES),
-    category(OLD, { archivedAt: '2026-09-01T00:00:00Z' as IsoDateTime, householdId: HH }),
-    category(UNUSED_OLD, { archivedAt: '2026-09-01T00:00:00Z' as IsoDateTime }),
+    category(OLD, { archivedAt: IsoDateTime.of('2026-09-01T00:00:00Z'), householdId: HH }),
+    category(UNUSED_OLD, { archivedAt: IsoDateTime.of('2026-09-01T00:00:00Z') }),
   ]);
   const privacy = mock<CategoryPrivacyRepository>();
   privacy.listByHousehold.mockResolvedValue([
@@ -152,7 +151,7 @@ function setup(table: FxRateTable = new Map()): {
       householdId: HH,
       level: 'total_with_counts',
       updatedBy: ANN,
-      updatedAt: '2026-10-01T00:00:00Z' as IsoDateTime,
+      updatedAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
     },
   ]);
   const fxRepo = mock<FxRateRepository>();
@@ -187,7 +186,7 @@ describe('GetHouseholdDashboardUseCase', () => {
     expect(groceries.totalAmount).toEqual({ amountMinor: 2_500n, currency: 'PLN' });
     expect(groceries.privacyLevel).toBe('total_with_counts');
     expect(groceries.transactionCount).toBe(2);
-    expect(groceries.transactions?.map((t) => t.transactionId)).toEqual(['bob-1']);
+    expect(groceries.transactions?.map((t) => t.transactionId)).toEqual([testUuid('bob-1')]);
     expect(groceries.category).toMatchObject({ isSystem: true, sortOrder: 0 });
     expect(categories[1]).toMatchObject({
       privacyLevel: 'total_only',

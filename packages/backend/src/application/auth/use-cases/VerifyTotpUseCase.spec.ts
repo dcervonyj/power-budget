@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { UserId } from '@power-budget/core';
+import { UserId } from '@power-budget/core';
 import { VerifyTotpUseCase } from './VerifyTotpUseCase.js';
 import { TotpInvalidError } from '../../../domain/auth/errors.js';
 import type { TotpAuthenticator } from '../services/TotpAuthenticator.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 
 describe('VerifyTotpUseCase', () => {
   let totp: ReturnType<typeof mock<TotpAuthenticator>>;

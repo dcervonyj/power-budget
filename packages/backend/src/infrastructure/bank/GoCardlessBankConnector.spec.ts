@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import type { EncryptedString } from '@power-budget/core';
+import { EncryptedString } from '@power-budget/core';
 import type { Encryption } from '../../domain/auth/ports.js';
 import { GoCardlessBankConnector } from './GoCardlessBankConnector.js';
 import { BankRateLimitedError } from '../../domain/bank/errors.js';
@@ -27,7 +27,7 @@ function makeTokenResponse(overrides?: Partial<Record<string, unknown>>) {
   };
 }
 
-const CONSENT = 'enc:{"requisitionId":"req-1","accounts":["acct-1"]}' as EncryptedString;
+const CONSENT = EncryptedString.of('enc:{"requisitionId":"req-1","accounts":["acct-1"]}');
 
 /** Stubs fetch: the first call answers the token request, every later one `body`. */
 function stubFetch(body: unknown) {
@@ -246,7 +246,7 @@ describe('GoCardlessBankConnector', () => {
         }),
       );
 
-      const consent = 'enc:{"requisitionId":"req-1","accounts":["acct-1"]}' as EncryptedString;
+      const consent = EncryptedString.of('enc:{"requisitionId":"req-1","accounts":["acct-1"]}');
       const connector = makeConnector();
       const result = await connector.fetchTransactions({
         account: { externalId: 'acct-1' },

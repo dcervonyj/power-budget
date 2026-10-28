@@ -1,20 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type {
-  IsoDate,
-  IsoDateTime,
-  UserId,
-  HouseholdId,
-  PlanActualsView,
-  CurrencyCode,
-} from '@power-budget/core';
+import { IsoDate, IsoDateTime, UserId, HouseholdId } from '@power-budget/core';
+import type { PlanActualsView, CurrencyCode } from '@power-budget/core';
 import { PlanId } from '@power-budget/core';
 import type { Plan } from '../../../domain/plans/entities.js';
 import type { PlanRepository, PlanActualsReader } from '../../../domain/plans/ports.js';
 import { GetPlanDashboardUseCase } from './GetPlanDashboardUseCase.js';
 
+const PLN: CurrencyCode = 'PLN';
+
 const PLAN_ID = PlanId.of('01900000-0000-7000-8000-000000000001');
-const HH_ID = 'hh-1' as HouseholdId;
-const USER_ID = 'u-1' as UserId;
+const HH_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const USER_ID = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
 
 function makeMockPlan(): Plan {
   return {
@@ -24,20 +20,20 @@ function makeMockPlan(): Plan {
     name: 'My Plan',
     type: 'personal',
     periodKind: 'monthly',
-    period: { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate },
+    period: { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-31') },
     baseCurrency: 'PLN',
     archivedAt: null,
-    createdAt: '2024-01-01T00:00:00Z' as IsoDateTime,
-    updatedAt: '2024-01-01T00:00:00Z' as IsoDateTime,
+    createdAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
+    updatedAt: IsoDateTime.of('2024-01-01T00:00:00Z'),
   };
 }
 
 function makeMockView(): PlanActualsView {
-  const zero = { amountMinor: 0n, currency: 'PLN' as CurrencyCode };
+  const zero = { amountMinor: 0n, currency: PLN };
 
   return {
     planId: PLAN_ID,
-    period: { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate },
+    period: { start: IsoDate.of('2024-01-01'), end: IsoDate.of('2024-01-31') },
     baseCurrency: 'PLN',
     incomeLines: [],
     expenseLines: [],
@@ -48,7 +44,7 @@ function makeMockView(): PlanActualsView {
     unplannedExpenses: zero,
     unplannedIncome: zero,
     net: zero,
-    asOf: '2024-01-15' as IsoDate,
+    asOf: IsoDate.of('2024-01-15'),
   };
 }
 
@@ -118,7 +114,7 @@ describe('GetPlanDashboardUseCase', () => {
       useCase.execute({
         planId: PLAN_ID,
         householdId: HH_ID,
-        userId: 'u-partner' as UserId,
+        userId: UserId.of('01900000-4ba1-7ee8-8b62-c49b7e753e6b'),
         asOf: new Date(),
       }),
     ).rejects.toThrow('PLAN_NOT_FOUND');

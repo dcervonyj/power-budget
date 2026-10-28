@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import type { EncryptedString, UserId } from '@power-budget/core';
+import { EncryptedString, UserId } from '@power-budget/core';
 import type {
   Encryption,
   TotpSecretRepository,
@@ -15,9 +15,9 @@ import {
 } from '../../../domain/auth/errors.js';
 import { TotpAuthenticator } from './TotpAuthenticator.js';
 
-const USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const CIPHERTEXT = 'env-v1:aes-256-gcm:iv:ct:tag' as EncryptedString;
-const PENDING_CIPHERTEXT = 'env-v1:aes-256-gcm:iv2:ct2:tag2' as EncryptedString;
+const USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
+const CIPHERTEXT = EncryptedString.of('env-v1:aes-256-gcm:iv:ct:tag');
+const PENDING_CIPHERTEXT = EncryptedString.of('env-v1:aes-256-gcm:iv2:ct2:tag2');
 const CONTEXT = `totp:${USER_ID}`;
 const NOW = new Date('2026-10-21T10:00:00.000Z');
 

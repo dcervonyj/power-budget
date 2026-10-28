@@ -12,13 +12,13 @@ import {
 } from '../../../../domain/transactions/errors.js';
 import type { Transaction, Transfer } from '../../../../domain/transactions/entities.js';
 import type { LearnMerchantRuleUseCase } from '../../../categorisation/LearnMerchantRuleUseCase.js';
-import type { TransactionId, PlannedItemId, UserId, HouseholdId, PlanId } from '@power-budget/core';
+import { TransactionId, PlannedItemId, UserId, HouseholdId, PlanId } from '@power-budget/core';
 
-const txId = 'tx-1' as unknown as TransactionId;
-const plannedItemId = 'pi-1' as unknown as PlannedItemId;
-const userId = 'u-1' as unknown as UserId;
-const householdId = 'hh-1' as unknown as HouseholdId;
-const planId = 'plan-1' as unknown as PlanId;
+const txId = TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f');
+const plannedItemId = PlannedItemId.of('01900000-fe68-73ab-8c0d-d36470d21b91');
+const userId = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
+const householdId = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
+const planId = PlanId.of('01900000-9df3-7cd5-8459-d2fb1d3f0b7c');
 
 const fakeTx = { id: txId, householdId } as unknown as Transaction;
 const fakeTransfer = { id: 'tr-1' } as unknown as Transfer;

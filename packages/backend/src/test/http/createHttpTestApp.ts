@@ -5,7 +5,7 @@ import { APP_CONFIG, parseAppConfig } from '../../config/AppConfig.js';
 import { FastifyAdapter } from '@nestjs/platform-fastify';
 import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fastify';
 import * as jwt from 'jsonwebtoken';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId } from '@power-budget/core';
 import { SentryExceptionFilter } from '../../infrastructure/sentry/SentryExceptionFilter.js';
 import { validationPipeProvider } from '../../presentation/http/validation.js';
 
@@ -72,8 +72,9 @@ export async function createHttpTestApp(options: HttpTestAppOptions): Promise<Ht
   return new HttpTestApp(app, fastify);
 }
 
-export function bearerFor(userId: UserId, householdId: HouseholdId | null): string {
-  const token = jwt.sign({ sub: userId, householdId }, HTTP_TEST_JWT_SECRET, {
+/** `subject` is a plain string so a spec can sign a token whose subject is no user id. */
+export function bearerFor(subject: string, householdId: HouseholdId | null): string {
+  const token = jwt.sign({ sub: subject, householdId }, HTTP_TEST_JWT_SECRET, {
     algorithm: 'HS256',
     expiresIn: '5m',
   });

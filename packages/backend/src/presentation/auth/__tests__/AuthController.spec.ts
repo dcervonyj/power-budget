@@ -4,7 +4,7 @@ import type { ExecutionContext } from '@nestjs/common';
 import { UnauthorizedException } from '@nestjs/common';
 import { parseAppConfig } from '../../../config/AppConfig.js';
 import * as jwt from 'jsonwebtoken';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import { UserId, HouseholdId } from '@power-budget/core';
 import type {
   HouseholdRepository,
   JwtAccessTokenIssuer,
@@ -16,8 +16,8 @@ import type { RegisterUserUseCase } from '../../../application/auth/use-cases/Re
 import { RefreshTokenUseCase } from '../../../application/auth/use-cases/RefreshTokenUseCase.js';
 import type { Household } from '../../../domain/auth/entities.js';
 
-const TEST_USER_ID = '01900000-0000-7000-8000-000000000001' as UserId;
-const TEST_HOUSEHOLD_ID = '01900000-0000-7000-8000-000000000002' as HouseholdId;
+const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
+const TEST_HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 const TEST_SECRET = 'unit-test-jwt-secret-with-at-least-32-bytes';
 
 function makeHousehold(overrides: Partial<Household> = {}): Household {

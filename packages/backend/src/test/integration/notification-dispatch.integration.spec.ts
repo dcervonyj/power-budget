@@ -5,7 +5,7 @@ import { Queue, Worker, type Job } from 'bullmq';
 import { mock } from 'vitest-mock-extended';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
-import type { HouseholdId, UserId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import { getDb, getPool, resetState, startContainers, stopContainers } from './setup.js';
 import { insertTestHousehold, insertTestUser } from './test-helpers.js';
 import * as schema from '../../../drizzle/schema.js';
@@ -121,7 +121,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
       new SystemClock(),
     );
     await outbox.enqueue({
-      recipientUserId: userId as UserId,
+      recipientUserId: UserId.of(userId),
       kind,
       dedupeKey: `test:${id}`,
       payload,
@@ -169,7 +169,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
       new SystemClock(),
     );
     const notification = {
-      recipientUserId: ann.id as UserId,
+      recipientUserId: UserId.of(ann.id),
       kind: 'over_budget' as const,
       dedupeKey: 'cln-067:same',
       payload: { name: 'Ann' },
@@ -193,7 +193,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
       new SystemClock(),
     );
     const invite = {
-      householdId: household.id as HouseholdId,
+      householdId: HouseholdId.of(household.id),
       email: 'Eve@Example.com',
       locale: 'uk' as const,
       kind: 'household_invite' as const,
@@ -232,7 +232,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
     );
 
     await outbox.enqueue({
-      recipientUserId: ann.id as UserId,
+      recipientUserId: UserId.of(ann.id),
       kind: 'over_budget',
       dedupeKey: 'cln-067:redis-down',
       payload: {},
