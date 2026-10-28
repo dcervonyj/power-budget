@@ -14,9 +14,14 @@ const TTL_MS = 60 * 60 * 1000;
 export function getCachedRates(): FxRateTable | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
+    if (!raw) {
+      return null;
+    }
     const parsed = JSON.parse(raw) as FxRateTable;
-    if (Date.now() - new Date(parsed.fetchedAt).getTime() > TTL_MS) return null;
+    if (Date.now() - new Date(parsed.fetchedAt).getTime() > TTL_MS) {
+      return null;
+    }
+
     return parsed;
   } catch {
     return null;
@@ -25,11 +30,14 @@ export function getCachedRates(): FxRateTable | null {
 
 export async function fetchAndCacheRates(apiClient: ApiClient): Promise<FxRateTable | null> {
   const cached = getCachedRates();
-  if (cached) return cached;
+  if (cached) {
+    return cached;
+  }
   try {
     const res = await apiClient.get<FxRatesResponseDto>('/fx-rates');
     const table = toRateTable(res.data, new Date().toISOString());
     localStorage.setItem(CACHE_KEY, JSON.stringify(table));
+
     return table;
   } catch {
     return null;

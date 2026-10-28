@@ -31,7 +31,9 @@ export function AuditLogDrawer({
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || loaded) return;
+    if (!isOpen || loaded) {
+      return;
+    }
     setLoading(true);
     const fetchEvents = async (): Promise<void> => {
       try {

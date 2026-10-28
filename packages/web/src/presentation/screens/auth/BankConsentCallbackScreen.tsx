@@ -12,11 +12,14 @@ export function BankConsentCallbackScreen(): React.JSX.Element {
   const errorParam = searchParams.get('error');
 
   useEffect(() => {
-    if (didRun.current) return;
+    if (didRun.current) {
+      return;
+    }
     didRun.current = true;
 
     if (errorParam !== null || !ref) {
       navigate('/bank-connections?error=consent_failed', { replace: true });
+
       return;
     }
 

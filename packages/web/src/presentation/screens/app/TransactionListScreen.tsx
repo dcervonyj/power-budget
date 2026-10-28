@@ -158,7 +158,9 @@ export const TransactionListScreen = observer(function TransactionListScreen({
         const res = await apiClient.get<TransactionPageDto>(
           `/transactions?${buildQuery(filtersRef.current)}`,
         );
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
         const page = res.data;
         setTransactions(toTransactions(page));
         setNextCursor(page.nextCursor);
@@ -172,7 +174,9 @@ export const TransactionListScreen = observer(function TransactionListScreen({
           );
         }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     })();
 
@@ -183,7 +187,9 @@ export const TransactionListScreen = observer(function TransactionListScreen({
   }, [filtersKey, reloadKey, intl]);
 
   const loadMore = useCallback(async (): Promise<void> => {
-    if (loadingMore || !nextCursor) return;
+    if (loadingMore || !nextCursor) {
+      return;
+    }
     setLoadingMore(true);
     const generation = listGeneration.current;
     try {
@@ -206,7 +212,9 @@ export const TransactionListScreen = observer(function TransactionListScreen({
   // IntersectionObserver for infinite scroll
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !nextCursor || loadingMore) return;
+    if (!sentinel || !nextCursor || loadingMore) {
+      return;
+    }
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -217,6 +225,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
       { threshold: 0.1 },
     );
     observer.observe(sentinel);
+
     return () => {
       observer.disconnect();
     };
@@ -228,14 +237,30 @@ export const TransactionListScreen = observer(function TransactionListScreen({
 
   const handleFiltersChange = (newFilters: TransactionFilters): void => {
     const params: Record<string, string> = {};
-    if (newFilters.from) params['from'] = newFilters.from;
-    if (newFilters.to) params['to'] = newFilters.to;
-    if (newFilters.category) params['category'] = newFilters.category;
-    if (newFilters.status) params['status'] = newFilters.status;
-    if (newFilters.booking) params['booking'] = newFilters.booking;
-    if (newFilters.currency) params['currency'] = newFilters.currency;
-    if (newFilters.source) params['source'] = newFilters.source;
-    if (newFilters.q) params['q'] = newFilters.q;
+    if (newFilters.from) {
+      params['from'] = newFilters.from;
+    }
+    if (newFilters.to) {
+      params['to'] = newFilters.to;
+    }
+    if (newFilters.category) {
+      params['category'] = newFilters.category;
+    }
+    if (newFilters.status) {
+      params['status'] = newFilters.status;
+    }
+    if (newFilters.booking) {
+      params['booking'] = newFilters.booking;
+    }
+    if (newFilters.currency) {
+      params['currency'] = newFilters.currency;
+    }
+    if (newFilters.source) {
+      params['source'] = newFilters.source;
+    }
+    if (newFilters.q) {
+      params['q'] = newFilters.q;
+    }
     setSearchParams(params);
   };
 
