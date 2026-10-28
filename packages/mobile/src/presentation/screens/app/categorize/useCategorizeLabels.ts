@@ -108,6 +108,13 @@ export function useCategorizeLabels(): CategorizeLabels {
       if (impact.kind === 'income') {
         return text('categorize.preview.income', 'Counts as income in {name}.', { name });
       }
+      if (impact.kind === 'outside') {
+        return text(
+          'categorize.preview.outside',
+          'This payment is dated outside the plan period, so it does not change {name}.',
+          { name },
+        );
+      }
       if (impact.kind === 'foreign') {
         return text(
           'categorize.preview.foreign',

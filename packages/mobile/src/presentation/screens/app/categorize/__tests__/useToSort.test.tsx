@@ -106,11 +106,61 @@ describe('useToSort', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     await act(async () => result.current.open('b'));
-    expect(result.current.sheet?.startIndex).toBe(1);
     expect(result.current.sheet?.isOpen).toBe(true);
 
     await act(async () => result.current.open());
+    expect(ids(result.current.sheet?.queue ?? [])).toEqual(['a', 'b']);
+  });
+
+  it('starts the pass at the tapped payment and wraps to the ones before it', async () => {
+    page.mockResolvedValueOnce(onePage(item('a', false), item('b', false), item('c', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(async () => result.current.open('b'));
+
+    expect(ids(result.current.sheet?.queue ?? [])).toEqual(['b', 'c', 'a']);
     expect(result.current.sheet?.startIndex).toBe(0);
+  });
+
+  it('reloads the categories together with the list on focus, without a loading flash', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    const before = plans.mock.calls.length;
+
+    await act(async () => result.current.reload());
+
+    expect(plans.mock.calls.length).toBe(before + 1);
+    expect(result.current.choicesStatus).toBe('ready');
+  });
+
+  it('keeps the balances shown when a focus reload of the categories fails', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+
+    plans.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => result.current.reload());
+
+    expect(result.current.choicesStatus).toBe('ready');
+  });
+
+  it('ignores a category load that finishes after a newer one', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+
+    const stale = deferred<never[]>();
+    plans.mockReturnValueOnce(stale.promise);
+    plans.mockResolvedValueOnce([]);
+    await act(async () => {
+      result.current.reload();
+      result.current.reload();
+    });
+    await act(async () => stale.resolve([]));
+
+    expect(result.current.choicesStatus).toBe('ready');
   });
 
   it('leaves out of the pass a payment whose write is still in flight', async () => {

@@ -14,7 +14,7 @@ export interface SheetState {
   readonly key: number;
   readonly isOpen: boolean;
   readonly startIndex: number;
-  /** The payments of the pass, fixed when the sheet opened. */
+  /** The payments of the pass, fixed when the sheet opened; it begins at the tapped payment and wraps. */
   readonly queue: readonly TransactionListRow[];
 }
 
@@ -88,10 +88,12 @@ export function useToSort(): ToSortState {
     }
   }, []);
 
-  const loadCategories = useCallback(async (): Promise<void> => {
+  const loadCategories = useCallback(async (quiet: boolean): Promise<void> => {
     choicesRequest.current += 1;
     const request = choicesRequest.current;
-    setChoicesStatus('loading');
+    if (!quiet) {
+      setChoicesStatus('loading');
+    }
     try {
       const loaded = await loadChoices();
       if (request === choicesRequest.current) {
@@ -100,15 +102,20 @@ export function useToSort(): ToSortState {
       }
     } catch {
       if (request === choicesRequest.current) {
-        setChoicesStatus('error');
+        // A quiet refresh that fails keeps the balances already shown.
+        setChoicesStatus((previous) => (quiet && previous === 'ready' ? previous : 'error'));
       }
     }
   }, []);
 
   useEffect(() => {
     void loadList(false);
-    void loadCategories();
+    void loadCategories(false);
   }, [loadList, loadCategories]);
+
+  const retryChoices = useCallback((): void => {
+    void loadCategories(false);
+  }, [loadCategories]);
 
   const nameOfItem = useMemo(
     () => new Map(choices.map((choice) => [choice.plannedItemId, choice.name])),
@@ -128,9 +135,13 @@ export function useToSort(): ToSortState {
       if (queue.length === 0) {
         return;
       }
-      const found = queue.findIndex((row) => row.data.id === transactionId);
       opened.current += 1;
-      setSheet({ key: opened.current, isOpen: true, startIndex: Math.max(found, 0), queue });
+      setSheet({
+        key: opened.current,
+        isOpen: true,
+        startIndex: 0,
+        queue: startingAt(queue, transactionId),
+      });
     },
     [rows],
   );
@@ -138,7 +149,7 @@ export function useToSort(): ToSortState {
   const close = useCallback((): void => {
     setSheet((previous) => (previous === undefined ? previous : { ...previous, isOpen: false }));
     void loadList(true);
-    void loadCategories();
+    void loadCategories(true);
   }, [loadList, loadCategories]);
 
   const onConfirmed = useCallback((transactionId: string): void => {
@@ -158,7 +169,8 @@ export function useToSort(): ToSortState {
 
   const reload = useCallback((): void => {
     void loadList(true);
-  }, [loadList]);
+    void loadCategories(true);
+  }, [loadList, loadCategories]);
 
   const retry = useCallback((): void => {
     if (status === 'ready') {
@@ -182,13 +194,26 @@ export function useToSort(): ToSortState {
     retry,
     refresh,
     reload,
-    retryChoices: loadCategories,
+    retryChoices,
     open,
     close,
     write: writeMapping,
     onConfirmed,
     onUndone,
   };
+}
+
+/** The pass starts at the tapped payment and wraps around, so every unsorted one is visited. */
+function startingAt(
+  queue: readonly TransactionListRow[],
+  transactionId: string | undefined,
+): readonly TransactionListRow[] {
+  const found = queue.findIndex((row) => row.data.id === transactionId);
+  if (found <= 0) {
+    return queue;
+  }
+
+  return [...queue.slice(found), ...queue.slice(0, found)];
 }
 
 function fetchPage(cursor?: string): ReturnType<typeof transactionsGateway.page> {

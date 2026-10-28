@@ -14,6 +14,9 @@ export interface CategoryChoice {
   /** What is already spent (or received) in it, from the plan dashboard. */
   readonly spentMinor: bigint;
   readonly currency: string;
+  /** The plan period, inclusive ISO dates: the dashboard counts only payments inside it. */
+  readonly periodStart: string;
+  readonly periodEnd: string;
 }
 
 /** The payment the sheet sorts. `amountMinor` is signed: negative is money out. */
@@ -21,15 +24,18 @@ export interface Payment {
   readonly id: string;
   readonly amountMinor: bigint;
   readonly currency: string;
+  /** The booking day, ISO date. */
+  readonly day: string;
   readonly suggestedPlannedItemId: string | null;
 }
 
 /**
  * `drain`: an expense in the plan's currency, so the rod can show what is left after it.
  * `income`: the payment adds to an income line, no rod. `foreign`: another currency than the plan's,
- * so no number is guessed. `noPlan`: the item has no planned amount.
+ * so no number is guessed. `noPlan`: the item has no planned amount. `outside`: the payment is dated
+ * outside the plan period, where the dashboard does not count it either.
  */
-export type ImpactKind = 'drain' | 'income' | 'foreign' | 'noPlan';
+export type ImpactKind = 'drain' | 'income' | 'foreign' | 'noPlan' | 'outside';
 export type ImpactPhase = 'under' | 'crossing' | 'alreadyOver';
 
 export interface Impact {
@@ -59,6 +65,8 @@ export function choicesOf(
     plannedMinor: parseMinorUnits(line.planned.amountMinor),
     spentMinor: parseMinorUnits(line.actual.amountMinor),
     currency: dashboard.baseCurrency,
+    periodStart: dashboard.period.start,
+    periodEnd: dashboard.period.end,
   }));
 }
 
@@ -99,6 +107,9 @@ export function impactOf(choice: CategoryChoice, payment: Payment): Impact {
   const planned = money(choice.plannedMinor, choice.currency);
   const before = money(choice.plannedMinor - choice.spentMinor, choice.currency);
   const none = { planned, before, after: before, fraction: 0, state: 'empty' as const };
+  if (!inPeriod(choice, payment)) {
+    return { ...none, kind: 'outside', phase: 'under' };
+  }
   if (choice.direction === 'income') {
     return { ...none, kind: 'income', phase: 'under' };
   }
@@ -141,7 +152,15 @@ function stateOf(after: bigint): Impact['state'] {
 function countsIn(choice: CategoryChoice, payment: Payment): boolean {
   const direction: Direction = payment.amountMinor < 0n ? 'expense' : 'income';
 
-  return direction === choice.direction && payment.currency === choice.currency;
+  return (
+    direction === choice.direction &&
+    payment.currency === choice.currency &&
+    inPeriod(choice, payment)
+  );
+}
+
+function inPeriod(choice: CategoryChoice, payment: Payment): boolean {
+  return choice.periodStart <= payment.day && payment.day <= choice.periodEnd;
 }
 
 function money(amountMinor: bigint, currency: string): MinorUnitAmount {

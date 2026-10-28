@@ -21,6 +21,7 @@
   "categorize.options.group": "Category",
   "categorize.preview.income": "Counts as income in {name}.",
   "categorize.preview.foreign": "This payment is not in {currency}, so its effect on {name} is not shown.",
+  "categorize.preview.outside": "This payment is dated outside the plan period, so it does not change {name}.",
   "categorize.preview.noPlan": "{name} has no planned amount.",
   "categorize.preview.alreadyOver": "{name} is already over by {before}; this takes it to {after} over.",
   "categorize.preview.crossing": "This drains {name} from {before} left to {after} over.",

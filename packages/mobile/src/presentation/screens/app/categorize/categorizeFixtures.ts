@@ -45,7 +45,16 @@ function choice(
   spentMinor: bigint,
   direction: CategoryChoice['direction'] = 'expense',
 ): CategoryChoice {
-  return { plannedItemId, name, direction, plannedMinor, spentMinor, currency: 'PLN' };
+  return {
+    plannedItemId,
+    name,
+    direction,
+    plannedMinor,
+    spentMinor,
+    currency: 'PLN',
+    periodStart: '2026-10-01',
+    periodEnd: '2026-10-31',
+  };
 }
 
 export const CHOICES: readonly CategoryChoice[] = [
@@ -61,6 +70,7 @@ export function paymentOf(source: TransactionListRow): Payment {
     id: source.data.id,
     amountMinor: source.data.amountMinor,
     currency: source.data.currency,
+    day: source.day,
     suggestedPlannedItemId: source.suggestedPlannedItemId,
   };
 }
