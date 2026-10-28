@@ -519,4 +519,24 @@ describe('household invite endpoints (HTTP)', () => {
     expect(res.statusCode).toBe(400);
     expect(mocks.revoke.execute).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['POST', '/resend'],
+    ['DELETE', ''],
+  ] as const)(
+    '%s /households/invites/:id%s answers 404 for a well-formed non-v7 uuid',
+    async (method, suffix) => {
+      const V4_ID = '3b241101-e2bb-4255-8caf-4136c566a962';
+      mocks.resend.execute.mockRejectedValue(new InviteNotFoundError());
+      mocks.revoke.execute.mockRejectedValue(new InviteNotFoundError());
+
+      const res = await app.inject({
+        method,
+        url: `/households/invites/${V4_ID}${suffix}`,
+        headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+      });
+
+      expect(res.statusCode).toBe(404);
+    },
+  );
 });
