@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../../domain/display.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import type { UpdateUserProfileDto, UserProfileDto } from '@power-budget/shared-app/contract';
@@ -144,7 +145,7 @@ export function useSettings(): SettingsViewProps {
 
   return {
     loadState,
-    email: profile?.email ?? '',
+    email: profile?.email ?? NO_LABEL,
     nameDraft,
     nameSave,
     preference,

@@ -1,3 +1,4 @@
+import { NO_SELECTION } from '../../../../domain/display.js';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useIntl } from 'react-intl';
@@ -206,7 +207,7 @@ function PreferencesSection(props: SettingsViewProps): React.JSX.Element {
       </Text>
       <FilterChips
         label={currency}
-        value={props.baseCurrency ?? ''}
+        value={props.baseCurrency ?? NO_SELECTION}
         onChange={(value) => {
           const chosen = SETTINGS_CURRENCIES.find((code) => code === value);
           if (chosen !== undefined) {

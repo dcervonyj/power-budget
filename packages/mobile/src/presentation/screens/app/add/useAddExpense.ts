@@ -1,3 +1,4 @@
+import { NO_SELECTION } from '../../../../domain/display.js';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useIntl } from 'react-intl';
@@ -77,22 +78,22 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   });
 
   /** Reopening Add expense after leaving with a half-saved expense shows it again, not a blank form. */
-  const restorePending = useCallback(
-    () => {
-      const pending = pendingCategory.current;
-      if (pending === null || !pending.data.categories.some((option) => option.id === pending.categoryId)) {
-        return;
-      }
-      setLoad({ kind: 'ready', data: pending.data });
-      setTypedRaw(pending.typed);
-      setCategoryIdRaw(pending.categoryId);
-      setAccountIdRaw(pending.accountId);
-      setSavedId(pending.transactionId);
-      setUnsorted(true);
-      changeStatus('saved');
-    },
-    [changeStatus],
-  );
+  const restorePending = useCallback(() => {
+    const pending = pendingCategory.current;
+    if (
+      pending === null ||
+      !pending.data.categories.some((option) => option.id === pending.categoryId)
+    ) {
+      return;
+    }
+    setLoad({ kind: 'ready', data: pending.data });
+    setTypedRaw(pending.typed);
+    setCategoryIdRaw(pending.categoryId);
+    setAccountIdRaw(pending.accountId);
+    setSavedId(pending.transactionId);
+    setUnsorted(true);
+    changeStatus('saved');
+  }, [changeStatus]);
 
   useEffect(() => {
     let active = true;
@@ -105,7 +106,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         setLoad(next);
         if (next.kind === 'ready') {
           setCategoryIdRaw(next.data.categories[0]?.id ?? UNPLANNED_ID);
-          setAccountIdRaw(next.data.accounts[0]?.id ?? '');
+          setAccountIdRaw(next.data.accounts[0]?.id ?? NO_SELECTION);
           restorePending();
         }
       },
@@ -131,7 +132,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       setCategoryIdRaw(categories[0]?.id ?? UNPLANNED_ID);
     }
     if (!accounts.some((option) => option.id === accountId)) {
-      setAccountIdRaw(accounts[0]?.id ?? '');
+      setAccountIdRaw(accounts[0]?.id ?? NO_SELECTION);
     }
   }, [accountId, categoryId, load]);
 

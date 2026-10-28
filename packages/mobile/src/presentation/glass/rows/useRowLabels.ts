@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../domain/display.js';
 import { useIntl } from 'react-intl';
 import type { MinorUnitAmount } from '@power-budget/core';
 import { formatLightAmount } from '../light/formatLightAmount.js';
@@ -49,7 +50,7 @@ export function useRowLabels(): RowLabels {
         title,
         amount: formatLightAmount(amount, intl.locale),
         subtitle,
-        suggestion: suggestion ?? '',
+        suggestion: suggestion ?? NO_LABEL,
       };
       if (kind === 'live') {
         return intl.formatMessage(
