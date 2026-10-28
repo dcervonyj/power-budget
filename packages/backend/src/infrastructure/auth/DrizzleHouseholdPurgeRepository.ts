@@ -6,6 +6,39 @@ import type { HouseholdPurgeRepository, HouseholdPurgeResult } from '../../domai
 import { DRIZZLE_DB } from '../database/database.module.js';
 import * as schema from '../../../drizzle/schema.js';
 
+/**
+ * Coverage of every household-scoped table (CLN-076). A table is household-scoped when it has a
+ * FK to households, or only reaches a household through another scoped table (sync_runs via
+ * bank_connections). The guard test (DrizzleHouseholdPurgeRepository.spec.ts) fails when schema.ts
+ * gains such a table that is in neither list. Add new tables here AND to deleteHouseholdData.
+ */
+export const HOUSEHOLD_PURGED_TABLES: readonly string[] = [
+  'live_signals',
+  'bank_fetch_ledger',
+  'sync_runs',
+  'transaction_mappings',
+  'transfers',
+  'transactions',
+  'bank_accounts',
+  'bank_connections',
+  'planned_item_versions',
+  'planned_items',
+  'leftover_snapshots',
+  'plans',
+  'category_privacy',
+  'categories',
+  'household_exports',
+  'notifications_outbox',
+  'household_invites',
+  'household_users',
+  'households',
+];
+
+export const HOUSEHOLD_PURGE_EXEMPT_TABLES: Readonly<Record<string, string>> = {
+  audit_log:
+    'append-only; kept on purpose, FKs are ON DELETE SET NULL (migration 0015_cln-022) which anonymises the rows',
+};
+
 type Database = NodePgDatabase<typeof schema>;
 type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0];
 
@@ -95,6 +128,10 @@ export class DrizzleHouseholdPurgeRepository implements HouseholdPurgeRepository
       .where(eq(schema.transactions.householdId, householdId));
 
     await tx.delete(schema.liveSignals).where(eq(schema.liveSignals.householdId, householdId));
+    // FKs to sync_runs, bank_accounts and bank_connections: must go before all three.
+    await tx
+      .delete(schema.bankFetchLedger)
+      .where(eq(schema.bankFetchLedger.householdId, householdId));
     await tx.delete(schema.syncRuns).where(inArray(schema.syncRuns.connectionId, connectionIds));
     await tx
       .delete(schema.transactionMappings)
