@@ -23,8 +23,8 @@ import { DashboardStore } from '../dashboard/DashboardStore.js';
 import { PlanDashboardStore } from '../dashboard/PlanDashboardStore.js';
 import { SettingsStore } from '../settings/SettingsStore.js';
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
-// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { LocalStorageKeyValueStore } from '../../infrastructure/storage/LocalStorageKeyValueStore.js';
+// eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { LocalStorageSessionData } from '../../infrastructure/session/LocalStorageSessionData.js';
 import { ClientSession } from './ClientSession.js';
 import { SignOut } from './SignOut.js';
