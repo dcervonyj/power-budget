@@ -28,6 +28,9 @@ export interface TransactionDetailViewProps {
   /** The picker pool is loaded apart from the transaction; a failure must not look like "no categories". */
   readonly optionsStatus: 'loading' | 'ready' | 'error';
   readonly onRetryOptions: () => void;
+  /** The mapped item's category could not be looked up: say so instead of showing a blank. */
+  readonly categoryFailed?: boolean;
+  readonly onRetryCategory?: () => void;
   readonly pickerOpen: boolean;
   readonly notes: string;
   readonly saving: boolean;
@@ -119,6 +122,9 @@ export function TransactionDetailView(props: TransactionDetailViewProps): React.
 
   return (
     <ScrollView testID="tx-detail" contentContainerStyle={styles.page}>
+      {props.categoryFailed === true ? (
+        <ErrorBanner message={labels.categoryError()} onRetry={props.onRetryCategory} />
+      ) : null}
       <SummaryPanel {...props} transaction={transaction} />
       <CategoryPanel {...props} transaction={transaction} />
       <TransferPanel {...props} transaction={transaction} />

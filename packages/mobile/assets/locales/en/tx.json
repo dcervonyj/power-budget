@@ -39,6 +39,7 @@
   "tx.detail.sourceManual": "Added by hand",
   "tx.list.moreError": "Could not load more transactions.",
   "tx.detail.pickerError": "Could not load the categories.",
+  "tx.detail.categoryError": "Could not load the category of this transaction.",
   "tx.list.reloadError": "Could not refresh the transactions. What you see may be out of date.",
   "tx.list.monthError": "Could not load the month summary.",
   "tx.list.categoriesError": "Could not load the categories, so suggestions cannot be confirmed.",

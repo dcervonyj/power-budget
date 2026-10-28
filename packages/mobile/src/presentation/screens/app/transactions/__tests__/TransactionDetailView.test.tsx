@@ -79,6 +79,16 @@ describe('TransactionDetailView', () => {
     expect(onRetryOptions).toHaveBeenCalledTimes(1);
   });
 
+  it('shows an error with a retry when the category of the mapping could not be loaded', async () => {
+    const onRetryCategory = jest.fn();
+    await renderDetail({ categoryFailed: true, onRetryCategory });
+
+    expect(screen.getByText('Could not load the category of this transaction.')).toBeTruthy();
+    await userEvent.press(screen.getByRole('button', { name: 'Retry' }));
+
+    expect(onRetryCategory).toHaveBeenCalledTimes(1);
+  });
+
   it('does not claim there are no categories while they load', async () => {
     await renderDetail({ pickerOpen: true, options: [], optionsStatus: 'loading' });
 

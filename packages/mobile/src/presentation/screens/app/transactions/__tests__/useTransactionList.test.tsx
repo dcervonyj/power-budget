@@ -131,7 +131,7 @@ describe('useTransactionList reloads', () => {
 });
 
 describe('useTransactionList pending changes and stale pages', () => {
-  it('keeps a confirmed row confirmed when a reload finishes before its request', async () => {
+  it('keeps a confirmed row confirmed when a reload runs while its request is pending', async () => {
     page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
     const { result } = await renderHook(() => useTransactionList());
     await waitFor(() => expect(result.current.status).toBe('ready'));
@@ -143,17 +143,17 @@ describe('useTransactionList pending changes and stale pages', () => {
 
     page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
     await act(async () => result.current.reload());
-    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    await act(async () => saving.resolve(undefined));
+    await waitFor(() => expect(page).toHaveBeenCalledTimes(2));
     expect(result.current.appliedIds.has('a')).toBe(true);
 
     page.mockResolvedValueOnce(onePage(item('a', true)));
-    await act(async () => saving.resolve(undefined));
     await act(async () => result.current.reload());
     await waitFor(() => expect(result.current.counts.sorted).toBe(1));
     expect(result.current.appliedIds.has('a')).toBe(false);
   });
 
-  it('keeps the confirmed row with Undo when a reload already shows the mapping before the write answers', async () => {
+  it('keeps the confirmed row with Undo when a reload already shows the mapping', async () => {
     page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
     const { result } = await renderHook(() => useTransactionList());
     await waitFor(() => expect(result.current.status).toBe('ready'));
@@ -164,12 +164,47 @@ describe('useTransactionList pending changes and stale pages', () => {
 
     page.mockResolvedValueOnce(onePage(item('a', true)));
     await act(async () => result.current.reload());
-    await waitFor(() => expect(result.current.refreshing).toBe(false));
+    await act(async () => saving.resolve(undefined));
+    await waitFor(() => expect(page).toHaveBeenCalledTimes(2));
 
     const row = result.current.groups[0]?.rows[0];
     expect(row?.suggestedPlannedItemId).toBe('item-1');
     expect(result.current.appliedIds.has('a')).toBe(true);
     expect(result.current.counts.sorted).toBe(1);
+  });
+
+  it('waits for a pending write before reloading, so a reload cannot read the old state', async () => {
+    page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const saving = deferred<undefined>();
+    setMapping.mockReturnValueOnce(saving.promise as never);
+    await act(async () => result.current.confirm('a'));
+    page.mockResolvedValueOnce(onePage(item('a', true)));
+    await act(async () => result.current.reload());
+
+    expect(page).toHaveBeenCalledTimes(1);
+    await act(async () => saving.resolve(undefined));
+    await waitFor(() => expect(page).toHaveBeenCalledTimes(2));
+  });
+
+  it('re-reads the row from the server when Confirm and Undo both fail', async () => {
+    page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    setMapping.mockRejectedValue(new Error('offline'));
+    page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
+    await act(async () => result.current.confirm('a'));
+    await waitFor(() => expect(page).toHaveBeenCalledTimes(2));
+    page.mockResolvedValueOnce(onePage(item('a', false, 'item-1')));
+    await act(async () => result.current.undo('a'));
+    await waitFor(() => expect(page).toHaveBeenCalledTimes(3));
+
+    // The server never saw either write: the row is still to sort.
+    expect(result.current.counts).toEqual({ all: 1, toSort: 1, sorted: 0, transfers: 0 });
+    expect(result.current.appliedIds.has('a')).toBe(false);
   });
 
   it('drops a Load more answer that arrives after a reload', async () => {
