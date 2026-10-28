@@ -55,6 +55,11 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const [categoryId, setCategoryIdRaw] = useState('');
   const [accountId, setAccountIdRaw] = useState('');
   const [status, setStatus] = useState<AddExpenseStatus>('editing');
+  const statusRef = useRef<AddExpenseStatus>('editing');
+  const changeStatus = useCallback((next: AddExpenseStatus) => {
+    statusRef.current = next;
+    setStatus(next);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -130,7 +135,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     if (category === undefined || account === undefined) {
       return;
     }
-    setStatus('saving');
+    changeStatus('saving');
     setError(null);
     void persist(sources.api, created, {
       accountId: account.id,
@@ -143,7 +148,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       (transactionId) => {
         created.current = null;
         setSavedId(transactionId);
-        setStatus('saved');
+        changeStatus('saved');
       },
       () => {
         setError(
@@ -152,20 +157,48 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
             defaultMessage: 'Could not save the expense. Try again.',
           }),
         );
-        setStatus(created.current === null ? 'editing' : 'retry');
+        changeStatus(created.current === null ? 'editing' : 'retry');
       },
     );
   }, [accountId, categoryId, intl, load, sources.api, status, typed]);
 
+  /**
+   * Fetches fresh data. A background refresh (`force` false) only lands while editing: once an
+   * expense is saved the Saved view applies it on top of the totals it was saved against, so
+   * fresher totals that already contain it would count it twice.
+   */
+  const refresh = useCallback(
+    (force: boolean): Promise<boolean> => {
+      return loadData(sources, unplannedName).then(
+        (next) => {
+          if (next.kind !== 'ready') {
+            return false;
+          }
+          if (force || statusRef.current === 'editing') {
+            setLoad(next);
+          }
+
+          return true;
+        },
+        () => false,
+      );
+    },
+    [sources, unplannedName],
+  );
+
   const undo = useCallback(() => {
-    if (savedId === null) {
+    if (savedId === null || status !== 'saved') {
       return;
     }
     setError(null);
+    changeStatus('undoing');
     void sources.api.undo(savedId).then(
       () => {
         setSavedId(null);
-        setStatus('editing');
+        // Fresh totals for the next expense; if the read fails the totals from before the save stay.
+        void refresh(true).then(() => {
+          changeStatus('editing');
+        });
       },
       () => {
         setError(
@@ -174,26 +207,13 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
             defaultMessage: 'Could not undo the expense. Try again.',
           }),
         );
+        changeStatus('saved');
       },
     );
-  }, [intl, savedId, sources.api]);
-
-  const refresh = useCallback((): Promise<boolean> => {
-    return loadData(sources, unplannedName).then(
-      (next) => {
-        if (next.kind !== 'ready') {
-          return false;
-        }
-        setLoad(next);
-
-        return true;
-      },
-      () => false,
-    );
-  }, [sources, unplannedName]);
+  }, [changeStatus, intl, refresh, savedId, sources.api, status]);
 
   const refreshOrWarn = useCallback(() => {
-    void refresh().then((ok) => {
+    void refresh(false).then((ok) => {
       if (!ok) {
         setError(refreshError(intl));
       }
@@ -205,19 +225,19 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       return;
     }
     setError(null);
-    setStatus('refreshing');
-    void refresh().then((ok) => {
+    changeStatus('refreshing');
+    void refresh(true).then((ok) => {
       if (!ok) {
         setError(refreshError(intl));
-        setStatus('saved');
+        changeStatus('saved');
 
         return;
       }
       setTypedRaw('');
       setSavedId(null);
-      setStatus('editing');
+      changeStatus('editing');
     });
-  }, [intl, refresh, status]);
+  }, [changeStatus, intl, refresh, status]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
