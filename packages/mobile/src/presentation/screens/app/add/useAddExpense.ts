@@ -70,6 +70,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const [today, setToday] = useState(() => toLocalIsoDate(new Date()));
   const [unsorted, setUnsorted] = useState(false);
   const requestId = useRef(0);
+  const resetAmountOnRefresh = useRef(true);
   const unplannedName = intl.formatMessage({
     id: 'add.category.unplannedName',
     defaultMessage: 'Unplanned',
@@ -77,11 +78,12 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
 
   /** Reopening Add expense after leaving with a half-saved expense shows it again, not a blank form. */
   const restorePending = useCallback(
-    (data: AddExpenseData) => {
+    () => {
       const pending = pendingCategory.current;
-      if (pending === null || !data.categories.some((option) => option.id === pending.categoryId)) {
+      if (pending === null || !pending.data.categories.some((option) => option.id === pending.categoryId)) {
         return;
       }
+      setLoad({ kind: 'ready', data: pending.data });
       setTypedRaw(pending.typed);
       setCategoryIdRaw(pending.categoryId);
       setAccountIdRaw(pending.accountId);
@@ -104,7 +106,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         if (next.kind === 'ready') {
           setCategoryIdRaw(next.data.categories[0]?.id ?? UNPLANNED_ID);
           setAccountIdRaw(next.data.accounts[0]?.id ?? '');
-          restorePending(next.data);
+          restorePending();
         }
       },
       () => {
@@ -118,6 +120,20 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       active = false;
     };
   }, [sources, unplannedName, attempt, restorePending]);
+
+  /** A refresh can drop the selected category or account; fall back to a visible, valid choice. */
+  useEffect(() => {
+    if (load.kind !== 'ready') {
+      return;
+    }
+    const { categories, accounts } = load.data;
+    if (!categories.some((option) => option.id === categoryId)) {
+      setCategoryIdRaw(categories[0]?.id ?? UNPLANNED_ID);
+    }
+    if (!accounts.some((option) => option.id === accountId)) {
+      setAccountIdRaw(accounts[0]?.id ?? '');
+    }
+  }, [accountId, categoryId, load]);
 
   const reload = useCallback(() => {
     setAttempt((current) => current + 1);
@@ -171,7 +187,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       (result) => {
         pendingCategory.current = result.mapped
           ? null
-          : { transactionId: result.id, typed, categoryId, accountId };
+          : { transactionId: result.id, typed, categoryId, accountId, data: load.data };
         setSavedId(result.id);
         setUnsorted(!result.mapped);
         changeStatus('saved');
@@ -221,6 +237,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const refreshThenEdit = useCallback(
     (resetAmount: boolean) => {
       setError(null);
+      resetAmountOnRefresh.current = resetAmount;
       changeStatus('refreshing');
       const ticket = requestId.current + 1;
       void refresh(true).then((ok) => {
@@ -320,7 +337,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     if (status !== 'stale') {
       return;
     }
-    refreshThenEdit(true);
+    refreshThenEdit(resetAmountOnRefresh.current);
   }, [refreshThenEdit, status]);
 
   useEffect(() => {

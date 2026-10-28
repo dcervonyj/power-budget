@@ -1,9 +1,13 @@
+import type { AddExpenseData } from './addExpenseData.js';
+
 /** An expense that was created but whose category could not be applied yet. */
 export interface PendingCategory {
   readonly transactionId: string;
   readonly typed: string;
   readonly categoryId: string;
   readonly accountId: string;
+  /** The totals the expense was saved against; fresher ones already contain it. */
+  readonly data: AddExpenseData;
 }
 
 /**
