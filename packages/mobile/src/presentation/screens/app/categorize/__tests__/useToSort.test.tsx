@@ -94,7 +94,7 @@ beforeEach(() => {
   setMapping.mockReset();
   plans.mockReset();
   plans.mockResolvedValue([]);
-  jest.mocked(categoriesApi.list).mockResolvedValue([]);
+  jest.mocked(categoriesApi.list).mockResolvedValue([{ id: 'cat', name: 'Cat' } as never]);
 });
 
 describe('useToSort', () => {

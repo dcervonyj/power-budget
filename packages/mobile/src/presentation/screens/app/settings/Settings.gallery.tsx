@@ -5,11 +5,10 @@ import type { SettingsViewProps } from './settingsTypes.js';
 
 const READY: SettingsViewProps = {
   loadState: 'ready',
-  email: 'anna@example.com',
+  profile: { email: 'anna@example.com', locale: 'pl' },
   nameDraft: 'Anna Kowalska',
   nameSave: 'idle',
   preference: 'system',
-  locale: 'pl',
   baseCurrency: 'PLN',
   preferencesError: false,
   biometricAvailable: true,
@@ -55,7 +54,7 @@ export function SettingsNightSaved(): React.JSX.Element {
 
 /** Profile failed to load: the device-local Appearance and sign out still work. */
 export function SettingsLoadError(): React.JSX.Element {
-  return <Stage props={{ ...READY, loadState: 'error', preference: 'light' }} />;
+  return <Stage props={{ ...READY, loadState: 'error', profile: null, preference: 'light' }} />;
 }
 
 function noop(): void {

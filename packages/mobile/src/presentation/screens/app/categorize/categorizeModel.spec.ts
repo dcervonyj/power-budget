@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { balancesFor, choicesFor, impactOf } from './categorizeModel.js';
+import { UnknownCategoryError } from '../../../../domain/categoryName.js';
+import { balancesFor, choicesFor, choicesOf, impactOf } from './categorizeModel.js';
 import type { CategoryChoice, Ledger, LedgerEntry, Payment } from './categorizeModel.js';
 
 function choice(overrides: Partial<CategoryChoice> = {}): CategoryChoice {
@@ -168,5 +169,24 @@ describe('balancesFor', () => {
     const own = entry({ payment: payment(), covered });
 
     expect(spent(new Map([['orlen', own]]))).toBe(expected);
+  });
+});
+
+describe('choicesOf', () => {
+  it('rejects a planned line whose category the list lacks', () => {
+    const line = {
+      plannedItemId: 'i1',
+      categoryId: 'c-gone',
+      planned: { amountMinor: '100', currency: 'PLN' },
+      actual: { amountMinor: '0', currency: 'PLN' },
+    };
+    const dashboard = {
+      expenseLines: [line],
+      incomeLines: [],
+      baseCurrency: 'PLN',
+      period: { start: '2026-10-01', end: '2026-10-31' },
+    };
+
+    expect(() => choicesOf(dashboard as never, 'October', new Map())).toThrow(UnknownCategoryError);
   });
 });

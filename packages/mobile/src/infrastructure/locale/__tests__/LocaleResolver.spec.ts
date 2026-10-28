@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { DEFAULT_LOCALE, languageOf } from '../../../domain/locale.js';
 import { LocaleResolver } from '../LocaleResolver.js';
 
 describe('LocaleResolver', () => {
@@ -34,5 +35,15 @@ describe('LocaleResolver', () => {
 
   it('returns en for undefined stored value', () => {
     expect(resolver.resolve('zh', undefined)).toBe('en');
+  });
+
+  it('keeps a language tag without a region whole', () => {
+    expect(languageOf('uk')).toBe('uk');
+    expect(languageOf('pl-PL')).toBe('pl');
+    expect(languageOf('')).toBe('');
+  });
+
+  it('resolves an empty device language to the default locale', () => {
+    expect(resolver.resolve('', null)).toBe(DEFAULT_LOCALE);
   });
 });

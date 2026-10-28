@@ -35,14 +35,14 @@ export interface AddExpenseState {
   readonly load: AddExpenseLoad;
   readonly typed: string;
   readonly categoryId: string;
-  readonly accountId: string;
+  readonly accountId: string | null;
   readonly status: AddExpenseStatus;
   readonly unsorted: boolean;
   readonly error: string | null;
   readonly today: string;
   readonly setTyped: (typed: string) => void;
   readonly setCategoryId: (categoryId: string) => void;
-  readonly setAccountId: (accountId: string) => void;
+  readonly setAccountId: (accountId: string | null) => void;
   readonly reload: () => void;
   readonly save: () => void;
   readonly undo: () => void;
@@ -57,7 +57,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const [load, setLoad] = useState<AddExpenseLoad>({ kind: 'loading' });
   const [typed, setTypedRaw] = useState('');
   const [categoryId, setCategoryIdRaw] = useState('');
-  const [accountId, setAccountIdRaw] = useState('');
+  const [accountId, setAccountIdRaw] = useState<string | null>(null);
   const [status, setStatus] = useState<AddExpenseStatus>('editing');
   const statusRef = useRef<AddExpenseStatus>('editing');
   const changeStatus = useCallback((next: AddExpenseStatus) => {
@@ -77,22 +77,22 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   });
 
   /** Reopening Add expense after leaving with a half-saved expense shows it again, not a blank form. */
-  const restorePending = useCallback(
-    () => {
-      const pending = pendingCategory.current;
-      if (pending === null || !pending.data.categories.some((option) => option.id === pending.categoryId)) {
-        return;
-      }
-      setLoad({ kind: 'ready', data: pending.data });
-      setTypedRaw(pending.typed);
-      setCategoryIdRaw(pending.categoryId);
-      setAccountIdRaw(pending.accountId);
-      setSavedId(pending.transactionId);
-      setUnsorted(true);
-      changeStatus('saved');
-    },
-    [changeStatus],
-  );
+  const restorePending = useCallback(() => {
+    const pending = pendingCategory.current;
+    if (
+      pending === null ||
+      !pending.data.categories.some((option) => option.id === pending.categoryId)
+    ) {
+      return;
+    }
+    setLoad({ kind: 'ready', data: pending.data });
+    setTypedRaw(pending.typed);
+    setCategoryIdRaw(pending.categoryId);
+    setAccountIdRaw(pending.accountId);
+    setSavedId(pending.transactionId);
+    setUnsorted(true);
+    changeStatus('saved');
+  }, [changeStatus]);
 
   useEffect(() => {
     let active = true;
@@ -105,7 +105,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         setLoad(next);
         if (next.kind === 'ready') {
           setCategoryIdRaw(next.data.categories[0]?.id ?? UNPLANNED_ID);
-          setAccountIdRaw(next.data.accounts[0]?.id ?? '');
+          setAccountIdRaw(next.data.accounts[0]?.id ?? null);
           restorePending();
         }
       },
@@ -131,7 +131,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       setCategoryIdRaw(categories[0]?.id ?? UNPLANNED_ID);
     }
     if (!accounts.some((option) => option.id === accountId)) {
-      setAccountIdRaw(accounts[0]?.id ?? '');
+      setAccountIdRaw(accounts[0]?.id ?? null);
     }
   }, [accountId, categoryId, load]);
 
@@ -157,7 +157,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     [locked],
   );
   const setAccountId = useCallback(
-    (next: string) => {
+    (next: string | null) => {
       if (!locked) {
         setAccountIdRaw(next);
       }
@@ -187,7 +187,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       (result) => {
         pendingCategory.current = result.mapped
           ? null
-          : { transactionId: result.id, typed, categoryId, accountId, data: load.data };
+          : { transactionId: result.id, typed, categoryId, accountId: account.id, data: load.data };
         setSavedId(result.id);
         setUnsorted(!result.mapped);
         changeStatus('saved');

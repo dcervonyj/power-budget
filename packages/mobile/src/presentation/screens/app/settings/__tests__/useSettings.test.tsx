@@ -93,6 +93,7 @@ describe('useSettings', () => {
       expect(result.current.loadState).toBe('ready');
     });
     expect(mockGet).toHaveBeenCalledWith('/users/me');
+    expect(result.current.profile).toEqual({ email: 'anna@example.com', locale: 'en' });
     expect(result.current.nameDraft).toBe('Anna');
     expect(result.current.baseCurrency).toBe('PLN');
     expect(result.current.biometricAvailable).toBe(true);
@@ -105,6 +106,15 @@ describe('useSettings', () => {
     await waitFor(() => {
       expect(result.current.loadState).toBe('error');
     });
+    expect(result.current.profile).toBeNull();
+  });
+
+  it('has no profile before the first load finishes', async () => {
+    mockGet.mockReturnValue(new Promise(() => undefined));
+    const { result } = await renderHook(useSettings, { wrapper });
+
+    expect(result.current.loadState).toBe('loading');
+    expect(result.current.profile).toBeNull();
   });
 
   it('saves the trimmed name with PATCH /users/me', async () => {

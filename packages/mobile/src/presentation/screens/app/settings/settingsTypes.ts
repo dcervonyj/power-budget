@@ -33,13 +33,18 @@ export const SETTINGS_CURRENCIES: readonly SettingsCurrency[] = [
   'DKK',
 ];
 
+/** The loaded profile; present only while the profile has loaded. */
+export interface SettingsProfile {
+  readonly email: string;
+  readonly locale: SettingsLocale;
+}
+
 export interface SettingsViewProps {
   readonly loadState: SettingsLoadState;
-  readonly email: string;
+  readonly profile: SettingsProfile | null;
   readonly nameDraft: string;
   readonly nameSave: SettingsSaveState;
   readonly preference: ThemePreference;
-  readonly locale: SettingsLocale;
   readonly baseCurrency: SettingsCurrency | null;
   readonly preferencesError: boolean;
   readonly biometricAvailable: boolean;

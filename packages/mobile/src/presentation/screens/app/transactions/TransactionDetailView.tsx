@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../../domain/display.js';
 import React from 'react';
 import { ScrollView, Text, TextInput, View, Pressable } from 'react-native';
 import { parseMinorUnits } from '@power-budget/core';
@@ -195,7 +196,7 @@ function CategoryPanel({
       <Text accessibilityRole="header" style={styles.label}>
         {labels.category()}
       </Text>
-      <Text style={styles.body}>{mapped ? (categoryName ?? '') : labels.notSorted()}</Text>
+      <Text style={styles.body}>{mapped ? (categoryName ?? NO_LABEL) : labels.notSorted()}</Text>
       <View style={styles.actions}>
         <TransactionActionButton
           primary={!mapped}

@@ -118,8 +118,7 @@ function TxAmount({
 }): React.JSX.Element {
   const styles = useRowStyles();
   const glass = useGlass();
-  const hasOriginal =
-    transaction.originalAmountMinor !== undefined && transaction.originalCurrency !== undefined;
+  const { originalAmountMinor, originalCurrency } = transaction;
 
   return (
     <View testID="tx-amount" style={styles.figures}>
@@ -127,12 +126,12 @@ function TxAmount({
         amount={{ amountMinor: transaction.amountMinor, currency: transaction.currency }}
         style={[styles.figure, kind === 'transfer' ? { color: glass.colors.dim } : null]}
       />
-      {hasOriginal ? (
+      {originalAmountMinor !== undefined && originalCurrency !== undefined ? (
         <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           <AmountText
             amount={{
-              amountMinor: transaction.originalAmountMinor ?? 0n,
-              currency: transaction.originalCurrency ?? transaction.currency,
+              amountMinor: originalAmountMinor,
+              currency: originalCurrency,
             }}
             style={styles.small}
           />
