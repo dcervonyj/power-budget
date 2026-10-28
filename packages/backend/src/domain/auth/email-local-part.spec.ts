@@ -10,7 +10,7 @@ describe('emailLocalPart', () => {
     expect(emailLocalPart('anna')).toBe('anna');
   });
 
-  it('returns an empty string for a leading @', () => {
-    expect(emailLocalPart('@example.com')).toBe('');
+  it('returns the whole email when the local part is empty', () => {
+    expect(emailLocalPart('@example.com')).toBe('@example.com');
   });
 });
