@@ -60,16 +60,29 @@ const GENERIC_TITLE_WORDS: readonly string[] = [
   'rachunek',
   'splata',
   'transfer',
-  'zakup',
-  'transakcja',
-  'blik',
-  'karta',
-  'karty',
-  'kartowa',
   'payment',
   'refund',
   'invoice',
 ];
+
+/** Leading bank boilerplate ("Zakup przy uzyciu karty", "Zakup BLIK"), stripped before the merchant. */
+const BOILERPLATE_WORDS: readonly string[] = [
+  'zakup',
+  'transakcja',
+  'przy',
+  'uzyciu',
+  'karta',
+  'karty',
+  'kartowa',
+  'blik',
+];
+
+function stripBoilerplate(key: string): string {
+  const words = key.split(' ');
+  const firstMerchantWord = words.findIndex((word) => !BOILERPLATE_WORDS.includes(word));
+
+  return firstMerchantWord === -1 ? '' : words.slice(firstMerchantWord).join(' ');
+}
 
 function merchantKeyOf(text: string, isDescription: boolean): string | null {
   const normalised = normaliseTransaction(text);
@@ -86,11 +99,12 @@ function merchantKeyOf(text: string, isDescription: boolean): string | null {
   if (normalised.descriptorClass === 'transfer' && normalised.counterparty === null) {
     return null;
   }
-  if (GENERIC_TITLE_WORDS.includes(key.split(' ')[0] ?? '')) {
+  const stripped = stripBoilerplate(key);
+  if (stripped === '' || GENERIC_TITLE_WORDS.includes(stripped.split(' ')[0] ?? '')) {
     return null;
   }
 
-  return key;
+  return stripped;
 }
 
 function nonEmpty(value: string | null): boolean {

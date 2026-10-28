@@ -97,6 +97,15 @@ describe('merchantRuleKeysOf', () => {
     expect(merchantRuleKeysOf({ ...noCounterparty, description: 'BLIK' })).toEqual([]);
   });
 
+  it.each(['Zakup BLIK Biedronka', 'Zakup przy użyciu karty Biedronka 1234'])(
+    'strips leading boilerplate and keeps the merchant: %s',
+    (description) => {
+      expect(merchantRuleKeysOf({ ...noCounterparty, description })).toEqual([
+        { matchKind: 'merchant', pattern: 'biedronka' },
+      ]);
+    },
+  );
+
   it('drops a key longer than the 255 character pattern column', () => {
     const description = `Biedronka ${'sklep spozywczy '.repeat(20)}`;
 

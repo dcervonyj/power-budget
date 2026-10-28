@@ -48,15 +48,20 @@ export class BulkMapTransactionsUseCase {
     input: BulkMapTransactionsInput,
     scope: { householdId: HouseholdId },
   ): Promise<void> {
-    const transaction = await this.transactionRepo.findById(mapping.transactionId, scope);
-    if (transaction === null) {
-      return;
+    try {
+      const transaction = await this.transactionRepo.findById(mapping.transactionId, scope);
+      if (transaction === null) {
+        return;
+      }
+      await this.merchantMemory.learnFromMapping({
+        transaction,
+        plannedItemId: mapping.plannedItemId,
+        by: input.by,
+        householdId: input.householdId,
+      });
+    } catch {
+      // The mappings are already saved (each statement commits on its own); the rule for this
+      // row is simply not learned. The rule write itself is logged by learnFromMapping.
     }
-    await this.merchantMemory.learnFromMapping({
-      transaction,
-      plannedItemId: mapping.plannedItemId,
-      by: input.by,
-      householdId: input.householdId,
-    });
   }
 }
