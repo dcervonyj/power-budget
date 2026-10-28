@@ -1,13 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import type { UpdateUserProfileDto, UserProfileDto } from '@power-budget/shared-app/contract';
-import {
-  apiClient,
-  biometricUnlockService,
-  LOCALE_STORAGE_KEY,
-  tokenStore,
-} from '../../../../infrastructure/index.js';
+import { apiClient, biometricUnlockService, tokenStore } from '../../../../infrastructure/index.js';
+import { useAppLocale } from '../../../LocaleProvider.js';
 import { useTheme } from '../../../theme/index.js';
 import type {
   SettingsCurrency,
@@ -23,6 +18,8 @@ const SAVED_VISIBLE_MS = 2500;
 export function useSettings(): SettingsViewProps {
   const intl = useIntl();
   const { preference, setPreference } = useTheme();
+  const { setLocale } = useAppLocale();
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
   const [profile, setProfile] = useState<UserProfileDto | null>(null);
   const [loadState, setLoadState] = useState<SettingsLoadState>('loading');
   const [nameDraft, setNameDraft] = useState('');
@@ -65,7 +62,15 @@ export function useSettings(): SettingsViewProps {
     void readBiometrics(setBiometricAvailable, setBiometricEnabled);
   }, []);
 
-  async function patchProfile(body: UpdateUserProfileDto): Promise<boolean> {
+  // Saves run one after another, so a slow earlier response can never overwrite a later one.
+  function patchProfile(body: UpdateUserProfileDto): Promise<boolean> {
+    const result = saveQueue.current.then(() => sendPatch(body));
+    saveQueue.current = result;
+
+    return result;
+  }
+
+  async function sendPatch(body: UpdateUserProfileDto): Promise<boolean> {
     try {
       const updated = (await apiClient.patch<UserProfileDto>('/users/me', body)).data;
       setProfile(updated);
@@ -86,8 +91,7 @@ export function useSettings(): SettingsViewProps {
     const ok = await patchProfile({ locale });
     setPreferencesError(!ok);
     if (ok) {
-      // App reads this key at launch, so the new language applies on the next start.
-      await AsyncStorage.setItem(LOCALE_STORAGE_KEY, locale);
+      setLocale(locale);
     }
   }
 

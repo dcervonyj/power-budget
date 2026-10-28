@@ -205,14 +205,17 @@ function PreferencesSection(props: SettingsViewProps): React.JSX.Element {
       <Text accessibilityRole="header" style={styles.heading}>
         {currency}
       </Text>
-      {props.baseCurrency === null ? null : (
-        <FilterChips
-          label={currency}
-          value={props.baseCurrency}
-          onChange={props.onCurrencyChange}
-          options={SETTINGS_CURRENCIES.map((value) => ({ value, label: value }))}
-        />
-      )}
+      <FilterChips
+        label={currency}
+        value={props.baseCurrency ?? ''}
+        onChange={(value) => {
+          const chosen = SETTINGS_CURRENCIES.find((code) => code === value);
+          if (chosen !== undefined) {
+            props.onCurrencyChange(chosen);
+          }
+        }}
+        options={SETTINGS_CURRENCIES.map((value) => ({ value, label: value }))}
+      />
       {props.preferencesError ? <SaveStatus state="error" /> : null}
     </GlassPanel>
   );

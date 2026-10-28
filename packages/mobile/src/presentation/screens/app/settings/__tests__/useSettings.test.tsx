@@ -14,6 +14,12 @@ jest.mock('../../../../theme/useMotion.js', () => ({
   useAppActive: (): boolean => true,
 }));
 
+const mockSetLocale = jest.fn();
+
+jest.mock('../../../../LocaleProvider.js', () => ({
+  useAppLocale: (): object => ({ locale: 'en', setLocale: mockSetLocale }),
+}));
+
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
 const mockClearTokens = jest.fn();
@@ -60,6 +66,7 @@ function wrapper({ children }: { readonly children: React.ReactNode }): React.JS
 }
 
 beforeEach(() => {
+  mockSetLocale.mockReset();
   mockGet.mockReset().mockResolvedValue({ data: PROFILE });
   mockPatch
     .mockReset()
@@ -122,6 +129,7 @@ describe('useSettings', () => {
       result.current.onLocaleChange('pl');
     });
     expect(mockPatch).toHaveBeenCalledWith('/users/me', { locale: 'pl' });
+    expect(mockSetLocale).toHaveBeenCalledWith('pl');
 
     mockPatch.mockRejectedValue(new Error('500'));
     await act(async () => {
@@ -167,5 +175,40 @@ describe('useSettings', () => {
     });
 
     expect(mockClearTokens).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies concurrent saves in order, so the last choice wins', async () => {
+    const releases: Array<() => void> = [];
+    mockPatch.mockReset().mockImplementation(
+      (_url: string, body: object) =>
+        new Promise((resolve) => {
+          releases.push(() => {
+            resolve({ data: { ...PROFILE, ...body } });
+          });
+        }),
+    );
+    const { result } = await renderHook(useSettings, { wrapper });
+    await waitFor(() => {
+      expect(result.current.loadState).toBe('ready');
+    });
+    await act(async () => {
+      result.current.onCurrencyChange('EUR');
+      result.current.onCurrencyChange('USD');
+    });
+    expect(mockPatch).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      releases[0]?.();
+    });
+    await waitFor(() => {
+      expect(mockPatch).toHaveBeenCalledTimes(2);
+    });
+    await act(async () => {
+      releases[1]?.();
+    });
+
+    await waitFor(() => {
+      expect(result.current.baseCurrency).toBe('USD');
+    });
   });
 });
