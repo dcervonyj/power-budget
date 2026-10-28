@@ -7,12 +7,7 @@ import { runAxe } from '../support/axe.js';
 // DSN-050: axe on the real pages of the e2e stack, in both themes. Serious and critical findings fail.
 test.skip(!FULL_STACK, 'needs the e2e stack (TEST_ENV=e2e)');
 
-const PUBLIC_PAGES = [
-  '/login',
-  '/register',
-  '/auth/magic-link',
-  '/invite/accept?token=none',
-] as const;
+const PUBLIC_PAGES = ['/login', '/register', '/auth/magic-link'] as const;
 const APP_PAGES = [
   '/dashboard',
   '/transactions',
@@ -22,6 +17,7 @@ const APP_PAGES = [
   '/categories',
   '/household',
   '/bank-connections',
+  '/invite/accept?token=none',
   '/bank-connections/new',
   '/auth/totp-enroll',
   '/settings/profile',
@@ -79,5 +75,7 @@ for (const theme of THEMES) {
 async function openAppPage(page: Page, template: string, plan: PlanDto): Promise<void> {
   await page.goto(template.replace(':planId', plan.id));
   await page.waitForLoadState('networkidle');
+  // A page that bounced to the sign-in screen would audit /login again instead of itself.
+  await expect(page).not.toHaveURL(/\/login/);
   await expect(page.locator('main').first()).toBeVisible();
 }

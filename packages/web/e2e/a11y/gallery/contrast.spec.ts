@@ -33,9 +33,13 @@ test.describe('every gallery entry', () => {
         await openGalleryEntry(page, entry, theme);
 
         // Modal, drawer and sheet panels render through a portal onto the scrim: measure the
-        // panel when one is open (the page behind it is inert), else the entry itself.
-        const open = (await page.locator('[role="dialog"]').count()) > 0;
-        const rows = await measureRenderedText(page, open ? '[role="dialog"]' : '#gallery-main');
+        // panel when one is open (the page behind it is inert), else the entry itself. The
+        // account menu is a non-modal dialog inside the shell, so the shell is measured.
+        const modal = (await page.locator('[role="dialog"][aria-modal="true"]').count()) > 0;
+        const rows = await measureRenderedText(
+          page,
+          modal ? '[role="dialog"][aria-modal="true"]' : '#gallery-main',
+        );
         await attach(testInfo, rows);
 
         expect(failing(rows)).toEqual([]);
