@@ -5,6 +5,7 @@ import { OverlayFrame } from '../glass/overlays/OverlayFrame.js';
 export interface ModalButton {
   readonly label: string;
   readonly variant?: 'primary' | 'secondary' | 'danger';
+  readonly loading?: boolean;
   readonly onClick: () => void;
 }
 
@@ -30,7 +31,12 @@ export function Modal({
   const footer =
     footerButtons !== undefined && footerButtons.length > 0
       ? footerButtons.map((btn) => (
-          <Button key={btn.label} variant={btn.variant ?? 'secondary'} onClick={btn.onClick}>
+          <Button
+            key={btn.label}
+            variant={btn.variant ?? 'secondary'}
+            loading={btn.loading}
+            onClick={btn.onClick}
+          >
             {btn.label}
           </Button>
         ))

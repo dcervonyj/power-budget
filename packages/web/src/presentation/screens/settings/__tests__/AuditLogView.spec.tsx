@@ -34,6 +34,10 @@ function renderView(overrides: Partial<AuditLogViewProps> = {}): void {
       events={EVENTS}
       loading={false}
       error={false}
+      hasMore={false}
+      loadingMore={false}
+      loadMoreError={false}
+      onLoadMore={vi.fn()}
       currentUserId="user-anna"
       onRetry={vi.fn()}
       {...overrides}
@@ -77,5 +81,32 @@ describe('AuditLogView', () => {
     fireEvent.click(screen.getByRole('button', { name: /retry/i }));
 
     expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers load more only when another page exists, and calls back', () => {
+    const onLoadMore = vi.fn();
+    renderView({ hasMore: true, onLoadMore });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }));
+
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no load more on the last page', () => {
+    renderView({ hasMore: false });
+
+    expect(screen.queryByRole('button', { name: 'Load more' })).toBeNull();
+  });
+
+  it('keeps the events and shows a separate error with retry when a further page fails', () => {
+    const onLoadMore = vi.fn();
+    renderView({ hasMore: true, loadMoreError: true, onLoadMore });
+
+    expect(screen.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.getByRole('alert')).toHaveTextContent('Failed to load more events');
+    expect(screen.queryByText('Failed to load the audit log')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }));
+
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
 });

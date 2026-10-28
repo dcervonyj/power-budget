@@ -8,6 +8,9 @@ export const AuditLogScreen = observer(function AuditLogScreen(): React.JSX.Elem
   const [events, setEvents] = useState<AuditEventDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadMoreError, setLoadMoreError] = useState(false);
 
   useEffect(() => {
     // The profile gives the user id that marks the user's own events.
@@ -22,12 +25,32 @@ export const AuditLogScreen = observer(function AuditLogScreen(): React.JSX.Elem
     try {
       const res = await apiClient.get<AuditPageDto>('/audit-log');
       setEvents(res.data.items);
+      setNextCursor(res.data.hasMore ? res.data.nextCursor : null);
     } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const loadMore = useCallback(async (): Promise<void> => {
+    if (nextCursor === null) {
+      return;
+    }
+    setLoadingMore(true);
+    setLoadMoreError(false);
+    try {
+      const res = await apiClient.get<AuditPageDto>(
+        `/audit-log?cursor=${encodeURIComponent(nextCursor)}`,
+      );
+      setEvents((prev) => [...prev, ...res.data.items]);
+      setNextCursor(res.data.hasMore ? res.data.nextCursor : null);
+    } catch {
+      setLoadMoreError(true);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [nextCursor]);
 
   useEffect(() => {
     void fetchEvents();
@@ -38,7 +61,13 @@ export const AuditLogScreen = observer(function AuditLogScreen(): React.JSX.Elem
       events={events}
       loading={loading}
       error={error}
+      hasMore={nextCursor !== null}
+      loadingMore={loadingMore}
+      loadMoreError={loadMoreError}
       currentUserId={settingsStore.userId}
+      onLoadMore={() => {
+        void loadMore();
+      }}
       onRetry={() => {
         void fetchEvents();
       }}

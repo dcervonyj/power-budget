@@ -61,6 +61,7 @@ export function TransactionDetailModal({
   const [ignored, setIgnored] = useState(false);
   const [togglingTransfer, setTogglingTransfer] = useState(false);
   const [togglingIgnored, setTogglingIgnored] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const [catalogue, setCatalogue] = useState<PlannedItemCatalogue | null>(null);
   // Read in the load effect without refetching when the parent passes a new callback.
@@ -178,6 +179,7 @@ export function TransactionDetailModal({
     const prev = isTransfer;
     setIsTransfer(!prev);
     setTogglingTransfer(true);
+    setActionError(null);
     try {
       if (!prev) {
         await apiClient.post(`/transactions/${transactionId}/transfer`, {});
@@ -191,8 +193,9 @@ export function TransactionDetailModal({
         setTransaction(updatedTx);
         onUpdated?.(updatedTx);
       }
-    } catch {
+    } catch (err) {
       setIsTransfer(prev);
+      setActionError(actionErrorMessage(intl, err));
     } finally {
       setTogglingTransfer(false);
     }
@@ -202,6 +205,7 @@ export function TransactionDetailModal({
     const prev = ignored;
     setIgnored(!prev);
     setTogglingIgnored(true);
+    setActionError(null);
     try {
       const body: PatchTransactionDto = { ignored: !prev };
       await apiClient.patch(`/transactions/${transactionId}`, body);
@@ -210,8 +214,9 @@ export function TransactionDetailModal({
         setTransaction(updatedTx);
         onUpdated?.(updatedTx);
       }
-    } catch {
+    } catch (err) {
       setIgnored(prev);
+      setActionError(actionErrorMessage(intl, err));
     } finally {
       setTogglingIgnored(false);
     }
@@ -230,6 +235,7 @@ export function TransactionDetailModal({
       onNotes={setNotes}
       savingNotes={savingNotes}
       notesError={notesError}
+      actionError={actionError}
       onSaveNotes={() => {
         void handleSaveNotes();
       }}
@@ -288,6 +294,8 @@ export interface TransactionDetailViewProps {
   readonly onNotes: (notes: string) => void;
   readonly savingNotes: boolean;
   readonly notesError: string | null;
+  /** Why the last transfer or ignore toggle failed (it was rolled back); null when none failed. */
+  readonly actionError: string | null;
   readonly onSaveNotes: () => void;
   /** Null when the transaction is not mapped; empty plan name when the plan is not known yet. */
   readonly mappedTo: { readonly categoryName: string; readonly planName: string } | null;
@@ -313,6 +321,7 @@ export function TransactionDetailView({
   onNotes,
   savingNotes,
   notesError,
+  actionError,
   onSaveNotes,
   mappedTo,
   isTransfer,
@@ -481,11 +490,37 @@ export function TransactionDetailView({
               <FormattedMessage id="screen.transactionDetail.ignore" defaultMessage="Ignore" />
             </Button>
           </div>
+          {actionError !== null && (
+            <p role="alert" style={ALERT_TEXT}>
+              {actionError}
+            </p>
+          )}
         </div>
       )}
       {mapDialog}
     </Sheet>
   );
+}
+
+function actionErrorMessage(intl: IntlShape, err: unknown): string {
+  switch (readApiError(err).status) {
+    case 409:
+      return intl.formatMessage({
+        id: 'screen.transactionDetail.actionError.conflict',
+        defaultMessage:
+          'This transaction cannot be changed right now, for example because it is mapped to a planned item.',
+      });
+    case 429:
+      return intl.formatMessage({
+        id: 'screen.transactionDetail.actionError.tooMany',
+        defaultMessage: 'Too many requests. Please wait a moment and try again.',
+      });
+    default:
+      return intl.formatMessage({
+        id: 'screen.transactionDetail.actionError.failed',
+        defaultMessage: 'The change could not be saved. Please try again.',
+      });
+  }
 }
 
 function sourceLabel(intl: IntlShape, source: Transaction['source']): string {

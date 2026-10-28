@@ -74,13 +74,29 @@ describe('SettingsStore.deleteAccount', () => {
 
   it('verifies the code first, then deletes the household', async () => {
     mockPost.mockResolvedValueOnce({ status: 204, data: undefined, headers: {} });
-    mockDelete.mockResolvedValueOnce({ status: 202, data: undefined, headers: {} });
+    mockDelete.mockResolvedValueOnce({
+      status: 202,
+      data: { scheduledFor: '2026-11-27T10:00:00.000Z' },
+      headers: {},
+    });
 
     await store.deleteAccount('123456');
 
     expect(mockPost).toHaveBeenCalledWith('/auth/totp/verify', { code: '123456' });
     expect(mockDelete).toHaveBeenCalledWith('/households/hh-1');
     expect(store.deleteError).toBeNull();
+    expect(store.deletionScheduledFor).toBe('2026-11-27T10:00:00.000Z');
+    expect(store.isDeleting).toBe(false);
+  });
+
+  it('maps a non-owner 403 to its own error and stops the busy state', async () => {
+    mockDelete.mockRejectedValueOnce(apiError(403, 'household_owner_required'));
+
+    await store.deleteAccount();
+
+    expect(store.deleteError).toBe('household_owner_required');
+    expect(store.deletionScheduledFor).toBeNull();
+    expect(store.isDeleting).toBe(false);
   });
 
   it('reports an invalid code without calling delete', async () => {
@@ -277,6 +293,7 @@ describe('SettingsStore.resetSession', () => {
     store.exportUrl = '/export.csv';
     store.saveError = 'save_failed';
     store.deleteError = 'requires_totp';
+    store.deletionScheduledFor = '2026-11-27T10:00:00.000Z';
 
     store.resetSession();
 
@@ -295,6 +312,7 @@ describe('SettingsStore.resetSession', () => {
     expect(store.exportError).toBeNull();
     expect(store.isDeleting).toBe(false);
     expect(store.deleteError).toBeNull();
+    expect(store.deletionScheduledFor).toBeNull();
   });
 
   it('drops a profile that arrives after the session ended', async () => {

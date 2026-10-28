@@ -180,6 +180,7 @@ const DETAIL_BASE = {
   onNotes: noop,
   savingNotes: false,
   notesError: null,
+  actionError: null,
   onSaveNotes: noop,
   isTransfer: false,
   ignored: false,

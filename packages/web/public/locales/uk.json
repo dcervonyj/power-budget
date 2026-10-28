@@ -425,5 +425,20 @@
   "component.manualTransactionForm.error.amount": "Введіть додатну суму з кількістю знаків після коми, дозволеною для валюти.",
   "component.manualTransactionForm.error.account": "Не вдалося створити рахунок. Спробуйте ще раз.",
   "component.manualTransactionForm.error.accounts": "Не вдалося завантажити рахунки. Спробуйте ще раз.",
-  "component.manualTransactionForm.account.option": "{name} · {currency}"
+  "component.manualTransactionForm.account.option": "{name} · {currency}",
+  "screen.planEditor.fieldError.category": "Оберіть категорію для позиції.",
+  "screen.planEditor.fieldError.amount": "Введіть коректну суму, наприклад 250,50.",
+  "screen.planEditor.fieldError.currency": "Введіть підтримуваний код валюти, наприклад PLN.",
+  "screen.planEditor.invalidAmountError": "Ця сума некоректна, тому залишено попередню.",
+  "screen.transactionDetail.actionError.conflict": "Цю транзакцію зараз не можна змінити, наприклад через те, що вона прив'язана до запланованої позиції.",
+  "screen.transactionDetail.actionError.tooMany": "Забагато запитів. Зачекайте хвилину й спробуйте ще раз.",
+  "screen.transactionDetail.actionError.failed": "Не вдалося зберегти зміну. Спробуйте ще раз.",
+  "settings.data.delete.close": "Закрити",
+  "settings.data.delete.scheduled": "Видалення заплановано. Вашу родину та її дані буде видалено {date}.",
+  "settings.data.delete.ownerRequired": "Лише власник родини може її видалити.",
+  "screen.register.error.passwordTooShort": "Пароль має містити щонайменше {min} символів.",
+  "screen.register.password.hint": "Використайте щонайменше {min} символів.",
+  "screen.register.error.invalidInput": "Перевірте адресу електронної пошти та використайте пароль щонайменше з {min} символів.",
+  "screen.auditLog.loadMore": "Завантажити ще",
+  "screen.auditLog.loadMoreError": "Не вдалося завантажити більше подій"
 }

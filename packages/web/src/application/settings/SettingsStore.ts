@@ -2,6 +2,7 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import { isSupportedCurrency } from '@power-budget/core';
 import { readApiError, type HttpClient } from '@power-budget/shared-app';
 import type {
+  HouseholdDeletionScheduledDto,
   UpdateUserProfileDto,
   UserProfileDto,
   VerifyTotpDto,
@@ -60,6 +61,8 @@ export class SettingsStore {
 
   isDeleting: boolean = false;
   deleteError: DeleteError | null = null;
+  /** When the API will delete the household (ISO timestamp); set once deletion is scheduled. */
+  deletionScheduledFor: string | null = null;
 
   profileLoaded: boolean = false;
 
@@ -185,6 +188,7 @@ export class SettingsStore {
   async deleteAccount(totpCode = ''): Promise<void> {
     this.isDeleting = true;
     this.deleteError = null;
+    this.deletionScheduledFor = null;
     if (!this.householdId) {
       // Only a member of a household can delete it (UserProfileDto.householdId).
       this.deleteError = 'delete_failed';
@@ -197,9 +201,13 @@ export class SettingsStore {
         const body: VerifyTotpDto = { code: totpCode };
         await this.http.post('/auth/totp/verify', body);
       }
-      await this.http.delete(`/households/${this.householdId}`);
+      const res = await this.http.delete<HouseholdDeletionScheduledDto>(
+        `/households/${this.householdId}`,
+      );
+      this.deletionScheduledFor = res.data.scheduledFor;
     } catch (err) {
       this.deleteError = deleteErrorCode(err);
+    } finally {
       this.isDeleting = false;
     }
   }
@@ -224,6 +232,7 @@ export class SettingsStore {
     this.exportError = null;
     this.isDeleting = false;
     this.deleteError = null;
+    this.deletionScheduledFor = null;
     this.profileLoaded = false;
   }
 
@@ -291,6 +300,7 @@ export type DeleteError =
   | 'requires_totp_enrollment'
   | 'totp_invalid'
   | 'too_many_requests'
+  | 'household_owner_required'
   | 'delete_failed';
 
 function deleteErrorCode(err: unknown): DeleteError {
@@ -300,6 +310,7 @@ function deleteErrorCode(err: unknown): DeleteError {
     case 'requires_totp_enrollment':
     case 'totp_invalid':
     case 'too_many_requests':
+    case 'household_owner_required':
       return code;
     default:
       return 'delete_failed';

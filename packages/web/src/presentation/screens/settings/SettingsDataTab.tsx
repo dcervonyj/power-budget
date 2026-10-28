@@ -38,13 +38,12 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
 
   async function handleConfirmDelete(): Promise<void> {
     if (confirmText !== CONFIRM_WORD) return;
+    // On success the modal stays open: it shows the date the household will be deleted.
     await settingsStore.deleteAccount(needsTotp ? totpCode : '');
-    if (!settingsStore.deleteError) {
-      setDeleteModalOpen(false);
-    }
   }
 
   const canConfirm = confirmText === CONFIRM_WORD;
+  const scheduledFor = settingsStore.deletionScheduledFor;
 
   const deleteModalTitle = intl.formatMessage({
     id: 'settings.data.delete.title',
@@ -139,107 +138,145 @@ export const SettingsDataTab = observer(function SettingsDataTab(): React.JSX.El
         isOpen={deleteModalOpen}
         title={deleteModalTitle}
         onClose={handleCloseDeleteModal}
-        footerButtons={[
-          {
-            label: intl.formatMessage({ id: 'common.cancel', defaultMessage: 'Cancel' }),
-            variant: 'secondary',
-            onClick: handleCloseDeleteModal,
-          },
-          {
-            label: intl.formatMessage({
-              id: 'settings.data.delete.button',
-              defaultMessage: 'Delete account',
-            }),
-            variant: 'danger',
-            onClick: () => {
-              void handleConfirmDelete();
-            },
-          },
-        ]}
+        footerButtons={
+          scheduledFor === null
+            ? [
+                {
+                  label: intl.formatMessage({ id: 'common.cancel', defaultMessage: 'Cancel' }),
+                  variant: 'secondary',
+                  onClick: handleCloseDeleteModal,
+                },
+                {
+                  label: intl.formatMessage({
+                    id: 'settings.data.delete.button',
+                    defaultMessage: 'Delete account',
+                  }),
+                  variant: 'danger',
+                  loading: settingsStore.isDeleting,
+                  onClick: () => {
+                    if (!settingsStore.isDeleting) {
+                      void handleConfirmDelete();
+                    }
+                  },
+                },
+              ]
+            : [
+                {
+                  label: intl.formatMessage({
+                    id: 'settings.data.delete.close',
+                    defaultMessage: 'Close',
+                  }),
+                  variant: 'secondary',
+                  onClick: handleCloseDeleteModal,
+                },
+              ]
+        }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-md)' }}>
-          <p style={NOTE_STYLE}>
+        {scheduledFor !== null ? (
+          <p role="status" style={NOTE_STYLE}>
             <FormattedMessage
-              id="settings.data.delete.warning"
-              defaultMessage="This action schedules account deletion in 30 days."
+              id="settings.data.delete.scheduled"
+              defaultMessage="Deletion is scheduled. Your household and its data will be deleted on {date}."
+              values={{
+                date: intl.formatDate(new Date(scheduledFor), { dateStyle: 'long' }),
+              }}
             />
           </p>
-          <p style={{ ...ERROR_STYLE, margin: 0, fontWeight: 'var(--pb-glass-type-label-weight)' }}>
-            <FormattedMessage
-              id="settings.data.delete.holdWarning"
-              defaultMessage="Your household and all associated data will be permanently deleted after 30 days. This cannot be undone."
-            />
-          </p>
-
-          <Input
-            id="settings-delete-confirm"
-            label={intl.formatMessage({
-              id: 'settings.data.delete.confirm',
-              defaultMessage: 'Type DELETE to confirm',
-            })}
-            value={confirmText}
-            onChange={setConfirmText}
-            placeholder={CONFIRM_WORD}
-          />
-
-          {!canConfirm && confirmText.length > 0 && (
-            <span style={ERROR_STYLE}>
+        ) : (
+          <div
+            style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-md)' }}
+          >
+            <p style={NOTE_STYLE}>
               <FormattedMessage
-                id="settings.data.delete.confirmMismatch"
-                defaultMessage="Please type DELETE exactly to confirm."
+                id="settings.data.delete.warning"
+                defaultMessage="This action schedules account deletion in 30 days."
               />
-            </span>
-          )}
+            </p>
+            <p
+              style={{ ...ERROR_STYLE, margin: 0, fontWeight: 'var(--pb-glass-type-label-weight)' }}
+            >
+              <FormattedMessage
+                id="settings.data.delete.holdWarning"
+                defaultMessage="Your household and all associated data will be permanently deleted after 30 days. This cannot be undone."
+              />
+            </p>
 
-          {needsTotp && (
             <Input
-              id="settings-delete-totp"
+              id="settings-delete-confirm"
               label={intl.formatMessage({
-                id: 'settings.data.delete.totp',
-                defaultMessage: 'Authenticator code (required to delete)',
+                id: 'settings.data.delete.confirm',
+                defaultMessage: 'Type DELETE to confirm',
               })}
-              value={totpCode}
-              onChange={setTotpCode}
+              value={confirmText}
+              onChange={setConfirmText}
+              placeholder={CONFIRM_WORD}
             />
-          )}
 
-          {settingsStore.deleteError && (
-            <span role="alert" style={ERROR_STYLE}>
-              {settingsStore.deleteError === 'requires_totp' && (
+            {!canConfirm && confirmText.length > 0 && (
+              <span style={ERROR_STYLE}>
                 <FormattedMessage
-                  id="settings.data.delete.requiresTotp"
-                  defaultMessage="Enter a code from your authenticator app to confirm."
+                  id="settings.data.delete.confirmMismatch"
+                  defaultMessage="Please type DELETE exactly to confirm."
                 />
-              )}
-              {settingsStore.deleteError === 'totp_invalid' && (
-                <FormattedMessage
-                  id="screen.login.error.invalidTotp"
-                  defaultMessage="Invalid authenticator code."
-                />
-              )}
-              {settingsStore.deleteError === 'requires_totp_enrollment' && (
-                <Link to="/auth/totp-enroll">
+              </span>
+            )}
+
+            {needsTotp && (
+              <Input
+                id="settings-delete-totp"
+                label={intl.formatMessage({
+                  id: 'settings.data.delete.totp',
+                  defaultMessage: 'Authenticator code (required to delete)',
+                })}
+                value={totpCode}
+                onChange={setTotpCode}
+              />
+            )}
+
+            {settingsStore.deleteError && (
+              <span role="alert" style={ERROR_STYLE}>
+                {settingsStore.deleteError === 'requires_totp' && (
                   <FormattedMessage
-                    id="settings.data.delete.requiresTotpEnrollment"
-                    defaultMessage="Set up two-factor authentication first."
+                    id="settings.data.delete.requiresTotp"
+                    defaultMessage="Enter a code from your authenticator app to confirm."
                   />
-                </Link>
-              )}
-              {settingsStore.deleteError === 'too_many_requests' && (
-                <FormattedMessage
-                  id="auth.error.tooManyAttempts"
-                  defaultMessage="Too many attempts. Please wait a few minutes and try again."
-                />
-              )}
-              {settingsStore.deleteError === 'delete_failed' && (
-                <FormattedMessage
-                  id="settings.data.delete.error"
-                  defaultMessage="Failed to schedule deletion. Please try again."
-                />
-              )}
-            </span>
-          )}
-        </div>
+                )}
+                {settingsStore.deleteError === 'totp_invalid' && (
+                  <FormattedMessage
+                    id="screen.login.error.invalidTotp"
+                    defaultMessage="Invalid authenticator code."
+                  />
+                )}
+                {settingsStore.deleteError === 'requires_totp_enrollment' && (
+                  <Link to="/auth/totp-enroll">
+                    <FormattedMessage
+                      id="settings.data.delete.requiresTotpEnrollment"
+                      defaultMessage="Set up two-factor authentication first."
+                    />
+                  </Link>
+                )}
+                {settingsStore.deleteError === 'too_many_requests' && (
+                  <FormattedMessage
+                    id="auth.error.tooManyAttempts"
+                    defaultMessage="Too many attempts. Please wait a few minutes and try again."
+                  />
+                )}
+                {settingsStore.deleteError === 'household_owner_required' && (
+                  <FormattedMessage
+                    id="settings.data.delete.ownerRequired"
+                    defaultMessage="Only the household owner can delete the household."
+                  />
+                )}
+                {settingsStore.deleteError === 'delete_failed' && (
+                  <FormattedMessage
+                    id="settings.data.delete.error"
+                    defaultMessage="Failed to schedule deletion. Please try again."
+                  />
+                )}
+              </span>
+            )}
+          </div>
+        )}
       </Modal>
     </div>
   );

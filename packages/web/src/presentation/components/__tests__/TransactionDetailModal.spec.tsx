@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../ThemeContext.js';
@@ -17,6 +17,14 @@ vi.mock('../MoneyView.js', () => ({
 }));
 
 const mockGet = apiSpies.get;
+const mockPost = apiSpies.post;
+const mockPatch = apiSpies.patch;
+
+function apiError(status: number): Error & { response: unknown } {
+  return Object.assign(new Error(`HTTP ${status}`), {
+    response: { status, data: { statusCode: status, code: 'x' } },
+  });
+}
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <IntlProvider locale="en" messages={{}}>
@@ -129,5 +137,44 @@ describe('TransactionDetailModal', () => {
     render(<TransactionDetailModal transactionId="tx-2" isOpen onClose={vi.fn()} />, { wrapper });
 
     expect((await screen.findByRole('alert')).textContent).toBe('Failed to load transaction');
+  });
+
+  it('explains a 409 on Mark as transfer, rolls back, and a retry clears the error', async () => {
+    mockPost.mockRejectedValueOnce(apiError(409)).mockResolvedValueOnce({
+      status: 201,
+      data: {},
+      headers: {},
+    });
+    render(<TransactionDetailModal transactionId="tx-1" isOpen onClose={vi.fn()} />, { wrapper });
+    await screen.findByText('Bank · Pending');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as transfer' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This transaction cannot be changed right now',
+    );
+    expect(screen.getByText('Not mapped')).toBeDefined();
+    fireEvent.click(screen.getByRole('button', { name: 'Mark as transfer' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).toBeNull();
+    });
+    expect(screen.getByText('Transfer')).toBeDefined();
+  });
+
+  it('shows a generic error when Ignore fails, and a rate-limit message on 429', async () => {
+    mockPatch.mockRejectedValueOnce(apiError(500)).mockRejectedValueOnce(apiError(429));
+    render(<TransactionDetailModal transactionId="tx-1" isOpen onClose={vi.fn()} />, { wrapper });
+    await screen.findByText('Bank · Pending');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ignore' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The change could not be saved. Please try again.',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ignore' }));
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Too many requests');
+    });
   });
 });

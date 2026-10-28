@@ -3,7 +3,16 @@ import { FormattedMessage, useIntl } from 'react-intl';
 import { Button, Input } from '../../components/index.js';
 import { AUTH_FORM_STYLE, AuthHeading, AuthLink, AuthLinks, AuthNotice } from './AuthParts.js';
 
-export type RegisterError = 'emailInUse' | 'serverError';
+export type RegisterError =
+  'emailInUse' | 'passwordTooShort' | 'invalidInput' | 'tooManyAttempts' | 'serverError';
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+const HINT_STYLE: React.CSSProperties = {
+  margin: 0,
+  color: 'var(--pb-glass-dim)',
+  fontSize: 'var(--pb-glass-type-small-web)',
+};
 
 export interface RegisterViewProps {
   readonly email: string;
@@ -50,13 +59,52 @@ export function RegisterView(props: RegisterViewProps): React.JSX.Element {
           })}
           value={props.password}
           onChange={props.onPasswordChange}
+          error={
+            props.error === 'passwordTooShort'
+              ? intl.formatMessage(
+                  {
+                    id: 'screen.register.error.passwordTooShort',
+                    defaultMessage: 'The password must be at least {min} characters.',
+                  },
+                  { min: MIN_PASSWORD_LENGTH },
+                )
+              : undefined
+          }
         />
+        <p style={HINT_STYLE}>
+          <FormattedMessage
+            id="screen.register.password.hint"
+            defaultMessage="Use at least {min} characters."
+            values={{ min: MIN_PASSWORD_LENGTH }}
+          />
+        </p>
         {props.error === 'emailInUse' && (
           <AuthNotice
             message={
               <FormattedMessage
                 id="screen.register.error.emailInUse"
                 defaultMessage="An account with this email already exists."
+              />
+            }
+          />
+        )}
+        {props.error === 'invalidInput' && (
+          <AuthNotice
+            message={
+              <FormattedMessage
+                id="screen.register.error.invalidInput"
+                defaultMessage="Check the email address and use a password of at least {min} characters."
+                values={{ min: MIN_PASSWORD_LENGTH }}
+              />
+            }
+          />
+        )}
+        {props.error === 'tooManyAttempts' && (
+          <AuthNotice
+            message={
+              <FormattedMessage
+                id="auth.error.tooManyAttempts"
+                defaultMessage="Too many attempts. Please wait a few minutes and try again."
               />
             }
           />
