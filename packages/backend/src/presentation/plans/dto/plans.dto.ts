@@ -464,8 +464,10 @@ export function matchHintFromDto(dto: MatchHintDto | null): PlannedItemMatchHint
     return null;
   }
   const pattern = dto.counterpartyPattern?.trim() ?? '';
-  const hasAmount = dto.amountMinor !== undefined && dto.amountMinor !== null;
-  const hasDay = dto.dayOfMonth !== undefined && dto.dayOfMonth !== null;
+  const amountMinor = dto.amountMinor ?? null;
+  const dayOfMonth = dto.dayOfMonth ?? null;
+  const hasAmount = amountMinor !== null;
+  const hasDay = dayOfMonth !== null;
   if (pattern === '' && !hasAmount && !hasDay) {
     throw new BadRequestException(
       'matchHint needs a counterpartyPattern, amountMinor or dayOfMonth',
@@ -482,11 +484,8 @@ export function matchHintFromDto(dto: MatchHintDto | null): PlannedItemMatchHint
   return {
     counterpartyPattern: pattern === '' ? null : pattern,
     amount: hasAmount
-      ? {
-          amountMinor: BigInt(dto.amountMinor ?? '0'),
-          toleranceMinor: BigInt(dto.toleranceMinor ?? '0'),
-        }
+      ? { amountMinor: BigInt(amountMinor), toleranceMinor: BigInt(dto.toleranceMinor ?? '0') }
       : null,
-    day: hasDay ? { dayOfMonth: dto.dayOfMonth ?? 1, window: dto.dayWindow ?? 0 } : null,
+    day: hasDay ? { dayOfMonth, window: dto.dayWindow ?? 0 } : null,
   };
 }

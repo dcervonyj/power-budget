@@ -30,6 +30,16 @@ export function currencyOf(value: string): CurrencyCode {
   return code;
 }
 
+/** The one row an `insert ... returning()` yields; an empty result is a broken insert, not a value to default. */
+export function insertedRow<T>(rows: readonly T[], label: string): T {
+  const [row] = rows;
+  if (row === undefined) {
+    throw new Error(`Insert of ${label} returned no row`);
+  }
+
+  return row;
+}
+
 /** Narrows a text column to one of the allowed literals, or throws. */
 export function oneOf<T extends string>(allowed: readonly T[], value: string, label: string): T {
   const match = allowed.find((candidate) => candidate === value);

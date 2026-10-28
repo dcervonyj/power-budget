@@ -16,6 +16,7 @@ import {
   TITLE_STYLE,
 } from './rowStyles.js';
 import { useRowLabels, type RowLabels, type TxProvenance, type TxRowKind } from './useRowLabels.js';
+import { NO_LABEL } from '../../../domain/display.js';
 
 export interface TxRowProps {
   readonly transaction: TxRowData;
@@ -149,8 +150,7 @@ function TxAmount({
   transaction: TxRowData;
   kind: TxRowKind;
 }): React.JSX.Element {
-  const hasOriginal =
-    transaction.originalAmountMinor !== undefined && transaction.originalCurrency !== undefined;
+  const { originalAmountMinor, originalCurrency } = transaction;
 
   return (
     <span
@@ -167,12 +167,12 @@ function TxAmount({
       <AmountText
         amount={{ amountMinor: transaction.amountMinor, currency: transaction.currency }}
       />
-      {hasOriginal ? (
+      {originalAmountMinor !== undefined && originalCurrency !== undefined ? (
         <span aria-hidden="true" style={SMALL_STYLE}>
           <AmountText
             amount={{
-              amountMinor: transaction.originalAmountMinor ?? 0n,
-              currency: transaction.originalCurrency ?? transaction.currency,
+              amountMinor: originalAmountMinor,
+              currency: originalCurrency,
             }}
           />
         </span>
@@ -232,7 +232,7 @@ function TxSuggestion({
   onUndo,
   onChoose,
 }: TxSuggestionProps): React.JSX.Element {
-  const category = transaction.suggestionLabel ?? '';
+  const category = transaction.suggestionLabel ?? NO_LABEL;
   const percent =
     transaction.suggestionConfidence === undefined
       ? undefined

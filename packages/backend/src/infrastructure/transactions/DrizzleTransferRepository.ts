@@ -95,7 +95,7 @@ export class DrizzleTransferRepository implements TransferRepository {
       id: row.id,
       householdId: row.householdId,
       txAId: row.txAId,
-      txBId: row.txBId ?? null,
+      txBId: row.txBId,
       markedBy: row.markedBy,
       markedAt: isoDateTimeOf(row.markedAt),
       status: 'active',

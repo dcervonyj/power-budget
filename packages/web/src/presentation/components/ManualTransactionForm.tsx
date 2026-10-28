@@ -22,6 +22,7 @@ import {
   MUTED_TEXT,
   TEXT_AREA_CONTROL,
 } from './transactionDialogStyles.js';
+import { NO_SELECTION } from '../../domain/display.js';
 
 export interface ManualTransactionFormProps {
   onSuccess?: (transactionId: string) => void;
@@ -91,7 +92,7 @@ export function ManualTransactionForm({
   const [creatingAccount, setCreatingAccount] = useState(false);
 
   const [selectedAccountId, setSelectedAccountId] = useState(
-    preferredAccount(initialAccounts ?? [])?.id ?? '',
+    preferredAccount(initialAccounts ?? [])?.id ?? NO_SELECTION,
   );
   const [direction, setDirection] = useState<Direction>('expense');
   const [occurredOn, setOccurredOn] = useState(todayIso);
@@ -112,7 +113,7 @@ export function ManualTransactionForm({
         const res = await apiClient.get<AccountDto[]>('/accounts');
         if (!cancelled) {
           setAccounts(res.data);
-          setSelectedAccountId(preferredAccount(res.data)?.id ?? '');
+          setSelectedAccountId(preferredAccount(res.data)?.id ?? NO_SELECTION);
         }
       } catch {
         if (!cancelled) {

@@ -1,6 +1,7 @@
 import { useIntl } from 'react-intl';
 import { formatAmount } from '../../i18n/formatAmount.js';
 import type { MoneyAmount } from '../../../domain/dashboard/PlanDashboard.js';
+import { NO_LABEL } from '../../../domain/display.js';
 
 export type TxProvenance = 'bank' | 'manual' | 'rule';
 export type TxRowKind = 'live' | 'pending' | 'booked' | 'transfer' | 'to-sort';
@@ -49,7 +50,7 @@ export function useRowLabels(): RowLabels {
         title,
         amount: formatAmount(amount, intl.locale),
         subtitle,
-        suggestion: suggestion ?? '',
+        suggestion: suggestion ?? NO_LABEL,
       };
       if (kind === 'live') {
         return intl.formatMessage(

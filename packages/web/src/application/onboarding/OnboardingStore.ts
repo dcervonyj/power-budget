@@ -56,14 +56,14 @@ export class OnboardingStore {
   next(): void {
     const nextIndex = this.currentStepIndex + 1;
     if (nextIndex < this.steps.length) {
-      this.currentStep = this.steps[nextIndex]!;
+      this.currentStep = this.stepAt(nextIndex);
     }
   }
 
   back(): void {
     const prevIndex = this.currentStepIndex - 1;
     if (prevIndex >= 0) {
-      this.currentStep = this.steps[prevIndex]!;
+      this.currentStep = this.stepAt(prevIndex);
     }
   }
 
@@ -80,5 +80,14 @@ export class OnboardingStore {
 
   goTo(step: OnboardingStep): void {
     this.currentStep = step;
+  }
+
+  private stepAt(index: number): OnboardingStep {
+    const step = this.steps[index];
+    if (step === undefined) {
+      throw new Error(`No onboarding step at index ${index}`);
+    }
+
+    return step;
   }
 }

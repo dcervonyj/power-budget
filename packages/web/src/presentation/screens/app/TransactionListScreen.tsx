@@ -11,6 +11,7 @@ import { readApiError } from '@power-budget/shared-app';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useLocalObservable } from 'mobx-react-lite';
+import { NO_LABEL } from '../../../domain/display.js';
 import { Toast } from '../../components/shared/Toast.js';
 import {
   toBooking,
@@ -41,6 +42,9 @@ import {
   buildQuery,
   toTransactions,
 } from '../../../application/transactions/TransactionListQuery.js';
+
+/** A filter that is not in the URL is empty, not absent. */
+const NO_FILTER_VALUE = '';
 
 export interface TransactionListScreenProps {
   /** Opens the detail modal over the list (route /transactions/:id). */
@@ -89,14 +93,14 @@ export const TransactionListScreen = observer(function TransactionListScreen({
   const [reloadKey, setReloadKey] = useState(0);
 
   const filters: TransactionFilters = {
-    from: searchParams.get('from') ?? '',
-    to: searchParams.get('to') ?? '',
-    category: searchParams.get('category') ?? '',
+    from: searchParams.get('from') ?? NO_FILTER_VALUE,
+    to: searchParams.get('to') ?? NO_FILTER_VALUE,
+    category: searchParams.get('category') ?? NO_FILTER_VALUE,
     status: toMappingFilter(searchParams.get('status')),
     booking: toBooking(searchParams.get('booking')),
     currency: toCurrency(searchParams.get('currency')),
     source: toSource(searchParams.get('source')),
-    q: searchParams.get('q') ?? '',
+    q: searchParams.get('q') ?? NO_FILTER_VALUE,
   };
 
   const filtersKey = [
@@ -507,9 +511,9 @@ function withMapping(
     ...tx,
     mapping: {
       plannedItemId,
-      planName: label?.planName ?? '',
+      planName: label?.planName ?? NO_LABEL,
       planArchived: false,
-      categoryName: label?.categoryName ?? '',
+      categoryName: label?.categoryName ?? NO_LABEL,
       by: 'manual',
     },
   };

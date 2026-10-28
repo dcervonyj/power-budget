@@ -4,6 +4,7 @@ import {
   BankConsentFlowError,
   BankConnectionNotFoundError,
   BankProviderAuthError,
+  BankProviderDataError,
   BankPsuContextError,
   BankRateLimitedError,
   BankTransientError,
@@ -42,6 +43,12 @@ describe('BankConnector errors', () => {
       code: 'provider_auth',
       message: 'BANK_PROVIDER_AUTH',
     });
+    expect(new BankProviderDataError('no currency')).toMatchObject({
+      code: 'provider_data',
+      name: 'BankProviderDataError',
+      detail: 'no currency',
+      message: 'BANK_PROVIDER_DATA: no currency',
+    });
   });
 
   it('recognises the connector failures and nothing else', () => {
@@ -60,6 +67,7 @@ describe('BankConnector errors', () => {
       new BankConsentFlowError('wrong_session_status'),
       new BankTransientError('timeout'),
       new BankProviderAuthError(),
+      new BankProviderDataError('no currency'),
       new Error('not a connector failure'),
     ];
 
@@ -70,6 +78,7 @@ describe('BankConnector errors', () => {
       'restart_consent',
       'backoff',
       'pause_all',
+      'fail_without_retry',
       'unknown',
     ]);
   });
@@ -97,6 +106,8 @@ function effectOfFailure(failure: BankConnectorFailure): string {
       return 'backoff';
     case 'provider_auth':
       return 'pause_all';
+    case 'provider_data':
+      return 'fail_without_retry';
     default: {
       const unreachable: never = failure;
       throw new Error(`Unknown failure ${String(unreachable)}`);

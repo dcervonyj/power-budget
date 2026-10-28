@@ -1590,7 +1590,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3643,7 +3643,8 @@
             "description": "OAuth redirect URI after consent",
             "example": "https://app.power-budget.test/connect/callback"
           }
-        }
+        },
+        "required": ["redirectUri"]
       },
       "BankReconnectLinkDto": {
         "type": "object",

@@ -14,6 +14,7 @@ import type {
   PlanDashboard,
   UnplannedTransaction,
 } from '../../domain/dashboard/PlanDashboard.js';
+import { NO_LABEL } from '../../domain/display.js';
 
 export type { PlanDashboardResponseDto };
 
@@ -81,7 +82,7 @@ function groupByCategory(
   }
 
   return [...byCategory.entries()].map(([categoryId, groupLines]) =>
-    toGroup(categoryId, groupLines, baseCurrency, categoryNames.get(categoryId) ?? ''),
+    toGroup(categoryId, groupLines, baseCurrency, categoryNames.get(categoryId) ?? NO_LABEL),
   );
 }
 
@@ -121,7 +122,7 @@ function toLine(
     band: line.progressBand,
     original:
       item === undefined || item.amount.currency === baseCurrency ? null : toMoney(item.amount),
-    note: item?.note ?? '',
+    note: item?.note ?? NO_LABEL,
   };
 }
 

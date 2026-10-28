@@ -46,7 +46,7 @@ export class SettingsStore {
   userId: string = '';
   displayName: string = '';
   email: string = '';
-  householdId: string = '';
+  householdId: string | null = null;
   timezone: string = '';
 
   /** Cached so screens have a currency before the profile loads. */
@@ -190,7 +190,8 @@ export class SettingsStore {
     this.isDeleting = true;
     this.deleteError = null;
     this.deletionScheduledFor = null;
-    if (!this.householdId) {
+    const householdId = this.householdId;
+    if (householdId === null) {
       // Only a member of a household can delete it (UserProfileDto.householdId).
       this.deleteError = 'delete_failed';
       this.isDeleting = false;
@@ -203,7 +204,7 @@ export class SettingsStore {
         await this.http.post('/auth/totp/verify', body);
       }
       const res = await this.http.delete<HouseholdDeletionScheduledDto>(
-        `/households/${this.householdId}`,
+        `/households/${householdId}`,
       );
       this.deletionScheduledFor = res.data.scheduledFor;
     } catch (err) {
@@ -222,7 +223,7 @@ export class SettingsStore {
     this.userId = '';
     this.displayName = '';
     this.email = '';
-    this.householdId = '';
+    this.householdId = null;
     this.timezone = '';
     this.baseCurrency = DEFAULT_BASE_CURRENCY;
     this.interestingCurrencies = [];
@@ -288,7 +289,7 @@ export class SettingsStore {
     this.email = profile.email;
     this.displayName = profile.displayName;
     this.timezone = profile.timezone;
-    this.householdId = profile.householdId ?? '';
+    this.householdId = profile.householdId;
     if (profile.baseCurrency !== null) {
       this.baseCurrency = profile.baseCurrency;
       this.storage.setItem(BASE_CURRENCY_KEY, profile.baseCurrency);

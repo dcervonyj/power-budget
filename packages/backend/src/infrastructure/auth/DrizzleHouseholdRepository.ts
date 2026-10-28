@@ -10,6 +10,7 @@ import type {
 } from '../../domain/auth/entities.js';
 import type { HouseholdRepository } from '../../domain/auth/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
+import { insertedRow } from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
 
 export class DrizzleHouseholdRepository implements HouseholdRepository {
@@ -32,7 +33,7 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
       })
       .returning();
 
-    return this.toEntity(rows[0]!);
+    return this.toEntity(insertedRow(rows, 'household'));
   }
 
   async addMember(

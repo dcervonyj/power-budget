@@ -36,7 +36,13 @@ export class BankConnectionInvalidStateError extends Error {
 // ── BankConnector failures (plan-banking.md §1.9) ────────────────────────────
 
 export type BankConnectorErrorCode =
-  'rate_limited' | 'consent_ended' | 'psu_context' | 'consent_flow' | 'transient' | 'provider_auth';
+  | 'rate_limited'
+  | 'consent_ended'
+  | 'psu_context'
+  | 'consent_flow'
+  | 'transient'
+  | 'provider_auth'
+  | 'provider_data';
 
 /** Base of the failures a BankConnector reports; switch on `code` via `isBankConnectorFailure`. */
 export abstract class BankConnectorError extends Error {
@@ -110,13 +116,24 @@ export class BankProviderAuthError extends BankConnectorError {
   }
 }
 
+/** The provider answered, but without a value the sync cannot do without (an account with no currency). Retrying cannot fix it. */
+export class BankProviderDataError extends BankConnectorError {
+  readonly code = 'provider_data';
+
+  constructor(readonly detail: string) {
+    super(`BANK_PROVIDER_DATA: ${detail}`);
+    this.name = 'BankProviderDataError';
+  }
+}
+
 export type BankConnectorFailure =
   | BankRateLimitedError
   | BankConsentEndedError
   | BankPsuContextError
   | BankConsentFlowError
   | BankTransientError
-  | BankProviderAuthError;
+  | BankProviderAuthError
+  | BankProviderDataError;
 
 /** Narrows an unknown error to the BankConnector failures, discriminated by `code`. */
 export function isBankConnectorFailure(error: unknown): error is BankConnectorFailure {
