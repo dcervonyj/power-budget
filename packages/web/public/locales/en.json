@@ -425,5 +425,20 @@
   "component.manualTransactionForm.error.amount": "Enter a positive amount with no more decimal places than the currency allows.",
   "component.manualTransactionForm.error.account": "Failed to create the account. Please try again.",
   "component.manualTransactionForm.error.accounts": "Failed to load your accounts. Please try again.",
-  "component.manualTransactionForm.account.option": "{name} · {currency}"
+  "component.manualTransactionForm.account.option": "{name} · {currency}",
+  "screen.planEditor.fieldError.category": "Choose a category for the item.",
+  "screen.planEditor.fieldError.amount": "Enter a valid amount, for example 250.50.",
+  "screen.planEditor.fieldError.currency": "Enter a supported currency code, for example PLN.",
+  "screen.planEditor.invalidAmountError": "That amount is not valid, so the previous amount was kept.",
+  "screen.transactionDetail.actionError.conflict": "This transaction cannot be changed right now, for example because it is mapped to a planned item.",
+  "screen.transactionDetail.actionError.tooMany": "Too many requests. Please wait a moment and try again.",
+  "screen.transactionDetail.actionError.failed": "The change could not be saved. Please try again.",
+  "settings.data.delete.close": "Close",
+  "settings.data.delete.scheduled": "Deletion is scheduled. Your household and its data will be deleted on {date}.",
+  "settings.data.delete.ownerRequired": "Only the household owner can delete the household.",
+  "screen.register.error.passwordTooShort": "The password must be at least {min} characters.",
+  "screen.register.password.hint": "Use at least {min} characters.",
+  "screen.register.error.invalidInput": "Check the email address and use a password of at least {min} characters.",
+  "screen.auditLog.loadMore": "Load more",
+  "screen.auditLog.loadMoreError": "Failed to load more events"
 }

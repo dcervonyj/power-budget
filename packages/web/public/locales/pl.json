@@ -425,5 +425,20 @@
   "component.manualTransactionForm.error.amount": "Wpisz dodatnią kwotę z liczbą miejsc po przecinku dozwoloną dla waluty.",
   "component.manualTransactionForm.error.account": "Nie udało się utworzyć konta. Spróbuj ponownie.",
   "component.manualTransactionForm.error.accounts": "Nie udało się wczytać kont. Spróbuj ponownie.",
-  "component.manualTransactionForm.account.option": "{name} · {currency}"
+  "component.manualTransactionForm.account.option": "{name} · {currency}",
+  "screen.planEditor.fieldError.category": "Wybierz kategorię dla pozycji.",
+  "screen.planEditor.fieldError.amount": "Podaj poprawną kwotę, na przykład 250,50.",
+  "screen.planEditor.fieldError.currency": "Podaj obsługiwany kod waluty, na przykład PLN.",
+  "screen.planEditor.invalidAmountError": "Ta kwota jest nieprawidłowa, dlatego zachowano poprzednią.",
+  "screen.transactionDetail.actionError.conflict": "Tej transakcji nie można teraz zmienić, na przykład dlatego, że jest przypisana do zaplanowanej pozycji.",
+  "screen.transactionDetail.actionError.tooMany": "Zbyt wiele żądań. Poczekaj chwilę i spróbuj ponownie.",
+  "screen.transactionDetail.actionError.failed": "Nie udało się zapisać zmiany. Spróbuj ponownie.",
+  "settings.data.delete.close": "Zamknij",
+  "settings.data.delete.scheduled": "Usunięcie zostało zaplanowane. Twoje gospodarstwo i jego dane zostaną usunięte {date}.",
+  "settings.data.delete.ownerRequired": "Tylko właściciel gospodarstwa może je usunąć.",
+  "screen.register.error.passwordTooShort": "Hasło musi mieć co najmniej {min} znaków.",
+  "screen.register.password.hint": "Użyj co najmniej {min} znaków.",
+  "screen.register.error.invalidInput": "Sprawdź adres e-mail i użyj hasła o długości co najmniej {min} znaków.",
+  "screen.auditLog.loadMore": "Załaduj więcej",
+  "screen.auditLog.loadMoreError": "Nie udało się załadować kolejnych zdarzeń"
 }
