@@ -51,7 +51,7 @@ export function RegisterScreen(): React.JSX.Element {
       const body: RegisterDto = { email, password, locale: resolveLocale() };
       await apiClient.post('/auth/register', body);
       // Keep RequireAuth's target (an invite link) for the login that follows.
-      navigate('/login', { state: location.state });
+      void navigate('/login', { state: location.state });
     } catch (err) {
       setRegisterError(classifyRegisterError(err));
     } finally {

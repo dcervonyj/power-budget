@@ -44,7 +44,7 @@ export function LoginScreen(): React.JSX.Element {
       const res = await apiClient.post<AuthTokensDto>('/auth/login', body);
       await tokenStore.setTokens(res.data.accessToken, res.data.refreshToken);
       // Back to where RequireAuth came from, e.g. the invite link /invite/accept?token=.
-      navigate(returnPath(location.state));
+      void navigate(returnPath(location.state));
     } catch (err) {
       const outcome = classifyLoginError(err);
       if (outcome === 'requiresTotp') {
