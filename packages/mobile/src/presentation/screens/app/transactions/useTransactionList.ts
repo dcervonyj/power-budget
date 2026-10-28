@@ -1,0 +1,209 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
+import { categoriesApi, plansApi } from '../../../../infrastructure/index.js';
+import {
+  categoryNameByItem,
+  loadPlannedItemOptions,
+} from '../../../../infrastructure/transactions/PlannedItemCategories.js';
+import {
+  filterCounts,
+  groupByDay,
+  monthSummaryOf,
+  toListRows,
+  visibleRows,
+  waitingToSort,
+} from '../../../../infrastructure/transactions/TransactionListModel.js';
+import type {
+  DayGroup,
+  ListFilter,
+  MonthSummary,
+  TransactionListRow,
+} from '../../../../infrastructure/transactions/TransactionListModel.js';
+import { transactionsGateway } from './transactionsGateway.js';
+import type { TransactionListStatus } from './TransactionListView.js';
+
+export interface TransactionListState {
+  readonly status: TransactionListStatus;
+  readonly month: MonthSummary | undefined;
+  readonly waiting: ReturnType<typeof waitingToSort>;
+  readonly filter: ListFilter;
+  readonly counts: Record<ListFilter, number>;
+  readonly groups: DayGroup[];
+  readonly appliedIds: ReadonlySet<string>;
+  readonly refreshing: boolean;
+  readonly hasMore: boolean;
+  readonly loadingMore: boolean;
+  /** A failed action; the container shows it as a toast. */
+  readonly failure: 'sort' | null;
+  readonly setFilter: (filter: ListFilter) => void;
+  readonly refresh: () => void;
+  readonly retry: () => void;
+  readonly loadMore: () => void;
+  readonly confirm: (id: string) => void;
+  readonly undo: (id: string) => void;
+  readonly dismissFailure: () => void;
+}
+
+/** Loads the list, the month rod and the suggestion names; owns confirm and undo of a suggestion. */
+export function useTransactionList(): TransactionListState {
+  const [items, setItems] = useState<TransactionListItemDto[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [status, setStatus] = useState<TransactionListStatus>('loading');
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [filter, setFilter] = useState<ListFilter>('all');
+  const [applied, setApplied] = useState<ReadonlySet<string>>(new Set());
+  const [failure, setFailure] = useState<'sort' | null>(null);
+  const [month, setMonth] = useState<MonthSummary | undefined>(undefined);
+  const [categoryOfItem, setCategoryOfItem] = useState<ReadonlyMap<string, string>>(new Map());
+  const moreInFlight = useRef(false);
+
+  const loadFirstPage = useCallback(async (): Promise<void> => {
+    try {
+      const page = await transactionsGateway.page();
+      setItems(page.items);
+      setNextCursor(page.nextCursor);
+      setApplied(new Set());
+      setStatus('ready');
+    } catch {
+      setStatus('error');
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
+
+  const loadMonth = useCallback(async (): Promise<void> => {
+    try {
+      const [plan] = await plansApi.list('active');
+      setMonth(plan === undefined ? undefined : monthSummaryOf(await plansApi.dashboard(plan.id)));
+    } catch {
+      // Without a plan the rod stays out; the list still works.
+      setMonth(undefined);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadFirstPage();
+    void loadMonth();
+    void loadPlannedItemOptions(plansApi, categoriesApi).then(
+      (options) => setCategoryOfItem(categoryNameByItem(options)),
+      () => undefined,
+    );
+  }, [loadFirstPage, loadMonth]);
+
+  const rows = useMemo(() => toListRows(items, categoryOfItem), [items, categoryOfItem]);
+  const groups = useMemo(
+    () => groupByDay(visibleRows(rows, filter, applied)),
+    [rows, filter, applied],
+  );
+  const counts = useMemo(() => filterCounts(rows, applied), [rows, applied]);
+  const waiting = useMemo(
+    () => (month === undefined ? undefined : waitingToSort(rows, applied, month.left.currency)),
+    [rows, applied, month],
+  );
+
+  const loadMore = useCallback((): void => {
+    if (nextCursor === null || moreInFlight.current) {
+      return;
+    }
+    moreInFlight.current = true;
+    setLoadingMore(true);
+    void transactionsGateway
+      .page(nextCursor)
+      .then((page) => {
+        setItems((previous) => [...previous, ...page.items]);
+        setNextCursor(page.nextCursor);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        moreInFlight.current = false;
+        setLoadingMore(false);
+      });
+  }, [nextCursor]);
+
+  const setMapping = useCallback(
+    async (row: TransactionListRow, plannedItemId: string | null): Promise<boolean> => {
+      try {
+        await transactionsGateway.setMapping(row.data.id, plannedItemId);
+        void loadMonth();
+
+        return true;
+      } catch {
+        setFailure('sort');
+
+        return false;
+      }
+    },
+    [loadMonth],
+  );
+
+  const confirm = useCallback(
+    (id: string): void => {
+      const row = rows.find((candidate) => candidate.data.id === id);
+      if (row === undefined || row.suggestedPlannedItemId === null) {
+        return;
+      }
+      setApplied((previous) => new Set(previous).add(id));
+      void setMapping(row, row.suggestedPlannedItemId).then((saved) => {
+        if (!saved) {
+          setApplied((previous) => withoutId(previous, id));
+        }
+      });
+    },
+    [rows, setMapping],
+  );
+
+  const undo = useCallback(
+    (id: string): void => {
+      const row = rows.find((candidate) => candidate.data.id === id);
+      if (row === undefined) {
+        return;
+      }
+      setApplied((previous) => withoutId(previous, id));
+      void setMapping(row, null).then((saved) => {
+        if (!saved) {
+          setApplied((previous) => new Set(previous).add(id));
+        }
+      });
+    },
+    [rows, setMapping],
+  );
+
+  const refresh = useCallback((): void => {
+    setRefreshing(true);
+    void loadFirstPage();
+    void loadMonth();
+  }, [loadFirstPage, loadMonth]);
+
+  const retry = useCallback((): void => {
+    setStatus('loading');
+    void loadFirstPage();
+  }, [loadFirstPage]);
+
+  const dismissFailure = useCallback((): void => setFailure(null), []);
+
+  return {
+    status,
+    month,
+    waiting,
+    filter,
+    counts,
+    groups,
+    appliedIds: applied,
+    refreshing,
+    hasMore: nextCursor !== null,
+    loadingMore,
+    failure,
+    setFilter,
+    refresh,
+    retry,
+    loadMore,
+    confirm,
+    undo,
+    dismissFailure,
+  };
+}
+
+function withoutId(ids: ReadonlySet<string>, id: string): ReadonlySet<string> {
+  return new Set([...ids].filter((candidate) => candidate !== id));
+}
