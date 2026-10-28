@@ -23,6 +23,8 @@ jest.mock('../../../../LocaleProvider.js', () => ({
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
 const mockInvalidate = jest.fn();
+const mockPost = jest.fn();
+const mockRefreshToken = jest.fn();
 const mockCanUse = jest.fn();
 const mockIsEnabled = jest.fn();
 const mockSetEnabled = jest.fn();
@@ -33,8 +35,10 @@ jest.mock('../../../../../infrastructure/index.js', () => ({
   apiClient: {
     get: (url: string): Promise<unknown> => mockGet(url),
     patch: (url: string, body: unknown): Promise<unknown> => mockPatch(url, body),
+    post: (url: string, body: unknown): Promise<unknown> => mockPost(url, body),
     invalidateSession: (): Promise<void> => mockInvalidate(),
   },
+  tokenStore: { getRefreshToken: (): string | null => mockRefreshToken() },
   biometricUnlockService: {
     canUseBiometrics: (): Promise<boolean> => mockCanUse(),
     isBiometricEnabled: (): Promise<boolean> => mockIsEnabled(),
@@ -66,6 +70,8 @@ function wrapper({ children }: { readonly children: React.ReactNode }): React.JS
 }
 
 beforeEach(() => {
+  mockPost.mockReset().mockResolvedValue({ data: {} });
+  mockRefreshToken.mockReset().mockReturnValue('refresh-1');
   mockSetLocale.mockReset();
   mockGet.mockReset().mockResolvedValue({ data: PROFILE });
   mockPatch
@@ -229,5 +235,57 @@ describe('useSettings', () => {
       expect(result.current.loadState).toBe('ready');
     });
     expect(mockSetLocale).toHaveBeenCalledWith('en', 'server');
+  });
+
+  it('revokes the refresh token on /auth/logout before ending the session', async () => {
+    const { result } = await renderHook(useSettings, { wrapper });
+    await act(async () => {
+      result.current.onSignOut();
+    });
+
+    expect(mockPost).toHaveBeenCalledWith('/auth/logout', { refreshToken: 'refresh-1' });
+    expect(mockPost.mock.invocationCallOrder[0]).toBeLessThan(
+      mockInvalidate.mock.invocationCallOrder[0] ?? 0,
+    );
+  });
+
+  it('still ends the session when the revoke fails', async () => {
+    mockPost.mockRejectedValue(new Error('offline'));
+    const { result } = await renderHook(useSettings, { wrapper });
+    await act(async () => {
+      result.current.onSignOut();
+    });
+
+    await waitFor(() => {
+      expect(mockInvalidate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('drops saves that are still queued when the user signs out', async () => {
+    let releaseFirst: () => void = () => undefined;
+    mockPatch.mockReset().mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          releaseFirst = () => {
+            resolve({ data: { ...PROFILE, baseCurrency: 'EUR' } });
+          };
+        }),
+    );
+    const { result } = await renderHook(useSettings, { wrapper });
+    await waitFor(() => {
+      expect(result.current.loadState).toBe('ready');
+    });
+    await act(async () => {
+      result.current.onCurrencyChange('EUR');
+      result.current.onCurrencyChange('USD');
+    });
+    await act(async () => {
+      result.current.onSignOut();
+    });
+    await act(async () => {
+      releaseFirst();
+    });
+
+    expect(mockPatch).toHaveBeenCalledTimes(1);
   });
 });

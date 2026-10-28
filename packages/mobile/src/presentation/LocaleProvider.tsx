@@ -31,12 +31,15 @@ const resolver = new LocaleResolver();
 
 export interface LocaleProviderProps {
   readonly deviceLanguage: string;
+  /** Changes whenever the signed-in session changes; the previous user's choices stop counting. */
+  readonly sessionKey?: boolean;
   readonly children: React.ReactNode;
 }
 
 /** Owns the active locale and its messages; useAppLocale() changes them without a restart. */
 export function LocaleProvider({
   deviceLanguage,
+  sessionKey = false,
   children,
 }: LocaleProviderProps): React.JSX.Element {
   const [locale, setLocaleState] = useState<SupportedLocale>(() =>
@@ -65,6 +68,10 @@ export function LocaleProvider({
       }
     });
   }, []);
+
+  useEffect(() => {
+    appliedRank.current = 0;
+  }, [sessionKey]);
 
   useEffect(() => {
     void AsyncStorage.getItem(LOCALE_STORAGE_KEY).then((stored) => {
