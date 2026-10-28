@@ -4,11 +4,16 @@ import { toCurrency, toSource } from '../TransactionFilterBar.js';
 describe('toSource', () => {
   it.each([
     ['bank_sync', 'bank_sync'],
-    // The old options both meant every bank row; their bookmarks keep working.
+    // Providers (SYNC-001 `source_kind`), kept from the URL (review F2).
+    ['enable_banking', 'enable_banking'],
+    ['wise_webhook', 'wise_webhook'],
+    ['pko_email', 'pko_email'],
+    ['iko_push', 'iko_push'],
+    // Old options: GoCardless always meant every bank row; Wise reads as the Wise provider.
     ['gocardless', 'bank_sync'],
-    ['wise', 'bank_sync'],
+    ['wise', 'wise_webhook'],
     ['manual', 'manual'],
-    ['enable_banking', ''],
+    ['paypal', ''],
     [null, ''],
   ])('reads %s as %j', (value, expected) => {
     expect(toSource(value)).toBe(expected);

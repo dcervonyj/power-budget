@@ -17,10 +17,16 @@ export interface TransactionFilters {
   /** Booking status, applied by the API (`status`). */
   booking: '' | TransactionStatus;
   currency: '' | CurrencyCode;
-  /** `bank_sync`: every bank row, whichever provider; `manual`: rows a user entered. */
-  source: '' | 'bank_sync' | 'manual';
+  /**
+   * `bank_sync`: every bank row, whichever provider; a provider: rows that carry it (SYNC-001
+   * `source_kind`; rows synced before it carry none); `manual`: rows a user entered.
+   */
+  source: '' | 'bank_sync' | SourceProvider | 'manual';
   q: string;
 }
+
+/** The providers the API can filter by (`source`). */
+export type SourceProvider = 'enable_banking' | 'wise_webhook' | 'pko_email' | 'iko_push';
 
 export interface TransactionFilterBarProps {
   filters: TransactionFilters;
@@ -292,6 +298,30 @@ export function TransactionFilterBar({
                   defaultMessage: 'Bank',
                 })}
               </option>
+              <option value="enable_banking">
+                {intl.formatMessage({
+                  id: 'screen.transactionList.filter.source.enableBanking',
+                  defaultMessage: 'Enable Banking',
+                })}
+              </option>
+              <option value="wise_webhook">
+                {intl.formatMessage({
+                  id: 'screen.transactionList.filter.source.wise',
+                  defaultMessage: 'Wise',
+                })}
+              </option>
+              <option value="pko_email">
+                {intl.formatMessage({
+                  id: 'screen.transactionList.filter.source.pkoEmail',
+                  defaultMessage: 'PKO email',
+                })}
+              </option>
+              <option value="iko_push">
+                {intl.formatMessage({
+                  id: 'screen.transactionList.filter.source.ikoPush',
+                  defaultMessage: 'IKO push',
+                })}
+              </option>
               <option value="manual">
                 {intl.formatMessage({
                   id: 'screen.transactionDetail.source.manual',
@@ -329,13 +359,21 @@ export function toBooking(value: string | null): TransactionFilters['booking'] {
   }
 }
 
-/** `gocardless` and `wise` are the old bank options: both always meant every bank row. */
+/**
+ * URL and select values; `gocardless` and `wise` are the old options. `gocardless` always meant
+ * every bank row, `wise` reads as the Wise provider it was named after.
+ */
 export function toSource(value: string | null): TransactionFilters['source'] {
   switch (value) {
-    case 'bank_sync':
     case 'gocardless':
-    case 'wise':
       return 'bank_sync';
+    case 'wise':
+      return 'wise_webhook';
+    case 'bank_sync':
+    case 'enable_banking':
+    case 'wise_webhook':
+    case 'pko_email':
+    case 'iko_push':
     case 'manual':
       return value;
     default:
