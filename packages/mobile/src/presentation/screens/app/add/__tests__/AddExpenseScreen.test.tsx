@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppState } from 'react-native';
-import { act, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type {
   AccountDto,
   PlanDashboardResponseDto,
@@ -160,24 +160,37 @@ describe('AddExpenseScreen', () => {
     expect(mockNavigate).toHaveBeenCalledWith('Tabs', { screen: 'Dashboard' });
   });
 
-  it('F1: retries only the mapping after it failed, without posting a duplicate', async () => {
+  it('F1: a mapping failure keeps the saved expense, says it is not categorized and never reposts', async () => {
     mockPatch.mockRejectedValueOnce(new Error('offline'));
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
-    await waitFor(() =>
-      expect(screen.getByText('Could not save the expense. Try again.')).toBeTruthy(),
-    );
 
     await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
 
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    expect(screen.getByText('Saved, but not added to Groceries. Find it in To sort.')).toBeTruthy();
+    expect(screen.queryByText('Could not save the expense. Try again.')).toBeNull();
     expect(mockPost).toHaveBeenCalledTimes(1);
-    expect(mockPatch).toHaveBeenCalledTimes(2);
-    expect(mockPatch).toHaveBeenLastCalledWith('/transactions/tx-1/mapping', {
-      plannedItemId: 'item-groceries',
+    expect(screen.queryByRole('button', { name: /^Add PLN 5\.00/ })).toBeNull();
+  });
+
+  it('R1-F1: two quick Save presses before a rerender post only one transaction', async () => {
+    mockPost.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve({ data: { id: 'tx-1' } }), 50)),
+    );
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    const save = screen.getByRole('button', { name: /^Add PLN 5\.00/ });
+
+    await act(async () => {
+      fireEvent.press(save);
+      fireEvent.press(save);
     });
+
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    expect(mockPost).toHaveBeenCalledTimes(1);
   });
 
   it('F2: Add another reloads the dashboard so the next figures include the saved expense', async () => {
@@ -223,29 +236,6 @@ describe('AddExpenseScreen', () => {
     jest.useRealTimers();
   });
 
-  it('F4: locks amount and category edits after a mapping failure until the mapping completes', async () => {
-    mockPatch.mockRejectedValueOnce(new Error('offline'));
-    await renderAdd(<AddExpenseScreen />);
-    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
-    await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
-    await waitFor(() =>
-      expect(screen.getByText('Could not save the expense. Try again.')).toBeTruthy(),
-    );
-
-    await typeAmount(['7']);
-    await userEvent.setup().press(screen.getByRole('radio', { name: 'Unplanned' }));
-
-    expect(screen.getByTestId('add-amount')).toHaveTextContent('5');
-    expect(screen.getByRole('radio', { name: 'Groceries' })).toBeChecked();
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
-    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
-    expect(mockPost).toHaveBeenCalledTimes(1);
-    expect(mockPatch).toHaveBeenLastCalledWith('/transactions/tx-1/mapping', {
-      plannedItemId: 'item-groceries',
-    });
-  });
-
   it('F5: Add another shows the refresh failure and keeps the saved state instead of editing on stale totals', async () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
@@ -281,7 +271,7 @@ describe('AddExpenseScreen', () => {
     jest.useRealTimers();
   });
 
-  it('R1-F1: a refresh that lands while Saved does not count the saved expense twice', async () => {
+  it('Saved totals: a refresh that lands while Saved does not count the saved expense twice', async () => {
     const listeners: Array<(state: string) => void> = [];
     jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
       listeners.push(listener);

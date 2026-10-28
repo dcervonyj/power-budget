@@ -20,6 +20,7 @@
   "add.save.empty": "Wpisz kwotę",
   "add.save.saving": "Zapisywanie…",
   "add.saved.title": "Dodano",
+  "add.saved.unsorted": "Zapisano, ale nie dodano do kategorii {category}. Znajdziesz to w Do sortowania.",
   "add.saved.line": "{amount} · {category}",
   "add.saved.safe": "Bezpiecznie do wydania dziś jest teraz {amount} dziennie.",
   "add.undo": "Cofnij",

@@ -73,6 +73,7 @@ export function AddExpenseScreen(): React.JSX.Element {
       accounts={load.data.accounts}
       accountId={state.accountId}
       status={state.status}
+      unsorted={state.unsorted}
       error={state.error}
       onTypedChange={state.setTyped}
       onCategoryChange={state.setCategoryId}

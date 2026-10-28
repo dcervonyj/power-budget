@@ -20,6 +20,7 @@
   "add.save.empty": "Type an amount",
   "add.save.saving": "Saving…",
   "add.saved.title": "Added",
+  "add.saved.unsorted": "Saved, but not added to {category}. Find it in To sort.",
   "add.saved.line": "{amount} · {category}",
   "add.saved.safe": "Safe to spend today is now {amount} a day.",
   "add.undo": "Undo",
