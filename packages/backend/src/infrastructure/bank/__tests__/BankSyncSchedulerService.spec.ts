@@ -45,4 +45,25 @@ describe('BankSyncSchedulerService', () => {
       ],
     ]);
   });
+
+  it('keeps enqueuing the remaining connections when one enqueue fails, then reports the failure', async () => {
+    const useCase = mock<BankSyncSchedulerUseCase>();
+    useCase.execute.mockResolvedValue([
+      { connectionId: CONN_A, householdId: HOUSEHOLD_ID },
+      { connectionId: CONN_B, householdId: HOUSEHOLD_ID },
+    ]);
+    const queue = mock<BankSyncQueuePort>();
+    queue.enqueue.mockRejectedValueOnce(new Error('Queue unavailable'));
+    queue.enqueue.mockResolvedValueOnce({ jobId: 'j' });
+    const service = new BankSyncSchedulerService(useCase, queue);
+
+    await expect(service.scheduleBankSync(new Date('2026-10-21T08:00:00.000Z'))).rejects.toThrow(
+      '1 of 2 bank sync enqueue(s) failed',
+    );
+
+    expect(queue.enqueue.mock.calls.map(([payload]) => payload.connectionId)).toEqual([
+      CONN_A,
+      CONN_B,
+    ]);
+  });
 });

@@ -10,7 +10,10 @@ import type {
   TemplateRenderer,
   NotificationClaim,
 } from '../../../domain/notifications/ports.js';
-import { QUEUE_NOTIFICATION_DISPATCH } from '../../queue/queue.constants.js';
+import {
+  QUEUE_NOTIFICATION_DISPATCH,
+  WORKER_DRAIN_DELAY_SECONDS,
+} from '../../queue/queue.constants.js';
 import type { DispatchNotificationJobPayload } from '../BullMQNotificationDispatchQueue.js';
 
 export const SUBJECT_BY_KIND: Record<NotificationOutbox['kind'], string> = {
@@ -43,7 +46,10 @@ export class NotificationBusyError extends Error {
   }
 }
 
-@Processor(QUEUE_NOTIFICATION_DISPATCH, { concurrency: 5 })
+@Processor(QUEUE_NOTIFICATION_DISPATCH, {
+  concurrency: 5,
+  drainDelay: WORKER_DRAIN_DELAY_SECONDS,
+})
 export class DispatchNotificationProcessor extends WorkerHost {
   constructor(
     private readonly outbox: NotificationRepository,

@@ -59,7 +59,21 @@ export class NotificationCronService {
   private async relayPendingToQueue(): Promise<void> {
     const pending = await this.notificationRepo.findPendingBatch(100);
     for (const notification of pending) {
-      await this.dispatchQueue.schedule(notification.id);
+      await this.scheduleOne(notification.id);
+    }
+  }
+
+  /**
+   * A failed schedule (Redis unreachable beyond the enqueue bound) must not skip the rest of
+   * the batch; the row stays pending and the next 5-minute relay tick retries it.
+   */
+  private async scheduleOne(outboxId: string): Promise<void> {
+    try {
+      await this.dispatchQueue.schedule(outboxId);
+    } catch (err) {
+      this.logger.warn(
+        `Outbox ${outboxId} not scheduled, left for the next relay: ${err instanceof Error ? err.message : String(err)}`,
+      );
     }
   }
 }
