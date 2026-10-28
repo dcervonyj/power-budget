@@ -195,6 +195,33 @@ describe('CategorizeSheetView', () => {
     expect(onRetryChoices).toHaveBeenCalledTimes(1);
   });
 
+  it('warns that the balances may be old and retries the refresh', async () => {
+    const onRetryChoices = jest.fn();
+    await view({ choicesStale: true, onRetryChoices });
+
+    expect(
+      screen.getByText('Could not refresh the balances. The previews may be out of date.'),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRetryChoices).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the plan of each category only when several plans are offered', async () => {
+    await view();
+    expect(screen.queryByText('October')).toBeNull();
+  });
+
+  it('names the plan of each category when several plans are offered', async () => {
+    const base = sessionOf(ORLEN);
+    const options = base.options.map((option, index) =>
+      index === 1 ? { ...option, planName: 'November' } : option,
+    );
+    await view({ session: sessionOf(ORLEN, { options }) });
+
+    expect(screen.getByText('November')).toBeOnTheScreen();
+    expect(screen.getAllByText('October').length).toBeGreaterThan(0);
+  });
+
   it('says so when no category fits', async () => {
     await view({
       session: sessionOf(ORLEN, { options: [], picked: undefined, impact: undefined }),

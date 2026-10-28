@@ -163,6 +163,41 @@ describe('useToSort', () => {
     await act(async () => result.current.reload());
 
     expect(result.current.choicesStatus).toBe('ready');
+    await waitFor(() => expect(result.current.choicesStale).toBe(true));
+
+    await act(async () => result.current.retryChoices());
+
+    await waitFor(() => expect(result.current.choicesStale).toBe(false));
+  });
+
+  it('loads the choices of every active plan, not only the one covering today', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    plans.mockResolvedValue([
+      { id: 'now', name: 'October', period: { start: '2000-01-01', end: '2999-12-31' } },
+      { id: 'next', name: 'November', period: { start: '2998-01-01', end: '2998-12-31' } },
+    ] as never);
+    dashboard.mockImplementation(async (id: string) =>
+      dashboardOf(id === 'now' ? 'item-now' : 'item-next', '100'),
+    );
+    const { result } = await renderHook(() => useToSort());
+
+    await waitFor(() => expect(result.current.choices).toHaveLength(2));
+
+    expect(result.current.choices.map((c) => [c.plannedItemId, c.planName])).toEqual([
+      ['item-now', 'October'],
+      ['item-next', 'November'],
+    ]);
+  });
+
+  it('offers choices when no plan covers today', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    plans.mockResolvedValue([
+      { id: 'next', name: 'November', period: { start: '2998-01-01', end: '2998-12-31' } },
+    ] as never);
+    dashboard.mockResolvedValue(dashboardOf('item-next', '100'));
+    const { result } = await renderHook(() => useToSort());
+
+    await waitFor(() => expect(result.current.choices).toHaveLength(1));
   });
 
   it('ignores a category load that finishes after a newer one', async () => {

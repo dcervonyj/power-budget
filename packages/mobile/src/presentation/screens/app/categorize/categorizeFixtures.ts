@@ -48,6 +48,7 @@ function choice(
   return {
     plannedItemId,
     name,
+    planName: 'October',
     direction,
     plannedMinor,
     spentMinor,

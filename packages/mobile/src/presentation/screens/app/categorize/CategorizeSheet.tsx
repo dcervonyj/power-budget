@@ -8,6 +8,7 @@ export interface CategorizeSheetProps {
   readonly sheet: SheetState;
   readonly choices: readonly CategoryChoice[];
   readonly choicesStatus: LoadStatus;
+  readonly choicesStale: boolean;
   readonly onRetryChoices: () => void;
   readonly busyIds: Set<string>;
   readonly write: (transactionId: string, plannedItemId: string | null) => Promise<void>;
@@ -35,6 +36,7 @@ export function CategorizeSheet(props: CategorizeSheetProps): React.JSX.Element 
       onClose={props.onClose}
       session={session}
       choicesStatus={props.choicesStatus}
+      choicesStale={props.choicesStale}
       onRetryChoices={props.onRetryChoices}
       onBackToTransactions={props.onBackToTransactions}
     />

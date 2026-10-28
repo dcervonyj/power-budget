@@ -37,6 +37,7 @@
   "categorize.undo": "Undo",
   "categorize.choices.loading": "Loading categories",
   "categorize.choices.error": "Could not load the categories.",
+  "categorize.choices.stale": "Could not refresh the balances. The previews may be out of date.",
   "categorize.choices.empty": "No category in the current plan fits this payment.",
   "categorize.error.confirm": "Could not sort the payment. Try again.",
   "categorize.error.undo": "Could not undo. The payment is still sorted."
