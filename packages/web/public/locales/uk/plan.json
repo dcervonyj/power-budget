@@ -15,5 +15,14 @@
   "plan.editor.limit.label": "Ліміт: {category}",
   "plan.editor.limit.decrease": "Зменшити ліміт: {category}",
   "plan.editor.limit.increase": "Збільшити ліміт: {category}",
-  "plan.editor.addItem.title": "Додати позицію"
+  "plan.editor.addItem.title": "Додати позицію",
+  "plan.matchHint.title": "Підказка для зіставлення",
+  "plan.matchHint.description": "Допомагає автоматично зіставляти банківські транзакції з цією позицією.",
+  "plan.matchHint.counterparty": "Контрагент містить",
+  "plan.matchHint.amount": "Очікувана сума",
+  "plan.matchHint.tolerance": "Допуск суми (±)",
+  "plan.matchHint.dayOfMonth": "День місяця",
+  "plan.matchHint.dayWindow": "Вікно днів (± днів)",
+  "plan.matchHint.save": "Зберегти підказку",
+  "plan.matchHint.invalid": "Перевірте виділені поля підказки. Допуск потребує суми, а вікно днів потребує дня."
 }

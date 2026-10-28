@@ -4,6 +4,8 @@ import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { BankAccountId, HouseholdId, IsoDate, TransactionId, UserId } from '@power-budget/core';
 import * as schema from '../../../drizzle/schema.js';
+import { SuggestFromPlannedHintsUseCase } from '../../application/categorisation/SuggestFromPlannedHintsUseCase.js';
+import { DrizzlePlannedHintReader } from '../../infrastructure/categorisation/DrizzlePlannedHintReader.js';
 import { SuggestFromMerchantRulesUseCase } from '../../application/categorisation/SuggestFromMerchantRulesUseCase.js';
 import { DrizzleMerchantRuleRepository } from '../../infrastructure/categorisation/DrizzleMerchantRuleRepository.js';
 import { DrizzlePlannedItemResolver } from '../../infrastructure/categorisation/DrizzlePlannedItemResolver.js';
@@ -87,6 +89,7 @@ describe('Integration: bank ingest edge cases (CLN-039)', () => {
         new DrizzleMerchantRuleRepository(db),
         new DrizzlePlannedItemResolver(db),
       ),
+      new SuggestFromPlannedHintsUseCase(new DrizzlePlannedHintReader(db)),
     );
   });
 

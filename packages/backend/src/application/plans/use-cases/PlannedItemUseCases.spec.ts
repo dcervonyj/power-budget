@@ -76,6 +76,7 @@ describe('AddPlannedItemUseCase', () => {
       direction: 'expense',
       amount: AMOUNT,
       note: null,
+      matchHint: null,
     });
     expect(auditLog.record).toHaveBeenCalledWith({
       householdId: HH,
@@ -84,6 +85,21 @@ describe('AddPlannedItemUseCase', () => {
       subjectType: 'PlannedItem',
       subjectId: NEW_ID,
     });
+  });
+
+  it('stores the match hint on the new item', async () => {
+    const matchHint = {
+      counterpartyPattern: 'Landlord',
+      amount: { amountMinor: 160000n, toleranceMinor: 0n },
+      day: null,
+    };
+    planRepo.findById.mockResolvedValue(makePlan());
+    categoryRepo.findById.mockResolvedValue(makeCategory());
+    itemRepo.add.mockResolvedValue(makeItem({ id: PlannedItemId.of(NEW_ID), matchHint }));
+
+    await useCase().execute({ ...input, matchHint });
+
+    expect(itemRepo.add).toHaveBeenCalledWith(expect.objectContaining({ matchHint }));
   });
 
   it('rejects an unknown or archived category', async () => {

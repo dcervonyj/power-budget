@@ -15,5 +15,14 @@
   "plan.editor.limit.label": "Лимит: {category}",
   "plan.editor.limit.decrease": "Уменьшить лимит: {category}",
   "plan.editor.limit.increase": "Увеличить лимит: {category}",
-  "plan.editor.addItem.title": "Добавить позицию"
+  "plan.editor.addItem.title": "Добавить позицию",
+  "plan.matchHint.title": "Подсказка для сопоставления",
+  "plan.matchHint.description": "Помогает автоматически сопоставлять банковские транзакции с этой позицией.",
+  "plan.matchHint.counterparty": "Контрагент содержит",
+  "plan.matchHint.amount": "Ожидаемая сумма",
+  "plan.matchHint.tolerance": "Допуск суммы (±)",
+  "plan.matchHint.dayOfMonth": "День месяца",
+  "plan.matchHint.dayWindow": "Окно дней (± дней)",
+  "plan.matchHint.save": "Сохранить подсказку",
+  "plan.matchHint.invalid": "Проверьте выделенные поля подсказки. Допуск требует суммы, а окно дней требует дня."
 }

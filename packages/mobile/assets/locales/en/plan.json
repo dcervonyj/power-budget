@@ -54,5 +54,15 @@
   "plan.archive.body": "Are you sure you want to archive this plan?",
   "plan.archive.cancel": "Cancel",
   "plan.archive.confirm": "Archive",
-  "plan.error.categories": "Could not load categories."
+  "plan.error.categories": "Could not load categories.",
+  "plan.matchHint.title": "Match hint",
+  "plan.matchHint.description": "Helps match bank transactions to this item automatically.",
+  "plan.matchHint.counterparty": "Counterparty contains",
+  "plan.matchHint.amount": "Expected amount",
+  "plan.matchHint.tolerance": "Amount tolerance (±)",
+  "plan.matchHint.dayOfMonth": "Day of month",
+  "plan.matchHint.dayWindow": "Day window (± days)",
+  "plan.matchHint.toggle": "Match hint: {name}",
+  "plan.matchHint.save": "Save hint",
+  "plan.matchHint.invalid": "Check the highlighted hint fields. A tolerance needs an amount, and a day window needs a day."
 }

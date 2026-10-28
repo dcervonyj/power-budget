@@ -14,6 +14,8 @@ import { IngestBankTransactionsUseCase } from '../../application/transactions/us
 import { CategorisationModule } from '../categorisation/CategorisationModule.js';
 import { DrizzleMerchantRuleRepository } from '../categorisation/DrizzleMerchantRuleRepository.js';
 import { DrizzlePlannedItemResolver } from '../categorisation/DrizzlePlannedItemResolver.js';
+import { SuggestFromPlannedHintsUseCase } from '../../application/categorisation/SuggestFromPlannedHintsUseCase.js';
+import { DrizzlePlannedHintReader } from '../categorisation/DrizzlePlannedHintReader.js';
 import { SuggestFromMerchantRulesUseCase } from '../../application/categorisation/SuggestFromMerchantRulesUseCase.js';
 import { DrizzleTransactionRepository } from '../transactions/DrizzleTransactionRepository.js';
 
@@ -36,12 +38,22 @@ import { DrizzleTransactionRepository } from '../transactions/DrizzleTransaction
         new SuggestFromMerchantRulesUseCase(rules, items),
     },
     {
+      provide: SuggestFromPlannedHintsUseCase,
+      inject: [DrizzlePlannedHintReader],
+      useFactory: (hints: DrizzlePlannedHintReader) => new SuggestFromPlannedHintsUseCase(hints),
+    },
+    {
       provide: IngestBankTransactionsUseCase,
-      inject: [DrizzleTransactionRepository, SuggestFromMerchantRulesUseCase],
+      inject: [
+        DrizzleTransactionRepository,
+        SuggestFromMerchantRulesUseCase,
+        SuggestFromPlannedHintsUseCase,
+      ],
       useFactory: (
         txRepo: DrizzleTransactionRepository,
         merchantRules: SuggestFromMerchantRulesUseCase,
-      ) => new IngestBankTransactionsUseCase(txRepo, uuidv7, merchantRules),
+        plannedHints: SuggestFromPlannedHintsUseCase,
+      ) => new IngestBankTransactionsUseCase(txRepo, uuidv7, merchantRules, plannedHints),
     },
     {
       provide: BankSyncProcessor,

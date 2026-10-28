@@ -425,6 +425,8 @@ export const plannedItems = pgTable(
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
     note: text('note'),
+    /** AI-004: counterparty pattern, amount +- tolerance, day-of-month window (null = no hint). */
+    matchHint: jsonb('match_hint'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

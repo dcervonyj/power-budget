@@ -7,7 +7,7 @@ import {
 import React, { useCallback, useEffect, useState } from 'react';
 import { useIntl } from 'react-intl';
 import { useParams } from 'react-router-dom';
-import { isSupportedCurrency } from '@power-budget/core';
+import { isSupportedCurrency, parseMatchHintForm } from '@power-budget/core';
 import type {
   CategoryDto,
   CreatePlannedItemDto,
@@ -24,6 +24,7 @@ import { PlannedItemHistoryDrawer } from '../../components/PlannedItemHistoryDra
 import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
 import { SkeletonBlock } from '../../components/shared/SkeletonBlock.js';
 import {
+  EMPTY_DRAFT_MATCH_HINT,
   NO_DRAFT_ERRORS,
   PlanEditorView,
   type PlanDraftErrors,
@@ -37,6 +38,7 @@ const EMPTY_DRAFT: PlanDraftItem = {
   direction: 'expense',
   amount: '',
   currency: '',
+  matchHint: EMPTY_DRAFT_MATCH_HINT,
 };
 
 interface ItemSpent {
@@ -183,12 +185,19 @@ export function PlanEditorScreen(): React.JSX.Element {
     const currency = draftItem.currency.trim().toUpperCase();
     const amountMinor = toMinorUnitsString(draftItem.amount, currency);
     // An empty or unsupported currency makes the amount unparsable too: report the currency only.
+    const hint = parseMatchHintForm(draftItem.matchHint, currency);
     setDraftErrors({
       category: !draftItem.categoryId,
       amount: isSupportedCurrency(currency) && amountMinor === null,
       currency: !isSupportedCurrency(currency),
+      matchHint: hint.kind === 'invalid' ? hint.fields : [],
     });
-    if (!draftItem.categoryId || amountMinor === null || !isSupportedCurrency(currency)) {
+    if (
+      !draftItem.categoryId ||
+      amountMinor === null ||
+      !isSupportedCurrency(currency) ||
+      hint.kind === 'invalid'
+    ) {
       return;
     }
     setSaveError(null);
@@ -199,6 +208,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         direction: draftItem.direction,
         amountMinor,
         currency,
+        ...(hint.kind === 'ok' ? { matchHint: hint.hint } : {}),
       };
       const created = await plansApi.createItem(plan.id, body);
       referenceCatalogue.invalidate();
@@ -233,14 +243,15 @@ export function PlanEditorScreen(): React.JSX.Element {
       amountMinor: changes.amountMinor ?? item.amount.amountMinor,
       currency: (changes.currency ?? item.amount.currency).trim().toUpperCase(),
     };
+    const amountChanged = changes.amountMinor !== undefined || changes.currency !== undefined;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, amount } : i)));
     try {
       if (!isSupportedCurrency(amount.currency)) {
         throw new Error(`Unsupported currency ${amount.currency}`);
       }
       const body: UpdatePlannedItemDto = {
-        amountMinor: amount.amountMinor,
-        currency: amount.currency,
+        ...(amountChanged ? { amountMinor: amount.amountMinor, currency: amount.currency } : {}),
+        ...(changes.matchHint !== undefined ? { matchHint: changes.matchHint } : {}),
       };
       const updated = await plansApi.updateItem(plan.id, item.id, body);
       referenceCatalogue.invalidate();
@@ -404,5 +415,6 @@ function toRowModel(
     currency: item.amount.currency,
     amountInput: toAmountInput(item),
     spentMinor: known ? line.amountMinor : null,
+    matchHint: item.matchHint,
   };
 }

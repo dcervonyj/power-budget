@@ -2,7 +2,13 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, Text } from 'react-native';
 import { useIntl } from 'react-intl';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { isSupportedCurrency } from '@power-budget/core';
+import {
+  EMPTY_MATCH_HINT_FORM,
+  isSupportedCurrency,
+  parseMatchHintForm,
+  type MatchHintField,
+  type MatchHintWire,
+} from '@power-budget/core';
 import type {
   CategoryDto,
   CreatePlannedItemDto,
@@ -22,7 +28,12 @@ import { useGlass } from '../../theme/index.js';
 
 type Props = NativeStackScreenProps<AppStackParamList, 'PlanEditor'>;
 
-const EMPTY_DRAFT: PlanDraftItem = { categoryId: '', direction: 'expense', amount: '' };
+const EMPTY_DRAFT: PlanDraftItem = {
+  categoryId: '',
+  direction: 'expense',
+  amount: '',
+  matchHint: EMPTY_MATCH_HINT_FORM,
+};
 
 /** Spent per planned item, in the item's currency, as the dashboard reported it. */
 type SpentByItem = ReadonlyMap<string, { amountMinor: bigint; currency: string }>;
@@ -49,6 +60,7 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
   const confirmedPeriod = useRef<PlanDto['period'] | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [draft, setDraft] = useState<PlanDraftItem>(EMPTY_DRAFT);
+  const [draftHintInvalid, setDraftHintInvalid] = useState<readonly MatchHintField[]>([]);
   // Amount saves run one after another per item, so a slow earlier save cannot overwrite a newer one.
   const saveQueues = useRef(new Map<string, Promise<void>>());
   const pendingSaves = useRef(new Map<string, number>());
@@ -165,7 +177,14 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     }
     const currency = plan.baseCurrency;
     const amountMinor = toMinorUnitsString(draft.amount, currency);
-    if (draft.categoryId === '' || amountMinor === null || !isSupportedCurrency(currency)) {
+    const hint = parseMatchHintForm(draft.matchHint, currency);
+    setDraftHintInvalid(hint.kind === 'invalid' ? hint.fields : []);
+    if (
+      draft.categoryId === '' ||
+      amountMinor === null ||
+      !isSupportedCurrency(currency) ||
+      hint.kind === 'invalid'
+    ) {
       setSaveError(text('plan.error.itemInvalid', 'Choose a category and enter an amount.'));
 
       return;
@@ -178,11 +197,13 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
         direction: draft.direction,
         amountMinor,
         currency,
+        ...(hint.kind === 'ok' ? { matchHint: hint.hint } : {}),
       };
       const created = await plansApi.createItem(plan.id, body);
       confirmedItems.current.set(created.id, created);
       setItems((previous) => [...previous, created]);
       setDraft(EMPTY_DRAFT);
+      setDraftHintInvalid([]);
       setSaveError(null);
     } catch {
       setSaveError(text('plan.error.itemAdd', 'Could not add the item.'));
@@ -212,6 +233,22 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     saveQueues.current.set(
       itemId,
       previousSave.then(() => saveAmount(planIdToSave, itemId, { amountMinor, currency })),
+    );
+  }
+
+  function handleMatchHintChange(itemId: string, matchHint: MatchHintWire | null): void {
+    if (plan === null || !items.some((candidate) => candidate.id === itemId)) {
+      return;
+    }
+    const planIdToSave = plan.id;
+    setItems((current) =>
+      current.map((entry) => (entry.id === itemId ? { ...entry, matchHint } : entry)),
+    );
+    pendingSaves.current.set(itemId, (pendingSaves.current.get(itemId) ?? 0) + 1);
+    const previousSave = saveQueues.current.get(itemId) ?? Promise.resolve();
+    saveQueues.current.set(
+      itemId,
+      previousSave.then(() => saveAmount(planIdToSave, itemId, { matchHint })),
     );
   }
 
@@ -340,6 +377,7 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       income={rows.filter((row) => row.direction === 'income')}
       limits={rows.filter((row) => row.direction === 'expense')}
       draft={draft}
+      draftHintInvalid={draftHintInvalid}
       draftCategories={categories
         .filter((category) => !category.archived && category.kind === draft.direction)
         .map((category) => ({ value: category.id, label: category.name }))}
@@ -369,6 +407,9 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       onArchive={handleArchive}
       onAmountChange={(itemId, amountMinor) => {
         handleAmountChange(itemId, amountMinor);
+      }}
+      onMatchHintChange={(itemId, matchHint) => {
+        handleMatchHintChange(itemId, matchHint);
       }}
       onRemove={(itemId) => {
         void handleRemove(itemId);
@@ -408,5 +449,6 @@ function toRowModel(
     currency: item.amount.currency,
     amountInput: toAmountInput(item.amount.amountMinor, item.amount.currency),
     spentMinor: known ? line.amountMinor : null,
+    matchHint: item.matchHint,
   };
 }

@@ -40,3 +40,6 @@ export type {
   Transaction,
   TransactionMapping,
 } from './TransactionDetailModal.js';
+
+export { MatchHintFields } from './MatchHintFields.js';
+export type { MatchHintFieldsProps } from './MatchHintFields.js';

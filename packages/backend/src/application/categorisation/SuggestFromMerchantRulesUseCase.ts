@@ -13,6 +13,9 @@ import type {
   TransactionSuggestionFields,
 } from '../../domain/transactions/entities.js';
 
+/** A planned item hint below this confidence (day-only, amount-only) does not pre-empt a rule. */
+const HINT_MERCHANT_PRECEDENCE_CONFIDENCE = 0.9;
+
 /**
  * Merchant memory at ingest (AI-003): looks the row up in the account owner's rules and
  * resolves the rule's category to the planned item of the plan that is active on the
@@ -46,7 +49,10 @@ export class SuggestFromMerchantRulesUseCase {
     householdId: HouseholdId,
     itemByRuleAndDate: Map<string, PlannedItemId | null>,
   ): Promise<TransactionSuggestionFields | null> {
-    if (row.ignored) {
+    // A confident planned item hint (AI-004) is tried first and wins; a weak one is kept unless
+    // a rule resolves to a planned item with a higher confidence.
+    const hint = row.suggestion;
+    if (row.ignored || (hint !== undefined && !isWeakHintSuggestion(hint))) {
       return null;
     }
 
@@ -73,10 +79,18 @@ export class SuggestFromMerchantRulesUseCase {
       itemByRuleAndDate.set(cacheKey, plannedItemId);
     }
 
+    const confidence = merchantRuleConfidence(rule.hits);
+    if (
+      hint !== undefined &&
+      (plannedItemId === null || confidence <= (hint.suggestionConfidence ?? 0))
+    ) {
+      return null;
+    }
+
     return {
       suggestedPlannedItemId: plannedItemId,
       suggestedCategoryId: rule.categoryId,
-      suggestionConfidence: merchantRuleConfidence(rule.hits),
+      suggestionConfidence: confidence,
       suggestionSource: 'merchant_rule',
       autoMapped: false,
     };
@@ -99,4 +113,12 @@ export class SuggestFromMerchantRulesUseCase {
 
     return resolved === null ? null : resolved.plannedItemId;
   }
+}
+
+/** A day-only or amount-only hint matches many rows; learned merchant memory is the better guess. */
+function isWeakHintSuggestion(suggestion: TransactionSuggestionFields): boolean {
+  return (
+    suggestion.suggestionSource === 'planned_hint' &&
+    (suggestion.suggestionConfidence ?? 0) < HINT_MERCHANT_PRECEDENCE_CONFIDENCE
+  );
 }

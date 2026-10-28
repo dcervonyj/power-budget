@@ -13,6 +13,7 @@ import type {
 } from '../../domain/plans/entities.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
 import { currencyOf, isoDateTimeOf, oneOf } from '../database/row-values.js';
+import { matchHintFromJson, matchHintToJson } from './match-hint-json.js';
 import { plannedItemPatchToJson } from './planned-item-version-json.js';
 import * as schema from '../../../drizzle/schema.js';
 
@@ -33,6 +34,7 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
         amountMinor: item.amount.amountMinor,
         currency: item.amount.currency,
         note: item.note ?? null,
+        matchHint: matchHintToJson(item.matchHint ?? null),
       })
       .returning();
     if (!row) {
@@ -76,6 +78,7 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
             ? { amountMinor: patch.amount.amountMinor, currency: patch.amount.currency }
             : {}),
           ...(patch.note !== undefined ? { note: patch.note } : {}),
+          ...(patch.matchHint !== undefined ? { matchHint: matchHintToJson(patch.matchHint) } : {}),
           updatedAt: new Date(),
         })
         .where(this.byId(id, scope))
@@ -89,7 +92,11 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
         id: uuidv7(),
         plannedItemId: id,
         householdId: scope.householdId,
-        before: plannedItemPatchToJson({ amount: previous.amount, note: previous.note }),
+        before: plannedItemPatchToJson({
+          amount: previous.amount,
+          note: previous.note,
+          matchHint: previous.matchHint,
+        }),
         after: plannedItemPatchToJson(patch),
         changedBy,
         reason: reason ?? null,
@@ -155,6 +162,7 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
       direction: oneOf(DIRECTIONS, row.direction, 'planned item direction'),
       amount: { amountMinor: row.amountMinor, currency: currencyOf(row.currency) },
       note: row.note,
+      matchHint: matchHintFromJson(row.matchHint),
       createdAt: isoDateTimeOf(row.createdAt),
       updatedAt: isoDateTimeOf(row.updatedAt),
     };

@@ -300,3 +300,142 @@ describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
     expect(screen.queryByTestId('tube')).toBeNull();
   });
 });
+
+describe('PlanEditorScreen match hints (AI-004)', () => {
+  const HINT = {
+    counterpartyPattern: 'Landlord',
+    amountMinor: '300000',
+    toleranceMinor: '5000',
+    dayOfMonth: 5,
+    dayWindow: 2,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    signInSettingsStore();
+    plansSpies.get.mockResolvedValue(PLAN);
+    categoriesList.mockResolvedValue(CATEGORIES);
+    plansSpies.dashboard.mockRejectedValue(new Error('no dashboard'));
+  });
+
+  it('shows a stored hint in the item row in normal units', async () => {
+    plansSpies.listItems.mockResolvedValue([{ ...RENT_ITEM, matchHint: HINT }]);
+    const { container } = renderWithProviders(<PlanEditorScreen />, {
+      url: '/plans/plan-1',
+      path: '/plans/:id',
+    });
+    await screen.findAllByLabelText('Amount');
+
+    expect(container.querySelector('#plan-item-item-rent-hint-counterpartyPattern')).toHaveValue(
+      'Landlord',
+    );
+    expect(container.querySelector('#plan-item-item-rent-hint-amount')).toHaveValue('3000.00');
+    expect(container.querySelector('#plan-item-item-rent-hint-tolerance')).toHaveValue('50.00');
+    expect(container.querySelector('#plan-item-item-rent-hint-dayOfMonth')).toHaveValue('5');
+    expect(container.querySelector('#plan-item-item-rent-hint-dayWindow')).toHaveValue('2');
+  });
+
+  it('saves an edited hint on its own, as minor units', async () => {
+    plansSpies.listItems.mockResolvedValue([RENT_ITEM]);
+    plansSpies.updateItem.mockResolvedValue({ ...RENT_ITEM, matchHint: HINT });
+    const { container } = renderWithProviders(<PlanEditorScreen />, {
+      url: '/plans/plan-1',
+      path: '/plans/:id',
+    });
+    await screen.findAllByLabelText('Amount');
+
+    const typeInto = (name: string, value: string): void => {
+      const input = container.querySelector(`#plan-item-item-rent-hint-${name}`);
+      fireEvent.change(input ?? document.body, { target: { value } });
+    };
+    typeInto('counterpartyPattern', 'Landlord');
+    typeInto('amount', '3000');
+    typeInto('tolerance', '50');
+    typeInto('dayOfMonth', '5');
+    typeInto('dayWindow', '2');
+    fireEvent.click(screen.getByRole('button', { name: 'Save hint' }));
+
+    await waitFor(() => {
+      expect(plansSpies.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
+        matchHint: HINT,
+      });
+    });
+  });
+
+  it('clears the hint when every field is emptied', async () => {
+    plansSpies.listItems.mockResolvedValue([{ ...RENT_ITEM, matchHint: HINT }]);
+    plansSpies.updateItem.mockResolvedValue({ ...RENT_ITEM, matchHint: null });
+    const { container } = renderWithProviders(<PlanEditorScreen />, {
+      url: '/plans/plan-1',
+      path: '/plans/:id',
+    });
+    await screen.findAllByLabelText('Amount');
+
+    for (const name of ['counterpartyPattern', 'amount', 'tolerance', 'dayOfMonth', 'dayWindow']) {
+      const input = container.querySelector(`#plan-item-item-rent-hint-${name}`);
+      fireEvent.change(input ?? document.body, { target: { value: '' } });
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Save hint' }));
+
+    await waitFor(() => {
+      expect(plansSpies.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
+        matchHint: null,
+      });
+    });
+  });
+
+  it('flags an invalid hint without calling the API', async () => {
+    plansSpies.listItems.mockResolvedValue([RENT_ITEM]);
+    const { container } = renderWithProviders(<PlanEditorScreen />, {
+      url: '/plans/plan-1',
+      path: '/plans/:id',
+    });
+    await screen.findAllByLabelText('Amount');
+
+    const tolerance = container.querySelector('#plan-item-item-rent-hint-tolerance');
+    fireEvent.change(tolerance ?? document.body, { target: { value: '10' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save hint' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Check the highlighted hint fields');
+    expect(plansSpies.updateItem).not.toHaveBeenCalled();
+  });
+
+  it('sends the hint typed into the new item row', async () => {
+    plansSpies.listItems.mockResolvedValue([RENT_ITEM]);
+    plansSpies.createItem.mockResolvedValue({ ...RENT_ITEM, id: 'item-new', matchHint: HINT });
+    const { container } = renderWithProviders(<PlanEditorScreen />, {
+      url: '/plans/plan-1',
+      path: '/plans/:id',
+    });
+    await screen.findAllByLabelText('Amount');
+
+    fireEvent.change(container.querySelector('#plan-new-item-category') ?? document.body, {
+      target: { value: 'cat-groceries' },
+    });
+    const amounts = screen.getAllByLabelText('Amount');
+    fireEvent.change(amounts[amounts.length - 1] ?? document.body, { target: { value: '10' } });
+    fireEvent.change(
+      container.querySelector('#plan-new-item-hint-counterpartyPattern') ?? document.body,
+      {
+        target: { value: 'Netflix' },
+      },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    await waitFor(() => {
+      expect(plansSpies.createItem).toHaveBeenCalledWith('plan-1', {
+        categoryId: 'cat-groceries',
+        direction: 'expense',
+        amountMinor: '1000',
+        currency: 'PLN',
+        matchHint: {
+          counterpartyPattern: 'Netflix',
+          amountMinor: null,
+          toleranceMinor: null,
+          dayOfMonth: null,
+          dayWindow: null,
+        },
+      });
+    });
+  });
+});

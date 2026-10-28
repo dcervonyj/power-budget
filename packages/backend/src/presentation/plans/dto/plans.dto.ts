@@ -1,17 +1,27 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { BadRequestException } from '@nestjs/common';
+import { Type } from 'class-transformer';
 import {
   IsDefined,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
   Matches,
+  Max,
   MaxLength,
+  Min,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
-import { CURRENCIES } from '@power-budget/core';
-import type { CurrencyCode } from '@power-budget/core';
+import {
+  CURRENCIES,
+  MATCH_HINT_MAX_DAY_WINDOW,
+  MATCH_HINT_PATTERN_MAX_LENGTH,
+} from '@power-budget/core';
+import type { CurrencyCode, PlannedItemMatchHint } from '@power-budget/core';
 import type {
   Plan,
   PlannedItem,
@@ -36,6 +46,68 @@ const PLANNED_MINOR_UNITS_PATTERN = /^\d{1,18}$/;
 const DATE_MESSAGE = 'must be a YYYY-MM-DD date';
 
 // ─── Requests ───────────────────────────────────────────────────────────────
+
+/** AI-004: how a planned item recognises its bank transaction. At least one part is required. */
+export class MatchHintDto {
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    maxLength: MATCH_HINT_PATTERN_MAX_LENGTH,
+    example: 'landlord',
+    description: 'Text found in the merchant, counterparty or description (ignores case/accents)',
+  })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(MATCH_HINT_PATTERN_MAX_LENGTH)
+  counterpartyPattern?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: '300000',
+    description: 'Expected amount in minor units of the item currency',
+  })
+  @IsOptional()
+  @ToMinorUnitsString()
+  @Matches(PLANNED_MINOR_UNITS_PATTERN, {
+    message: 'amountMinor must be a non-negative integer string of minor units',
+  })
+  amountMinor?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    example: '5000',
+    description: 'Allowed deviation (plus or minus) in minor units; needs amountMinor, default 0',
+  })
+  @IsOptional()
+  @ToMinorUnitsString()
+  @Matches(PLANNED_MINOR_UNITS_PATTERN, {
+    message: 'toleranceMinor must be a non-negative integer string of minor units',
+  })
+  toleranceMinor?: string | null;
+
+  @ApiPropertyOptional({ type: Number, nullable: true, minimum: 1, maximum: 31, example: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  dayOfMonth?: number | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    nullable: true,
+    minimum: 0,
+    maximum: MATCH_HINT_MAX_DAY_WINDOW,
+    description: 'Allowed deviation in days; needs dayOfMonth, default 0',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(MATCH_HINT_MAX_DAY_WINDOW)
+  dayWindow?: number | null;
+}
 
 export class ListPlansQueryDto {
   @ApiPropertyOptional({
@@ -162,6 +234,12 @@ export class CreatePlannedItemDto {
   @IsString()
   @MaxLength(500)
   note?: string | null;
+
+  @ApiPropertyOptional({ type: MatchHintDto, nullable: true })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MatchHintDto)
+  matchHint?: MatchHintDto | null;
 }
 
 export class UpdatePlannedItemDto {
@@ -193,6 +271,16 @@ export class UpdatePlannedItemDto {
   @IsString()
   @MaxLength(500)
   note?: string | null;
+
+  @ApiPropertyOptional({
+    type: MatchHintDto,
+    nullable: true,
+    description: 'null clears the hint',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MatchHintDto)
+  matchHint?: MatchHintDto | null;
 
   @ApiPropertyOptional({ type: String, maxLength: 500, description: 'Stored in the item history' })
   @IsOptional()
@@ -259,6 +347,9 @@ export class PlannedItemDto {
   @ApiProperty({ type: String, nullable: true })
   note!: string | null;
 
+  @ApiProperty({ type: MatchHintDto, nullable: true })
+  matchHint!: MatchHintDto | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   createdAt!: string;
 
@@ -272,6 +363,9 @@ export class PlannedItemChangeDto {
 
   @ApiPropertyOptional({ type: String, nullable: true })
   note?: string | null;
+
+  @ApiPropertyOptional({ type: MatchHintDto, nullable: true })
+  matchHint?: MatchHintDto | null;
 }
 
 export class PlannedItemVersionDto {
@@ -324,6 +418,7 @@ export function toPlannedItemDto(item: PlannedItem): PlannedItemDto {
     direction: item.direction,
     amount: toMoneyDto(item.amount),
     note: item.note,
+    matchHint: toMatchHintDto(item.matchHint),
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   };
@@ -345,5 +440,53 @@ function toPlannedItemChangeDto(change: Partial<PlannedItemPatch>): PlannedItemC
   return {
     ...(change.amount !== undefined ? { amount: toMoneyDto(change.amount) } : {}),
     ...(change.note !== undefined ? { note: change.note } : {}),
+    ...(change.matchHint !== undefined ? { matchHint: toMatchHintDto(change.matchHint) } : {}),
+  };
+}
+
+export function toMatchHintDto(hint: PlannedItemMatchHint | null): MatchHintDto | null {
+  if (hint === null) {
+    return null;
+  }
+
+  return {
+    counterpartyPattern: hint.counterpartyPattern,
+    amountMinor: hint.amount === null ? null : hint.amount.amountMinor.toString(),
+    toleranceMinor: hint.amount === null ? null : hint.amount.toleranceMinor.toString(),
+    dayOfMonth: hint.day === null ? null : hint.day.dayOfMonth,
+    dayWindow: hint.day === null ? null : hint.day.window,
+  };
+}
+
+/** Throws HttpException(400) for a hint with no part set; null (clear) passes through. */
+export function matchHintFromDto(dto: MatchHintDto | null): PlannedItemMatchHint | null {
+  if (dto === null) {
+    return null;
+  }
+  const pattern = dto.counterpartyPattern?.trim() ?? '';
+  const hasAmount = dto.amountMinor !== undefined && dto.amountMinor !== null;
+  const hasDay = dto.dayOfMonth !== undefined && dto.dayOfMonth !== null;
+  if (pattern === '' && !hasAmount && !hasDay) {
+    throw new BadRequestException(
+      'matchHint needs a counterpartyPattern, amountMinor or dayOfMonth',
+    );
+  }
+
+  if (!hasAmount && dto.toleranceMinor !== undefined && dto.toleranceMinor !== null) {
+    throw new BadRequestException('matchHint toleranceMinor needs an amountMinor');
+  }
+  if (!hasDay && dto.dayWindow !== undefined && dto.dayWindow !== null) {
+    throw new BadRequestException('matchHint dayWindow needs a dayOfMonth');
+  }
+
+  return {
+    counterpartyPattern: pattern === '' ? null : pattern,
+    amount: hasAmount
+      ? {
+          amountMinor: BigInt(dto.amountMinor ?? '0'),
+          toleranceMinor: BigInt(dto.toleranceMinor ?? '0'),
+        }
+      : null,
+    day: hasDay ? { dayOfMonth: dto.dayOfMonth ?? 1, window: dto.dayWindow ?? 0 } : null,
   };
 }

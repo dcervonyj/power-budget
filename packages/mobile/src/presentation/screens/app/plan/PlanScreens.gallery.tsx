@@ -1,5 +1,6 @@
 import React from 'react';
 import { View } from 'react-native';
+import { EMPTY_MATCH_HINT_FORM } from '@power-budget/core';
 import type { PlanDto } from '@power-budget/shared-app/contract';
 import { ShellBackground } from '../../../navigation/ShellBackground.js';
 import { makeStyles } from '../../../theme/index.js';
@@ -45,6 +46,7 @@ function row(
     currency: 'PLN',
     amountInput: `${minor.slice(0, -2)}.${minor.slice(-2)}`,
     spentMinor,
+    matchHint: null,
   };
 }
 
@@ -97,7 +99,7 @@ const EDITOR: PlanEditorViewProps = {
   },
   income: INCOME,
   limits: LIMITS,
-  draft: { categoryId: '', direction: 'expense', amount: '' },
+  draft: { categoryId: '', direction: 'expense', amount: '', matchHint: EMPTY_MATCH_HINT_FORM },
   draftCategories: [
     { value: 'cat-home', label: 'Home' },
     { value: 'cat-health', label: 'Health' },
@@ -110,11 +112,13 @@ const EDITOR: PlanEditorViewProps = {
   onNameChange: noop,
   onBaseCurrencyChange: noop,
   onCustomDatesChange: noop,
+  draftHintInvalid: [],
   onDraftChange: noop,
   onAddItem: noop,
   onSave: noop,
   onArchive: noop,
   onAmountChange: noop,
+  onMatchHintChange: noop,
   onRemove: noop,
 };
 

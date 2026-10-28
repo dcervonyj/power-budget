@@ -34,7 +34,7 @@ test.describe('plan journey', () => {
 
     // The new-item row: category picker (unlabelled, placeholder "Category"), then amount and currency.
     await page.locator('#plan-new-item-category').selectOption({ label: category.name });
-    await page.getByLabel('Amount').last().fill('250.50');
+    await page.getByLabel('Amount', { exact: true }).last().fill('250.50');
     await page.getByLabel('Currency').last().fill(plan.baseCurrency);
     await page.getByRole('button', { name: 'Add item' }).click();
 
