@@ -28,7 +28,9 @@ export function PlannedItemHistoryDrawer({
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (!isOpen || loaded) return;
+    if (!isOpen || loaded) {
+      return;
+    }
     setLoading(true);
     setFailed(false);
     const fetchHistory = async (): Promise<void> => {

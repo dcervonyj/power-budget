@@ -12,6 +12,7 @@ export const DateRange = {
     if (start > end) {
       throw new Error('DateRange.start must be <= end');
     }
+
     return { start, end };
   },
 
@@ -25,6 +26,7 @@ export const DateRange = {
 
   lengthInDays(range: DateRange): number {
     const ms = Date.parse(`${range.end}T00:00:00Z`) - Date.parse(`${range.start}T00:00:00Z`);
+
     return Math.round(ms / 86_400_000) + 1;
   },
 };

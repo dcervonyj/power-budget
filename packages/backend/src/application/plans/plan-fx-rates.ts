@@ -39,10 +39,6 @@ export class PlanFxRatesLoader {
     return plan.baseCurrency;
   }
 
-  protected fetchTable(rateDate: IsoDate): Promise<FxRateTable> {
-    return this.fxRepo.getTable(rateDate, FX_CARRY_FORWARD_DAYS);
-  }
-
   /** A missing rate becomes FX_RATE_UNAVAILABLE (503) instead of an unmapped 500. */
   translateError(error: unknown, rates: PlanFxRates): unknown {
     if (error instanceof UnknownCurrencyPairError) {
@@ -50,6 +46,10 @@ export class PlanFxRatesLoader {
     }
 
     return error;
+  }
+
+  protected fetchTable(rateDate: IsoDate): Promise<FxRateTable> {
+    return this.fxRepo.getTable(rateDate, FX_CARRY_FORWARD_DAYS);
   }
 }
 

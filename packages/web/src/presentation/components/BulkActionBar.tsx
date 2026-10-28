@@ -98,7 +98,9 @@ export function BulkActionBar({
 
   const count = selectedIds.length;
 
-  if (count === 0) return null;
+  if (count === 0) {
+    return null;
+  }
 
   const handleBulkAction = async (action: BulkAction): Promise<void> => {
     setLoadingAction(action);

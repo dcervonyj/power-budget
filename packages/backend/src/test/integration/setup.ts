@@ -29,7 +29,9 @@ let containers: TestContainers | null = null;
  * starting its own containers and applying the migrations.
  */
 export async function startContainers(): Promise<TestContainers> {
-  if (containers) return containers;
+  if (containers) {
+    return containers;
+  }
 
   const sharedDb = process.env['TEST_DATABASE_URL'];
   const sharedRedis = process.env['TEST_REDIS_URL'];
@@ -73,7 +75,9 @@ export async function startContainers(): Promise<TestContainers> {
 }
 
 export async function stopContainers(): Promise<void> {
-  if (!containers) return;
+  if (!containers) {
+    return;
+  }
   const current = containers;
   containers = null;
   await current.pool.end();
@@ -81,12 +85,18 @@ export async function stopContainers(): Promise<void> {
 }
 
 export function getDb(): NodePgDatabase<typeof schema> {
-  if (!containers) throw new Error('Containers not started. Call startContainers() first.');
+  if (!containers) {
+    throw new Error('Containers not started. Call startContainers() first.');
+  }
+
   return containers.db;
 }
 
 export function getPool(): Pool {
-  if (!containers) throw new Error('Containers not started.');
+  if (!containers) {
+    throw new Error('Containers not started.');
+  }
+
   return containers.pool;
 }
 
@@ -96,7 +106,9 @@ export function getPool(): Pool {
  * `drizzle` schema and is untouched) and flushes Redis.
  */
 export async function resetState(): Promise<void> {
-  if (!containers) throw new Error('Containers not started.');
+  if (!containers) {
+    throw new Error('Containers not started.');
+  }
   const tables = await containers.pool.query<{ tablename: string }>(
     "SELECT tablename FROM pg_tables WHERE schemaname = 'public'",
   );

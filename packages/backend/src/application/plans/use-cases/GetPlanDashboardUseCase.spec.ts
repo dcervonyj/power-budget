@@ -34,6 +34,7 @@ function makeMockPlan(): Plan {
 
 function makeMockView(): PlanActualsView {
   const zero = { amountMinor: 0n, currency: 'PLN' as CurrencyCode };
+
   return {
     planId: PLAN_ID,
     period: { start: '2024-01-01' as IsoDate, end: '2024-01-31' as IsoDate },

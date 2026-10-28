@@ -29,6 +29,7 @@ function readStored(storage: KeyValueStore, key: string): string | null {
 function readInterestingCurrencies(storage: KeyValueStore): string[] {
   try {
     const raw = readStored(storage, INTERESTING_CURRENCIES_KEY);
+
     return raw ? (JSON.parse(raw) as string[]) : [];
   } catch {
     return [];

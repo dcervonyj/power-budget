@@ -21,6 +21,7 @@ export class DrizzleSyncRunRepository implements SyncRunRepository {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+
     return id;
   }
 
@@ -49,6 +50,7 @@ export class DrizzleSyncRunRepository implements SyncRunRepository {
       )
       .orderBy(desc(schema.syncRuns.lastSuccessfulAt))
       .limit(1);
+
     return rows[0]?.lastSuccessfulAt ?? null;
   }
 }

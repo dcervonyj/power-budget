@@ -16,6 +16,7 @@ export class LocaleResolver {
       return stored as SupportedLocale;
     }
     const lang = deviceLanguageCode.split('-')[0] ?? 'en';
+
     return (SUPPORTED as readonly string[]).includes(lang) ? (lang as SupportedLocale) : 'en';
   }
 }

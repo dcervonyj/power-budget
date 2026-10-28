@@ -36,6 +36,7 @@ export class DrizzlePlannedItemVersionRepository implements PlannedItemVersionRe
         ),
       )
       .orderBy(desc(schema.plannedItemVersions.changedAt), desc(schema.plannedItemVersions.id));
+
     return rows.map((r) => this.toEntity(r));
   }
 
