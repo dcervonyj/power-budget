@@ -7,7 +7,7 @@ export function OnboardingScreen(): React.JSX.Element {
   const navigate = useNavigate();
 
   function handleComplete(): void {
-    navigate(ROUTE_PATHS.dashboard);
+    void navigate(ROUTE_PATHS.dashboard);
   }
 
   return <OnboardingWizard onComplete={handleComplete} />;

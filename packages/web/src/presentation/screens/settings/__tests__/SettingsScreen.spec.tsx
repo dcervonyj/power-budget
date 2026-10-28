@@ -36,6 +36,18 @@ describe('SettingsScreen appearance', () => {
     );
   });
 
+  it('moves the current marker when another tab link is clicked', () => {
+    renderWithProviders(<SettingsScreen />, {
+      url: '/settings/appearance',
+      path: '/settings/*',
+    });
+
+    fireEvent.click(screen.getByRole('link', { name: 'Currency' }));
+
+    expect(screen.getByRole('link', { name: 'Currency' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'Appearance' })).not.toHaveAttribute('aria-current');
+  });
+
   it('changes data-theme when Day is chosen and keeps the choice after a reload', () => {
     renderWithProviders(<SettingsAppearanceTab />);
 
