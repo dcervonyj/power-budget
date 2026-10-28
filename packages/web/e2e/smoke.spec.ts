@@ -18,6 +18,7 @@ test.describe('smoke', () => {
     // Accept 200 (dev server) or handle when server is not running
     if (!response || response.status() >= 500) {
       test.skip(true, 'Dev server not running');
+
       return;
     }
     // App container should be present
@@ -31,6 +32,7 @@ test.describe('smoke', () => {
     const response = await tryGoto(page, '/dashboard');
     if (!response || response.status() >= 500) {
       test.skip(true, 'Dev server not running');
+
       return;
     }
 
@@ -54,6 +56,7 @@ test.describe('smoke', () => {
     const response = await tryGoto(page, '/settings/profile');
     if (!response || response.status() >= 500) {
       test.skip(true, 'Dev server not running');
+
       return;
     }
 
@@ -67,6 +70,7 @@ test.describe('smoke', () => {
     const response = await tryGoto(page, '/login');
     if (!response || response.status() >= 500) {
       test.skip(true, 'Dev server not running');
+
       return;
     }
 
