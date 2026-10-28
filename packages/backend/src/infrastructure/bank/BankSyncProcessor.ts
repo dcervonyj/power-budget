@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import type { Job } from 'bullmq';
+import { UnrecoverableError, type Job } from 'bullmq';
 import type { BankConnectionId, HouseholdId } from '@power-budget/core';
 import type {
   BankConnectionRepository,
@@ -10,6 +10,7 @@ import type {
   BankConnectorRegistry,
 } from '../../domain/bank/ports.js';
 import type { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
+import { isBankConnectorFailure } from '../../domain/bank/errors.js';
 import { QUEUE_BANK_SYNC, WORKER_DRAIN_DELAY_SECONDS } from '../queue/queue.constants.js';
 import { bullmqBackoffStrategy } from '../queue/retry-config.js';
 
@@ -109,6 +110,10 @@ export class BankSyncProcessor extends WorkerHost {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       await this.syncRunRepo.finish(syncRunId, { ok: false, fetched: 0, error: message });
+      if (isBankConnectorFailure(err) && err.code === 'provider_data') {
+        // The provider data is wrong, so a retry fails the same way: stop BullMQ from retrying.
+        throw new UnrecoverableError(message);
+      }
       throw err;
     }
   }
