@@ -1,0 +1,200 @@
+import { parseMinorUnits } from '@power-budget/core';
+import type { MinorUnitAmount } from '@power-budget/core';
+import { lightFraction } from '@power-budget/shared-app';
+import type { PlanDashboardResponseDto } from '@power-budget/shared-app/contract';
+
+export type Direction = 'income' | 'expense';
+
+/** One planned item of the current plan a payment can be sorted into. */
+export interface CategoryChoice {
+  readonly plannedItemId: string;
+  readonly name: string;
+  /** The plan the item belongs to: several active plans can offer the same category. */
+  readonly planName: string;
+  readonly direction: Direction;
+  readonly plannedMinor: bigint;
+  /** What is already spent (or received) in it, from the plan dashboard. */
+  readonly spentMinor: bigint;
+  readonly currency: string;
+  /** The plan period, inclusive ISO dates: the dashboard counts only payments inside it. */
+  readonly periodStart: string;
+  readonly periodEnd: string;
+}
+
+/** The payment the sheet sorts. `amountMinor` is signed: negative is money out. */
+export interface Payment {
+  readonly id: string;
+  readonly amountMinor: bigint;
+  readonly currency: string;
+  /** The booking day, ISO date. */
+  readonly day: string;
+  readonly suggestedPlannedItemId: string | null;
+}
+
+/**
+ * `drain`: an expense in the plan's currency, so the rod can show what is left after it.
+ * `income`: the payment adds to an income line, no rod. `foreign`: another currency than the plan's,
+ * so no number is guessed. `noPlan`: the item has no planned amount. `outside`: the payment is dated
+ * outside the plan period, where the dashboard does not count it either.
+ */
+export type ImpactKind = 'drain' | 'income' | 'foreign' | 'noPlan' | 'outside';
+export type ImpactPhase = 'under' | 'crossing' | 'alreadyOver';
+
+export interface Impact {
+  readonly kind: ImpactKind;
+  readonly phase: ImpactPhase;
+  readonly planned: MinorUnitAmount;
+  readonly before: MinorUnitAmount;
+  readonly after: MinorUnitAmount;
+  /** Light left after the payment, 0..1. */
+  readonly fraction: number;
+  readonly state: 'under' | 'over' | 'empty';
+}
+
+export function choicesOf(
+  dashboard: PlanDashboardResponseDto,
+  planName: string,
+  categoryNames: ReadonlyMap<string, string>,
+): CategoryChoice[] {
+  const lines = [
+    ...dashboard.expenseLines.map((line) => ({ line, direction: 'expense' as const })),
+    ...dashboard.incomeLines.map((line) => ({ line, direction: 'income' as const })),
+  ];
+
+  return lines.map(({ line, direction }) => ({
+    plannedItemId: line.plannedItemId,
+    name: categoryNames.get(line.categoryId) ?? '',
+    planName,
+    direction,
+    plannedMinor: parseMinorUnits(line.planned.amountMinor),
+    spentMinor: parseMinorUnits(line.actual.amountMinor),
+    currency: dashboard.baseCurrency,
+    periodStart: dashboard.period.start,
+    periodEnd: dashboard.period.end,
+  }));
+}
+
+/** The choices that fit the payment's direction: the suggested one first, then those of the plan period it falls in. */
+export function choicesFor(choices: readonly CategoryChoice[], payment: Payment): CategoryChoice[] {
+  const direction: Direction = payment.amountMinor < 0n ? 'expense' : 'income';
+  const fitting = choices.filter((choice) => choice.direction === direction);
+  const suggested = fitting.filter((c) => c.plannedItemId === payment.suggestedPlannedItemId);
+  const others = fitting.filter((c) => c.plannedItemId !== payment.suggestedPlannedItemId);
+  // The plans that cover the payment's day come before the ones it falls outside of.
+  const covering = others.filter((choice) => inPeriod(choice, payment));
+  const elsewhere = others.filter((choice) => !inPeriod(choice, payment));
+
+  return [...suggested, ...covering, ...elsewhere];
+}
+
+/**
+ * One confirmed payment the balances may not include yet. `covered`: a balance load that started
+ * after its write already counts it. `undone`: a reversal of a covered entry that was undone; the
+ * loaded balances still count it until the next load. The ledger is keyed by payment id for a live
+ * entry; a reversal gets its own key, so a re-confirm to another item cannot clash with it.
+ */
+export interface LedgerEntry {
+  readonly payment: Payment;
+  readonly plannedItemId: string;
+  readonly covered: boolean;
+  readonly undone: boolean;
+}
+
+export type Ledger = ReadonlyMap<string, LedgerEntry>;
+
+/**
+ * The balances to preview `skipId` against: what the server last said, plus every confirmed payment
+ * it does not count yet, minus every undone one it still counts. `skipId` itself is taken out, so
+ * its own effect is never counted twice (also on the Confirmed card, after a refresh).
+ */
+export function balancesFor(
+  choices: readonly CategoryChoice[],
+  ledger: Ledger,
+  skipId: string,
+): CategoryChoice[] {
+  return choices.map((choice) => {
+    let spentMinor = choice.spentMinor;
+    for (const entry of ledger.values()) {
+      if (entry.plannedItemId === choice.plannedItemId && countsIn(choice, entry.payment)) {
+        spentMinor += ledgerDelta(entry, entry.payment.id === skipId);
+      }
+    }
+
+    return { ...choice, spentMinor };
+  });
+}
+
+function ledgerDelta(entry: LedgerEntry, skipped: boolean): bigint {
+  const { amountMinor } = entry.payment;
+  const size = amountMinor < 0n ? -amountMinor : amountMinor;
+  if (entry.covered) {
+    return entry.undone || skipped ? -size : 0n;
+  }
+
+  return entry.undone || skipped ? 0n : size;
+}
+
+/** What the payment does to the chosen item: its light left before and after. */
+export function impactOf(choice: CategoryChoice, payment: Payment): Impact {
+  const planned = money(choice.plannedMinor, choice.currency);
+  const before = money(choice.plannedMinor - choice.spentMinor, choice.currency);
+  const none = { planned, before, after: before, fraction: 0, state: 'empty' as const };
+  if (!inPeriod(choice, payment)) {
+    return { ...none, kind: 'outside', phase: 'under' };
+  }
+  if (choice.direction === 'income') {
+    return { ...none, kind: 'income', phase: 'under' };
+  }
+  if (payment.currency !== choice.currency) {
+    return { ...none, kind: 'foreign', phase: 'under' };
+  }
+  if (choice.plannedMinor <= 0n) {
+    return { ...none, kind: 'noPlan', phase: 'under' };
+  }
+  const spent = payment.amountMinor < 0n ? -payment.amountMinor : payment.amountMinor;
+  const after = money(before.amountMinor - spent, choice.currency);
+
+  return {
+    kind: 'drain',
+    phase: phaseOf(before.amountMinor, after.amountMinor),
+    planned,
+    before,
+    after,
+    fraction: lightFraction(after, planned),
+    state: stateOf(after.amountMinor),
+  };
+}
+
+function phaseOf(before: bigint, after: bigint): ImpactPhase {
+  if (before < 0n) {
+    return 'alreadyOver';
+  }
+
+  return after < 0n ? 'crossing' : 'under';
+}
+
+function stateOf(after: bigint): Impact['state'] {
+  if (after < 0n) {
+    return 'over';
+  }
+
+  return after === 0n ? 'empty' : 'under';
+}
+
+function countsIn(choice: CategoryChoice, payment: Payment): boolean {
+  const direction: Direction = payment.amountMinor < 0n ? 'expense' : 'income';
+
+  return (
+    direction === choice.direction &&
+    payment.currency === choice.currency &&
+    inPeriod(choice, payment)
+  );
+}
+
+function inPeriod(choice: CategoryChoice, payment: Payment): boolean {
+  return choice.periodStart <= payment.day && payment.day <= choice.periodEnd;
+}
+
+function money(amountMinor: bigint, currency: string): MinorUnitAmount {
+  return { amountMinor, currency };
+}

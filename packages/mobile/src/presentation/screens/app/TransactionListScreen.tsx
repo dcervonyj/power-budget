@@ -23,6 +23,8 @@ export function TransactionListScreen({ navigation }: Props): React.JSX.Element 
   const openDetail = (id: string): void =>
     navigation.navigate('TransactionDetail', { transactionId: id });
 
+  const openToSort = (): void => navigation.navigate('ToSort');
+
   return (
     <View style={{ flex: 1 }}>
       <TransactionListView
@@ -48,6 +50,7 @@ export function TransactionListScreen({ navigation }: Props): React.JSX.Element 
         onConfirm={list.confirm}
         onUndo={list.undo}
         onChoose={openDetail}
+        onSortAll={openToSort}
       />
       <Toast
         message={
