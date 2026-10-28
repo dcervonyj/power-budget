@@ -56,6 +56,10 @@ const useStyles = makeStyles((glass) => ({
   },
 }));
 
+// RN 0.88 has no aria-describedby/aria-invalid (AccessibilityState has no `invalid`;
+// accessibilityLabelledBy is Android-only), so the error rides on accessibilityHint, which
+// VoiceOver and TalkBack both read after the field. The visible error text is not a separate
+// focus stop (accessible=false) but stays a live region so it is announced when it appears.
 export function Input({
   label,
   placeholder,
@@ -97,6 +101,7 @@ export function Input({
           placeholder={placeholder}
           placeholderTextColor={glass.colors.faint}
           accessibilityLabel={label ?? placeholder}
+          accessibilityHint={error}
           secureTextEntry={secureTextEntry && !showText}
           keyboardType={keyboardType}
           autoCapitalize={autoCapitalize}
@@ -115,7 +120,12 @@ export function Input({
         )}
       </View>
       {error && (
-        <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.error}>
+        <Text
+          accessible={false}
+          accessibilityRole="alert"
+          accessibilityLiveRegion="polite"
+          style={styles.error}
+        >
           {error}
         </Text>
       )}
