@@ -251,6 +251,17 @@ describe('useSettings', () => {
     );
   });
 
+  it('still clears the local session when the revocation fails', async () => {
+    mockRevoke.mockRejectedValueOnce(new Error('logout stalled'));
+    const { result } = await renderHook(useSettings, { wrapper });
+    await act(async () => {
+      result.current.onSignOut();
+    });
+
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+    expect(result.current.signingOut).toBe(false);
+  });
+
   it('drops saves that are still queued when the user signs out', async () => {
     let releaseFirst: () => void = () => undefined;
     mockPatch.mockReset().mockImplementationOnce(

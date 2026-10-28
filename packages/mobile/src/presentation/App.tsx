@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { getLocales } from 'expo-localization';
 import { RootNavigator } from './navigation/RootNavigator.js';
 import { LocaleProvider } from './LocaleProvider.js';
+import { ServerLocaleSync } from './ServerLocaleSync.js';
 import type { RootStackParamList } from './navigation/types.js';
 import { apiClient, tokenStore } from '../infrastructure/index.js';
 import { useIsAuthenticated } from './navigation/useIsAuthenticated.js';
@@ -86,6 +87,7 @@ export function App(): React.JSX.Element {
           sessionKey={authenticated}
           getSessionId={currentSessionId}
         >
+          <ServerLocaleSync authenticated={authenticated} />
           <AuthGate loadTokens={loadStoredTokens}>
             <BiometricGate>
               <ThemedNavigation />
