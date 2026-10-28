@@ -19,8 +19,11 @@ jest.mock('../../infrastructure/locale/index.js', () => {
   };
 });
 
-let switchTo: (locale: 'pl' | 'en', source?: 'stored' | 'server' | 'user') => void = () =>
-  undefined;
+let switchTo: (
+  locale: 'pl' | 'en',
+  source?: 'stored' | 'server' | 'user',
+  sessionId?: number,
+) => void = () => undefined;
 
 function Probe(): React.JSX.Element {
   const intl = useIntl();
@@ -31,6 +34,10 @@ function Probe(): React.JSX.Element {
 }
 
 describe('LocaleProvider', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
   it('switches language and messages at runtime', async () => {
     await render(
       <LocaleProvider deviceLanguage="en">
@@ -163,5 +170,43 @@ describe('LocaleProvider', () => {
     await waitFor(() => {
       expect(screen.getByText('Hello')).toBeOnTheScreen();
     });
+  });
+
+  it('rejects a late locale update from a previous session', async () => {
+    let sessionId = 1;
+    await render(
+      <LocaleProvider deviceLanguage="en" getSessionId={() => sessionId}>
+        <Probe />
+      </LocaleProvider>,
+    );
+
+    sessionId = 2;
+    await act(async () => {
+      switchTo('pl', 'user', 1);
+    });
+
+    expect(screen.queryByText('Cześć')).toBeNull();
+    await act(async () => {
+      switchTo('pl', 'user', 2);
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Cześć')).toBeOnTheScreen();
+    });
+  });
+
+  it('rejects a previous-session update that finishes loading after the session ended', async () => {
+    let sessionId = 1;
+    await render(
+      <LocaleProvider deviceLanguage="en" getSessionId={() => sessionId}>
+        <Probe />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      switchTo('pl', 'server', 1);
+      sessionId = 2;
+    });
+
+    expect(screen.queryByText('Cześć')).toBeNull();
   });
 });

@@ -473,4 +473,52 @@ describe('ApiClient token refresh', () => {
     expect(store.access).toBeNull();
     expect(store.refresh).toBeNull();
   });
+
+  it('revokes with a refreshed access token when the stored one has expired', async () => {
+    routes['/auth/logout'] = (config) =>
+      config.headers.Authorization === 'Bearer new-access'
+        ? { status: 204, data: {} }
+        : { status: 401, data: {} };
+    routes['/auth/refresh'] = () => ({
+      status: 201,
+      data: { accessToken: 'new-access', refreshToken: 'new-refresh' },
+    });
+
+    await createClient().revokeSession();
+
+    expect(seen.map((request) => request.url)).toEqual([
+      '/auth/logout',
+      '/auth/refresh',
+      '/auth/logout',
+    ]);
+    expect(seen[2]?.body).toEqual({ refreshToken: 'new-refresh' });
+  });
+
+  it('revokes straight away when the access token is valid, and never throws', async () => {
+    routes['/auth/logout'] = () => ({ status: 204, data: {} });
+    const client = createClient();
+
+    await client.revokeSession();
+    routes['/auth/logout'] = () => ({ status: 503, data: {} });
+    await expect(client.revokeSession()).resolves.toBeUndefined();
+
+    expect(seen.filter((request) => request.url === '/auth/refresh')).toHaveLength(0);
+  });
+
+  it('bumps the session id on sign-out and on expiry', async () => {
+    routes['/transactions'] = () => ({ status: 401, data: {} });
+    routes['/auth/refresh'] = () => ({ status: 400, data: {} });
+    const client = createClient();
+    const start = client.sessionId;
+
+    await client.invalidateSession();
+    expect(client.sessionId).toBe(start + 1);
+
+    store.access = 'old-access';
+    store.refresh = 'old-refresh';
+    await withinGuard(client.get('/transactions')).catch(() => undefined);
+
+    expect(client.sessionId).toBe(start + 2);
+    expect(unauthenticated).toBe(2);
+  });
 });

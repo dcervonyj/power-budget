@@ -39,6 +39,7 @@ const DEFAULT_REFRESH_RACE_TIMING: RefreshRaceTiming = { waitMs: 3000, pollMs: 1
 
 const AUTH_PATH_PREFIX = '/auth/';
 const REFRESH_PATH = '/auth/refresh';
+const UNAUTHORIZED = 401;
 const SESSION_REJECTED_STATUSES: readonly number[] = [400, 401];
 const ABSOLUTE_URL_ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/]+/i;
 
@@ -46,7 +47,10 @@ export class ApiClient implements HttpClient {
   private readonly _axios: AxiosInstance;
   private refreshInFlight = false;
   private refreshQueue: QueuedRequest[] = [];
-  /** Bumped on every deliberate sign-out; a refresh that started earlier must not store tokens. */
+  /**
+   * Session id: bumped whenever a session ends (sign-out or expiry). Work started under an earlier
+   * id (a refresh, a queued save, a locale update) must not touch the next session.
+   */
   private sessionEpoch = 0;
   /** Token writes and session clearing run strictly one after another through this chain. */
   private storageChain: Promise<unknown> = Promise.resolve();
@@ -112,13 +116,56 @@ export class ApiClient implements HttpClient {
     return this.request<T>({ url, method: 'DELETE', ...(headers ? { headers } : {}) });
   }
 
+  get sessionId(): number {
+    return this.sessionEpoch;
+  }
+
   /**
    * Ends the session on purpose (sign-out): refreshes already in flight are invalidated first, so
    * a late rotated pair can never be stored again after the tokens are cleared.
    */
   async invalidateSession(): Promise<void> {
-    this.sessionEpoch += 1;
     await this.endSession();
+  }
+
+  /**
+   * Revokes the refresh token on the server (best effort, never throws). /auth/logout needs a valid
+   * access token, so an expired one is refreshed first and the logout retried with the new pair.
+   */
+  async revokeSession(): Promise<void> {
+    try {
+      await this.postLogout();
+    } catch (error) {
+      if (readApiError(error).status !== UNAUTHORIZED) {
+        return;
+      }
+      await this.refreshThenLogout();
+    }
+  }
+
+  private async postLogout(): Promise<void> {
+    const refreshToken = this.tokenStore.getRefreshToken();
+    if (refreshToken) {
+      await this._axios.post('/auth/logout', { refreshToken });
+    }
+  }
+
+  private async refreshThenLogout(): Promise<void> {
+    const epoch = this.sessionEpoch;
+    const refreshToken = this.tokenStore.getRefreshToken();
+    try {
+      if (!refreshToken) {
+        return;
+      }
+      const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
+      if (epoch !== this.sessionEpoch) {
+        return;
+      }
+      await this.storeTokens(epoch, data, new Error('session ended'));
+      await this.postLogout();
+    } catch {
+      // Revocation is best effort; the caller ends the local session regardless.
+    }
   }
 
   private attachAccessToken(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
@@ -205,11 +252,7 @@ export class ApiClient implements HttpClient {
   }
 
   /** Writes the pair unless the session was invalidated; a later clear waits for this write. */
-  private storeTokens(
-    epoch: number,
-    tokens: RefreshResponse,
-    originalError: AxiosError,
-  ): Promise<void> {
+  private storeTokens(epoch: number, tokens: RefreshResponse, originalError: Error): Promise<void> {
     return this.serialize(async () => {
       if (epoch !== this.sessionEpoch) {
         throw originalError;
@@ -302,6 +345,7 @@ export class ApiClient implements HttpClient {
   }
 
   private async endSession(): Promise<void> {
+    this.sessionEpoch += 1;
     await this.serialize(() => this.tokenStore.clearTokens());
     this.onUnauthenticated?.();
   }

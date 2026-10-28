@@ -6,7 +6,7 @@ import { getLocales } from 'expo-localization';
 import { RootNavigator } from './navigation/RootNavigator.js';
 import { LocaleProvider } from './LocaleProvider.js';
 import type { RootStackParamList } from './navigation/types.js';
-import { tokenStore } from '../infrastructure/index.js';
+import { apiClient, tokenStore } from '../infrastructure/index.js';
 import { useIsAuthenticated } from './navigation/useIsAuthenticated.js';
 import { AuthGate } from './AuthGate.js';
 import { BiometricGate } from './components/BiometricGate.js';
@@ -55,6 +55,10 @@ const linking: LinkingOptions<RootStackParamList> = {
   },
 };
 
+function currentSessionId(): number {
+  return apiClient.sessionId;
+}
+
 function getDeviceLanguage(): string {
   return getLocales()[0]?.languageCode ?? 'en';
 }
@@ -77,7 +81,11 @@ export function App(): React.JSX.Element {
   return (
     <ThemeProvider>
       <FontGate>
-        <LocaleProvider deviceLanguage={getDeviceLanguage()} sessionKey={authenticated}>
+        <LocaleProvider
+          deviceLanguage={getDeviceLanguage()}
+          sessionKey={authenticated}
+          getSessionId={currentSessionId}
+        >
           <AuthGate loadTokens={loadStoredTokens}>
             <BiometricGate>
               <ThemedNavigation />
