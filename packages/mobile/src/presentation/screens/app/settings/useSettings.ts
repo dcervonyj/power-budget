@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import type { UpdateUserProfileDto, UserProfileDto } from '@power-budget/shared-app/contract';
-import { apiClient, biometricUnlockService } from '../../../../infrastructure/index.js';
+import { apiClient, biometricUnlockService, tokenStore } from '../../../../infrastructure/index.js';
 import { useAppLocale } from '../../../LocaleProvider.js';
 import { useTheme } from '../../../theme/index.js';
 import type {
@@ -20,6 +20,8 @@ export function useSettings(): SettingsViewProps {
   const { preference, setPreference } = useTheme();
   const { setLocale } = useAppLocale();
   const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
+  // Bumped on sign-out: saves still queued then belong to a finished session and are dropped.
+  const sessionGeneration = useRef(0);
   const [profile, setProfile] = useState<UserProfileDto | null>(null);
   const [loadState, setLoadState] = useState<SettingsLoadState>('loading');
   const [nameDraft, setNameDraft] = useState('');
@@ -65,7 +67,10 @@ export function useSettings(): SettingsViewProps {
 
   // Saves run one after another, so a slow earlier response can never overwrite a later one.
   function patchProfile(body: UpdateUserProfileDto): Promise<boolean> {
-    const result = saveQueue.current.then(() => sendPatch(body));
+    const generation = sessionGeneration.current;
+    const result = saveQueue.current.then(() =>
+      generation === sessionGeneration.current ? sendPatch(body) : false,
+    );
     saveQueue.current = result;
 
     return result;
@@ -114,9 +119,24 @@ export function useSettings(): SettingsViewProps {
     setBiometricEnabled(enabled);
   }
 
+  // Best effort: a failed revoke (offline, token already expired) must not keep the user signed in.
+  async function revokeRefreshToken(): Promise<void> {
+    const refreshToken = tokenStore.getRefreshToken();
+    if (refreshToken === null) {
+      return;
+    }
+    try {
+      await apiClient.post('/auth/logout', { refreshToken });
+    } catch {
+      // The local session ends regardless.
+    }
+  }
+
   async function signOut(): Promise<void> {
     setSigningOut(true);
+    sessionGeneration.current += 1;
     try {
+      await revokeRefreshToken();
       await apiClient.invalidateSession();
     } finally {
       setSigningOut(false);

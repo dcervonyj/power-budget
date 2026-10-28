@@ -7,6 +7,7 @@ import { RootNavigator } from './navigation/RootNavigator.js';
 import { LocaleProvider } from './LocaleProvider.js';
 import type { RootStackParamList } from './navigation/types.js';
 import { tokenStore } from '../infrastructure/index.js';
+import { useIsAuthenticated } from './navigation/useIsAuthenticated.js';
 import { AuthGate } from './AuthGate.js';
 import { BiometricGate } from './components/BiometricGate.js';
 import {
@@ -71,10 +72,12 @@ function ThemedNavigation(): React.JSX.Element {
 }
 
 export function App(): React.JSX.Element {
+  const authenticated = useIsAuthenticated(tokenStore);
+
   return (
     <ThemeProvider>
       <FontGate>
-        <LocaleProvider deviceLanguage={getDeviceLanguage()}>
+        <LocaleProvider deviceLanguage={getDeviceLanguage()} sessionKey={authenticated}>
           <AuthGate loadTokens={loadStoredTokens}>
             <BiometricGate>
               <ThemedNavigation />

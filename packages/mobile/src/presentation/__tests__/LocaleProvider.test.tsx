@@ -140,4 +140,28 @@ describe('LocaleProvider', () => {
       expect(screen.getByText('Cześć')).toBeOnTheScreen();
     });
   });
+
+  it("forgets the previous user's choice when the session changes", async () => {
+    const tree = (sessionKey: boolean): React.JSX.Element => (
+      <LocaleProvider deviceLanguage="en" sessionKey={sessionKey}>
+        <Probe />
+      </LocaleProvider>
+    );
+    const view = await render(tree(true));
+    await act(async () => {
+      switchTo('pl', 'user');
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Cześć')).toBeOnTheScreen();
+    });
+
+    await view.rerender(tree(false));
+    await act(async () => {
+      switchTo('en', 'server');
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Hello')).toBeOnTheScreen();
+    });
+  });
 });
