@@ -54,6 +54,14 @@ async function bootstrap() {
   });
 
   app.useGlobalFilters(new SentryExceptionFilter());
+  // SIGTERM (Render deploy) closes queues and the shared queue Redis connection (CLN-056).
+  nestApp.enableShutdownHooks();
+
+  // Response compression is deliberately NOT registered here (CLN-056 / PERF-16). Checked
+  // 28 Oct 2026: `curl -sD- -o/dev/null -H 'Accept-Encoding: gzip, br'
+  // https://power-budget-api-eu.onrender.com/health` returns `content-encoding: br` with
+  // `server: cloudflare`; Render's edge already compresses application/json (a 400 from
+  // POST /auth/login too). See docs/mvp/adr/ADR-003-render-starter-always-on.md.
 
   const port = config.port;
   await app.listen(port, '0.0.0.0');

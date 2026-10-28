@@ -3,6 +3,8 @@ import type { AppConfig } from '../../config/AppConfig.js';
 import type { QueueOptions } from 'bullmq';
 
 const sharedConnections = new Map<string, Redis>();
+/** Nest contexts (API, embedded worker) currently using each shared connection. */
+const holders = new Map<string, number>();
 
 /**
  * One ioredis connection per REDIS_URL for every BullMQ queue in the process (the API and the
@@ -29,15 +31,35 @@ export function getSharedQueueConnection(url: string): Redis {
   return connection;
 }
 
+/**
+ * Called once per Nest context on shutdown: the last holder quits the connection, so the API
+ * and the embedded worker never close it under each other.
+ */
+export async function releaseSharedQueueConnection(url: string): Promise<void> {
+  const remaining = (holders.get(url) ?? 0) - 1;
+  if (remaining > 0) {
+    holders.set(url, remaining);
+
+    return;
+  }
+  holders.delete(url);
+  const connection = sharedConnections.get(url);
+  sharedConnections.delete(url);
+  await connection?.quit().catch(() => undefined);
+}
+
 /** Closes the shared connections (graceful shutdown in tests). */
 export async function closeSharedQueueConnections(): Promise<void> {
   const open = [...sharedConnections.values()];
   sharedConnections.clear();
+  holders.clear();
   await Promise.all(open.map((connection) => connection.quit().catch(() => undefined)));
 }
 
 export function buildQueueConnectionOptions(
   config: Pick<AppConfig, 'redisUrl'>,
 ): Pick<QueueOptions, 'connection'> {
+  holders.set(config.redisUrl, (holders.get(config.redisUrl) ?? 0) + 1);
+
   return { connection: getSharedQueueConnection(config.redisUrl) };
 }

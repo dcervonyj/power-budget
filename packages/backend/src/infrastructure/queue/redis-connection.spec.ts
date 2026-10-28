@@ -1,10 +1,11 @@
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { parseAppConfig } from '../../config/AppConfig.js';
 import { Redis } from 'ioredis';
 import {
   buildQueueConnectionOptions,
   closeSharedQueueConnections,
   getSharedQueueConnection,
+  releaseSharedQueueConnection,
 } from './redis-connection.js';
 
 const UPSTASH_URL = 'rediss://default:s3cret@eu1-example-12345.upstash.io:6379';
@@ -74,5 +75,27 @@ describe('buildQueueConnectionOptions', () => {
     const options = buildQueueConnectionOptions(parseAppConfig(BASE_ENV, 'api'));
 
     expect(options.connection).toBe(getSharedQueueConnection('redis://localhost:6379'));
+  });
+});
+
+describe('releaseSharedQueueConnection', () => {
+  afterEach(async () => {
+    await closeSharedQueueConnections();
+  });
+
+  it('quits the shared connection exactly once, when the last context releases it', async () => {
+    const config = parseAppConfig(BASE_ENV, 'api');
+    buildQueueConnectionOptions(config); // API context
+    buildQueueConnectionOptions(config); // embedded worker context
+    const connection = getSharedQueueConnection(config.redisUrl);
+    const quit = vi.spyOn(connection, 'quit').mockResolvedValue('OK');
+
+    await releaseSharedQueueConnection(config.redisUrl);
+    expect(quit).not.toHaveBeenCalled();
+
+    await releaseSharedQueueConnection(config.redisUrl);
+    expect(quit).toHaveBeenCalledTimes(1);
+
+    connection.disconnect();
   });
 });
