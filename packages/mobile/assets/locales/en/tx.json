@@ -3,7 +3,7 @@
   "tx.month.over": "Over by {amount} in {month}",
   "tx.month.waiting": "{amount} waiting to sort",
   "tx.month.nothingWaiting": "Nothing waiting to sort",
-  "tx.month.sortAll": "{count, plural, one {Sort the last one} other {Sort all #}}",
+  "tx.month.sortAll": "Sort all {count}",
   "tx.filter.group": "Show",
   "tx.filter.all": "All {count}",
   "tx.filter.toSort": "To sort {count}",
@@ -36,5 +36,7 @@
   "tx.detail.statusTransfer": "Transfer",
   "tx.detail.statusToSort": "To sort",
   "tx.detail.sourceBank": "From bank",
-  "tx.detail.sourceManual": "Added by hand"
+  "tx.detail.sourceManual": "Added by hand",
+  "tx.list.moreError": "Could not load more transactions.",
+  "tx.detail.pickerError": "Could not load the categories."
 }

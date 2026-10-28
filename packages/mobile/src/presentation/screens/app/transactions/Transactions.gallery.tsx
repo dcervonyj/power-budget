@@ -18,6 +18,8 @@ const DETAIL_PROPS: TransactionDetailViewProps = {
   status: 'ready',
   transaction: DETAIL,
   options: OPTIONS,
+  optionsStatus: 'ready',
+  onRetryOptions: noop,
   pickerOpen: false,
   notes: '',
   saving: false,

@@ -3,7 +3,7 @@
   "tx.month.over": "Превышено на {amount} в {month}",
   "tx.month.waiting": "{amount} ждёт сортировки",
   "tx.month.nothingWaiting": "Ничего не ждёт сортировки",
-  "tx.month.sortAll": "{count, plural, one {Отсортировать последнюю} few {Отсортировать все #} many {Отсортировать все #} other {Отсортировать все #}}",
+  "tx.month.sortAll": "Отсортировать все {count}",
   "tx.filter.group": "Показать",
   "tx.filter.all": "Все {count}",
   "tx.filter.toSort": "К сортировке {count}",
@@ -36,5 +36,7 @@
   "tx.detail.statusTransfer": "Перевод",
   "tx.detail.statusToSort": "К сортировке",
   "tx.detail.sourceBank": "Из банка",
-  "tx.detail.sourceManual": "Добавлено вручную"
+  "tx.detail.sourceManual": "Добавлено вручную",
+  "tx.list.moreError": "Не удалось загрузить больше транзакций.",
+  "tx.detail.pickerError": "Не удалось загрузить категории."
 }

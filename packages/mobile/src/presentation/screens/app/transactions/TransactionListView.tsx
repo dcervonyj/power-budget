@@ -190,8 +190,24 @@ function ListBody(props: TransactionListViewProps): React.JSX.Element {
   if (props.status === 'error') {
     return <ErrorBanner message={labels.listError()} onRetry={props.onRetry} />;
   }
+  const loadMore =
+    props.hasMore === true && props.onLoadMore !== undefined ? (
+      <View style={styles.centered}>
+        <TransactionActionButton
+          label={labels.loadMore()}
+          onPress={props.onLoadMore}
+          disabled={props.loadingMore === true}
+        />
+      </View>
+    ) : null;
   if (props.groups.length === 0) {
-    return <EmptyState title={labels.empty(props.filter !== 'all')} />;
+    // Later pages may still hold rows for this filter, so paging stays available.
+    return (
+      <>
+        <EmptyState title={labels.empty(props.filter !== 'all')} />
+        {loadMore}
+      </>
+    );
   }
   const hasTransfer = props.groups.some((group) =>
     group.rows.some((row) => row.kind === 'transfer'),
@@ -203,15 +219,7 @@ function ListBody(props: TransactionListViewProps): React.JSX.Element {
         <DaySection key={group.day} group={group} {...props} />
       ))}
       {hasTransfer ? <Text style={styles.dim}>{labels.transfersNote()}</Text> : null}
-      {props.hasMore === true && props.onLoadMore !== undefined ? (
-        <View style={styles.centered}>
-          <TransactionActionButton
-            label={labels.loadMore()}
-            onPress={props.onLoadMore}
-            disabled={props.loadingMore === true}
-          />
-        </View>
-      ) : null}
+      {loadMore}
     </>
   );
 }

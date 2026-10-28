@@ -46,3 +46,22 @@ async function optionsOf(
 function isExpense(item: PlannedItemDto): boolean {
   return item.direction === 'expense';
 }
+
+/**
+ * The category of one planned item in any plan, archived ones included. The picker lists active
+ * plans only, so a transaction mapped into an archived plan is resolved here.
+ */
+export async function findCategoryName(
+  plansApi: Pick<PlansApi, 'list' | 'listItems'>,
+  categoriesApi: Pick<CategoriesApi, 'list'>,
+  plannedItemId: string,
+): Promise<string | undefined> {
+  const [plans, categories] = await Promise.all([
+    plansApi.list('all'),
+    categoriesApi.list({ includeArchived: true }),
+  ]);
+  const itemLists = await Promise.all(plans.map((plan) => plansApi.listItems(plan.id)));
+  const item = itemLists.flat().find((candidate) => candidate.id === plannedItemId);
+
+  return categories.find((category) => category.id === item?.categoryId)?.name;
+}
