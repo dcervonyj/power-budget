@@ -9,5 +9,7 @@
   "tx.row.change.aria": "Изменить категорию: {title}",
   "tx.sorting.title": "Сортировка",
   "tx.sorting.aria": "Отсортировано {sorted} из {total}",
-  "tx.sorting.summary": "Отсортировано: {sorted} · к сортировке: {toSort}"
+  "tx.sorting.summary": "Отсортировано: {sorted} · к сортировке: {toSort}",
+  "tx.list.monthOver": "Превышено на {amount}, месяц: {month}",
+  "tx.row.choose": "Выбрать"
 }
