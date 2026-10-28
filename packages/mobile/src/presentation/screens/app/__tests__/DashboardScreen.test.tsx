@@ -238,4 +238,68 @@ describe('DashboardScreen', () => {
     expect(screen.getByText(/Over by .*500\.00/)).toBeTruthy();
     expect(screen.queryByText(/Over by .*100\.00/)).toBeNull();
   });
+
+  it('shows the plans error when a refresh that superseded the first read fails', async () => {
+    let resolveFirst: (value: PlanDto[]) => void = () => undefined;
+    mockPlansList
+      .mockReturnValueOnce(
+        new Promise<PlanDto[]>((resolve) => {
+          resolveFirst = resolve;
+        }),
+      )
+      .mockRejectedValueOnce(new Error('offline'));
+    await renderScreen();
+
+    await pullToRefresh();
+
+    await waitFor(() => expect(screen.getByText('Could not load plans.')).toBeTruthy());
+    expect(screen.queryAllByTestId('skeleton', { includeHiddenElements: true })).toHaveLength(0);
+    // The first read lands late and is dropped: it was superseded.
+    await act(async () => {
+      resolveFirst([plan]);
+    });
+    expect(mockDashboard).not.toHaveBeenCalled();
+
+    await userEvent.press(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(screen.getByText('Food')).toBeTruthy());
+  });
+
+  it('shows the dashboard error when a refresh that superseded the first read fails', async () => {
+    let resolveFirst: (value: PlanDashboardResponseDto) => void = () => undefined;
+    mockDashboard
+      .mockReturnValueOnce(
+        new Promise<PlanDashboardResponseDto>((resolve) => {
+          resolveFirst = resolve;
+        }),
+      )
+      .mockRejectedValueOnce(new Error('offline'));
+    await renderScreen();
+    await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(1));
+
+    await pullToRefresh();
+
+    await waitFor(() => expect(screen.getByText('Could not load the overview.')).toBeTruthy());
+    expect(screen.queryAllByTestId('skeleton', { includeHiddenElements: true })).toHaveLength(0);
+    await act(async () => {
+      resolveFirst(dashboard);
+    });
+    expect(screen.queryByText('Food')).toBeNull();
+
+    await userEvent.press(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(screen.getByText('Food')).toBeTruthy());
+  });
+
+  it('keeps the shown dashboard when a later refresh fails', async () => {
+    await renderScreen();
+    await waitFor(() => expect(screen.getByText('Food')).toBeTruthy());
+    mockDashboard.mockRejectedValueOnce(new Error('offline'));
+    mockPlansList.mockRejectedValueOnce(new Error('offline'));
+
+    await pullToRefresh();
+
+    await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Food')).toBeTruthy();
+    expect(screen.queryByText('Could not load the overview.')).toBeNull();
+    expect(screen.queryByText('Could not load plans.')).toBeNull();
+  });
 });

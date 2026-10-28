@@ -67,8 +67,14 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
   const plansRequest = useRef(0);
   const dashboardRequest = useRef(0);
   const extrasRequest = useRef(0);
+  // Whether anything is on screen: a failed refresh is silent only when there is something to keep.
+  const plansShown = useRef(false);
+  const modelShown = useRef(false);
 
-  /** `silent` (focus, pull to refresh) keeps what is shown when the read fails. */
+  /**
+   * `silent` (focus, pull to refresh) keeps what is shown when the read fails; with nothing shown
+   * yet (it superseded the first read) the failure is the error state, with retry.
+   */
   const loadPlans = useCallback(
     async (silent: boolean): Promise<void> => {
       if (fixedPlanId !== null) {
@@ -85,17 +91,19 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
           return;
         }
         plansRef.current = active;
+        plansShown.current = true;
         setPlans(active);
         setPlansLoaded(true);
         // The shown plan stays selected while it is still active.
         setSelectedPlanId((current) => keepOrFirst(current, active));
         if (active.length === 0) {
           shownPlanId.current = null;
+          modelShown.current = false;
           setModel(null);
           setLoading(false);
         }
       } catch {
-        if (request === plansRequest.current && !silent) {
+        if (request === plansRequest.current && (!silent || !plansShown.current)) {
           setError('plans_failed');
           setLoading(false);
         }
@@ -119,11 +127,12 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
           planNameOf(api, planId, plansRef.current),
         ]);
         if (isLatest(request, planId)) {
+          modelShown.current = true;
           setModel(toOverviewModel(dto, planName, toCategoryNames(categories)));
           setError(null);
         }
       } catch (err) {
-        if (!silent && isLatest(request, planId)) {
+        if (isLatest(request, planId) && (!silent || !modelShown.current)) {
           setError(classifyDashboardError(err));
         }
       } finally {
@@ -181,6 +190,7 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
   }, [selectedPlanId, loadDashboard, loadExtras]);
 
   const selectPlan = useCallback((planId: string): void => {
+    modelShown.current = false;
     setModel(null);
     setSelectedPlanId(planId);
   }, []);
