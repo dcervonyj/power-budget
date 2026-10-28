@@ -45,21 +45,28 @@ describe('SettingsDataTab household deletion feedback', () => {
     expect(screen.getAllByRole('button', { name: 'Close' }).length).toBeGreaterThan(0);
   });
 
-  it('sends the delete request once and ignores clicks while it runs', () => {
+  it('sends the delete request with an empty code on the first confirm', () => {
     renderWithProviders(<SettingsDataTab />);
 
     openAndConfirm();
+
     expect(store.deleteAccount).toHaveBeenCalledTimes(1);
     expect(store.deleteAccount).toHaveBeenCalledWith('');
   });
 
-  it('does not send another request while one is running', () => {
-    store.isDeleting = true;
+  it('sends only one request when confirm is clicked again while it runs', () => {
+    store.deleteAccount.mockImplementation(() => {
+      store.isDeleting = true;
+
+      return new Promise<void>(() => undefined);
+    });
     renderWithProviders(<SettingsDataTab />);
-
     openAndConfirm();
+    const buttons = screen.getAllByRole('button', { name: 'Delete account' });
 
-    expect(store.deleteAccount).not.toHaveBeenCalled();
+    fireEvent.click(buttons[buttons.length - 1] ?? document.body);
+
+    expect(store.deleteAccount).toHaveBeenCalledTimes(1);
   });
 
   it('shows the owner-only error text when the store reports it', () => {

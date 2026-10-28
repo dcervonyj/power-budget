@@ -172,9 +172,10 @@ export function PlanEditorScreen(): React.JSX.Element {
     if (!plan) return;
     const currency = draftItem.currency.trim().toUpperCase();
     const amountMinor = toMinorUnitsString(draftItem.amount, currency);
+    // An empty or unsupported currency makes the amount unparsable too: report the currency only.
     setDraftErrors({
       category: !draftItem.categoryId,
-      amount: amountMinor === null,
+      amount: isSupportedCurrency(currency) && amountMinor === null,
       currency: !isSupportedCurrency(currency),
     });
     if (!draftItem.categoryId || amountMinor === null || !isSupportedCurrency(currency)) {
@@ -214,6 +215,7 @@ export function PlanEditorScreen(): React.JSX.Element {
 
   const handleUpdateItem = async (item: PlannedItemDto, changes: PlanItemChange): Promise<void> => {
     if (!plan) return;
+    setSaveError(null);
     const prevItems = items;
     const amount = {
       amountMinor: changes.amountMinor ?? item.amount.amountMinor,
@@ -319,6 +321,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         }}
         onDraftChange={(draft) => {
           setDraftItem(draft);
+          setSaveError(null);
           setDraftErrors(NO_DRAFT_ERRORS);
         }}
         onAddItem={() => {
