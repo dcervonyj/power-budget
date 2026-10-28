@@ -22,7 +22,11 @@ jest.mock('../components/BiometricGate.js', () => ({
 const mockLoad = jest.fn(() => Promise.resolve());
 
 jest.mock('../../infrastructure/index.js', () => ({
-  tokenStore: { load: (): Promise<void> => mockLoad() },
+  tokenStore: {
+    load: (): Promise<void> => mockLoad(),
+    isAuthenticated: (): boolean => false,
+    subscribe: (): (() => void) => () => undefined,
+  },
 }));
 jest.mock('../navigation/RootNavigator.js', () => ({
   RootNavigator: (): React.JSX.Element => <MockText>root navigator</MockText>,

@@ -1,0 +1,20 @@
+{
+  "settings.signOut": "Вийти",
+  "settings.loadError": "Не вдалося завантажити профіль.",
+  "settings.profile.title": "Профіль",
+  "settings.profile.name": "Ім’я для показу",
+  "settings.profile.save": "Зберегти зміни",
+  "settings.saved": "Збережено",
+  "settings.saveError": "Не вдалося зберегти. Спробуйте ще раз.",
+  "settings.appearance.system": "Система",
+  "settings.appearance.night": "Ніч",
+  "settings.appearance.day": "День",
+  "settings.appearance.title": "Вигляд",
+  "settings.appearance.description": "Оберіть Ніч, День або налаштування пристрою. Вибір зберігається на цьому пристрої.",
+  "settings.locale.title": "Мова",
+  "settings.currency.title": "Базова валюта",
+  "settings.biometric.title": "Біометричне розблокування",
+  "settings.biometric.description": "Запитувати Face ID, відбиток пальця або код під час відкриття застосунку.",
+  "settings.biometric.reason": "Підтвердьте, щоб увімкнути біометричне розблокування",
+  "settings.biometric.error": "Не вдалося змінити біометричне розблокування. Спробуйте ще раз."
+}

@@ -1,0 +1,20 @@
+{
+  "settings.signOut": "Wyloguj się",
+  "settings.loadError": "Nie udało się wczytać profilu.",
+  "settings.profile.title": "Profil",
+  "settings.profile.name": "Nazwa wyświetlana",
+  "settings.profile.save": "Zapisz zmiany",
+  "settings.saved": "Zapisano",
+  "settings.saveError": "Nie udało się zapisać. Spróbuj ponownie.",
+  "settings.appearance.system": "System",
+  "settings.appearance.night": "Noc",
+  "settings.appearance.day": "Dzień",
+  "settings.appearance.title": "Wygląd",
+  "settings.appearance.description": "Wybierz Noc, Dzień lub ustawienie urządzenia. Wybór jest zapamiętany na tym urządzeniu.",
+  "settings.locale.title": "Język",
+  "settings.currency.title": "Waluta bazowa",
+  "settings.biometric.title": "Odblokowanie biometryczne",
+  "settings.biometric.description": "Pytaj o Face ID, odcisk palca lub kod, gdy aplikacja się otwiera.",
+  "settings.biometric.reason": "Potwierdź, aby włączyć odblokowanie biometryczne",
+  "settings.biometric.error": "Nie udało się zmienić odblokowania biometrycznego. Spróbuj ponownie."
+}
