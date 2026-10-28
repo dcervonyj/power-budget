@@ -98,7 +98,10 @@ describe('OverviewView with the D7 spec month', () => {
     expect(screen.getByText('60%')).toBeTruthy();
     expect(screen.getByText('71%')).toBeTruthy();
     expect(screen.getByLabelText(/under pace\.$/)).toBeTruthy();
-    expect(screen.getByText(/11 points behind the calendar/)).toBeTruthy();
+    // Forecast and daily allowance are two separate statements.
+    expect(plain(String(screen.getByText(/11 points behind the calendar/).props.children))).toMatch(
+      /At this pace October closes about .*1,894 under plan\. Up to .*477 a day still keeps it within the plan\.$/,
+    );
     expect(textOf('overview-forecast')).toMatch(/At this pace: ≈ .*9,906.* spent by 31 Oct/);
   });
 
@@ -172,6 +175,9 @@ describe('OverviewView edge states', () => {
     expect(screen.getByText('0')).toBeTruthy();
     expect(screen.getAllByText('Over plan').length).toBeGreaterThan(0);
     expect(screen.getByText('Over pace')).toBeTruthy();
+    expect(screen.getByText('102%')).toBeTruthy();
+    // 102 % spent against 71 % of the month gone: 31 points, not the capped 29.
+    expect(screen.getByText(/31 points ahead of the calendar/)).toBeTruthy();
     expect(screen.getByText(/Spending is past the plan by .*200\.00/)).toBeTruthy();
   });
 

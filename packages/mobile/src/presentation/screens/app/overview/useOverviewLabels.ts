@@ -230,7 +230,7 @@ export function useOverviewLabels(): OverviewLabels {
           {
             id: 'overview.pace.summaryUnder',
             defaultMessage:
-              'Spending is {points, plural, one {# point} other {# points}} behind the calendar. Keep it near {perDay} a day and {plan} closes about {amount} under plan.',
+              'Spending is {points, plural, one {# point} other {# points}} behind the calendar. At this pace {plan} closes about {amount} under plan. Up to {perDay} a day still keeps it within the plan.',
           },
           values,
         );

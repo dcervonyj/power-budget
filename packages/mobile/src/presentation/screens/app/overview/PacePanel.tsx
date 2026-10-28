@@ -91,7 +91,7 @@ export function PacePanel({ model, timing }: PacePanelProps): React.JSX.Element 
       <Text style={text.body}>
         {labels.paceSummary({
           kind: pace.kind,
-          points: Math.abs(pace.leftPercent - pace.monthLeftPercent),
+          points: Math.abs(pace.spentPercent - pace.elapsedPercent),
           plan: model.planName,
           perDay: safeToSpend.perDay,
           versusPlan: forecast.versusPlan,

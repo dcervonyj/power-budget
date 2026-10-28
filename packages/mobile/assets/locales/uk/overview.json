@@ -30,7 +30,7 @@
   "overview.pace.planSpent": "плану витрачено",
   "overview.pace.summaryOver": "Витрати випереджають календар на {points, plural, one {# пункт} few {# пункти} many {# пунктів} other {# пункту}}. У такому темпі {plan} закриється приблизно на {amount} понад план.",
   "overview.pace.summaryOverStillUnder": "Витрати випереджають календар на {points, plural, one {# пункт} few {# пункти} many {# пунктів} other {# пункту}}. У такому темпі {plan} все одно закриється приблизно на {amount} нижче плану.",
-  "overview.pace.summaryUnder": "Витрати відстають від календаря на {points, plural, one {# пункт} few {# пункти} many {# пунктів} other {# пункту}}. Тримайтеся близько {perDay} на день, і {plan} закриється приблизно на {amount} нижче плану.",
+  "overview.pace.summaryUnder": "Витрати відстають від календаря на {points, plural, one {# пункт} few {# пункти} many {# пунктів} other {# пункту}}. У такому темпі {plan} закриється приблизно на {amount} нижче плану. До {perDay} на день ви все ще вкладаєтеся в план.",
   "overview.pace.title": "Темп",
   "overview.pace.under": "Повільніше за план",
   "overview.plans.label": "Плани",

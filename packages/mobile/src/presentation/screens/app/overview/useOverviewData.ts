@@ -92,6 +92,8 @@ export function useOverviewData(api: OverviewApi, target: OverviewTarget): Overv
         }
         plansRef.current = active;
         plansShown.current = true;
+        // Only the plans error: a dashboard error from a parallel read stays.
+        setError(clearPlansError);
         setPlans(active);
         setPlansLoaded(true);
         // The shown plan stays selected while it is still active.
@@ -290,6 +292,10 @@ function classifyDashboardError(err: unknown): OverviewError {
   }
 
   return 'failed';
+}
+
+function clearPlansError(current: OverviewError | null): OverviewError | null {
+  return current === 'plans_failed' ? null : current;
 }
 
 function keepOrFirst(current: string | null, active: readonly PlanDto[]): string | null {

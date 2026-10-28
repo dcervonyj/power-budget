@@ -141,6 +141,8 @@ describe('toOverviewModel (D7 spec month, 22 Oct 2026)', () => {
         isOver: true,
       });
       expect(timing.pace.kind).toBe('over');
+      // 12 000 of 11 800: the real share, not capped at 100 %.
+      expect(timing.pace.spentPercent).toBe(102);
       expect(timing.forecast.versusPlan.amountMinor < 0n).toBe(true);
     }
   });
