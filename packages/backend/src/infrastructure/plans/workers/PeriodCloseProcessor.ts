@@ -1,7 +1,7 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import type { Job } from 'bullmq';
 import { IsoDate } from '@power-budget/core';
-import { QUEUE_PERIOD_CLOSE } from '../../queue/queue.constants.js';
+import { QUEUE_PERIOD_CLOSE, WORKER_DRAIN_DELAY_SECONDS } from '../../queue/queue.constants.js';
 import {
   PeriodCloseUseCase,
   type PeriodCloseResult,
@@ -12,7 +12,10 @@ export interface PeriodCloseJobData {
   readonly day?: string;
 }
 
-@Processor(QUEUE_PERIOD_CLOSE, { concurrency: 1 })
+@Processor(QUEUE_PERIOD_CLOSE, {
+  concurrency: 1,
+  drainDelay: WORKER_DRAIN_DELAY_SECONDS,
+})
 export class PeriodCloseProcessor extends WorkerHost {
   constructor(private readonly periodCloseUseCase: PeriodCloseUseCase) {
     super();

@@ -12,7 +12,7 @@ import { DrizzleUserRepository } from '../../infrastructure/auth/DrizzleUserRepo
 import { DrizzleHouseholdRepository } from '../../infrastructure/auth/DrizzleHouseholdRepository.js';
 import { DrizzleUserRegistrationRepository } from '../../infrastructure/auth/DrizzleUserRegistrationRepository.js';
 import { DrizzleHouseholdExportRepository } from '../../infrastructure/auth/DrizzleHouseholdExportRepository.js';
-import { BullMQHouseholdExportQueue } from '../../infrastructure/auth/BullMQHouseholdExportQueue.js';
+import { DeferredHouseholdExportQueue } from '../../infrastructure/auth/DeferredHouseholdExportQueue.js';
 import { DrizzleMagicLinkTokenRepository } from '../../infrastructure/auth/DrizzleMagicLinkTokenRepository.js';
 import { DrizzleTotpSecretRepository } from '../../infrastructure/auth/DrizzleTotpSecretRepository.js';
 import { DrizzleHouseholdInviteRepository } from '../../infrastructure/auth/DrizzleHouseholdInviteRepository.js';
@@ -301,10 +301,10 @@ import { DrizzleUserProfileRepository } from '../../infrastructure/auth/DrizzleU
     },
     {
       provide: ExportHouseholdDataUseCase,
-      inject: [DrizzleHouseholdExportRepository, BullMQHouseholdExportQueue],
+      inject: [DrizzleHouseholdExportRepository, DeferredHouseholdExportQueue],
       useFactory: (
         exportRepo: DrizzleHouseholdExportRepository,
-        exportQueue: BullMQHouseholdExportQueue,
+        exportQueue: DeferredHouseholdExportQueue,
       ) => new ExportHouseholdDataUseCase(exportRepo, exportQueue),
     },
     {

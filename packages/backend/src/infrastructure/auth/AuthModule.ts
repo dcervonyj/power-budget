@@ -9,7 +9,7 @@ import { DrizzleUserProfileRepository } from './DrizzleUserProfileRepository.js'
 import { DrizzleHouseholdRepository } from './DrizzleHouseholdRepository.js';
 import { DrizzleUserRegistrationRepository } from './DrizzleUserRegistrationRepository.js';
 import { DrizzleHouseholdExportRepository } from './DrizzleHouseholdExportRepository.js';
-import { BullMQHouseholdExportQueue } from './BullMQHouseholdExportQueue.js';
+import { DeferredHouseholdExportQueue } from './DeferredHouseholdExportQueue.js';
 import { Argon2PasswordHashing } from './Argon2PasswordHashing.js';
 import { OtplibTotpVerifier } from './OtplibTotpVerifier.js';
 import { JwtAccessTokenIssuerAdapter } from './JwtAccessTokenIssuer.js';
@@ -30,7 +30,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleHouseholdRepository,
     DrizzleUserRegistrationRepository,
     DrizzleHouseholdExportRepository,
-    BullMQHouseholdExportQueue,
+    DeferredHouseholdExportQueue,
     DrizzleTotpSecretRepository,
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
@@ -65,7 +65,7 @@ import { EnvKekEncryption } from './EnvKekEncryption.js';
     DrizzleHouseholdRepository,
     DrizzleUserRegistrationRepository,
     DrizzleHouseholdExportRepository,
-    BullMQHouseholdExportQueue,
+    DeferredHouseholdExportQueue,
     DrizzleTotpSecretRepository,
     DrizzleMagicLinkTokenRepository,
     DrizzleHouseholdInviteRepository,
