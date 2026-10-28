@@ -171,6 +171,20 @@ describe('normaliseTransaction extraction', () => {
   });
 
   it.each([
+    ['ATM Shop', 'atm shop', 'card'],
+    ['Transfer Market', 'transfer market', 'card'],
+    ['Card Corner', 'card corner', 'unclassified'],
+    ['Fee Shop', 'fee shop', 'card'],
+    ['BLIK Cafe', 'cafe', 'blik_merchant'],
+    ['PayU Biedronka', 'biedronka', 'payu'],
+  ])('classifies only the merchant of a Wise card title: %s', (merchant, key, descriptorClass) => {
+    const result = normaliseTransaction(`Card transaction of 12.34 PLN issued by ${merchant}`);
+
+    expect(result.merchantKey).toBe(key);
+    expect(result.descriptorClass).toBe(descriptorClass);
+  });
+
+  it.each([
     ['city only', 'Warszawa', 'warszawa'],
     ['empty remainder', '', ''],
     ['mask only', '****1234', ''],

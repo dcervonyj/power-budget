@@ -90,6 +90,18 @@ describe('merchantRuleKeysOf', () => {
     },
   );
 
+  it.each([
+    ['ATM Shop', 'atm shop'],
+    ['Fee Shop', 'fee shop'],
+  ])('learns the merchant %s from a Wise card title', (merchant, pattern) => {
+    expect(
+      merchantRuleKeysOf({
+        ...noCounterparty,
+        description: `Card transaction of 12.34 PLN issued by ${merchant}`,
+      }),
+    ).toEqual([{ matchKind: 'merchant', pattern }]);
+  });
+
   it('keeps the key of a title that is not a Wise card title', () => {
     expect(
       merchantRuleKeysOf({ ...noCounterparty, description: 'Card payment to Biedronka 12.34' }),
