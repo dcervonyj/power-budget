@@ -78,6 +78,8 @@ const LIST: PlansListViewProps = {
   refreshing: false,
   error: null,
   creating: false,
+  periodKind: 'monthly' as const,
+  onPeriodKindChange: noop,
   onCreate: noop,
   onOpen: noop,
   onRefresh: noop,

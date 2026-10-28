@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type { CategoryDto, PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
 import { renderGlass } from '../../../../glass/atoms/__tests__/glassTestUtils.js';
 import { PlanEditorScreen } from '../../PlanEditorScreen.js';
@@ -8,6 +8,24 @@ import { PlansListScreen } from '../../PlansListScreen.js';
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+jest.mock('../../../../components/CustomPeriodPicker.js', () => {
+  const { Pressable, Text } = jest.requireActual('react-native');
+
+  return {
+    CustomPeriodPicker: ({ onChange }: { onChange: (start: string, end: string) => void }) => (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Pick dates"
+        onPress={() => {
+          onChange('2026-10-02', '2026-10-20');
+        }}
+      >
+        <Text>dates</Text>
+      </Pressable>
+    ),
+  };
+});
 
 const mockApi = {
   list: jest.fn(),
@@ -130,7 +148,94 @@ describe('PlanEditorScreen', () => {
     await fireEvent(field, 'endEditing');
 
     expect(await screen.findByText('Could not update the item.')).toBeTruthy();
-    expect(screen.getByLabelText('Groceries amount').props.value).toBe('2200.00');
+    await waitFor(() => {
+      expect(screen.getByLabelText('Groceries amount').props.value).toBe('2200.00');
+    });
+  });
+
+  it('keeps an unsaved name when custom dates are saved', async () => {
+    const custom = { ...PLAN, periodKind: 'custom' };
+    mockApi.get.mockResolvedValue(custom);
+    mockApi.update.mockResolvedValue({
+      ...custom,
+      name: 'Server name',
+      period: { start: '2026-10-02', end: '2026-10-20' },
+    });
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    const name = await screen.findByLabelText('Plan name');
+    await fireEvent.changeText(name, 'My draft');
+    await fireEvent(screen.getByLabelText('Plan name'), 'blur');
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Pick dates' }));
+
+    await waitFor(() => {
+      expect(mockApi.update).toHaveBeenCalledTimes(1);
+    });
+    expect(screen.getByLabelText('Plan name').props.value).toBe('My draft');
+  });
+
+  it('saves amounts of one item in order and keeps the newest value', async () => {
+    const resolvers: Array<() => void> = [];
+    mockApi.updateItem.mockImplementation(
+      (_plan: string, _item: string, body: { amountMinor: string }) =>
+        new Promise((resolve) => {
+          resolvers.push(() =>
+            resolve({ ...ITEM, amount: { amountMinor: body.amountMinor, currency: 'PLN' } }),
+          );
+        }),
+    );
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    const field = await screen.findByLabelText('Groceries amount');
+    await fireEvent.changeText(field, '10');
+    await fireEvent(field, 'endEditing');
+    await fireEvent.changeText(screen.getByLabelText('Groceries amount'), '20');
+    await fireEvent(screen.getByLabelText('Groceries amount'), 'endEditing');
+
+    expect(mockApi.updateItem).toHaveBeenCalledTimes(1);
+    await act(async () => {
+      resolvers[0]();
+    });
+    await waitFor(() => {
+      expect(mockApi.updateItem).toHaveBeenCalledTimes(2);
+    });
+    await act(async () => {
+      resolvers[1]();
+    });
+
+    expect(mockApi.updateItem.mock.calls[1][2]).toEqual({ amountMinor: '2000', currency: 'PLN' });
+    await waitFor(() => {
+      expect(screen.getByLabelText('Groceries amount').props.value).toBe('20.00');
+    });
+  });
+
+  it('rolls back only the failed item', async () => {
+    const second = { ...ITEM, id: 'item-2', categoryId: 'cat-rent' };
+    mockApi.listItems.mockResolvedValue([ITEM, second]);
+    mockCategories.list.mockResolvedValue([FOOD, { ...FOOD, id: 'cat-rent', name: 'Rent' }]);
+    mockApi.updateItem.mockImplementation(
+      (_plan: string, itemId: string, body: { amountMinor: string }) =>
+        itemId === 'item-1'
+          ? new Promise((_resolve, reject) => setTimeout(() => reject(new Error('boom')), 30))
+          : Promise.resolve({
+              ...second,
+              amount: { amountMinor: body.amountMinor, currency: 'PLN' },
+            }),
+    );
+    await renderGlass(<PlanEditorScreen {...editorProps()} />);
+
+    const food = await screen.findByLabelText('Groceries amount');
+    await fireEvent.changeText(food, '10');
+    await fireEvent(food, 'endEditing');
+    const rent = screen.getByLabelText('Rent amount');
+    await fireEvent.changeText(rent, '30');
+    await fireEvent(rent, 'endEditing');
+
+    expect(await screen.findByText('Could not update the item.')).toBeTruthy();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Groceries amount').props.value).toBe('2200.00');
+    });
+    expect(screen.getByLabelText('Rent amount').props.value).toBe('30.00');
   });
 
   it('shows a retry when the plan cannot be loaded', async () => {
@@ -191,6 +296,23 @@ describe('PlansListScreen', () => {
     expect(mockApi.create).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'New plan', type: 'personal', periodKind: 'monthly' }),
     );
+  });
+
+  it('creates a weekly plan from the chosen period kind', async () => {
+    const navigate = jest.fn();
+    mockApi.create.mockResolvedValue({ ...PLAN, id: 'plan-w' });
+    await renderGlass(<PlansListScreen {...listProps(navigate)} />);
+
+    const user = userEvent.setup();
+    await user.press(await screen.findByRole('radio', { name: 'Weekly' }));
+    await user.press(screen.getByRole('button', { name: 'Create new plan' }));
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith('PlanEditor', { planId: 'plan-w' });
+    });
+    const body = mockApi.create.mock.calls[0][0];
+    expect(body.periodKind).toBe('weekly');
+    expect(body.periodEnd).toBeUndefined();
   });
 
   it('shows a retryable error when the plans cannot be loaded', async () => {
