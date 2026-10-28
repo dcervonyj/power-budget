@@ -4,13 +4,14 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { MappingModal } from '../../../components/MappingModal.js';
+import { referenceCatalogue } from '../../../../application/catalogue/catalogueInstance.js';
 import { apiClient } from '../../../../AppProviders.js';
 import { darkTheme } from '@power-budget/design-tokens';
 
 vi.mock('../../../../AppProviders.js', async () => {
   const { BulkTransactionActions } =
     await import('../../../../application/transactions/BulkTransactionActions.js');
-  const { PlansApi } = await import('@power-budget/shared-app');
+  const { CategoriesApi, PlansApi } = await import('@power-budget/shared-app');
   const client = {
     request: vi.fn(),
     get: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('../../../../AppProviders.js', async () => {
     apiClient: client,
     bulkTransactionActions: new BulkTransactionActions(client),
     plansApi: new PlansApi(client),
+    categoriesApi: new CategoriesApi(client),
   };
 });
 
@@ -80,6 +82,7 @@ describe('MappingModal', () => {
   const onSuccess = vi.fn();
 
   beforeEach(() => {
+    referenceCatalogue.invalidate();
     vi.clearAllMocks();
     mockPost.mockResolvedValue({ status: 200, data: {}, headers: {} });
     mockGet.mockImplementation((url: string) => {
@@ -120,6 +123,36 @@ describe('MappingModal', () => {
     });
     expect(screen.getByText('June Budget')).toBeDefined();
     expect(mockGet).toHaveBeenCalledWith('/plans?status=active');
+  });
+
+  it('reuses the loaded catalogue when it is opened again, until something changes', async () => {
+    const view = render(
+      <MappingModal isOpen selectedIds={selectedIds} onClose={onClose} onSuccess={onSuccess} />,
+      { wrapper },
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Groceries')).toBeDefined();
+    });
+    view.rerender(
+      <MappingModal
+        isOpen={false}
+        selectedIds={selectedIds}
+        onClose={onClose}
+        onSuccess={onSuccess}
+      />,
+    );
+
+    view.rerender(
+      <MappingModal isOpen selectedIds={selectedIds} onClose={onClose} onSuccess={onSuccess} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Groceries')).toBeDefined();
+    });
+
+    const urls = mockGet.mock.calls.map(([url]) => url);
+    expect(urls.filter((url) => url === '/plans?status=active')).toHaveLength(1);
+    expect(urls.filter((url) => url === '/plans/plan-1/items')).toHaveLength(1);
+    expect(urls.filter((url) => url === '/categories?includeArchived=true')).toHaveLength(1);
   });
 
   it('loads planned items when plan is selected', async () => {

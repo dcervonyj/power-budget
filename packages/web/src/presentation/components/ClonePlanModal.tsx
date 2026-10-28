@@ -5,6 +5,7 @@ import { ClonePlanForm } from './ClonePlanForm.js';
 import type { CustomPeriodValue } from './CustomPeriodPicker.js';
 import type { ClonePlanDto, PlanPeriodKindDto } from '@power-budget/shared-app/contract';
 import { plansApi } from '../../AppProviders.js';
+import { referenceCatalogue } from '../../application/catalogue/catalogueInstance.js';
 
 export interface ClonePlanModalProps {
   readonly isOpen: boolean;
@@ -35,6 +36,7 @@ export function ClonePlanModal({
           ? { periodStart: customDates.startDate, periodEnd: customDates.endDate }
           : {};
       await plansApi.clone(planId, body);
+      referenceCatalogue.invalidate();
       onCloned();
       onClose();
     } catch {

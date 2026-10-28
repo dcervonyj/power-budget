@@ -1,7 +1,8 @@
 import { makeAutoObservable } from 'mobx';
 import type { PlansApi } from '@power-budget/shared-app';
 import type { PlanDto } from '@power-budget/shared-app/contract';
-import { categoriesApi, plansApi } from '../../AppProviders.js';
+import { plansApi } from '../../AppProviders.js';
+import { referenceCatalogue } from '../catalogue/catalogueInstance.js';
 import { clientSession } from '../auth/ClientSession.js';
 import { PlanDashboardStore } from './PlanDashboardStore.js';
 
@@ -56,11 +57,25 @@ export class DashboardStore {
     void this.planDashboard.load(planId);
   }
 
-  /** Re-reads the selected plan's dashboard (polling, retry). */
+  /** Re-reads the selected plan's dashboard in full (retry). */
   refresh(): void {
     if (this.selectedPlanId !== null) {
       void this.planDashboard.load(this.selectedPlanId);
     }
+  }
+
+  /** The 30 s poll: one dashboard request for the selected plan. */
+  poll(): void {
+    if (this.selectedPlanId !== null) {
+      void this.planDashboard.poll(this.selectedPlanId);
+    }
+  }
+
+  /** The Overview is left: timers of the shown dashboard stop and a late plan list is dropped. */
+  close(): void {
+    this.session += 1;
+    this.loading = false;
+    this.planDashboard.stop();
   }
 
   /** Sign-out or session end: nothing of the previous user's plans stays. */
@@ -109,7 +124,7 @@ function isPersonalMonthly(plan: PlanDto): boolean {
   return plan.type === 'personal' && plan.periodKind === 'monthly';
 }
 
-export const planDashboardStore = new PlanDashboardStore(plansApi, categoriesApi);
+export const planDashboardStore = new PlanDashboardStore(plansApi, referenceCatalogue);
 export const dashboardStore = new DashboardStore(plansApi, planDashboardStore);
 clientSession.register(planDashboardStore);
 clientSession.register(dashboardStore);

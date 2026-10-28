@@ -7,6 +7,7 @@ import { darkTheme } from '@power-budget/design-tokens';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 import { ThemeProvider } from '../../../components/ThemeContext.js';
 import { TransactionDetailScreen } from '../TransactionDetailScreen.js';
+import { referenceCatalogue } from '../../../../application/catalogue/catalogueInstance.js';
 import { apiClient } from '../../../../AppProviders.js';
 
 vi.mock('../../../components/MoneyView.js', () => ({
@@ -140,6 +141,7 @@ describe('TransactionListScreen', () => {
   });
 
   beforeEach(() => {
+    referenceCatalogue.invalidate();
     vi.clearAllMocks();
   });
 

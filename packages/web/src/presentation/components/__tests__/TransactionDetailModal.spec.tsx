@@ -5,6 +5,7 @@ import { IntlProvider } from 'react-intl';
 import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../ThemeContext.js';
 import { TransactionDetailModal } from '../TransactionDetailModal.js';
+import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 import { apiClient } from '../../../AppProviders.js';
 
 vi.mock('../MoneyView.js', () => ({
@@ -14,7 +15,7 @@ vi.mock('../MoneyView.js', () => ({
 }));
 
 vi.mock('../../../AppProviders.js', async () => {
-  const { PlansApi } = await import('@power-budget/shared-app');
+  const { CategoriesApi, PlansApi } = await import('@power-budget/shared-app');
   const client = {
     request: vi.fn(),
     get: vi.fn(),
@@ -24,7 +25,11 @@ vi.mock('../../../AppProviders.js', async () => {
     delete: vi.fn(),
   };
 
-  return { apiClient: client, plansApi: new PlansApi(client) };
+  return {
+    apiClient: client,
+    plansApi: new PlansApi(client),
+    categoriesApi: new CategoriesApi(client),
+  };
 });
 
 const mockGet = vi.mocked(apiClient.get);
@@ -53,6 +58,7 @@ const transaction = {
 
 describe('TransactionDetailModal', () => {
   beforeEach(() => {
+    referenceCatalogue.invalidate();
     vi.clearAllMocks();
     mockGet.mockImplementation((url: string) => {
       const data =
