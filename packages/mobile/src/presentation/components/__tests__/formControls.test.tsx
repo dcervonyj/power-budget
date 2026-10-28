@@ -55,7 +55,7 @@ describe('Button', () => {
 });
 
 describe('Input', () => {
-  it('reports changes and shows the error with an alert role', async () => {
+  it('reports changes and shows the error', async () => {
     const onChangeText = jest.fn();
     await renderWithProviders(
       <Input label="Email" value="" error="Required" onChangeText={onChangeText} />,
@@ -63,8 +63,24 @@ describe('Input', () => {
     await userEvent.setup().type(screen.getByLabelText('Email'), 'a');
 
     expect(onChangeText).toHaveBeenCalledWith('a');
-    expect(screen.getByRole('alert')).toBeTruthy();
     expect(screen.getByText('Required')).toBeTruthy();
+  });
+
+  it('carries the error on the field as its accessibility hint and keeps it out of the focus order', async () => {
+    await renderWithProviders(
+      <Input label="Email" value="" error="Required" onChangeText={jest.fn()} />,
+    );
+
+    expect(screen.getByLabelText('Email').props.accessibilityHint).toBe('Required');
+    expect(screen.getByText('Required').props.accessible).toBe(false);
+    expect(screen.getByText('Required').props.accessibilityLiveRegion).toBe('polite');
+  });
+
+  it('has no accessibility hint and no error text without an error', async () => {
+    await renderWithProviders(<Input label="Email" value="" onChangeText={jest.fn()} />);
+
+    expect(screen.getByLabelText('Email').props.accessibilityHint).toBeUndefined();
+    expect(screen.queryByRole('alert')).toBeNull();
   });
 
   it('toggles password visibility with a labelled button', async () => {
