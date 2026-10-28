@@ -2,18 +2,14 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import type { AuditEventDto, AuditPageDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../../../AppProviders.js';
+import { settingsStore } from '../../../../composition.js';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import { AuditLogScreen } from '../AuditLogScreen.js';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  apiClient: { get: vi.fn() },
-}));
-vi.mock('../../../../application/settings/SettingsStore.js', () => ({
-  settingsStore: { profileLoaded: true, userId: 'user-1', loadProfile: vi.fn() },
-}));
-
-const mockGet = vi.mocked(apiClient.get);
+const apiSpies = spyOnApiClient();
+const mockGet = apiSpies.get;
+const loadProfile = vi.spyOn(settingsStore, 'loadProfile');
 
 function event(id: string, action: string): AuditEventDto {
   return {
@@ -39,6 +35,9 @@ function page(data: AuditPageDto): {
 describe('AuditLogScreen', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    loadProfile.mockResolvedValue(undefined);
+    settingsStore.profileLoaded = true;
+    settingsStore.userId = 'user-1';
   });
 
   it('loads the next page with the cursor and appends it', async () => {
