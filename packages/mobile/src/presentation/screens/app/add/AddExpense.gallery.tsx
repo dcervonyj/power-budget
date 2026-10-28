@@ -29,6 +29,7 @@ const BASE: AddExpenseViewProps = {
   onUndo: ignore,
   onAddAnother: ignore,
   onRetryRefresh: ignore,
+  onRetryCategory: ignore,
   onBackToToday: ignore,
 };
 

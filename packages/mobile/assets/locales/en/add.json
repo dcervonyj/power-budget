@@ -20,7 +20,8 @@
   "add.save.empty": "Type an amount",
   "add.save.saving": "Saving…",
   "add.saved.title": "Added",
-  "add.saved.unsorted": "Saved, but not added to {category}. Find it in To sort.",
+  "add.saved.unsorted": "Saved, but not added to {category} yet.",
+  "add.retryCategory": "Retry category",
   "add.saved.line": "{amount} · {category}",
   "add.saved.safe": "Safe to spend today is now {amount} a day.",
   "add.undo": "Undo",
@@ -28,6 +29,7 @@
   "add.today": "Back to Today",
   "add.empty.noPlan": "No active plan",
   "add.error.refresh": "Could not refresh your plan. Try again.",
+  "add.error.category": "Could not apply the category. Try again.",
   "add.error.load": "Could not load your plan. Try again.",
   "add.error.save": "Could not save the expense. Try again.",
   "add.error.undo": "Could not undo the expense. Try again."

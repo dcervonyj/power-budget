@@ -49,6 +49,7 @@ export interface AddImpact {
 }
 
 /**
- * `refreshing`: Add another is waiting for fresh totals.  `undoing`: Undo is in flight. `stale`: the refresh after Add another or Undo failed; editing stays locked until Retry succeeds.
+ * `refreshing`: Add another is waiting for fresh totals.  `undoing`: Undo is in flight. `mapping`: Retry category is in flight. `stale`: the refresh after Add another or Undo failed; editing stays locked until Retry succeeds.
  */
-export type AddExpenseStatus = 'editing' | 'saving' | 'saved' | 'refreshing' | 'undoing' | 'stale';
+export type AddExpenseStatus =
+  'editing' | 'saving' | 'saved' | 'mapping' | 'refreshing' | 'undoing' | 'stale';
