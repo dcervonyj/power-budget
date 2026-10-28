@@ -44,8 +44,20 @@ export function SettingsView(props: SettingsViewProps): React.JSX.Element {
   const styles = useStyles();
   const intl = useIntl();
 
+  // Sign out stays available in every state, so a stalled profile request cannot trap the user.
+  const signOut = (
+    <Button variant="secondary" loading={props.signingOut} onPress={props.onSignOut}>
+      {intl.formatMessage({ id: 'settings.signOut', defaultMessage: 'Sign out' })}
+    </Button>
+  );
   if (props.loadState === 'loading') {
-    return <SettingsLoading />;
+    return (
+      <ScrollView contentContainerStyle={styles.page} testID="settings-loading">
+        <Skeleton height={180} />
+        <Skeleton height={120} />
+        {signOut}
+      </ScrollView>
+    );
   }
 
   return (
@@ -55,21 +67,8 @@ export function SettingsView(props: SettingsViewProps): React.JSX.Element {
       <AppearanceSection {...props} />
       {props.loadState === 'ready' ? <PreferencesSection {...props} /> : null}
       {props.biometricAvailable ? <BiometricSection {...props} /> : null}
-      <Button variant="secondary" loading={props.signingOut} onPress={props.onSignOut}>
-        {intl.formatMessage({ id: 'settings.signOut', defaultMessage: 'Sign out' })}
-      </Button>
+      {signOut}
     </ScrollView>
-  );
-}
-
-function SettingsLoading(): React.JSX.Element {
-  const styles = useStyles();
-
-  return (
-    <View style={styles.page} testID="settings-loading">
-      <Skeleton height={180} />
-      <Skeleton height={120} />
-    </View>
   );
 }
 
@@ -223,6 +222,7 @@ function PreferencesSection(props: SettingsViewProps): React.JSX.Element {
 
 function BiometricSection({
   biometricEnabled,
+  biometricError,
   onBiometricChange,
 }: SettingsViewProps): React.JSX.Element {
   const intl = useIntl();
@@ -246,6 +246,14 @@ function BiometricSection({
         </View>
         <Switch label={title} checked={biometricEnabled} onChange={onBiometricChange} />
       </View>
+      {biometricError ? (
+        <Text accessibilityRole="alert" style={styles.statusError}>
+          {intl.formatMessage({
+            id: 'settings.biometric.error',
+            defaultMessage: 'Could not change biometric unlock. Please try again.',
+          })}
+        </Text>
+      ) : null}
     </GlassPanel>
   );
 }

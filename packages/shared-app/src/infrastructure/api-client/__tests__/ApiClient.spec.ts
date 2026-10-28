@@ -593,6 +593,49 @@ describe('ApiClient token refresh', () => {
     }
   });
 
+  it('ignores a late 401 for a request that started under an earlier session', async () => {
+    routes['/transactions'] = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      return { status: 401, data: {} };
+    };
+    routes['/auth/refresh'] = () => ({ status: 400, data: {} });
+    const client = createClient();
+
+    const late = withinGuard(client.get('/transactions')).catch((error: unknown) => error);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await client.invalidateSession();
+    await store.setTokens('next-access', 'next-refresh');
+    const endedBefore = unauthenticated;
+    const outcome = await late;
+
+    expect(outcome).toBeInstanceOf(Error);
+    expect(seen.filter((request) => request.url === '/auth/refresh')).toHaveLength(0);
+    expect(store.access).toBe('next-access');
+    expect(store.refresh).toBe('next-refresh');
+    expect(unauthenticated).toBe(endedBefore);
+  });
+
+  it('does not let a stale refresh rejection end a later login', async () => {
+    routes['/transactions'] = () => ({ status: 401, data: {} });
+    routes['/auth/refresh'] = async () => {
+      await new Promise((resolve) => setTimeout(resolve, 30));
+
+      return { status: 400, data: {} };
+    };
+    const client = createClient();
+
+    const pending = withinGuard(client.get('/transactions')).catch((error: unknown) => error);
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    await client.invalidateSession();
+    await store.setTokens('next-access', 'next-refresh');
+    const endedBefore = unauthenticated;
+    await pending;
+
+    expect(store.access).toBe('next-access');
+    expect(unauthenticated).toBe(endedBefore);
+  });
+
   it('bumps the session id on sign-out and on expiry', async () => {
     routes['/transactions'] = () => ({ status: 401, data: {} });
     routes['/auth/refresh'] = () => ({ status: 400, data: {} });

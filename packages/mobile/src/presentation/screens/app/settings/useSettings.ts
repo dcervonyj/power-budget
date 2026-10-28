@@ -27,6 +27,7 @@ export function useSettings(): SettingsViewProps {
   const [preferencesError, setPreferencesError] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [biometricError, setBiometricError] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
   const load = useCallback(async (): Promise<void> => {
@@ -109,6 +110,15 @@ export function useSettings(): SettingsViewProps {
   }
 
   async function changeBiometric(enabled: boolean): Promise<void> {
+    setBiometricError(false);
+    try {
+      await applyBiometric(enabled);
+    } catch {
+      setBiometricError(true);
+    }
+  }
+
+  async function applyBiometric(enabled: boolean): Promise<void> {
     if (enabled) {
       const reason = intl.formatMessage({
         id: 'settings.biometric.reason',
@@ -143,6 +153,7 @@ export function useSettings(): SettingsViewProps {
     preferencesError,
     biometricAvailable,
     biometricEnabled,
+    biometricError,
     signingOut,
     onRetry: () => {
       void load();

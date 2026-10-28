@@ -15,5 +15,6 @@
   "settings.currency.title": "Базовая валюта",
   "settings.biometric.title": "Биометрическая разблокировка",
   "settings.biometric.description": "Запрашивать Face ID, отпечаток пальца или код при открытии приложения.",
-  "settings.biometric.reason": "Подтвердите, чтобы включить биометрическую разблокировку"
+  "settings.biometric.reason": "Подтвердите, чтобы включить биометрическую разблокировку",
+  "settings.biometric.error": "Не удалось изменить биометрическую разблокировку. Попробуйте ещё раз."
 }

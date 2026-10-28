@@ -23,7 +23,8 @@ interface SessionTokens {
   refreshToken: string;
 }
 
-type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean };
+/** `_epoch` is the session id the request started under; it survives the retry. */
+type RetryableConfig = InternalAxiosRequestConfig & { _retry?: boolean; _epoch?: number };
 
 /** The refresh answered 201 (the pair to store), or another tab's pair was adopted. */
 type RefreshOutcome =
@@ -212,7 +213,8 @@ export class ApiClient implements HttpClient {
     );
   }
 
-  private attachAccessToken(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+  private attachAccessToken(config: RetryableConfig): InternalAxiosRequestConfig {
+    config._epoch ??= this.sessionEpoch;
     const token = this.tokenStore.getAccessToken();
     if (token) {
       config.headers.Authorization = bearer(token);
@@ -232,12 +234,18 @@ export class ApiClient implements HttpClient {
     if (isAuthRequest(originalRequest.url)) {
       throw error;
     }
+    // An answer to a request of an earlier session says nothing about the current one: it must not
+    // refresh, retry or end the session of a later login.
+    const epoch = originalRequest._epoch ?? this.sessionEpoch;
+    if (epoch !== this.sessionEpoch) {
+      throw error;
+    }
     // A sign-out in progress owns the session: no new refresh may rotate the token it revokes.
     if (this.signingOut) {
       throw error;
     }
     if (originalRequest._retry) {
-      await this.endSession();
+      await this.endSessionOf(epoch);
       throw error;
     }
     // Another tab (they share the token store) may have refreshed while this
@@ -280,13 +288,13 @@ export class ApiClient implements HttpClient {
   }
 
   private async obtainAccessToken(originalError: AxiosError): Promise<string> {
+    const epoch = this.sessionEpoch;
     const refreshToken = this.tokenStore.getRefreshToken();
     if (!refreshToken) {
-      await this.endSession();
+      await this.endSessionOf(epoch);
       throw originalError;
     }
-    const epoch = this.sessionEpoch;
-    const outcome = await this.requestRefresh(refreshToken);
+    const outcome = await this.requestRefresh(refreshToken, epoch);
     if (epoch !== this.sessionEpoch) {
       throw originalError;
     }
@@ -316,13 +324,13 @@ export class ApiClient implements HttpClient {
     return run;
   }
 
-  private async requestRefresh(refreshToken: string): Promise<RefreshOutcome> {
+  private async requestRefresh(refreshToken: string, epoch: number): Promise<RefreshOutcome> {
     try {
       const { data } = await this._axios.post<RefreshResponse>(REFRESH_PATH, { refreshToken });
 
       return { kind: 'rotated', tokens: data };
     } catch (refreshError) {
-      const accessToken = await this.recoverFromRefreshFailure(refreshError, refreshToken);
+      const accessToken = await this.recoverFromRefreshFailure(refreshError, refreshToken, epoch);
 
       return { kind: 'adopted', accessToken };
     }
@@ -336,6 +344,7 @@ export class ApiClient implements HttpClient {
   private async recoverFromRefreshFailure(
     refreshError: unknown,
     usedRefreshToken: string,
+    epoch: number,
   ): Promise<string> {
     if (!SESSION_REJECTED_STATUSES.includes(readApiError(refreshError).status)) {
       throw refreshError;
@@ -348,7 +357,7 @@ export class ApiClient implements HttpClient {
     if (rotated && storedAccessToken) {
       return storedAccessToken;
     }
-    await this.endSession();
+    await this.endSessionOf(epoch);
     throw refreshError;
   }
 
@@ -390,6 +399,13 @@ export class ApiClient implements HttpClient {
     originalRequest.headers.Authorization = bearer(token);
 
     return this._axios(originalRequest);
+  }
+
+  /** Ends the session only if it is still the one the caller's request or refresh started under. */
+  private async endSessionOf(epoch: number): Promise<void> {
+    if (epoch === this.sessionEpoch) {
+      await this.endSession();
+    }
   }
 
   private async endSession(): Promise<void> {
