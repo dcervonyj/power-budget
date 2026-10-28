@@ -106,6 +106,18 @@ describe('style ratchet', { timeout: 60_000 }, () => {
       },
     );
 
+    it.each([
+      ['web', 'packages/web/src/main.tsx'],
+      ['mobile', 'packages/mobile/src/gallery/main.tsx'],
+    ])('flags locals in a class method of a %s .tsx file', async (_pkg, file) => {
+      const path = resolve(repoRoot, file);
+
+      expect(await ruleIds(method('const f = (): number => 1;\n    f();'), path)).toContain(rule);
+      expect(
+        await ruleIds(method('function g(): number {\n      return 1;\n    }\n    g();'), path),
+      ).toContain(rule);
+    });
+
     it('does not apply to test files', async () => {
       const path = resolve(repoRoot, 'packages/core/src/index.spec.ts');
 
