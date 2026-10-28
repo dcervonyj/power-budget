@@ -3,9 +3,9 @@ import { createHash, randomBytes } from 'node:crypto';
 import type {
   UserRepository,
   MagicLinkTokenRepository,
-  NotificationOutboxPort,
   AppConfigPort,
 } from '../../../domain/auth/ports.js';
+import type { NotificationOutbox } from '../../../domain/notifications/ports.js';
 
 export interface RequestMagicLinkInput {
   readonly email: string;
@@ -18,7 +18,7 @@ export class RequestMagicLinkUseCase {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly magicLinkTokenRepo: MagicLinkTokenRepository,
-    private readonly notificationOutbox: NotificationOutboxPort,
+    private readonly notificationOutbox: NotificationOutbox,
     private readonly config: AppConfigPort,
   ) {}
 
@@ -37,7 +37,7 @@ export class RequestMagicLinkUseCase {
 
     await this.notificationOutbox.enqueue({
       kind: 'magic_link',
-      userId: user.id,
+      recipientUserId: user.id,
       // The link carries the raw token; the dispatcher strips it once the email is sent.
       payload: { link: this.buildLink(rawToken) },
       dedupeKey: `magic_link:${user.id}:${tokenHash}`,

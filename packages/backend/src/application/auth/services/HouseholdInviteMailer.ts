@@ -3,11 +3,11 @@ import { createHash, randomBytes } from 'node:crypto';
 import type {
   AppConfigPort,
   HouseholdRepository,
-  NotificationOutboxPort,
   UserRepository,
 } from '../../../domain/auth/ports.js';
 import type { HouseholdInvite, User } from '../../../domain/auth/entities.js';
 import type { HouseholdInvitePayload } from '../../../domain/notifications/entities.js';
+import type { NotificationOutbox } from '../../../domain/notifications/ports.js';
 import { HouseholdNotFoundError } from '../../../domain/auth/errors.js';
 import { HOUSEHOLD_INVITE_TTL_MS } from '../../../domain/auth/invariants.js';
 
@@ -29,7 +29,7 @@ export class HouseholdInviteMailer {
   constructor(
     private readonly userRepo: UserRepository,
     private readonly householdRepo: HouseholdRepository,
-    private readonly outbox: NotificationOutboxPort,
+    private readonly outbox: NotificationOutbox,
     private readonly config: AppConfigPort,
   ) {}
 
@@ -68,7 +68,7 @@ export class HouseholdInviteMailer {
     if (invitee !== null) {
       await this.outbox.enqueue({
         kind: 'household_invite',
-        userId: invitee.id,
+        recipientUserId: invitee.id,
         payload: { ...payload },
         dedupeKey,
       });

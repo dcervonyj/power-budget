@@ -12,6 +12,9 @@ import * as schema from '../../../drizzle/schema.js';
 import type { NotificationKind } from '../../domain/notifications/entities.js';
 import type { EmailMessage } from '../../domain/notifications/ports.js';
 import { DrizzleNotificationRepository } from '../../infrastructure/notifications/DrizzleNotificationRepository.js';
+import { DrizzleNotificationOutbox } from '../../infrastructure/notifications/DrizzleNotificationOutbox.js';
+import { UuidV7Generator } from '../../infrastructure/system/UuidV7Generator.js';
+import { SystemClock } from '../../infrastructure/system/SystemClock.js';
 import { MjmlTemplateRenderer } from '../../infrastructure/notifications/MjmlTemplateRenderer.js';
 import {
   BullMQNotificationDispatchQueue,
@@ -111,8 +114,13 @@ describe('notification dispatch against real Postgres + Redis', () => {
     payload: Record<string, unknown>,
   ): Promise<string> {
     const id = uuidv7();
-    await repo.enqueue({
-      id,
+    const outbox = new DrizzleNotificationOutbox(
+      getDb(),
+      { schedule: async () => undefined },
+      { next: () => id },
+      new SystemClock(),
+    );
+    await outbox.enqueue({
       recipientUserId: userId as UserId,
       kind,
       dedupeKey: `test:${id}`,
@@ -150,6 +158,53 @@ describe('notification dispatch against real Postgres + Redis', () => {
   async function isSent(id: string): Promise<boolean> {
     return (await row(id))?.sentAt != null;
   }
+
+  it('the outbox writes the row and schedules its dispatch once, even when enqueued twice', async () => {
+    const ann = await insertTestUser(getDb(), { displayName: 'Ann' });
+    const scheduled: string[] = [];
+    const outbox = new DrizzleNotificationOutbox(
+      getDb(),
+      { schedule: async (id) => void scheduled.push(id) },
+      new UuidV7Generator(),
+      new SystemClock(),
+    );
+    const notification = {
+      recipientUserId: ann.id as UserId,
+      kind: 'over_budget' as const,
+      dedupeKey: 'cln-067:same',
+      payload: { name: 'Ann' },
+    };
+
+    await outbox.enqueue(notification);
+    await outbox.enqueue(notification);
+
+    const pending = await repo.findPendingBatch(10);
+    expect(pending.map((n) => n.id)).toEqual(scheduled);
+    expect(scheduled).toHaveLength(1);
+  });
+
+  it('the outbox keeps the row when the dispatch queue is down (the relay cron picks it up)', async () => {
+    const ann = await insertTestUser(getDb(), { displayName: 'Ann' });
+    const outbox = new DrizzleNotificationOutbox(
+      getDb(),
+      {
+        schedule: async () => {
+          throw new Error('redis down');
+        },
+      },
+      new UuidV7Generator(),
+      new SystemClock(),
+    );
+
+    await outbox.enqueue({
+      recipientUserId: ann.id as UserId,
+      kind: 'over_budget',
+      dedupeKey: 'cln-067:redis-down',
+      payload: {},
+    });
+
+    expect(await repo.findPendingBatch(10)).toHaveLength(1);
+  });
 
   it('sends two pending notifications once each, each to its own recipient', async () => {
     const ann = await insertTestUser(getDb(), { displayName: 'Ann' });
