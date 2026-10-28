@@ -100,7 +100,7 @@ function merchantKeyOf(text: string, isDescription: boolean): string | null {
     return null;
   }
   const stripped = stripBoilerplate(key);
-  if (stripped === '' || GENERIC_TITLE_WORDS.includes(stripped.split(' ')[0] ?? '')) {
+  if (stripped === '' || GENERIC_TITLE_WORDS.includes(firstWord(stripped))) {
     return null;
   }
 
@@ -109,4 +109,10 @@ function merchantKeyOf(text: string, isDescription: boolean): string | null {
 
 function nonEmpty(value: string | null): boolean {
   return value !== null && value.trim() !== '';
+}
+
+function firstWord(text: string): string {
+  const space = text.indexOf(' ');
+
+  return space === -1 ? text : text.slice(0, space);
 }

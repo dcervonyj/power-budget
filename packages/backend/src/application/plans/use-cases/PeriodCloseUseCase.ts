@@ -15,7 +15,7 @@ export class PeriodCloseFailedError extends Error {
   ) {
     super(
       `PERIOD_CLOSE_FAILED: ${failures.size} plan(s) not closed (${[...failures.keys()].join(', ')}); ` +
-        `${plansProcessed} closed. First error: ${[...failures.values()][0]?.message ?? 'unknown'}`,
+        `${plansProcessed} closed. Errors: ${[...failures.values()].map((error) => error.message).join('; ')}`,
     );
     this.name = 'PeriodCloseFailedError';
   }
