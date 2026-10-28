@@ -2,10 +2,11 @@ import type { Brand } from '../shared/ids.js';
 import { defineId } from '../shared/ids.js';
 
 export type UserId = Brand<string, 'UserId'>;
-export const UserId = defineId('UserId');
+// The JWT guard brands the token's subject: users created outside the app (seeds, fixtures) may carry v4 ids.
+export const UserId = defineId('UserId', { anyUuidVersion: true });
 
 export type HouseholdId = Brand<string, 'HouseholdId'>;
-export const HouseholdId = defineId('HouseholdId');
+export const HouseholdId = defineId('HouseholdId', { anyUuidVersion: true });
 
 export type HouseholdMemberId = Brand<string, 'HouseholdMemberId'>;
 export const HouseholdMemberId = defineId('HouseholdMemberId');
