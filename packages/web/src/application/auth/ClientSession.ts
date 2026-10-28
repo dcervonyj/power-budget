@@ -23,9 +23,3 @@ export class ClientSession {
     }
   }
 }
-
-/**
- * The app's session. It has no dependencies, so the store modules (which the composition
- * root cannot import without a cycle) register themselves when they are created.
- */
-export const clientSession = new ClientSession();

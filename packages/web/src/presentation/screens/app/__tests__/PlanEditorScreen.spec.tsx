@@ -25,12 +25,16 @@ const plansSpies = {
 const categoriesList = vi.spyOn(categoriesApi, 'list');
 const loadProfile = vi.spyOn(settingsStore, 'loadProfile');
 
+function signInSettingsStore(): void {
+  settingsStore.profileLoaded = true;
+  settingsStore.userId = 'user-1';
+  loadProfile.mockResolvedValue(undefined);
+}
+
 describe('PlanEditorScreen amounts (UI-013)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    settingsStore.profileLoaded = true;
-    settingsStore.userId = 'user-1';
-    loadProfile.mockResolvedValue(undefined);
+    signInSettingsStore();
     plansSpies.get.mockResolvedValue(PLAN);
     plansSpies.listItems.mockResolvedValue([RENT_ITEM]);
     categoriesList.mockResolvedValue(CATEGORIES);
@@ -104,6 +108,7 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
 describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    signInSettingsStore();
     plansSpies.get.mockResolvedValue(PLAN);
     plansSpies.listItems.mockResolvedValue(ITEMS);
     categoriesList.mockResolvedValue(CATEGORIES);

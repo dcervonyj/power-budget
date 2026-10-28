@@ -1,5 +1,6 @@
 import { CategoriesApi, HouseholdsApi, PlansApi } from '@power-budget/shared-app';
-import { clientSession } from './application/auth/ClientSession.js';
+import { ClientSession } from './application/auth/ClientSession.js';
+import { AcceptInvite } from './application/household/AcceptInvite.js';
 import { SignOut } from './application/auth/SignOut.js';
 import { BankConnectionStore } from './application/bank/BankConnectionStore.js';
 import { ReferenceCatalogue } from './application/catalogue/ReferenceCatalogue.js';
@@ -23,6 +24,8 @@ import { LocalStorageTokenStore } from './infrastructure/tokens/LocalStorageToke
  * stores stay free of the UI layer and tests build them with fakes instead of module mocks.
  */
 
+/** The app's session: sign-out and session end reset every store registered with it. */
+export const clientSession = new ClientSession();
 export const tokenStore = new LocalStorageTokenStore();
 export const navigationAdapter = new ReactRouterNavigationAdapter();
 clientSession.register(new LocalStorageSessionData());
@@ -43,23 +46,23 @@ export const bulkTransactionActions = new BulkTransactionActions(apiClient);
 export const plansApi = new PlansApi(apiClient);
 export const categoriesApi = new CategoriesApi(apiClient);
 export const householdsApi = new HouseholdsApi(apiClient);
+export const acceptInvite = new AcceptInvite(householdsApi, tokenStore);
 
 /** The app's catalogue; sign-out clears it with the other session stores. */
 export const referenceCatalogue = new ReferenceCatalogue(plansApi, categoriesApi);
+clientSession.register(referenceCatalogue);
 export const settingsStore = new SettingsStore(apiClient, new LocalStorageKeyValueStore());
+clientSession.register(settingsStore);
 export const bankConnectionStore = new BankConnectionStore(apiClient);
+clientSession.register(bankConnectionStore);
 export const householdCategoryStore = new HouseholdCategoryStore(apiClient);
+clientSession.register(householdCategoryStore);
 export const householdStore = new HouseholdStore(householdsApi, plansApi);
+clientSession.register(householdStore);
 export const planDashboardStore = new PlanDashboardStore(plansApi, referenceCatalogue);
+clientSession.register(planDashboardStore);
 export const dashboardStore = new DashboardStore(plansApi, planDashboardStore);
+clientSession.register(dashboardStore);
 /** The app shell's store, wired to the API; forgets everything when the session ends. */
 export const appShellStore = new ShellStore(new HttpShellApi(apiClient, householdsApi));
-
-clientSession.register(referenceCatalogue);
-clientSession.register(settingsStore);
-clientSession.register(bankConnectionStore);
-clientSession.register(householdCategoryStore);
-clientSession.register(householdStore);
-clientSession.register(planDashboardStore);
-clientSession.register(dashboardStore);
 clientSession.register(appShellStore);
