@@ -18,6 +18,7 @@ export class ReferenceCatalogue {
   private readonly categoriesApi: CatalogueCategories;
   private cache = new Map<string, Promise<unknown>>();
   private changes = 0;
+  private readonly listeners = new Set<() => void>();
 
   constructor(plans: CataloguePlans, categories: CatalogueCategories) {
     this.plans = plans;
@@ -54,6 +55,18 @@ export class ReferenceCatalogue {
   invalidate(): void {
     this.cache = new Map();
     this.changes += 1;
+    for (const listener of [...this.listeners]) {
+      listener();
+    }
+  }
+
+  /** Calls `listener` after every `invalidate()`; returns the way to stop. */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener);
+
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   /** Changes with every `invalidate()`: a holder of older data can tell it may be out of date. */

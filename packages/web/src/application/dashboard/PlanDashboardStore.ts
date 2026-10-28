@@ -31,12 +31,17 @@ interface DashboardReference {
   readonly items: PlannedItemDto[];
 }
 
-/** Ticks a failed reference read waits before it is tried again: 1, 2, 4, 8, 8, ... */
-const MAX_REFERENCE_BACKOFF_TICKS = 8;
+/** A burst of local changes starts one reference refresh. */
+const REFERENCE_DEBOUNCE_MS = 250;
+/** A failed reference read is tried again after 1 s, 2 s, 4 s ... up to 30 s. */
+const REFERENCE_RETRY_MS = 1000;
+const MAX_REFERENCE_RETRY_MS = 30_000;
+/** Ticks a failed full load waits before a tick tries it again: 1, 2, 4, 8, 8, ... */
+const MAX_LOAD_BACKOFF_TICKS = 8;
 
 export type PlanDashboardReference = Pick<
   ReferenceCatalogue,
-  'plan' | 'items' | 'categories' | 'version'
+  'plan' | 'items' | 'categories' | 'version' | 'subscribe'
 >;
 
 /** One page-through list of the caller's own unplanned transactions. */
@@ -67,9 +72,10 @@ const EMPTY_LIST: UnplannedList = { items: [], nextCursor: null, loading: false,
  *
  * Two independent parts. The dashboard: `load` reads everything (open, plan switch, retry), `poll`
  * sends one dashboard request per tick and never loads. The reference data (plan, items, category
- * names from the shared catalogue): read by `load`; when a read failed or the catalogue changed
- * since, a tick starts a separate refresh (one at a time, with backoff) and its answer replaces the
- * fallback. The unplanned pages the user loaded stay as they are.
+ * names from the shared catalogue): read by `load`; when a read failed, or the catalogue is
+ * invalidated by a local change, a separate refresh (debounced, one at a time, own retry timer with
+ * backoff) replaces the fallback. Ticks send no reference request. A tick retries a failed full
+ * load (with backoff). The unplanned pages the user loaded stay as they are.
  */
 export class PlanDashboardStore implements PlanDashboardSource {
   planId: string | null = null;
@@ -91,7 +97,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
   private referenceDegraded = false;
   private refreshing = false;
   private referenceFailures = 0;
-  private referenceSkipTicks = 0;
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
+  private loadFailures = 0;
+  private loadSkipTicks = 0;
   /** Bumped by every load and by sign-out: an answer of an older one is dropped. */
   private token = 0;
   private polling = false;
@@ -109,7 +117,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
       | 'referenceDegraded'
       | 'refreshing'
       | 'referenceFailures'
-      | 'referenceSkipTicks'
+      | 'refreshTimer'
+      | 'loadFailures'
+      | 'loadSkipTicks'
       | 'token'
       | 'polling'
     >(this, {
@@ -121,9 +131,14 @@ export class PlanDashboardStore implements PlanDashboardSource {
       referenceDegraded: false,
       refreshing: false,
       referenceFailures: false,
-      referenceSkipTicks: false,
+      refreshTimer: false,
+      loadFailures: false,
+      loadSkipTicks: false,
       token: false,
       polling: false,
+    });
+    reference.subscribe(() => {
+      this.onCatalogueChanged();
     });
   }
 
@@ -137,7 +152,10 @@ export class PlanDashboardStore implements PlanDashboardSource {
     const token = this.token;
     this.polling = false;
     this.refreshing = false;
+    this.cancelRefreshTimer();
     if (planId !== this.planId) {
+      this.loadFailures = 0;
+      this.loadSkipTicks = 0;
       this.planId = planId;
       this.reference = null;
       this.lastDto = null;
@@ -159,6 +177,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
       this.lastDto = dto;
       this.applyReference(reference);
       this.applyDashboard(planId, token, toPlanDashboard(dto, reference.data));
+      this.loadFailures = 0;
+      this.loadSkipTicks = 0;
+      this.scheduleRefreshIfNeeded(planId, REFERENCE_RETRY_MS);
       await Promise.all([this.loadUnplanned('expense', null), this.loadUnplanned('income', null)]);
     } catch (err) {
       this.applyError(planId, token, classifyDashboardError(err));
@@ -166,18 +187,22 @@ export class PlanDashboardStore implements PlanDashboardSource {
   }
 
   /**
-   * One dashboard request, always; it never loads. Skipped while a load or another poll is in
-   * flight, for a plan that is not shown and while nothing is shown yet (the retry button loads).
-   * A failed poll keeps the shown data. Reference data that failed or went stale is re-read by a
-   * separate refresh, not by this request.
+   * One dashboard request while a dashboard is shown, and nothing else: reference data is never
+   * read here. Skipped while a load or another poll is in flight and for a plan that is not shown;
+   * a failed poll keeps the shown data. When the last load failed and nothing is shown, a tick
+   * retries the full load after a backoff of 1, 2, 4, 8 ticks (one at a time).
    */
   async poll(planId: string): Promise<void> {
-    if (planId !== this.planId || this.loading || this.polling || this.dashboard === null) {
+    if (planId !== this.planId || this.loading || this.polling) {
+      return;
+    }
+    if (this.dashboard === null) {
+      await this.retryFailedLoad(planId);
+
       return;
     }
     const token = this.token;
     this.polling = true;
-    this.startReferenceRefresh(planId, token);
     try {
       this.showPolled(planId, token, await this.plans.dashboard(planId));
     } catch {
@@ -197,6 +222,9 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.token += 1;
     this.polling = false;
     this.refreshing = false;
+    this.cancelRefreshTimer();
+    this.loadFailures = 0;
+    this.loadSkipTicks = 0;
     this.reference = null;
     this.lastDto = null;
     this.planId = null;
@@ -268,7 +296,6 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.referenceVersion = read.version;
     this.referenceDegraded = read.degraded;
     this.referenceFailures = 0;
-    this.referenceSkipTicks = 0;
   }
 
   private showPolled(planId: string, token: number, dto: PlanDashboardResponseDto): void {
@@ -280,25 +307,62 @@ export class PlanDashboardStore implements PlanDashboardSource {
     this.applyDashboard(planId, token, toPlanDashboard(dto, reference));
   }
 
-  /**
-   * Separate from the dashboard request: re-reads the reference data when a read failed or the
-   * catalogue changed since. One at a time; after a failure it waits 1, 2, 4, 8 ticks. A good
-   * answer replaces the fallback and shows the last dashboard again with it.
-   */
-  private startReferenceRefresh(planId: string, token: number): void {
-    const needed = this.referenceDegraded || this.catalogue.version !== this.referenceVersion;
-    if (!needed || this.refreshing) {
+  private async retryFailedLoad(planId: string): Promise<void> {
+    if (this.error === null) {
       return;
     }
-    if (this.referenceSkipTicks > 0) {
-      this.referenceSkipTicks -= 1;
+    if (this.loadSkipTicks > 0) {
+      this.loadSkipTicks -= 1;
 
+      return;
+    }
+    await this.load(planId);
+  }
+
+  private onCatalogueChanged(): void {
+    if (this.planId !== null && this.dashboard !== null) {
+      this.scheduleRefresh(REFERENCE_DEBOUNCE_MS);
+    }
+  }
+
+  private scheduleRefreshIfNeeded(planId: string, delayMs: number): void {
+    if (planId === this.planId && this.referenceNeedsRefresh()) {
+      this.scheduleRefresh(delayMs);
+    }
+  }
+
+  private referenceNeedsRefresh(): boolean {
+    return this.referenceDegraded || this.catalogue.version !== this.referenceVersion;
+  }
+
+  /** At most one timer and one refresh at a time; a later request waits for them. */
+  private scheduleRefresh(delayMs: number): void {
+    if (this.refreshTimer !== null || this.refreshing) {
+      return;
+    }
+    this.refreshTimer = setTimeout(() => {
+      this.refreshTimer = null;
+      this.startReferenceRefresh();
+    }, delayMs);
+  }
+
+  private cancelRefreshTimer(): void {
+    if (this.refreshTimer !== null) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
+  }
+
+  private startReferenceRefresh(): void {
+    const planId = this.planId;
+    if (planId === null || this.refreshing || !this.referenceNeedsRefresh()) {
       return;
     }
     this.refreshing = true;
-    void this.refreshReference(planId, token);
+    void this.refreshReference(planId, this.token);
   }
 
+  /** Re-reads plan, items and categories strictly; a good answer replaces the fallback. */
   private async refreshReference(planId: string, token: number): Promise<void> {
     try {
       const read = await this.readReference(planId, false);
@@ -312,16 +376,22 @@ export class PlanDashboardStore implements PlanDashboardSource {
     } catch {
       if (this.planId === planId && this.token === token) {
         this.referenceFailures += 1;
-        this.referenceSkipTicks = Math.min(
-          2 ** (this.referenceFailures - 1),
-          MAX_REFERENCE_BACKOFF_TICKS,
-        );
       }
     } finally {
       if (this.token === token) {
         this.refreshing = false;
+        this.scheduleRefreshIfNeeded(planId, this.nextReferenceDelay());
       }
     }
+  }
+
+  /** Right after a local change again: debounce; after a failure: backoff. */
+  private nextReferenceDelay(): number {
+    if (this.referenceFailures === 0) {
+      return REFERENCE_DEBOUNCE_MS;
+    }
+
+    return Math.min(REFERENCE_RETRY_MS * 2 ** (this.referenceFailures - 1), MAX_REFERENCE_RETRY_MS);
   }
 
   private applyDashboard(planId: string, token: number, dashboard: PlanDashboard): void {
@@ -338,6 +408,8 @@ export class PlanDashboardStore implements PlanDashboardSource {
     }
     this.error = error;
     this.loading = false;
+    this.loadFailures += 1;
+    this.loadSkipTicks = Math.min(2 ** (this.loadFailures - 1), MAX_LOAD_BACKOFF_TICKS);
   }
 
   /** A late answer for a plan that is no longer shown is dropped. */
