@@ -33,6 +33,7 @@ import { LocalStorageSessionData } from '../../infrastructure/session/LocalStora
 import { ClientSession } from './ClientSession.js';
 import { SignOut } from './SignOut.js';
 import { PLAN } from '../../test/dashboardFixtures.js';
+import { catalogueFor } from '../../test/referenceCatalogue.js';
 import { deferred } from '../../test/deferred.js';
 
 const mockGet = vi.mocked(apiClient.get);
@@ -88,10 +89,8 @@ describe('sign-out, then another user in the same tab (FE-BUGS-01)', () => {
     storage.clear();
     mockGet.mockReset();
     list = vi.fn<() => Promise<PlanDto[]>>();
-    planDashboard = new PlanDashboardStore(
-      { get: vi.fn(), dashboard: vi.fn(), listItems: vi.fn(), unplanned: vi.fn() },
-      { list: vi.fn() },
-    );
+    const api = { get: vi.fn(), dashboard: vi.fn(), listItems: vi.fn(), unplanned: vi.fn() };
+    planDashboard = new PlanDashboardStore(api, catalogueFor(api, { list: vi.fn() }));
     vi.spyOn(planDashboard, 'load').mockResolvedValue(undefined);
     dashboard = new DashboardStore({ list }, planDashboard);
     settings = new SettingsStore();

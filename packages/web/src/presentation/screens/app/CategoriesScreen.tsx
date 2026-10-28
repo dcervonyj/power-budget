@@ -7,6 +7,7 @@ import type {
 } from '@power-budget/shared-app/contract';
 import { categoriesApi } from '../../../AppProviders.js';
 import { CategoriesView, type CategoryActionError } from './CategoriesView.js';
+import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 
 type LoadState = 'loading' | 'idle' | 'error';
 
@@ -76,6 +77,7 @@ export function CategoriesScreen(): React.JSX.Element {
       setCategories((prev) => applyChanges(prev, category.id, changes));
       try {
         const updated = await categoriesApi.update(category.id, changes);
+        referenceCatalogue.invalidate();
         setCategories((prev) => replaceCategory(prev, updated));
       } catch (err) {
         setCategories((prev) => revertChanges(prev, category, changes));
@@ -90,6 +92,7 @@ export function CategoriesScreen(): React.JSX.Element {
     setActionError(null);
     try {
       const created = await categoriesApi.create({ name, kind });
+      referenceCatalogue.invalidate();
       setCategories((prev) => [...prev, created]);
 
       return true;

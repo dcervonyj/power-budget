@@ -22,6 +22,7 @@ import { SkeletonBlock } from '../../components/shared/SkeletonBlock.js';
 import { PlanEditorView, type PlanDraftItem } from './PlanEditorView.js';
 import type { PlanItemChange, PlanItemRowModel } from './PlanItemRows.js';
 import { PAGE_STYLE } from './planStyles.js';
+import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 
 const EMPTY_DRAFT: PlanDraftItem = {
   categoryId: '',
@@ -107,6 +108,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         ? { name: plan.name, baseCurrency: plan.baseCurrency }
         : { name: plan.name };
       const saved = await plansApi.update(plan.id, body);
+      referenceCatalogue.invalidate();
       setPlan(saved);
       setTotalsCurrency(saved.baseCurrency);
     } catch {
@@ -139,7 +141,9 @@ export function PlanEditorScreen(): React.JSX.Element {
     setPlan({ ...plan, period: { start: dates.startDate, end: dates.endDate } });
     try {
       const body: UpdatePlanDto = { periodStart: dates.startDate, periodEnd: dates.endDate };
-      setPlan(await plansApi.update(plan.id, body));
+      const updated = await plansApi.update(plan.id, body);
+      referenceCatalogue.invalidate();
+      setPlan(updated);
     } catch {
       setPlan(prevPlan);
       setSaveError(
@@ -165,6 +169,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         currency,
       };
       const created = await plansApi.createItem(plan.id, body);
+      referenceCatalogue.invalidate();
       setItems((prev) => [...prev, created]);
       setDraftItem(EMPTY_DRAFT);
     } catch {
@@ -194,6 +199,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         currency: amount.currency,
       };
       const updated = await plansApi.updateItem(plan.id, item.id, body);
+      referenceCatalogue.invalidate();
       setItems((prev) => prev.map((i) => (i.id === item.id ? updated : i)));
     } catch {
       setItems(prevItems);
@@ -212,6 +218,7 @@ export function PlanEditorScreen(): React.JSX.Element {
     setItems((prev) => prev.filter((i) => i.id !== itemId));
     try {
       await plansApi.deleteItem(plan.id, itemId);
+      referenceCatalogue.invalidate();
     } catch {
       setItems(prevItems);
       setSaveError(

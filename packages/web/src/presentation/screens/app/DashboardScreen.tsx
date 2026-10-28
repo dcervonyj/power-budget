@@ -13,11 +13,16 @@ import { FilterChips } from '../../glass/controls/FilterChips.js';
 import { bankConnectionStore } from '../../../application/bank/BankConnectionStore.js';
 import { dashboardStore } from '../../../application/dashboard/DashboardStore.js';
 import { appShellStore } from '../../../application/shell/appShellStore.js';
+import { useVisiblePolling } from '../../hooks/useVisiblePolling.js';
 import { ROUTE_PATHS } from '../../../infrastructure/navigation/routePaths.js';
 
 const POLL_INTERVAL_MS = 30_000;
 
-/** `/dashboard`: the Overview of the selected active plan (personal monthly first), polled every 30 s. */
+function pollDashboard(): void {
+  dashboardStore.poll();
+}
+
+/** `/dashboard`: the Overview of the selected active plan (personal monthly first), polled every 30 s while the tab is visible. */
 export const DashboardScreen = observer(function DashboardScreen(): React.JSX.Element {
   const intl = useIntl();
   const navigate = useNavigate();
@@ -27,12 +32,12 @@ export const DashboardScreen = observer(function DashboardScreen(): React.JSX.El
 
     void dashboardStore.open();
 
-    const interval = setInterval(() => {
-      dashboardStore.refresh();
-    }, POLL_INTERVAL_MS);
-
-    return () => clearInterval(interval);
+    return () => {
+      dashboardStore.close();
+    };
   }, []);
+
+  useVisiblePolling(pollDashboard, POLL_INTERVAL_MS);
 
   return (
     <div style={OVERVIEW_CONTAINER_STYLE}>

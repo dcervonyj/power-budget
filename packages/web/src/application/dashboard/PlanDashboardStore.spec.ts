@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  PlanDashboardStore,
-  type PlanDashboardCategories,
-  type PlanDashboardPlans,
-} from './PlanDashboardStore.js';
+import { PlanDashboardStore, type PlanDashboardPlans } from './PlanDashboardStore.js';
+import type { CatalogueCategories } from '../catalogue/ReferenceCatalogue.js';
+import { catalogueFor } from '../../test/referenceCatalogue.js';
 import {
   CATEGORIES,
   D7_CATEGORIES,
@@ -24,7 +22,7 @@ function plnMoney(amountMinor: bigint): { amountMinor: bigint; currency: string 
 
 describe('PlanDashboardStore', () => {
   let plans: { [K in keyof PlanDashboardPlans]: ReturnType<typeof vi.fn> } & PlanDashboardPlans;
-  let categories: { list: ReturnType<typeof vi.fn> } & PlanDashboardCategories;
+  let categories: { list: ReturnType<typeof vi.fn> } & CatalogueCategories;
   let store: PlanDashboardStore;
 
   beforeEach(() => {
@@ -38,7 +36,7 @@ describe('PlanDashboardStore', () => {
       );
     plans = { get, dashboard, listItems, unplanned };
     categories = { list: vi.fn().mockResolvedValue(CATEGORIES) };
-    store = new PlanDashboardStore(plans, categories);
+    store = new PlanDashboardStore(plans, catalogueFor(plans, categories));
   });
 
   it('groups the lines by category, with names, sums and bands', async () => {

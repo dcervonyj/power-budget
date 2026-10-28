@@ -6,6 +6,7 @@ import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../ThemeContext.js';
 import { TransactionMapModal } from '../TransactionMapModal.js';
 import { TransactionMapper } from '../../../infrastructure/api/TransactionMapper.js';
+import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 import { apiClient } from '../../../AppProviders.js';
 
 vi.mock('../MoneyView.js', () => ({
@@ -15,7 +16,7 @@ vi.mock('../MoneyView.js', () => ({
 }));
 
 vi.mock('../../../AppProviders.js', async () => {
-  const { PlansApi } = await import('@power-budget/shared-app');
+  const { CategoriesApi, PlansApi } = await import('@power-budget/shared-app');
   const client = {
     request: vi.fn(),
     get: vi.fn(),
@@ -25,7 +26,11 @@ vi.mock('../../../AppProviders.js', async () => {
     delete: vi.fn(),
   };
 
-  return { apiClient: client, plansApi: new PlansApi(client) };
+  return {
+    apiClient: client,
+    plansApi: new PlansApi(client),
+    categoriesApi: new CategoriesApi(client),
+  };
 });
 
 const mockGet = vi.mocked(apiClient.get);
@@ -104,6 +109,7 @@ describe('TransactionMapModal', () => {
   const onMapped = vi.fn();
 
   beforeEach(() => {
+    referenceCatalogue.invalidate();
     vi.clearAllMocks();
     spentOnI1 = '20000';
     mockPatch.mockResolvedValue({ status: 200, data: undefined, headers: {} });

@@ -19,8 +19,8 @@ import { ManualTransactionForm } from '../../components/ManualTransactionForm.js
 import { TransactionMapModal } from '../../components/TransactionMapModal.js';
 import { TransactionDetailModal } from '../../components/TransactionDetailModal.js';
 import { TransactionListView } from './TransactionListView.js';
-import { apiClient, categoriesApi, plansApi } from '../../../AppProviders.js';
-import { fetchCategoryNames } from '../../../infrastructure/api/CategoryNames.js';
+import { apiClient, categoriesApi } from '../../../AppProviders.js';
+import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 import {
   loadPlannedItems,
   type PlannedItemLabel,
@@ -130,7 +130,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
 
   // Names for a row mapped in the map modal (active plans; the list itself names the rest).
   useEffect(() => {
-    void loadPlannedItems(plansApi, () => fetchCategoryNames(apiClient)).then(
+    void loadPlannedItems(referenceCatalogue).then(
       (catalogue) => {
         setLabels(catalogue.labels);
       },

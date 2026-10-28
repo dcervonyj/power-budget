@@ -32,20 +32,18 @@ function item(id: string, planId: string, categoryId: string): PlannedItemDto {
 
 describe('loadPlannedItems', () => {
   it('lists the items of every active plan with plan and category names', async () => {
-    const catalogue = await loadPlannedItems(
-      {
-        list: () => Promise.resolve([plan('p1', 'May'), plan('p2', 'June')]),
-        listItems: (id: string) =>
-          Promise.resolve(id === 'p1' ? [item('i1', 'p1', 'c1')] : [item('i2', 'p2', 'c2')]),
-      },
-      () =>
+    const catalogue = await loadPlannedItems({
+      activePlans: () => Promise.resolve([plan('p1', 'May'), plan('p2', 'June')]),
+      items: (id: string) =>
+        Promise.resolve(id === 'p1' ? [item('i1', 'p1', 'c1')] : [item('i2', 'p2', 'c2')]),
+      categoryNames: () =>
         Promise.resolve(
           new Map([
             ['c1', 'Groceries'],
             ['c2', 'Transport'],
           ]),
         ),
-    );
+    });
 
     expect(catalogue.options.map((o) => [o.item.id, o.planName, o.categoryName])).toEqual([
       ['i1', 'May', 'Groceries'],

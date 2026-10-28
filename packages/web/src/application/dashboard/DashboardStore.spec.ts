@@ -3,6 +3,7 @@ import type { PlanDto } from '@power-budget/shared-app/contract';
 import { DashboardStore, selectDefaultPlan } from './DashboardStore.js';
 import { PlanDashboardStore } from './PlanDashboardStore.js';
 import { PLAN } from '../../test/dashboardFixtures.js';
+import { catalogueFor } from '../../test/referenceCatalogue.js';
 import { deferred } from '../../test/deferred.js';
 
 vi.mock('../../AppProviders.js', () => ({ plansApi: {}, categoriesApi: {} }));
@@ -26,10 +27,8 @@ describe('DashboardStore', () => {
 
   beforeEach(() => {
     list = vi.fn().mockResolvedValue([PLAN, personal]);
-    planDashboard = new PlanDashboardStore(
-      { get: vi.fn(), dashboard: vi.fn(), listItems: vi.fn(), unplanned: vi.fn() },
-      { list: vi.fn() },
-    );
+    const api = { get: vi.fn(), dashboard: vi.fn(), listItems: vi.fn(), unplanned: vi.fn() };
+    planDashboard = new PlanDashboardStore(api, catalogueFor(api, { list: vi.fn() }));
     load = vi.spyOn(planDashboard, 'load').mockResolvedValue(undefined);
     store = new DashboardStore({ list }, planDashboard);
   });
@@ -62,6 +61,35 @@ describe('DashboardStore', () => {
 
     expect(load).toHaveBeenCalledTimes(2);
     expect(load).toHaveBeenLastCalledWith('plan-personal');
+  });
+
+  it('polls the dashboard of the selected plan only, without a full load', async () => {
+    const poll = vi.spyOn(planDashboard, 'poll').mockResolvedValue(undefined);
+    store.poll();
+    expect(poll).not.toHaveBeenCalled();
+
+    await store.open();
+    load.mockClear();
+    store.poll();
+
+    expect(poll).toHaveBeenCalledOnce();
+    expect(poll).toHaveBeenCalledWith('plan-personal');
+    expect(load).not.toHaveBeenCalled();
+  });
+
+  it('stops the dashboard timers and drops a late plan list when the Overview is left', async () => {
+    const stop = vi.spyOn(planDashboard, 'stop');
+    const late = deferred<PlanDto[]>();
+    list.mockReturnValue(late.promise);
+    const opening = store.open();
+
+    store.close();
+    late.resolve([PLAN]);
+    await opening;
+
+    expect(stop).toHaveBeenCalledOnce();
+    expect(load).not.toHaveBeenCalled();
+    expect(store.loading).toBe(false);
   });
 
   it('flags a failed plan list and selects nothing', async () => {
