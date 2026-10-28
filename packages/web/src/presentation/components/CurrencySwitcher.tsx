@@ -15,7 +15,10 @@ function readBaseCurrency(): string {
 function readInterestingCurrencies(): string[] {
   try {
     const raw = localStorage.getItem(INTERESTING_CURRENCIES_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      return [];
+    }
+
     return JSON.parse(raw) as string[];
   } catch {
     return [];
@@ -41,6 +44,7 @@ export function CurrencySwitcher(): React.JSX.Element {
         ? prev.filter((c) => c !== currency)
         : [...prev, currency];
       localStorage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(next));
+
       return next;
     });
   }, []);
@@ -118,6 +122,7 @@ export function CurrencySwitcher(): React.JSX.Element {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.space.xs }}>
           {COMMON_CURRENCIES.filter((c) => c !== baseCurrency).map((c) => {
             const isSelected = interestingCurrencies.includes(c);
+
             return (
               <button
                 key={c}

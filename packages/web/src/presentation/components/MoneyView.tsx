@@ -30,7 +30,10 @@ function readBaseCurrency(): string {
 function readInterestingCurrencies(): string[] {
   try {
     const raw = localStorage.getItem(INTERESTING_CURRENCIES_KEY);
-    if (!raw) return [];
+    if (!raw) {
+      return [];
+    }
+
     return JSON.parse(raw) as string[];
   } catch {
     return [];
@@ -53,9 +56,13 @@ export function MoneyView({ amount, showTooltip = true }: MoneyViewProps): React
     const all = [currency, base, ...interesting];
     // deduplicate while preserving order
     const seen = new Set<string>();
+
     return all.filter((c) => {
-      if (seen.has(c)) return false;
+      if (seen.has(c)) {
+        return false;
+      }
       seen.add(c);
+
       return true;
     });
   }, [currency]);
@@ -101,7 +108,9 @@ export function MoneyView({ amount, showTooltip = true }: MoneyViewProps): React
       role="button"
       tabIndex={modes.length > 1 ? 0 : undefined}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') handleClick();
+        if (e.key === 'Enter' || e.key === ' ') {
+          handleClick();
+        }
       }}
       aria-label={label}
     >

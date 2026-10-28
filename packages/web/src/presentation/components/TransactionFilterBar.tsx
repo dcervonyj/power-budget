@@ -343,6 +343,7 @@ export function toMappingFilter(value: string | null): TransactionFilters['statu
     case 'mapped':
     case 'transfer':
       return value;
+    case null:
     default:
       return '';
   }
@@ -354,6 +355,7 @@ export function toBooking(value: string | null): TransactionFilters['booking'] {
     case 'booked':
     case 'cancelled':
       return value;
+    case null:
     default:
       return '';
   }
@@ -375,6 +377,7 @@ export function toSource(value: string | null): TransactionFilters['source'] {
     case 'iko_push':
     case 'manual':
       return value;
+    case null:
     default:
       return '';
   }
