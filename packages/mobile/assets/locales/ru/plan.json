@@ -62,6 +62,7 @@
   "plan.matchHint.tolerance": "Допуск суммы (±)",
   "plan.matchHint.dayOfMonth": "День месяца",
   "plan.matchHint.dayWindow": "Окно дней (± дней)",
+  "plan.matchHint.toggle": "Подсказка сопоставления: {name}",
   "plan.matchHint.save": "Сохранить подсказку",
   "plan.matchHint.invalid": "Проверьте выделенные поля подсказки. Допуск требует суммы, а окно дней требует дня."
 }

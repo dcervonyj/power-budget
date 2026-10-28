@@ -62,6 +62,7 @@
   "plan.matchHint.tolerance": "Amount tolerance (±)",
   "plan.matchHint.dayOfMonth": "Day of month",
   "plan.matchHint.dayWindow": "Day window (± days)",
+  "plan.matchHint.toggle": "Match hint: {name}",
   "plan.matchHint.save": "Save hint",
   "plan.matchHint.invalid": "Check the highlighted hint fields. A tolerance needs an amount, and a day window needs a day."
 }
