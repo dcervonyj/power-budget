@@ -1,44 +1,53 @@
 # Power Budget — Status
 
-> Updated: 2026-10-21. Baseline: `master` @ `fdb7b19`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
+> Updated: 2026-10-28. Baseline: `master` @ `edd1b87`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
 > Task list and real per-task status: [`docs/mvp/BACKLOG.md`](docs/mvp/BACKLOG.md) (§0 reality check, §7 v1.1 plan).
 > Interactive plan (Russian): https://claude.ai/artifact/FzFRqju9yeb3b72LANBawa
 > Bank-feed design: [`docs/mvp/plan-banking.md`](docs/mvp/plan-banking.md).
 
 ## TL;DR
 
-The code is green but the product does not work. Lint, typecheck, 443 unit tests, the build and CI pass, yet almost no user journey works end to end. Treat the repo as a **pre-alpha scaffold**, not a finished MVP. The earlier "Waves 1-16 Done" claim was wrong; the old status report has been replaced by this page.
+The product moved from pre-alpha scaffold to a working, deployed, restyled web app plus mobile screens: the API (Render, Frankfurt) and the web (Cloudflare Pages) are live and answer 200. The 21 Oct security holes are fixed. What is still missing is the real bank feed: Enable Banking, Wise and PKO are blocked on credentials and samples, so transactions come from manual entry and the existing connectors only. This page replaced the old "Waves Done" claims; it is a snapshot, not a test report.
 
 ## What works
 
-- Monorepo, CI, build, lint and typecheck; `@power-budget/core` pure logic and domain types (with known gaps in FX and privacy); Drizzle schema; adapter skeletons; design tokens.
-- `GET /health` on the deployed API (Render).
+- Deployed: API `GET /health` returns 200 (Render Starter, HOST-001); web at https://power-budget.pages.dev returns 200 (Cloudflare Pages, git-connected to `master`, INF-011).
+- Backend fixes from the audit (merged): auth with TOTP and second-factor limits (CLN-004, CLN-031, CLN-032), RLS tenancy (CLN-005), request validation and money as strings (CLN-002), plans, categories and preferences API (CLN-011), FX rates (CLN-013), dashboard actuals in core (CLN-012), household invite (CLN-006), notifications and period close (CLN-009), keyset and server-side transaction filters (CLN-008r, CLN-024, CLN-048, CLN-050), household export and GDPR purge (CLN-022, CLN-076), crons only in the worker (CLN-010).
+- Real integration harness, HTTP e2e and bank sync pipeline specs in CI (CLN-003, CLN-017, CLN-055).
+- Web on the D7 glass kit: auth, onboarding, app shell, overview on real plan data, transactions list/detail/manual add, plans, categories, household, bank screens, settings, audit log (DSN-010 to DSN-028); a11y audit (DSN-050, CLN-072).
+- Mobile: Expo SDK 58, auth-driven navigation and secure token storage, glass kit, Overview, Transactions, Add expense, To sort, plans, Settings (CLN-015, CLN-030, DSN-030 to DSN-046).
+- Bank v2 foundation: `BankConnector` v2 port and schema (BNK-002, BNK-003, SYNC-001), batched ingest and watermark fixes (CLN-054, CLN-037, CLN-038).
+- AI categorisation, local part only: transaction normalisation (AI-001), merchant memory rules (AI-003), planned item match hints (AI-004).
+- Polish, Ukrainian and Russian translations (UI-I18N).
 
-## What does not work
+## What does not work / gaps
 
-- Web login bounces back to the login page; mobile never reaches an app screen.
-- Plans and categories have no backend endpoints; dashboard, transactions and accounts return 500 (`bigint` in JSON).
-- TOTP enrolment deadlocks; the household invite cannot form a household; the bank connect flow has route and contract mismatches; FX is not wired; period close always fails silently.
-- Integration tests cannot load and are not in CI; many unit tests mock the code under test.
-- The web app is not deployed.
+- No live bank feed: Enable Banking (SPK-001, SYNC-005), Wise (SPK-002) and PKO email parsing (SPK-003) are not done; real descriptors for AI-001 waived until samples arrive.
+- LLM categorisation (AI-005 onwards) not started: no Claude API key.
+- No custom domain, so no Resend sender domain and no PKO inbound email (HOST-003, SPK-004).
+- Mobile has no device check (UI-016 needs a phone); CLN-016 awaits a decision.
+- Not verified here: end-to-end browser walkthrough of every journey after the restyle. Test counts have changed since the 443 figure; run CI for current numbers.
 
-## Security (the live API is exposed)
+## Security
 
-The deployed API has exploitable holes: forgeable JWT secret, a public Google OAuth stub that issues tokens, two household IDORs, a Wise consent hijack, RLS not applied, no request validation and no rate limiting. **Until CLN-001 is merged the Render service should stay suspended (NEW-001).**
+Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), Google OAuth stub removed, household IDORs, Wise consent hijack, signed bounce webhook, Swagger and CORS gated (CLN-001); RLS enforced (CLN-005, CLN-051); request validation (CLN-002); Redis-backed throttling and second-factor attempt limits (CLN-031). Dependabot alerts addressed in CLN-028 and CLN-077; a few left from CLN-028 (node-forge, zod3, react-router 6, fast-xml, esbuild) were not re-checked here. The "keep Render suspended" advice is obsolete: the service is live.
 
 ## Where we are
 
-| Item | State |
+| Series | State |
 | --- | --- |
-| CLN-021 close PR #121 | Done (PR #121 closed) |
-| CLN-001 security hot-fix | In progress |
-| CLN-020 docs truth reset | In progress (this PR) |
-| NEW-001 suspend Render | Pending (owner action) |
+| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-066 follow-ups | Done (merged) |
+| D7 Glass DSN-010 to DSN-050 (web and mobile) | Done |
+| CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done |
+| CLN-077 Dependabot alerts, CLN-028 dependency batch | Done |
+| BNK-002, BNK-003, SYNC-001 (bank v2 foundation) | Done |
+| AI-001, AI-003, AI-004 | Done; AI-005+ blocked |
+| SYNC-005 live sync, SPK-001/002/003, HOST-003 | Blocked on PO |
 
-## Plan (v1.1, about 6-8 developer-weeks for the web journeys)
+## Blocked on PO
 
-P0 emergency stop, P1 foundation, M0 spikes and hosting (always-on EU VPS, Enable Banking, Wise, PKO emails), P2 working web journeys, M1 both banks to dashboard, M2 live signals, M3 AI categorisation, M4 hardening; UI polish, mobile and options run beside the chain. Details, dependencies and acceptance criteria: BACKLOG §7.
+Domain (HOST-003, Resend domain, SPK-004, PKO inbound email); Enable Banking account (SPK-001, then M1 and SYNC-005); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); a phone for UI-016; the CLN-016 decision; 32 open questions on the PO guide; design decisions D1, D2, D4, D10 and CLN-015 C14.
 
-## Real status of the 122 v1.0 tasks
+## Task counts
 
-28 Done, 39 Partial, 33 Stub, 17 Broken, 5 Not started (BACKLOG §0, with the task that finishes each).
+Not derived here. `docs/mvp/BACKLOG.md` §0 still shows the 21 Oct counts (29 Done of 122) and is stale; see §7 and each task's `Status` line.
