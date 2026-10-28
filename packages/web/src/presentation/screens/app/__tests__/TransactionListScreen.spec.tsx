@@ -245,6 +245,11 @@ describe('TransactionListScreen', () => {
     });
     renderAt('/transactions');
     await screen.findByText('Biedronka');
+    // The sentinel observer is created in a passive effect after the first page renders;
+    // triggering it before it exists would silently skip the "load more" request.
+    await waitFor(() => {
+      expect(observers.length).toBeGreaterThan(0);
+    });
 
     act(() => {
       observers[observers.length - 1]?.([{ isIntersecting: true }]);
