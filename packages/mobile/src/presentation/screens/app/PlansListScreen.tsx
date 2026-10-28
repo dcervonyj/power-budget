@@ -1,58 +1,26 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  FlatList,
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { FormattedMessage, useIntl } from 'react-intl';
+import { useIntl } from 'react-intl';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { rnDarkTheme } from '@power-budget/design-tokens/rn';
+import { toLocalIsoDate } from '@power-budget/core';
+import type { CreatePlanDto, PlanDto } from '@power-budget/shared-app/contract';
 import type { AppTabParamList, AppStackParamList } from '../../navigation/types.js';
-import type { PlanDto } from '@power-budget/shared-app/contract';
 import { plansApi } from '../../../infrastructure/index.js';
-
-const t = rnDarkTheme;
+import { PlansListView } from './plan/PlansListView.js';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<AppTabParamList, 'Plans'>,
   NativeStackScreenProps<AppStackParamList>
 >;
 
-function PlanCard({
-  plan,
-  onPress,
-}: {
-  readonly plan: PlanDto;
-  readonly onPress: () => void;
-}): React.JSX.Element {
-  const intl = useIntl();
-  return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardName} numberOfLines={1}>
-          {plan.name}
-        </Text>
-        <Text style={styles.cardCurrency}>{plan.baseCurrency}</Text>
-      </View>
-      <Text style={styles.cardMeta}>
-        {intl.formatMessage(
-          { id: 'plan.period', defaultMessage: '{start} – {end}' },
-          { start: plan.period.start, end: plan.period.end },
-        )}
-      </Text>
-      <Text style={styles.cardType}>
-        {plan.type === 'household'
-          ? intl.formatMessage({ id: 'plan.type.household', defaultMessage: 'Household' })
-          : intl.formatMessage({ id: 'plan.type.personal', defaultMessage: 'Personal' })}
-      </Text>
-    </TouchableOpacity>
-  );
+const DEFAULT_PLAN_CURRENCY = 'EUR';
+
+/** First day of the current month, local time: the start of a new monthly plan. */
+function currentMonthStart(): string {
+  const today = new Date();
+
+  return toLocalIsoDate(new Date(today.getFullYear(), today.getMonth(), 1));
 }
 
 export function PlansListScreen({ navigation }: Props): React.JSX.Element {
@@ -60,15 +28,17 @@ export function PlansListScreen({ navigation }: Props): React.JSX.Element {
   const [plans, setPlans] = useState<PlanDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadPlans = useCallback(async () => {
+    setError(null);
     try {
-      setPlans(await plansApi.list('active'));
+      setPlans(await plansApi.list('all'));
     } catch {
-      Alert.alert(
-        intl.formatMessage({ id: 'error.title', defaultMessage: 'Error' }),
+      setError(
         intl.formatMessage({
-          id: 'error.plansLoadFailed',
+          id: 'plan.list.error',
           defaultMessage: 'Could not load plans. Please try again.',
         }),
       );
@@ -80,138 +50,59 @@ export function PlansListScreen({ navigation }: Props): React.JSX.Element {
 
   useEffect(() => {
     void loadPlans();
-  }, [loadPlans]);
 
-  const handleRefresh = (): void => {
-    setRefreshing(true);
-    void loadPlans();
-  };
+    // A plan edited or archived in the editor shows up changed when the user comes back.
+    return navigation.addListener('focus', () => {
+      void loadPlans();
+    });
+  }, [loadPlans, navigation]);
 
-  const handleCreate = (): void => {
-    navigation.navigate('PlanEditor', {});
-  };
-
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centered]}>
-        <ActivityIndicator size="large" color={t.colorAccentDefault} />
-      </View>
-    );
+  async function handleCreate(): Promise<void> {
+    setCreating(true);
+    setError(null);
+    try {
+      const body: CreatePlanDto = {
+        name: intl.formatMessage({ id: 'plan.list.defaultName', defaultMessage: 'New plan' }),
+        type: 'personal',
+        periodKind: 'monthly',
+        periodStart: currentMonthStart(),
+        baseCurrency: DEFAULT_PLAN_CURRENCY,
+      };
+      const created = await plansApi.create(body);
+      navigation.navigate('PlanEditor', { planId: created.id });
+    } catch {
+      setError(
+        intl.formatMessage({
+          id: 'plan.list.createError',
+          defaultMessage: 'Could not create the plan.',
+        }),
+      );
+    } finally {
+      setCreating(false);
+    }
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={plans}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>
-              <FormattedMessage
-                id="screen.plansList.empty"
-                defaultMessage="No plans yet. Create your first budget plan."
-              />
-            </Text>
-          </View>
-        }
-        renderItem={({ item }) => (
-          <PlanCard
-            plan={item}
-            onPress={() => {
-              navigation.navigate('PlanEditor', { planId: item.id });
-            }}
-          />
-        )}
-      />
-
-      <TouchableOpacity style={styles.fab} onPress={handleCreate} activeOpacity={0.8}>
-        <Text style={styles.fabIcon}>
-          {intl.formatMessage({ id: 'action.plus', defaultMessage: '+' })}
-        </Text>
-      </TouchableOpacity>
-    </View>
+    <PlansListView
+      plans={plans}
+      loading={loading}
+      refreshing={refreshing}
+      error={error}
+      creating={creating}
+      onCreate={() => {
+        void handleCreate();
+      }}
+      onOpen={(planId) => {
+        navigation.navigate('PlanEditor', { planId });
+      }}
+      onRefresh={() => {
+        setRefreshing(true);
+        void loadPlans();
+      }}
+      onRetry={() => {
+        setLoading(true);
+        void loadPlans();
+      }}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: t.colorSurfaceBase,
-  },
-  centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContent: {
-    padding: t.spaceMd,
-    paddingBottom: 100,
-  },
-  card: {
-    backgroundColor: t.colorSurfaceRaised,
-    borderRadius: t.radiusMd,
-    padding: t.spaceMd,
-    marginBottom: t.spaceSm,
-    borderWidth: 1,
-    borderColor: t.colorBorderSubtle,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: t.spaceXs,
-  },
-  cardName: {
-    flex: 1,
-    fontSize: t.fontSizeMd,
-    fontWeight: t.fontWeightBold,
-    color: t.colorTextPrimary,
-    marginRight: t.spaceSm,
-  },
-  cardCurrency: {
-    fontSize: t.fontSizeSm,
-    color: t.colorAccentDefault,
-    fontWeight: t.fontWeightMedium,
-  },
-  cardMeta: {
-    fontSize: t.fontSizeSm,
-    color: t.colorTextSecondary,
-    marginBottom: t.spaceXs,
-  },
-  cardType: {
-    fontSize: t.fontSizeXs,
-    color: t.colorTextMuted,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    paddingTop: t.space4xl,
-  },
-  emptyText: {
-    color: t.colorTextSecondary,
-    fontSize: t.fontSizeMd,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: t.spaceLg,
-    bottom: t.spaceLg,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: t.colorAccentDefault,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-  },
-  fabIcon: {
-    fontSize: t.fontSizeXl,
-    color: t.colorAccentOnAccent,
-    fontWeight: t.fontWeightBold,
-    lineHeight: 24,
-  },
-});
