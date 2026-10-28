@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../../domain/display.js';
 import {
   IsoDate,
   dailyAllowance,
@@ -231,7 +232,7 @@ function toCategoryRow(
 
   return {
     id: sums.categoryId,
-    label: categoryNames.get(sums.categoryId) ?? '',
+    label: categoryNames.get(sums.categoryId) ?? NO_LABEL,
     spentMinor: sums.actual,
     plannedMinor: sums.planned,
     currency: sums.currency,

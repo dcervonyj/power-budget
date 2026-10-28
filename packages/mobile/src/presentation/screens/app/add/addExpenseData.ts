@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../../domain/display.js';
 import { IsoDate, parseMinorUnits, periodProgress } from '@power-budget/core';
 import type {
   AccountDto,
@@ -40,7 +41,7 @@ export function buildAddExpenseData(sources: AddExpenseSources): AddExpenseData 
       ...dashboard.expenseLines.map((line) => ({
         id: line.plannedItemId,
         plannedItemId: line.plannedItemId,
-        name: names.get(line.categoryId) ?? '',
+        name: names.get(line.categoryId) ?? NO_LABEL,
         plannedMinor: parseMinorUnits(line.planned.amountMinor),
         spentMinor: parseMinorUnits(line.actual.amountMinor),
       })),

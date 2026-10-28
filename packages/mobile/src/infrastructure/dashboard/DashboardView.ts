@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../domain/display.js';
 import { parseMinorUnits } from '@power-budget/core';
 import type {
   MoneyDto,
@@ -55,7 +56,7 @@ function toRow(
 ): DashboardRowView {
   return {
     plannedItemId: line.plannedItemId,
-    name: categoryNames.get(line.categoryId) ?? '',
+    name: categoryNames.get(line.categoryId) ?? NO_LABEL,
     direction: line.direction,
     planned: line.planned,
     actual: line.actual,

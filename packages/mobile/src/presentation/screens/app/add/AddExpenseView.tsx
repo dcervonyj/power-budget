@@ -1,3 +1,4 @@
+import { NO_LABEL } from '../../../../domain/display.js';
 import React from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useIntl } from 'react-intl';
@@ -464,7 +465,7 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
           <Text style={styles.savedLine}>
             {intl.formatMessage(
               { id: 'add.saved.line', defaultMessage: '{amount} · {category}' },
-              { amount, category: props.category?.name ?? '' },
+              { amount, category: props.category?.name ?? NO_LABEL },
             )}
           </Text>
           {props.unsorted ? (
@@ -475,7 +476,7 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
                     id: 'add.saved.unsorted',
                     defaultMessage: 'Saved, but not added to {category} yet.',
                   },
-                  { category: props.category?.name ?? '' },
+                  { category: props.category?.name ?? NO_LABEL },
                 )}
               </Text>
               <Button variant="secondary" onPress={props.onRetryCategory} disabled={refreshing}>

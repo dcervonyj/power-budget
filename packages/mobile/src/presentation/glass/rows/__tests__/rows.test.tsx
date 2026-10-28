@@ -110,6 +110,15 @@ describe('TxRow accessible names', () => {
     expect(screen.getAllByTestId('amount-text')).toHaveLength(1);
     expect(screen.getAllByTestId('amount-text', { includeHiddenElements: true })).toHaveLength(2);
   });
+
+  it.each([
+    ['without an original amount', { originalCurrency: 'PLN' }],
+    ['without an original currency', { originalAmountMinor: -5310n }],
+  ] as const)('shows no original amount %s', async (_name, original) => {
+    await renderGlass(<TxRow transaction={{ ...BASE, currency: 'EUR', ...original }} />);
+
+    expect(screen.getAllByTestId('amount-text', { includeHiddenElements: true })).toHaveLength(1);
+  });
 });
 
 describe('TxRow actions', () => {
