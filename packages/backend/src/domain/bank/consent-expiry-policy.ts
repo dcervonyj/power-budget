@@ -14,8 +14,12 @@ export class ConsentExpiryPolicy {
    * @param now - the current time (injected for testability)
    */
   static evaluate(connection: BankConnection, now: Date): ConsentReminderKind | null {
-    if (!connection.expiresAt) return null;
-    if (connection.status === 'disconnected') return null;
+    if (!connection.expiresAt) {
+      return null;
+    }
+    if (connection.status === 'disconnected') {
+      return null;
+    }
 
     const msUntilExpiry = connection.expiresAt.getTime() - now.getTime();
 
@@ -28,6 +32,7 @@ export class ConsentExpiryPolicy {
     if (msUntilExpiry <= SEVEN_DAYS_MS) {
       return 'seven_days';
     }
+
     return null;
   }
 
@@ -35,7 +40,10 @@ export class ConsentExpiryPolicy {
    * Returns true if the consent has expired (past expiresAt).
    */
   static isExpired(connection: BankConnection, now: Date): boolean {
-    if (!connection.expiresAt) return false;
+    if (!connection.expiresAt) {
+      return false;
+    }
+
     return connection.expiresAt.getTime() <= now.getTime();
   }
 
@@ -43,8 +51,11 @@ export class ConsentExpiryPolicy {
    * Returns true if the consent will expire within the given window (ms).
    */
   static expiresWithin(connection: BankConnection, windowMs: number, now: Date): boolean {
-    if (!connection.expiresAt) return false;
+    if (!connection.expiresAt) {
+      return false;
+    }
     const msUntilExpiry = connection.expiresAt.getTime() - now.getTime();
+
     return msUntilExpiry > 0 && msUntilExpiry <= windowMs;
   }
 }

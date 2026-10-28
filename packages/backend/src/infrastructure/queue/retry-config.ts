@@ -31,6 +31,7 @@ export const DEFAULT_JOB_OPTIONS = {
  */
 export function customBackoffStrategy(attemptsMade: number): number {
   const idx = Math.min(attemptsMade, RETRY_DELAYS_MS.length - 1);
+
   return RETRY_DELAYS_MS[idx] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]!;
 }
 

@@ -31,27 +31,19 @@ const TEMPLATE_DIR = join(__dirname, '../../infrastructure/notifications/templat
 
 /** Holds the first send open until released, to overlap two dispatchers. */
 class GatedEmailChannel extends InMemoryEmailChannel {
-  private releaseGate: () => void = () => undefined;
+  private releaseGate!: () => void;
   private readonly gate = new Promise<void>((resolve) => {
     this.releaseGate = resolve;
   });
   private inGate = 0;
   private readonly waiters: { count: number; resolve: () => void }[] = [];
-  private enteredGate: () => void = () => undefined;
+  private enteredGate!: () => void;
   readonly entered = new Promise<void>((resolve) => {
     this.enteredGate = resolve;
   });
 
   release(): void {
     this.releaseGate();
-  }
-
-  private notifyWaiters(): void {
-    for (const waiter of this.waiters) {
-      if (this.inGate >= waiter.count) {
-        waiter.resolve();
-      }
-    }
   }
 
   /** Resolves once `count` sends are waiting at the gate. */
@@ -68,6 +60,14 @@ class GatedEmailChannel extends InMemoryEmailChannel {
     this.enteredGate();
     await this.gate;
     await super.send(message);
+  }
+
+  private notifyWaiters(): void {
+    for (const waiter of this.waiters) {
+      if (this.inGate >= waiter.count) {
+        waiter.resolve();
+      }
+    }
   }
 }
 

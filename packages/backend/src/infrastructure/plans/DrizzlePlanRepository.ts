@@ -47,7 +47,10 @@ export class DrizzlePlanRepository implements PlanRepository {
         baseCurrency: plan.baseCurrency,
       })
       .returning();
-    if (!row) throw new Error('Failed to create plan');
+    if (!row) {
+      throw new Error('Failed to create plan');
+    }
+
     return this.toEntity(row);
   }
 
@@ -57,6 +60,7 @@ export class DrizzlePlanRepository implements PlanRepository {
       .from(schema.plans)
       .where(and(eq(schema.plans.id, id), eq(schema.plans.householdId, scope.householdId)))
       .limit(1);
+
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
@@ -83,6 +87,7 @@ export class DrizzlePlanRepository implements PlanRepository {
       .from(schema.plans)
       .where(and(...conditions))
       .orderBy(asc(schema.plans.periodStart), asc(schema.plans.id));
+
     return rows.map((r) => this.toEntity(r));
   }
 
@@ -99,7 +104,10 @@ export class DrizzlePlanRepository implements PlanRepository {
       })
       .where(and(eq(schema.plans.id, id), eq(schema.plans.householdId, scope.householdId)))
       .returning();
-    if (!row) throw new Error(`PLAN_NOT_FOUND: Plan ${id} not found`);
+    if (!row) {
+      throw new Error(`PLAN_NOT_FOUND: Plan ${id} not found`);
+    }
+
     return this.toEntity(row);
   }
 

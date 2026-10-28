@@ -73,5 +73,6 @@
     "vite": "^6.4.5",
     "vitest": "^4.1.11",
     "vitest-mock-extended": "^4.0.0"
-  }
+  },
+  "eslintRatchet": true
 }
