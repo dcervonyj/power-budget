@@ -1,22 +1,12 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
+import { settingsStore } from '../../../../composition.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import { SettingsDataTab } from '../SettingsDataTab.js';
 
-const store = vi.hoisted(() => ({
-  isExporting: false,
-  exportUrl: null,
-  exportError: null,
-  isDeleting: false,
-  deleteError: null as string | null,
-  deletionScheduledFor: null as string | null,
-  deleteAccount: vi.fn(),
-  clearExportUrl: vi.fn(),
-  exportData: vi.fn(),
-}));
-
-vi.mock('../../../../application/settings/SettingsStore.js', () => ({ settingsStore: store }));
+const store = settingsStore;
+const deleteAccount = vi.spyOn(settingsStore, 'deleteAccount');
 
 function openAndConfirm(): void {
   fireEvent.click(screen.getByRole('button', { name: 'Delete account' }));
@@ -30,6 +20,7 @@ function openAndConfirm(): void {
 describe('SettingsDataTab household deletion feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    deleteAccount.mockResolvedValue(undefined);
     store.deleteError = null;
     store.deletionScheduledFor = null;
     store.isDeleting = false;
@@ -50,12 +41,12 @@ describe('SettingsDataTab household deletion feedback', () => {
 
     openAndConfirm();
 
-    expect(store.deleteAccount).toHaveBeenCalledTimes(1);
-    expect(store.deleteAccount).toHaveBeenCalledWith('');
+    expect(deleteAccount).toHaveBeenCalledTimes(1);
+    expect(deleteAccount).toHaveBeenCalledWith('');
   });
 
   it('sends only one request when confirm is clicked again while it runs', () => {
-    store.deleteAccount.mockImplementation(() => {
+    deleteAccount.mockImplementation(() => {
       store.isDeleting = true;
 
       return new Promise<void>(() => undefined);
@@ -66,7 +57,7 @@ describe('SettingsDataTab household deletion feedback', () => {
 
     fireEvent.click(buttons[buttons.length - 1] ?? document.body);
 
-    expect(store.deleteAccount).toHaveBeenCalledTimes(1);
+    expect(deleteAccount).toHaveBeenCalledTimes(1);
   });
 
   it('shows the owner-only error text when the store reports it', () => {

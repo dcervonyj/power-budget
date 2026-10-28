@@ -3,13 +3,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import { RegisterScreen } from '../RegisterScreen.js';
-import { apiClient } from '../../../../AppProviders.js';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  apiClient: { post: vi.fn() },
-}));
-
-const mockPost = vi.mocked(apiClient.post);
+const mockPost = spyOnApiClient().post;
 
 function apiError(status: number, code: string): Error & { response: unknown } {
   return Object.assign(new Error(`HTTP ${status}`), {
