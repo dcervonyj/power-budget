@@ -120,6 +120,22 @@ const DIRECTORY_RATCHETS = {
       },
     },
     {
+      // CLN-074g: no arrow/function-expression locals in class methods; extract a named private method.
+      files: ['src/**/*.ts'],
+      ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/test/**'],
+      rules: {
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector:
+              ':matches(MethodDefinition, PropertyDefinition) VariableDeclarator[init.type=/^(ArrowFunctionExpression|FunctionExpression)$/]',
+            message:
+              'Extract a function defined inside a class method into a named private method.',
+          },
+        ],
+      },
+    },
+    {
       // CLN-074e: backend tests build typed fixtures instead of casting.
       files: [
         'src/**/*.spec.ts',
