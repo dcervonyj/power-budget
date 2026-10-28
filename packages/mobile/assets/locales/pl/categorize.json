@@ -37,6 +37,7 @@
   "categorize.undo": "Cofnij",
   "categorize.choices.loading": "Wczytywanie kategorii",
   "categorize.choices.error": "Nie udało się wczytać kategorii.",
+  "categorize.choices.stale": "Nie udało się odświeżyć sald. Podglądy mogą być nieaktualne.",
   "categorize.choices.empty": "Żadna kategoria w bieżącym planie nie pasuje do tej płatności.",
   "categorize.error.confirm": "Nie udało się posortować płatności. Spróbuj ponownie.",
   "categorize.error.undo": "Nie udało się cofnąć. Płatność nadal jest posortowana."

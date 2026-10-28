@@ -37,6 +37,7 @@
   "categorize.undo": "Отменить",
   "categorize.choices.loading": "Загрузка категорий",
   "categorize.choices.error": "Не удалось загрузить категории.",
+  "categorize.choices.stale": "Не удалось обновить остатки. Предпросмотр может быть устаревшим.",
   "categorize.choices.empty": "Ни одна категория текущего плана не подходит для этого платежа.",
   "categorize.error.confirm": "Не удалось отсортировать платёж. Повторите попытку.",
   "categorize.error.undo": "Не удалось отменить. Платёж остаётся отсортированным."

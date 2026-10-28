@@ -35,6 +35,7 @@ export interface CategorizeLabels {
   undo(): string;
   choicesLoading(): string;
   choicesError(): string;
+  choicesStale(): string;
   choicesEmpty(): string;
   confirmError(): string;
   undoError(): string;
@@ -175,6 +176,11 @@ export function useCategorizeLabels(): CategorizeLabels {
     undo: () => text('categorize.undo', 'Undo'),
     choicesLoading: () => text('categorize.choices.loading', 'Loading categories'),
     choicesError: () => text('categorize.choices.error', 'Could not load the categories.'),
+    choicesStale: () =>
+      text(
+        'categorize.choices.stale',
+        'Could not refresh the balances. The previews may be out of date.',
+      ),
     choicesEmpty: () =>
       text('categorize.choices.empty', 'No category in the current plan fits this payment.'),
     confirmError: () => text('categorize.error.confirm', 'Could not sort the payment. Try again.'),

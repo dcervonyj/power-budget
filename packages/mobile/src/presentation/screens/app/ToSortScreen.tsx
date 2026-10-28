@@ -42,6 +42,7 @@ export function ToSortScreen({ navigation }: Props): React.JSX.Element {
           sheet={sheet}
           choices={toSort.choices}
           choicesStatus={toSort.choicesStatus}
+          choicesStale={toSort.choicesStale}
           onRetryChoices={toSort.retryChoices}
           busyIds={toSort.busyIds}
           write={toSort.write}

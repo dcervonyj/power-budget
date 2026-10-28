@@ -6,6 +6,7 @@ function choice(overrides: Partial<CategoryChoice> = {}): CategoryChoice {
   return {
     plannedItemId: 'transport',
     name: 'Transport',
+    planName: 'October',
     direction: 'expense',
     plannedMinor: 70000n,
     spentMinor: 31239n,
@@ -101,6 +102,21 @@ describe('choicesFor', () => {
       'Salary',
     ]);
     expect(choicesFor(choices, payment()).map((c) => c.name)).toEqual(['A', 'B']);
+  });
+});
+
+describe('choicesFor', () => {
+  it('puts the plans that cover the payment day before the others', () => {
+    const later = choice({
+      plannedItemId: 'later',
+      periodStart: '2026-11-01',
+      periodEnd: '2026-11-30',
+    });
+    const now = choice({ plannedItemId: 'now' });
+
+    const result = choicesFor([later, now], payment());
+
+    expect(result.map((c) => c.plannedItemId)).toEqual(['now', 'later']);
   });
 });
 

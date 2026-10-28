@@ -26,6 +26,8 @@ export interface ToSortState {
   readonly reloadFailed: boolean;
   readonly choices: readonly CategoryChoice[];
   readonly choicesStatus: LoadStatus;
+  /** The last refresh of the categories failed: the balances in the previews may be out of date. */
+  readonly choicesStale: boolean;
   readonly sheet: SheetState | undefined;
   readonly busyIds: Set<string>;
   readonly retry: () => void;
@@ -49,6 +51,7 @@ export function useToSort(): ToSortState {
   const [reloadFailed, setReloadFailed] = useState(false);
   const [choices, setChoices] = useState<readonly CategoryChoice[]>([]);
   const [choicesStatus, setChoicesStatus] = useState<LoadStatus>('loading');
+  const [choicesStale, setChoicesStale] = useState(false);
   const [sheet, setSheet] = useState<SheetState | undefined>(undefined);
   // Payments sorted in the sheet stay out of the list until a load newer than the change shows them.
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
@@ -101,10 +104,12 @@ export function useToSort(): ToSortState {
       if (request === choicesRequest.current) {
         setChoices(loaded);
         setChoicesStatus('ready');
+        setChoicesStale(false);
       }
     } catch {
       if (request === choicesRequest.current) {
-        // A quiet refresh that fails keeps the balances already shown.
+        // A quiet refresh that fails keeps the balances shown, and says they may be out of date.
+        setChoicesStale(quiet);
         setChoicesStatus((previous) => (quiet && previous === 'ready' ? previous : 'error'));
       }
     }
@@ -191,6 +196,7 @@ export function useToSort(): ToSortState {
     reloadFailed,
     choices,
     choicesStatus,
+    choicesStale,
     sheet,
     busyIds: busyIds.current,
     retry,

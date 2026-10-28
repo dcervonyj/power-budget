@@ -21,6 +21,8 @@ export interface CategorizeSheetViewProps {
   readonly onClose: () => void;
   readonly session: CategorizeSession;
   readonly choicesStatus: LoadStatus;
+  /** The last refresh of the categories failed: the previews may show old balances. */
+  readonly choicesStale?: boolean;
   readonly onRetryChoices: () => void;
   /** Leaves for the Transactions tab; absent hides the action. */
   readonly onBackToTransactions?: () => void;
@@ -172,8 +174,13 @@ function Choosing(
   }
   const locked = session.phase === 'saving';
 
+  const manyPlans = new Set(session.options.map((option) => option.planName)).size > 1;
+
   return (
     <>
+      {props.choicesStale === true ? (
+        <ErrorBanner message={labels.choicesStale()} onRetry={props.onRetryChoices} />
+      ) : null}
       <View role="radiogroup" accessibilityLabel={labels.optionsGroup()} style={styles.options}>
         {session.options.map((option) => (
           <Option
@@ -181,6 +188,7 @@ function Choosing(
             option={option}
             picked={session.picked?.plannedItemId === option.plannedItemId}
             suggested={session.row?.suggestedPlannedItemId === option.plannedItemId}
+            showPlan={manyPlans}
             impact={
               session.picked?.plannedItemId === option.plannedItemId ? session.impact : undefined
             }
@@ -201,6 +209,7 @@ function Option({
   option,
   picked,
   suggested,
+  showPlan,
   impact,
   disabled,
   onPick,
@@ -209,6 +218,8 @@ function Option({
   readonly option: CategoryChoice;
   readonly picked: boolean;
   readonly suggested: boolean;
+  /** Several plans are offered: name the plan of each category. */
+  readonly showPlan: boolean;
   readonly impact: Impact | undefined;
   readonly disabled: boolean;
   readonly onPick: (plannedItemId: string) => void;
@@ -222,7 +233,11 @@ function Option({
     <Pressable
       testID="category-option"
       role="radio"
-      accessibilityLabel={labels.optionAria(option.name, detailText ?? '', suggested)}
+      accessibilityLabel={labels.optionAria(
+        showPlan ? `${option.name}, ${option.planName}` : option.name,
+        detailText ?? '',
+        suggested,
+      )}
       aria-checked={picked}
       accessibilityState={{ checked: picked, disabled }}
       disabled={disabled}
@@ -231,6 +246,7 @@ function Option({
     >
       <View style={styles.optionHead}>
         <Text style={styles.strong}>{option.name}</Text>
+        {showPlan ? <Text style={styles.dim}>{option.planName}</Text> : null}
         {suggested ? <Text style={styles.tag}>{labels.suggested()}</Text> : null}
       </View>
       {detail === undefined ? null : (

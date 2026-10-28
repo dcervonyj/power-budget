@@ -9,6 +9,8 @@ export type Direction = 'income' | 'expense';
 export interface CategoryChoice {
   readonly plannedItemId: string;
   readonly name: string;
+  /** The plan the item belongs to: several active plans can offer the same category. */
+  readonly planName: string;
   readonly direction: Direction;
   readonly plannedMinor: bigint;
   /** What is already spent (or received) in it, from the plan dashboard. */
@@ -51,6 +53,7 @@ export interface Impact {
 
 export function choicesOf(
   dashboard: PlanDashboardResponseDto,
+  planName: string,
   categoryNames: ReadonlyMap<string, string>,
 ): CategoryChoice[] {
   const lines = [
@@ -61,6 +64,7 @@ export function choicesOf(
   return lines.map(({ line, direction }) => ({
     plannedItemId: line.plannedItemId,
     name: categoryNames.get(line.categoryId) ?? '',
+    planName,
     direction,
     plannedMinor: parseMinorUnits(line.planned.amountMinor),
     spentMinor: parseMinorUnits(line.actual.amountMinor),
@@ -70,14 +74,17 @@ export function choicesOf(
   }));
 }
 
-/** The choices that fit the payment's direction, the suggested one first, the rest in plan order. */
+/** The choices that fit the payment's direction: the suggested one first, then those of the plan period it falls in. */
 export function choicesFor(choices: readonly CategoryChoice[], payment: Payment): CategoryChoice[] {
   const direction: Direction = payment.amountMinor < 0n ? 'expense' : 'income';
   const fitting = choices.filter((choice) => choice.direction === direction);
   const suggested = fitting.filter((c) => c.plannedItemId === payment.suggestedPlannedItemId);
   const others = fitting.filter((c) => c.plannedItemId !== payment.suggestedPlannedItemId);
+  // The plans that cover the payment's day come before the ones it falls outside of.
+  const covering = others.filter((choice) => inPeriod(choice, payment));
+  const elsewhere = others.filter((choice) => !inPeriod(choice, payment));
 
-  return [...suggested, ...others];
+  return [...suggested, ...covering, ...elsewhere];
 }
 
 /**
