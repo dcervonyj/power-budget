@@ -108,6 +108,20 @@ describe('BulkMapTransactionsUseCase', () => {
     });
   });
 
+  it('keeps the saved mappings when learning a rule fails', async () => {
+    const txRepo = mock<TransactionRepository>();
+    const mappingRepo = mock<MappingRepository>();
+    const memory = mock<LearnMerchantRuleUseCase>();
+    txRepo.findOwnedIds.mockResolvedValue([TX_1, TX_2]);
+    txRepo.findById.mockResolvedValue({ id: TX_1 } as Transaction);
+    memory.learnFromMapping.mockRejectedValue(new Error('boom'));
+
+    await new BulkMapTransactionsUseCase(txRepo, mappingRepo, memory).execute(input);
+
+    expect(mappingRepo.bulkSet).toHaveBeenCalledWith(input.mappings, USER, scope);
+    expect(memory.learnFromMapping).toHaveBeenCalledTimes(3);
+  });
+
   it('rejects the whole batch when one transaction is not the caller’s own', async () => {
     const txRepo = mock<TransactionRepository>();
     const mappingRepo = mock<MappingRepository>();

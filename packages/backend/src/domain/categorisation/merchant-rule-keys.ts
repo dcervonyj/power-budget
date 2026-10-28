@@ -1,4 +1,4 @@
-import { normaliseTransaction, type DescriptorClass } from '@power-budget/core';
+import { normaliseTransaction } from '@power-budget/core';
 import type { MerchantRuleKey } from './entities.js';
 
 export interface MerchantRuleSource {
@@ -41,22 +41,42 @@ export function merchantRuleConfidence(hits: number): number {
   return thousandths / 1000;
 }
 
-/** Descriptor classes whose free text names no merchant ("Faktura 1/2026", "Zwrot"). */
-const GENERIC_DESCRIPTOR_CLASSES: readonly DescriptorClass[] = [
-  'unclassified',
+/** Titles that name a kind of payment, not a merchant ("Faktura 1/2026", "Zwrot"). */
+const GENERIC_TITLE_WORDS: readonly string[] = [
+  'faktura',
+  'fv',
+  'zwrot',
+  'przelew',
+  'oplata',
+  'platnosc',
+  'wplata',
+  'wyplata',
+  'rachunek',
+  'splata',
   'transfer',
-  'fee',
-  'atm',
+  'payment',
+  'refund',
+  'invoice',
 ];
 
 function merchantKeyOf(text: string, isDescription: boolean): string | null {
   const normalised = normaliseTransaction(text);
-  if (normalised.merchantKey === null || normalised.merchantKey === '') {
+  const key = normalised.merchantKey;
+  if (key === null || key === '') {
     return null;
   }
-  if (isDescription && GENERIC_DESCRIPTOR_CLASSES.includes(normalised.descriptorClass)) {
+  if (!isDescription) {
+    return key;
+  }
+  if (normalised.descriptorClass === 'fee' || normalised.descriptorClass === 'atm') {
+    return null;
+  }
+  if (normalised.descriptorClass === 'transfer' && normalised.counterparty === null) {
+    return null;
+  }
+  if (GENERIC_TITLE_WORDS.includes(key.split(' ')[0] ?? '')) {
     return null;
   }
 
-  return normalised.merchantKey;
+  return key;
 }
