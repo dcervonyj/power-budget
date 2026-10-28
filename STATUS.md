@@ -30,14 +30,14 @@ The product moved from pre-alpha scaffold to a working, deployed, restyled web a
 
 ## Security
 
-Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), Google OAuth stub removed, household IDORs, Wise consent hijack, signed bounce webhook, Swagger and CORS gated (CLN-001); RLS enforced (CLN-005, CLN-051); request validation (CLN-002); Redis-backed throttling and second-factor attempt limits (CLN-031). Dependabot alerts addressed in CLN-028 and CLN-077; a few left from CLN-028 (node-forge, zod3, react-router 6, fast-xml, esbuild) were not re-checked here. The "keep Render suspended" advice is obsolete: the service is live.
+Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), Google OAuth stub removed, household IDORs, Wise consent hijack, signed bounce webhook, Swagger and CORS gated (CLN-001); RLS enforced (CLN-005, CLN-051); request validation (CLN-002); Redis-backed throttling and second-factor attempt limits (CLN-031). Dependabot alerts addressed in CLN-028 and CLN-077 (react-router 7, fast-xml-parser 5, esbuild 0.25). Left open: zod 3.25.76 via @expo/cli (the vulnerable v4 code is unused), node-forge and deepmerge (dev tooling, no patched version); reasons in PR #317. The "keep Render suspended" advice is obsolete: the service is live.
 
 ## Where we are
 
 | Series | State |
 | --- | --- |
-| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-066 follow-ups | Done (merged) |
-| D7 Glass DSN-010 to DSN-050 (web and mobile) | Done |
+| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups | Done, except CLN-044, CLN-063, CLN-068, CLN-070, CLN-073 (need PO decisions) |
+| D7 Glass DSN-010 to DSN-050 (web and mobile) | Done, except DSN-047 and DSN-048; DSN-051 last |
 | CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done |
 | CLN-077 Dependabot alerts, CLN-028 dependency batch | Done |
 | BNK-002, BNK-003, SYNC-001 (bank v2 foundation) | Done |
