@@ -107,7 +107,15 @@ export function useToSort(): ToSortState {
       await writeQueue.run(() => Promise.resolve());
       // Every confirmed payment is written by now, so these balances already include it.
       const covered = new Set(confirmed.current);
+      const startedAt = changes.current;
       const loaded = await loadChoices();
+      if (request === choicesRequest.current && changes.current !== startedAt) {
+        // A confirm or undo landed while the server was read: this result may or may not include
+        // it, so it is dropped and the balances are read again.
+        void loadCategories(quiet);
+
+        return;
+      }
       if (request === choicesRequest.current) {
         setChoices(loaded);
         coverRef.current = covered;

@@ -341,6 +341,42 @@ describe('useToSort', () => {
     expect(result.current.choicesStatus).toBe('ready');
   });
 
+  it('drops a balance load that was in flight while a payment was confirmed, and reads again', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const first = deferred<never>();
+    plans.mockReturnValueOnce(first.promise);
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(plans).toHaveBeenCalledTimes(1));
+
+    await act(async () => result.current.onConfirmed('a'));
+    plans.mockResolvedValue(NOW_PLAN);
+    dashboard.mockResolvedValue(dashboardOf('item-1', '50000'));
+    await act(async () => first.resolve([] as never));
+
+    await waitFor(() => expect(plans).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    expect(result.current.choicesCover.has('a')).toBe(true);
+    expect(result.current.choices.map((c) => c.plannedItemId)).toEqual(['item-1']);
+  });
+
+  it('drops a balance load that was in flight while a payment was undone, and reads again', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    await act(async () => result.current.onConfirmed('a'));
+    await act(async () => result.current.retryChoices());
+    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(true));
+
+    const slow = deferred<never>();
+    plans.mockReturnValueOnce(slow.promise);
+    await act(async () => result.current.reload());
+    await act(async () => result.current.onUndone('a'));
+    await act(async () => slow.resolve([] as never));
+
+    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(false));
+    expect(result.current.choicesStatus).toBe('ready');
+  });
+
   it('closes the sheet and reloads the list, so a sorted payment is gone for good', async () => {
     page.mockResolvedValueOnce(onePage(item('a', false), item('b', false)));
     const { result } = await renderHook(() => useToSort());
