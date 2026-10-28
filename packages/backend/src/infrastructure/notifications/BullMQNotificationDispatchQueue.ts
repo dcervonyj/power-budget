@@ -1,10 +1,11 @@
+import type { NotificationEventId } from '@power-budget/core';
 import type { JobsOptions, Queue } from 'bullmq';
 import { MAX_DISPATCH_ATTEMPTS } from '../../domain/notifications/entities.js';
 import type { NotificationDispatchQueue } from '../../domain/notifications/ports.js';
 import { boundedEnqueue } from '../queue/bounded-enqueue.js';
 
 export interface DispatchNotificationJobPayload {
-  readonly outboxId: string;
+  readonly outboxId: NotificationEventId;
 }
 
 /** First retry after 30 s, then 60 s, 120 s, 240 s. */
@@ -20,14 +21,14 @@ export class BullMQNotificationDispatchQueue implements NotificationDispatchQueu
     private readonly backoffDelayMs: number = DEFAULT_DISPATCH_BACKOFF_MS,
   ) {}
 
-  async schedule(outboxId: string): Promise<void> {
+  async schedule(outboxId: NotificationEventId): Promise<void> {
     await boundedEnqueue(
       this.queue.add('dispatch', { outboxId }, this.jobOptions(outboxId)),
       `dispatch of notification ${outboxId}`,
     );
   }
 
-  private jobOptions(outboxId: string): JobsOptions {
+  private jobOptions(outboxId: NotificationEventId): JobsOptions {
     return {
       // BullMQ rejects custom ids with a single ':'.
       jobId: `dispatch-${outboxId}`,

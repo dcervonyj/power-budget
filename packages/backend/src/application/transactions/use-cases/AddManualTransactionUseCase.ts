@@ -12,7 +12,7 @@ export interface AddManualTransactionInput {
   /** The caller: a manual transaction goes on one of their own accounts only. */
   readonly userId: UserId;
   readonly accountId: BankAccountId;
-  readonly occurredOn: string;
+  readonly occurredOn: IsoDate;
   readonly amountMinor: bigint;
   readonly currency: CurrencyCode;
   readonly description: string;
@@ -49,7 +49,7 @@ export class AddManualTransactionUseCase {
       id: TransactionId.of(this.generateId()),
       householdId: input.householdId,
       accountId: input.accountId,
-      occurredOn: input.occurredOn as IsoDate,
+      occurredOn: input.occurredOn,
       amount: { amountMinor: input.amountMinor, currency: input.currency },
       description: input.description,
       merchant: input.merchant,

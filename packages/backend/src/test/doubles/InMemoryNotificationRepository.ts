@@ -1,4 +1,4 @@
-import type { UserId } from '@power-budget/core';
+import type { UserId, NotificationEventId } from '@power-budget/core';
 import {
   SECRET_PAYLOAD_KEYS,
   type ExpiringConnectionRow,
@@ -18,7 +18,7 @@ import type { IdGenerator } from '../../domain/shared/ports.js';
 import { SequentialIdGenerator } from './SequentialIdGenerator.js';
 // Internal mutable representation of an outbox row.
 interface StoredNotification {
-  id: string;
+  id: NotificationEventId;
   householdId: NotificationOutboxRow['householdId'];
   recipientUserId: NotificationOutboxRow['recipientUserId'];
   recipientEmail: string | null;
@@ -87,7 +87,7 @@ export class InMemoryNotificationRepository implements NotificationRepository, N
     }
     this._outbox.push({
       ...notification,
-      id: this.ids.next(),
+      id: this.ids.next() as NotificationEventId,
       payload: { ...notification.payload },
       householdId: notification.householdId ?? null,
       recipientEmail: null,
@@ -101,7 +101,7 @@ export class InMemoryNotificationRepository implements NotificationRepository, N
 
   async enqueueToAddress(notification: NewAddressNotification): Promise<void> {
     this.seedAddressRow({
-      id: this.ids.next(),
+      id: this.ids.next() as NotificationEventId,
       householdId: notification.householdId,
       kind: notification.kind,
       dedupeKey: notification.dedupeKey,
@@ -114,7 +114,7 @@ export class InMemoryNotificationRepository implements NotificationRepository, N
   /** An address-only row, as DrizzleNotificationOutbox.enqueueToAddress writes it. */
   seedAddressRow(
     notification: Omit<NewNotificationOutbox, 'recipientUserId'> & {
-      id: string;
+      id: NotificationEventId;
       email: string | null;
       locale: string | null;
     },
@@ -135,7 +135,7 @@ export class InMemoryNotificationRepository implements NotificationRepository, N
     });
   }
 
-  async findById(id: string): Promise<NotificationOutboxRow | null> {
+  async findById(id: NotificationEventId): Promise<NotificationOutboxRow | null> {
     const row = this._outbox.find((n) => n.id === id);
 
     return row === undefined ? null : { ...row, payload: { ...row.payload } };
@@ -145,7 +145,7 @@ export class InMemoryNotificationRepository implements NotificationRepository, N
     return this._outbox.filter((n) => this.isPending(n)).slice(0, limit);
   }
 
-  async claimForDispatch(id: string): Promise<NotificationClaim | null> {
+  async claimForDispatch(id: NotificationEventId): Promise<NotificationClaim | null> {
     const row = this._outbox.find((n) => n.id === id);
     if (row === undefined || !this.isPending(row)) {
       return null;

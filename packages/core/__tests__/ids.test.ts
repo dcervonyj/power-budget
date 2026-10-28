@@ -15,8 +15,14 @@ describe('UserId', () => {
     expect(() => UserId.of('')).toThrow(InvalidIdError);
   });
 
-  it('throws InvalidIdError for a UUIDv4', () => {
-    expect(() => UserId.of('550e8400-e29b-41d4-a716-446655440000')).toThrow(InvalidIdError);
+  it('accepts a UUIDv4: users created outside the app may carry one', () => {
+    expect(UserId.of('550e8400-e29b-41d4-a716-446655440000')).toBe(
+      '550e8400-e29b-41d4-a716-446655440000',
+    );
+  });
+
+  it('throws InvalidIdError for the nil UUID', () => {
+    expect(() => UserId.of('00000000-0000-0000-0000-000000000000')).toThrow(InvalidIdError);
   });
 
   it('throws InvalidIdError for a malformed string', () => {

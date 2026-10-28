@@ -189,7 +189,7 @@ export class AddManualTransactionDto {
     description: 'ISO 4217 currency code; must be the account currency (400 otherwise)',
   })
   @IsIn(CURRENCY_CODES)
-  currency!: string;
+  currency!: CurrencyCode;
 
   @ApiProperty({ type: String, example: 'Coffee at Starbucks' })
   @IsString()

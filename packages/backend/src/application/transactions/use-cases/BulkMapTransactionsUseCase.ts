@@ -1,13 +1,23 @@
-import type { TransactionId, PlannedItemId, UserId, PlanId, HouseholdId } from '@power-budget/core';
+import {
+  PlannedItemId,
+  type TransactionId,
+  type UserId,
+  type PlanId,
+  type HouseholdId,
+} from '@power-budget/core';
 import type {
   MappingRepository,
   TransactionRepository,
 } from '../../../domain/transactions/ports.js';
 import type { LearnMerchantRuleUseCase } from '../../categorisation/LearnMerchantRuleUseCase.js';
-import { TransactionNotFoundError } from '../../../domain/transactions/errors.js';
+import {
+  PlannedItemNotFoundError,
+  TransactionNotFoundError,
+} from '../../../domain/transactions/errors.js';
 
 export interface BulkMapTransactionsInput {
-  readonly mappings: ReadonlyArray<{ transactionId: TransactionId; plannedItemId: PlannedItemId }>;
+  /** The planned item id is raw: it is branded after the ownership check, which answers first. */
+  readonly mappings: ReadonlyArray<{ transactionId: TransactionId; plannedItemId: string }>;
   readonly by: UserId;
   readonly householdId: HouseholdId;
   readonly planId: PlanId;
@@ -36,11 +46,23 @@ export class BulkMapTransactionsUseCase {
       throw new TransactionNotFoundError();
     }
 
+    const mappings = input.mappings.map((m) => ({
+      transactionId: m.transactionId,
+      plannedItemId: this.plannedItemIdOf(m.plannedItemId),
+    }));
     // The repository also rejects the whole batch if any planned item is foreign.
-    await this.mappingRepo.bulkSet([...input.mappings], input.by, scope);
-    for (const mapping of input.mappings) {
+    await this.mappingRepo.bulkSet(mappings, input.by, scope);
+    for (const mapping of mappings) {
       await this.learn(mapping, input, scope);
     }
+  }
+
+  private plannedItemIdOf(raw: string): PlannedItemId {
+    if (!PlannedItemId.isValid(raw)) {
+      throw new PlannedItemNotFoundError();
+    }
+
+    return PlannedItemId.of(raw);
   }
 
   private async learn(

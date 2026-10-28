@@ -1,3 +1,4 @@
+import type { NotificationEventId } from '@power-budget/core';
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
@@ -67,7 +68,7 @@ export class NotificationCronService {
    * A failed schedule (Redis unreachable beyond the enqueue bound) must not skip the rest of
    * the batch; the row stays pending and the next 5-minute relay tick retries it.
    */
-  private async scheduleOne(outboxId: string): Promise<void> {
+  private async scheduleOne(outboxId: NotificationEventId): Promise<void> {
     try {
       await this.dispatchQueue.schedule(outboxId);
     } catch (err) {
