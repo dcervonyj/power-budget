@@ -26,8 +26,12 @@ export interface HouseholdScope {
 }
 
 export interface TransactionRepository {
-  /** Bank sync: the household comes from the synced connection (`input.householdId`). */
-  upsertByExternalId(input: NewTransaction): Promise<{ id: TransactionId; created: boolean }>;
+  /**
+   * Bank sync: one `INSERT ... ON CONFLICT DO NOTHING` per batch (the household comes from each
+   * row's `householdId`). Rows whose (account, external id) is already stored, or repeated in
+   * the batch, are skipped; returns how many rows were created.
+   */
+  insertBankBatch(inputs: readonly NewTransaction[]): Promise<number>;
   insertManual(input: NewManualTransaction): Promise<Transaction>;
   /** The account when it is in `scope` and owned by `ownerUserId` (accounts are private). */
   findOwnedAccount(
@@ -110,8 +114,4 @@ export interface TransferRepository {
   ): Promise<void>;
   unmark(transactionId: TransactionId, scope: HouseholdScope): Promise<void>;
   findByTransaction(id: TransactionId, scope: HouseholdScope): Promise<Transfer | null>;
-}
-
-export interface MappingSuggestionPort {
-  suggest(tx: Transaction, recentMappings: TransactionMapping[]): PlannedItemId | null;
 }
