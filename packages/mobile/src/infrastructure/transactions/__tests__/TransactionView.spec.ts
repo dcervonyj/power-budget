@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { TransactionDetailDto } from '@power-budget/shared-app/contract';
-import { TransactionView, formatAmountText, isOutgoing } from '../TransactionView.js';
+import { TransactionView, formatAmountText, isOutgoing, titleOf } from '../TransactionView.js';
 
 const detail: TransactionDetailDto = {
   transaction: {
@@ -28,12 +28,14 @@ describe('TransactionView.fromDetail', () => {
       id: 'tx-1',
       occurredOn: '2026-10-05',
       description: 'Biedronka',
+      merchant: null,
       amount: { amountMinor: '-1250', currency: 'PLN' },
       source: 'bank_sync',
       notes: null,
       ignored: false,
       isTransfer: false,
       mapping: { plannedItemId: 'item-1' },
+      suggestedPlannedItemId: null,
     });
     expect(TransactionView.fromDetail({ ...detail, transfer: { id: 'tr-1' } }).isTransfer).toBe(
       true,
@@ -52,5 +54,14 @@ describe('formatAmountText', () => {
   it('marks negative amounts as outgoing', () => {
     expect(isOutgoing({ amountMinor: '-1', currency: 'PLN' })).toBe(true);
     expect(isOutgoing({ amountMinor: '1', currency: 'PLN' })).toBe(false);
+  });
+});
+
+describe('titleOf', () => {
+  it('prefers the merchant over the bank description', () => {
+    expect(titleOf({ merchant: 'Lidl', description: 'LIDL 0421 WARSZAWA' })).toBe('Lidl');
+    expect(titleOf({ merchant: null, description: 'LIDL 0421 WARSZAWA' })).toBe(
+      'LIDL 0421 WARSZAWA',
+    );
   });
 });

@@ -1,0 +1,65 @@
+import type { CategoriesApi, PlansApi } from '@power-budget/shared-app';
+import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
+
+/** A planned item (expense or income) of an active plan that a transaction can be sorted into. */
+export interface PlannedItemOption {
+  readonly direction: PlannedItemDto['direction'];
+  readonly plannedItemId: string;
+  readonly planName: string;
+  readonly categoryName: string;
+}
+
+/** Items of the active plans with their category names; the pool a transaction maps into. */
+export async function loadPlannedItemOptions(
+  plansApi: Pick<PlansApi, 'list' | 'listItems'>,
+  categoriesApi: Pick<CategoriesApi, 'list'>,
+): Promise<PlannedItemOption[]> {
+  const [plans, categories] = await Promise.all([
+    plansApi.list('active'),
+    categoriesApi.list({ includeArchived: true }),
+  ]);
+  const names = new Map(categories.map((category) => [category.id, category.name]));
+  const perPlan = await Promise.all(plans.map((plan) => optionsOf(plansApi, plan, names)));
+
+  return perPlan.flat();
+}
+
+export function categoryNameByItem(
+  options: readonly PlannedItemOption[],
+): ReadonlyMap<string, string> {
+  return new Map(options.map((option) => [option.plannedItemId, option.categoryName]));
+}
+
+async function optionsOf(
+  plansApi: Pick<PlansApi, 'listItems'>,
+  plan: PlanDto,
+  names: ReadonlyMap<string, string>,
+): Promise<PlannedItemOption[]> {
+  const items = await plansApi.listItems(plan.id);
+
+  return items.map((item) => ({
+    plannedItemId: item.id,
+    direction: item.direction,
+    planName: plan.name,
+    categoryName: names.get(item.categoryId) ?? '',
+  }));
+}
+
+/**
+ * The category of one planned item in any plan, archived ones included. The picker lists active
+ * plans only, so a transaction mapped into an archived plan is resolved here.
+ */
+export async function findCategoryName(
+  plansApi: Pick<PlansApi, 'list' | 'listItems'>,
+  categoriesApi: Pick<CategoriesApi, 'list'>,
+  plannedItemId: string,
+): Promise<string | undefined> {
+  const [plans, categories] = await Promise.all([
+    plansApi.list('all'),
+    categoriesApi.list({ includeArchived: true }),
+  ]);
+  const itemLists = await Promise.all(plans.map((plan) => plansApi.listItems(plan.id)));
+  const item = itemLists.flat().find((candidate) => candidate.id === plannedItemId);
+
+  return categories.find((category) => category.id === item?.categoryId)?.name;
+}
