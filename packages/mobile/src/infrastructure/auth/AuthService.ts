@@ -43,6 +43,7 @@ export class AuthService {
       const response = await this.apiClient.post<AuthTokensDto>('/auth/login', body);
 
       await this.tokenStore.setTokens(response.data.accessToken, response.data.refreshToken);
+
       return {
         requiresTotp: false,
         accessToken: response.data.accessToken,
