@@ -57,6 +57,25 @@ function deferred<T>() {
   return { promise, resolve: holder.resolve };
 }
 
+const NOW_PLAN = [{ id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } }] as never;
+const dashboard = jest.mocked(plansApi.dashboard);
+
+function dashboardOf(plannedItemId: string, planned: string): never {
+  const line = {
+    plannedItemId,
+    categoryId: 'cat',
+    planned: { amountMinor: planned, currency: 'PLN' },
+    actual: { amountMinor: '0', currency: 'PLN' },
+  };
+
+  return {
+    period: { start: '2000-01-01', end: '2999-12-31' },
+    baseCurrency: 'PLN',
+    expenseLines: [line],
+    incomeLines: [],
+  } as never;
+}
+
 const ids = (rows: readonly { data: { id: string } }[]): string[] => rows.map((row) => row.data.id);
 
 beforeEach(() => {
@@ -153,14 +172,35 @@ describe('useToSort', () => {
 
     const stale = deferred<never[]>();
     plans.mockReturnValueOnce(stale.promise);
-    plans.mockResolvedValueOnce([]);
+    plans.mockResolvedValueOnce(NOW_PLAN);
+    dashboard.mockResolvedValue(dashboardOf('item-new', '900'));
     await act(async () => {
       result.current.reload();
       result.current.reload();
     });
-    await act(async () => stale.resolve([]));
+    await waitFor(() => expect(result.current.choices[0]?.plannedItemId).toBe('item-new'));
+    dashboard.mockResolvedValue(dashboardOf('item-old', '100'));
+    await act(async () => stale.resolve(NOW_PLAN as never[]));
 
-    expect(result.current.choicesStatus).toBe('ready');
+    expect(result.current.choices.map((choice) => choice.plannedItemId)).toEqual(['item-new']);
+  });
+
+  it('reads the balances only after a write that is still on its way', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    const { result } = await renderHook(() => useToSort());
+    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
+    const write = deferred<void>();
+    setMapping.mockReturnValueOnce(write.promise);
+    plans.mockClear();
+
+    await act(async () => {
+      void result.current.write('a', 'item-1');
+      result.current.close();
+    });
+    expect(plans).not.toHaveBeenCalled();
+    await act(async () => write.resolve());
+
+    await waitFor(() => expect(plans).toHaveBeenCalledTimes(1));
   });
 
   it('leaves out of the pass a payment whose write is still in flight', async () => {

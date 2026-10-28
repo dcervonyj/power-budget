@@ -95,6 +95,8 @@ export function useToSort(): ToSortState {
       setChoicesStatus('loading');
     }
     try {
+      // Writes still on their way change the balances: read after them, like the list does.
+      await writeQueue.run(() => Promise.resolve());
       const loaded = await loadChoices();
       if (request === choicesRequest.current) {
         setChoices(loaded);
