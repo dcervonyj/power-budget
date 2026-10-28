@@ -302,4 +302,15 @@ describe('DashboardScreen', () => {
     expect(screen.queryByText('Could not load the overview.')).toBeNull();
     expect(screen.queryByText('Could not load plans.')).toBeNull();
   });
+
+  it('clears the plans error once a refresh reads the plans', async () => {
+    mockPlansList.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce([]);
+    await renderScreen();
+    await waitFor(() => expect(screen.getByText('Could not load plans.')).toBeTruthy());
+
+    await pullToRefresh();
+
+    await waitFor(() => expect(screen.getByText('No active budget plan')).toBeTruthy());
+    expect(screen.queryByText('Could not load plans.')).toBeNull();
+  });
 });

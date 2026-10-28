@@ -151,7 +151,6 @@ function toTiming(
     spent.currency,
   );
   const monthLeftFraction = 1 - progress.elapsedFraction;
-  const spentFraction = planned.amountMinor > 0n ? 1 - leftFraction : 0;
 
   return {
     kind: 'current',
@@ -166,7 +165,7 @@ function toTiming(
     pace: {
       kind: left.amountMinor > 0n && leftFraction >= monthLeftFraction ? 'under' : 'over',
       monthLeftFraction,
-      spentPercent: Math.round(spentFraction * 100),
+      spentPercent: spentPercentOf(spent, planned),
       elapsedPercent: Math.round(progress.elapsedFraction * 100),
       leftPercent: Math.round(leftFraction * 100),
       monthLeftPercent: Math.round(monthLeftFraction * 100),
@@ -176,6 +175,16 @@ function toTiming(
       versusPlan: money(planned.amountMinor - total, spent.currency),
     },
   };
+}
+
+/** Spent against planned, in whole percent; above 100 when over the plan (never capped). */
+function spentPercentOf(spent: MinorUnitAmount, planned: MinorUnitAmount): number {
+  if (planned.amountMinor <= 0n) {
+    return 0;
+  }
+  const basisPoints = (spent.amountMinor * 10000n) / planned.amountMinor;
+
+  return Math.round(Number(basisPoints) / 100);
 }
 
 interface CategorySums {

@@ -30,7 +30,7 @@
   "overview.pace.planSpent": "planu wydano",
   "overview.pace.summaryOver": "Wydatki wyprzedzają kalendarz o {points, plural, one {# punkt} few {# punkty} many {# punktów} other {# punktu}}. W tym tempie {plan} zamknie się około {amount} ponad plan.",
   "overview.pace.summaryOverStillUnder": "Wydatki wyprzedzają kalendarz o {points, plural, one {# punkt} few {# punkty} many {# punktów} other {# punktu}}. W tym tempie {plan} i tak zamknie się około {amount} poniżej planu.",
-  "overview.pace.summaryUnder": "Wydatki są {points, plural, one {# punkt} few {# punkty} many {# punktów} other {# punktu}} za kalendarzem. Trzymaj się około {perDay} dziennie, a {plan} zamknie się około {amount} poniżej planu.",
+  "overview.pace.summaryUnder": "Wydatki są {points, plural, one {# punkt} few {# punkty} many {# punktów} other {# punktu}} za kalendarzem. W tym tempie {plan} zamknie się około {amount} poniżej planu. Do {perDay} dziennie nadal mieścisz się w planie.",
   "overview.pace.title": "Tempo",
   "overview.pace.under": "Wolniej niż plan",
   "overview.plans.label": "Plany",

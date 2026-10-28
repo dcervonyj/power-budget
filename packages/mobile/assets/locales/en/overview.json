@@ -30,7 +30,7 @@
   "overview.pace.planSpent": "of the plan spent",
   "overview.pace.summaryOver": "Spending is {points, plural, one {# point} other {# points}} ahead of the calendar. At this pace {plan} closes about {amount} over plan.",
   "overview.pace.summaryOverStillUnder": "Spending is {points, plural, one {# point} other {# points}} ahead of the calendar. At this pace {plan} still closes about {amount} under plan.",
-  "overview.pace.summaryUnder": "Spending is {points, plural, one {# point} other {# points}} behind the calendar. Keep it near {perDay} a day and {plan} closes about {amount} under plan.",
+  "overview.pace.summaryUnder": "Spending is {points, plural, one {# point} other {# points}} behind the calendar. At this pace {plan} closes about {amount} under plan. Up to {perDay} a day still keeps it within the plan.",
   "overview.pace.title": "Pace",
   "overview.pace.under": "Under pace",
   "overview.plans.label": "Plans",
