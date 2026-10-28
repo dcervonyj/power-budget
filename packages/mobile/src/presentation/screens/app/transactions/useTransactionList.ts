@@ -39,6 +39,8 @@ export interface TransactionListState {
   readonly loadingMore: boolean;
   /** A failed action; the container shows it as a toast. */
   readonly failure: ListFailure | null;
+  /** The last reload failed: the rows shown may be stale. */
+  readonly reloadFailed: boolean;
   readonly setFilter: (filter: ListFilter) => void;
   readonly refresh: () => void;
   /** Reloads without the skeleton or the spinner, e.g. when the screen gets focus again. */
@@ -64,29 +66,53 @@ export function useTransactionList(): TransactionListState {
   const [categoryOfItem, setCategoryOfItem] = useState<ReadonlyMap<string, string>>(new Map());
   const moreInFlight = useRef(false);
   const mappingQueue = useRef(new SerialQueue());
+  const [reloadFailed, setReloadFailed] = useState(false);
+  // Reloads can overlap (focus, pull to refresh, retry); only the newest answer may be applied.
+  const listRequest = useRef(0);
+  const monthRequest = useRef(0);
 
   const loadFirstPage = useCallback(async (keepOnError: boolean): Promise<void> => {
+    listRequest.current += 1;
+    const request = listRequest.current;
     try {
       const loaded = await loadAllPages(fetchPage);
+      if (request !== listRequest.current) {
+        return;
+      }
       setItems(loaded.items);
       setNextCursor(loaded.nextCursor);
       setApplied(new Set());
+      setReloadFailed(false);
       setStatus('ready');
     } catch {
-      // A silent reload keeps what is on screen.
+      if (request !== listRequest.current) {
+        return;
+      }
+      // A reload keeps the rows on screen but says they may be stale.
+      setReloadFailed(keepOnError);
       setStatus((previous) => (keepOnError && previous === 'ready' ? previous : 'error'));
     } finally {
-      setRefreshing(false);
+      if (request === listRequest.current) {
+        setRefreshing(false);
+      }
     }
   }, []);
 
   const loadMonth = useCallback(async (): Promise<void> => {
+    monthRequest.current += 1;
+    const request = monthRequest.current;
     try {
       const [plan] = await plansApi.list('active');
-      setMonth(plan === undefined ? undefined : monthSummaryOf(await plansApi.dashboard(plan.id)));
+      const summary =
+        plan === undefined ? undefined : monthSummaryOf(await plansApi.dashboard(plan.id));
+      if (request === monthRequest.current) {
+        setMonth(summary);
+      }
     } catch {
       // Without a plan the rod stays out; the list still works.
-      setMonth(undefined);
+      if (request === monthRequest.current) {
+        setMonth(undefined);
+      }
     }
   }, []);
 
@@ -191,9 +217,14 @@ export function useTransactionList(): TransactionListState {
   }, [loadFirstPage, loadMonth]);
 
   const retry = useCallback((): void => {
+    if (reloadFailed) {
+      void loadFirstPage(true);
+
+      return;
+    }
     setStatus('loading');
     void loadFirstPage(false);
-  }, [loadFirstPage]);
+  }, [loadFirstPage, reloadFailed]);
 
   const dismissFailure = useCallback((): void => setFailure(null), []);
 
@@ -209,6 +240,7 @@ export function useTransactionList(): TransactionListState {
     hasMore: nextCursor !== null,
     loadingMore,
     failure,
+    reloadFailed,
     setFilter,
     refresh,
     reload,

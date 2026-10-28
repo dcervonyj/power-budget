@@ -38,5 +38,7 @@
   "tx.detail.sourceBank": "From bank",
   "tx.detail.sourceManual": "Added by hand",
   "tx.list.moreError": "Could not load more transactions.",
-  "tx.detail.pickerError": "Could not load the categories."
+  "tx.detail.pickerError": "Could not load the categories.",
+  "tx.list.reloadError": "Could not refresh the transactions. What you see may be out of date.",
+  "tx.list.loadedOnly": "Counts and totals cover the transactions loaded so far."
 }
