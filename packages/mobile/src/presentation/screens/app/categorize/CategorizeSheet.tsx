@@ -1,6 +1,6 @@
 import React from 'react';
 import { CategorizeSheetView } from './CategorizeSheetView.js';
-import type { CategoryChoice } from './categorizeModel.js';
+import type { CategoryChoice, Ledger, Payment } from './categorizeModel.js';
 import { useCategorizeSession } from './useCategorizeSession.js';
 import type { LoadStatus, SheetState } from './useToSort.js';
 
@@ -9,11 +9,11 @@ export interface CategorizeSheetProps {
   readonly choices: readonly CategoryChoice[];
   readonly choicesStatus: LoadStatus;
   readonly choicesStale: boolean;
-  readonly choicesCover?: ReadonlySet<string>;
+  readonly ledger: Ledger;
   readonly onRetryChoices: () => void;
   readonly busyIds: Set<string>;
   readonly write: (transactionId: string, plannedItemId: string | null) => Promise<void>;
-  readonly onConfirmed: (transactionId: string) => void;
+  readonly onConfirmed: (payment: Payment, plannedItemId: string) => void;
   readonly onUndone: (transactionId: string) => void;
   readonly onClose: () => void;
   readonly onBackToTransactions?: () => void;
@@ -25,7 +25,7 @@ export function CategorizeSheet(props: CategorizeSheetProps): React.JSX.Element 
     queue: props.sheet.queue,
     startIndex: props.sheet.startIndex,
     choices: props.choices,
-    choicesCover: props.choicesCover,
+    ledger: props.ledger,
     write: props.write,
     busyIds: props.busyIds,
     onConfirmed: props.onConfirmed,

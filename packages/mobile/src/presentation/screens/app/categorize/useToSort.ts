@@ -5,7 +5,7 @@ import type { TransactionListRow } from '../../../../infrastructure/transactions
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 import { transactionsGateway, writeQueue } from '../transactions/transactionsGateway.js';
 import { loadChoices } from './categorizeData.js';
-import type { CategoryChoice } from './categorizeModel.js';
+import type { CategoryChoice, Ledger, Payment } from './categorizeModel.js';
 
 export type LoadStatus = 'loading' | 'ready' | 'error';
 
@@ -28,8 +28,8 @@ export interface ToSortState {
   readonly choicesStatus: LoadStatus;
   /** The last refresh of the categories failed: the balances in the previews may be out of date. */
   readonly choicesStale: boolean;
-  /** Confirmed payments whose effect the loaded balances already include. */
-  readonly choicesCover: ReadonlySet<string>;
+  /** The one ledger of confirmed payments; views derive their balances from it and the choices. */
+  readonly ledger: Ledger;
   readonly sheet: SheetState | undefined;
   readonly busyIds: Set<string>;
   readonly retry: () => void;
@@ -41,7 +41,7 @@ export interface ToSortState {
   readonly open: (transactionId?: string) => void;
   readonly close: () => void;
   readonly write: (transactionId: string, plannedItemId: string | null) => Promise<void>;
-  readonly onConfirmed: (transactionId: string) => void;
+  readonly onConfirmed: (payment: Payment, plannedItemId: string) => void;
   readonly onUndone: (transactionId: string) => void;
 }
 
@@ -54,13 +54,12 @@ export function useToSort(): ToSortState {
   const [choices, setChoices] = useState<readonly CategoryChoice[]>([]);
   const [choicesStatus, setChoicesStatus] = useState<LoadStatus>('loading');
   const [choicesStale, setChoicesStale] = useState(false);
-  const [choicesCover, setChoicesCover] = useState<ReadonlySet<string>>(new Set());
+  const [ledger, setLedger] = useState<Ledger>(new Map());
   const [sheet, setSheet] = useState<SheetState | undefined>(undefined);
   // Payments sorted in the sheet stay out of the list until a load newer than the change shows them.
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
   const busyIds = useRef(new Set<string>());
-  const confirmed = useRef(new Set<string>());
-  const coverRef = useRef<ReadonlySet<string>>(new Set());
+  const ledgerRef = useRef<Ledger>(new Map());
   const changes = useRef(0);
   const listRequest = useRef(0);
   const choicesRequest = useRef(0);
@@ -96,6 +95,11 @@ export function useToSort(): ToSortState {
     }
   }, []);
 
+  const updateLedger = useCallback((next: Ledger): void => {
+    ledgerRef.current = next;
+    setLedger(next);
+  }, []);
+
   const loadCategories = useCallback(async (quiet: boolean): Promise<void> => {
     choicesRequest.current += 1;
     const request = choicesRequest.current;
@@ -105,8 +109,6 @@ export function useToSort(): ToSortState {
     try {
       // Writes still on their way change the balances: read after them, like the list does.
       await writeQueue.run(() => Promise.resolve());
-      // Every confirmed payment is written by now, so these balances already include it.
-      const covered = new Set(confirmed.current);
       const startedAt = changes.current;
       const loaded = await loadChoices();
       if (request === choicesRequest.current && changes.current !== startedAt) {
@@ -118,8 +120,9 @@ export function useToSort(): ToSortState {
       }
       if (request === choicesRequest.current) {
         setChoices(loaded);
-        coverRef.current = covered;
-        setChoicesCover(covered);
+        // No confirm or undo came in while the server was read, and every confirmed write was
+        // done before it, so these balances count every entry that is not undone.
+        updateLedger(coverByLoad(ledgerRef.current));
         setChoicesStatus('ready');
         setChoicesStale(false);
       }
@@ -176,23 +179,29 @@ export function useToSort(): ToSortState {
     void loadCategories(true);
   }, [loadList, loadCategories]);
 
-  const onConfirmed = useCallback((transactionId: string): void => {
-    changes.current += 1;
-    confirmed.current.add(transactionId);
-    setHidden((previous) => new Set(previous).add(transactionId));
-  }, []);
+  const onConfirmed = useCallback(
+    (payment: Payment, plannedItemId: string): void => {
+      changes.current += 1;
+      updateLedger(
+        new Map(ledgerRef.current).set(payment.id, {
+          payment,
+          plannedItemId,
+          covered: false,
+          undone: false,
+        }),
+      );
+      setHidden((previous) => new Set(previous).add(payment.id));
+    },
+    [updateLedger],
+  );
 
   const onUndone = useCallback(
     (transactionId: string): void => {
       changes.current += 1;
-      confirmed.current.delete(transactionId);
+      updateLedger(withoutEntry(ledgerRef.current, transactionId, changes.current));
       setHidden((previous) => new Set([...previous].filter((id) => id !== transactionId)));
-      if (coverRef.current.has(transactionId)) {
-        // The loaded balances still count this payment: read them again, after the undo.
-        void loadCategories(true);
-      }
     },
-    [loadCategories],
+    [updateLedger],
   );
 
   const refresh = useCallback((): void => {
@@ -224,7 +233,7 @@ export function useToSort(): ToSortState {
     choices,
     choicesStatus,
     choicesStale,
-    choicesCover,
+    ledger,
     sheet,
     busyIds: busyIds.current,
     retry,
@@ -258,4 +267,28 @@ function fetchPage(cursor?: string): ReturnType<typeof transactionsGateway.page>
 
 function writeMapping(transactionId: string, plannedItemId: string | null): Promise<void> {
   return writeQueue.run(() => transactionsGateway.setMapping(transactionId, plannedItemId));
+}
+
+/** A load that started after every write marks the entries it counts; an undone one is gone then. */
+function coverByLoad(ledger: Ledger): Ledger {
+  return new Map(
+    [...ledger]
+      .filter(([, entry]) => !entry.undone)
+      .map(([id, entry]) => [id, { ...entry, covered: true }]),
+  );
+}
+
+/** An undo drops an uncovered entry; a covered one becomes a reversal until the next load. */
+function withoutEntry(ledger: Ledger, transactionId: string, clock: number): Ledger {
+  const next = new Map(ledger);
+  const entry = next.get(transactionId);
+  if (entry === undefined) {
+    return next;
+  }
+  next.delete(transactionId);
+  if (entry.covered) {
+    next.set(`${transactionId}#undone${clock}`, { ...entry, undone: true });
+  }
+
+  return next;
 }

@@ -3,6 +3,7 @@ import type { TransactionListItemDto, TransactionPageDto } from '@power-budget/s
 import { categoriesApi, plansApi } from '../../../../../infrastructure/index.js';
 import { transactionsGateway } from '../../transactions/transactionsGateway.js';
 import { useToSort } from '../useToSort.js';
+import type { Payment } from '../categorizeModel.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -74,6 +75,16 @@ function dashboardOf(plannedItemId: string, planned: string): never {
     expenseLines: [line],
     incomeLines: [],
   } as never;
+}
+
+function paid(id: string): Payment {
+  return {
+    id,
+    amountMinor: -1000n,
+    currency: 'PLN',
+    day: '2026-10-27',
+    suggestedPlannedItemId: null,
+  };
 }
 
 const ids = (rows: readonly { data: { id: string } }[]): string[] => rows.map((row) => row.data.id);
@@ -265,40 +276,73 @@ describe('useToSort', () => {
     const { result } = await renderHook(() => useToSort());
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
-    await act(async () => result.current.onConfirmed('a'));
+    await act(async () => result.current.onConfirmed(paid('a'), 'item-1'));
     expect(ids(result.current.rows)).toEqual(['b']);
 
     await act(async () => result.current.onUndone('a'));
     expect(ids(result.current.rows)).toEqual(['a', 'b']);
   });
 
-  it('marks a confirmed payment as included once a reload read after its write', async () => {
-    page.mockResolvedValue(onePage(item('a', false), item('b', false)));
-    const { result } = await renderHook(() => useToSort());
-    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
-    expect(result.current.choicesCover.has('a')).toBe(false);
+  describe('the ledger', () => {
+    const entryOf = (
+      ledger: ReadonlyMap<string, { covered: boolean; undone: boolean }>,
+      key: string,
+    ) => ledger.get(key);
 
-    await act(async () => result.current.onConfirmed('a'));
-    expect(result.current.choicesCover.has('a')).toBe(false);
+    async function confirmed() {
+      page.mockResolvedValue(onePage(item('a', false), item('b', false)));
+      const hook = await renderHook(() => useToSort());
+      await waitFor(() => expect(hook.result.current.choicesStatus).toBe('ready'));
+      await act(async () => hook.result.current.onConfirmed(paid('a'), 'item-1'));
 
-    await act(async () => result.current.retryChoices());
+      return hook;
+    }
 
-    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(true));
-  });
+    it('keeps a confirmed payment uncovered until a load that started after it', async () => {
+      const { result } = await confirmed();
+      expect(entryOf(result.current.ledger, 'a')).toMatchObject({ covered: false, undone: false });
 
-  it('reads the balances again when a payment they include is undone', async () => {
-    page.mockResolvedValue(onePage(item('a', false)));
-    const { result } = await renderHook(() => useToSort());
-    await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
-    await act(async () => result.current.onConfirmed('a'));
-    await act(async () => result.current.retryChoices());
-    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(true));
-    plans.mockClear();
+      await act(async () => result.current.retryChoices());
 
-    await act(async () => result.current.onUndone('a'));
+      await waitFor(() => expect(entryOf(result.current.ledger, 'a')?.covered).toBe(true));
+    });
 
-    await waitFor(() => expect(plans).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(false));
+    it('keeps the entries across a close and a reopen, even while the refresh is pending', async () => {
+      const { result } = await confirmed();
+      await act(async () => result.current.open());
+      const slow = deferred<never>();
+      plans.mockReturnValueOnce(slow.promise);
+      await act(async () => result.current.close());
+      await act(async () => result.current.open());
+
+      expect(entryOf(result.current.ledger, 'a')).toMatchObject({ covered: false });
+      expect(result.current.sheet?.isOpen).toBe(true);
+      await act(async () => slow.resolve([] as never));
+      await waitFor(() => expect(entryOf(result.current.ledger, 'a')?.covered).toBe(true));
+    });
+
+    it('drops an uncovered entry when the payment is undone', async () => {
+      const { result } = await confirmed();
+
+      await act(async () => result.current.onUndone('a'));
+
+      expect(result.current.ledger.size).toBe(0);
+    });
+
+    it('turns a covered entry into a reversal when undone, and clears it on the next load', async () => {
+      const { result } = await confirmed();
+      await act(async () => result.current.retryChoices());
+      await waitFor(() => expect(entryOf(result.current.ledger, 'a')?.covered).toBe(true));
+
+      await act(async () => result.current.onUndone('a'));
+
+      expect(entryOf(result.current.ledger, 'a')).toBeUndefined();
+      expect([...result.current.ledger.values()]).toMatchObject([{ covered: true, undone: true }]);
+
+      await act(async () => result.current.retryChoices());
+
+      await waitFor(() => expect(result.current.ledger.size).toBe(0));
+    });
   });
 
   it('flags the balances as possibly stale when the reload on close fails', async () => {
@@ -348,14 +392,14 @@ describe('useToSort', () => {
     const { result } = await renderHook(() => useToSort());
     await waitFor(() => expect(plans).toHaveBeenCalledTimes(1));
 
-    await act(async () => result.current.onConfirmed('a'));
+    await act(async () => result.current.onConfirmed(paid('a'), 'item-1'));
     plans.mockResolvedValue(NOW_PLAN);
     dashboard.mockResolvedValue(dashboardOf('item-1', '50000'));
     await act(async () => first.resolve([] as never));
 
     await waitFor(() => expect(plans).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
-    expect(result.current.choicesCover.has('a')).toBe(true);
+    expect(result.current.ledger.get('a')?.covered).toBe(true);
     expect(result.current.choices.map((c) => c.plannedItemId)).toEqual(['item-1']);
   });
 
@@ -363,9 +407,9 @@ describe('useToSort', () => {
     page.mockResolvedValue(onePage(item('a', false)));
     const { result } = await renderHook(() => useToSort());
     await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
-    await act(async () => result.current.onConfirmed('a'));
+    await act(async () => result.current.onConfirmed(paid('a'), 'item-1'));
     await act(async () => result.current.retryChoices());
-    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(true));
+    await waitFor(() => expect(result.current.ledger.get('a')?.covered).toBe(true));
 
     const slow = deferred<never>();
     plans.mockReturnValueOnce(slow.promise);
@@ -373,7 +417,7 @@ describe('useToSort', () => {
     await act(async () => result.current.onUndone('a'));
     await act(async () => slow.resolve([] as never));
 
-    await waitFor(() => expect(result.current.choicesCover.has('a')).toBe(false));
+    await waitFor(() => expect(result.current.ledger.size).toBe(0));
     expect(result.current.choicesStatus).toBe('ready');
   });
 
@@ -382,7 +426,7 @@ describe('useToSort', () => {
     const { result } = await renderHook(() => useToSort());
     await waitFor(() => expect(result.current.status).toBe('ready'));
     await act(async () => result.current.open());
-    await act(async () => result.current.onConfirmed('a'));
+    await act(async () => result.current.onConfirmed(paid('a'), 'item-1'));
 
     page.mockResolvedValueOnce(onePage(item('a', true), item('b', false)));
     await act(async () => result.current.close());
@@ -400,7 +444,7 @@ describe('useToSort', () => {
     const stale = deferred<TransactionPageDto>();
     page.mockReturnValueOnce(stale.promise);
     await act(async () => result.current.reload());
-    await act(async () => result.current.onConfirmed('a'));
+    await act(async () => result.current.onConfirmed(paid('a'), 'item-1'));
     await act(async () => stale.resolve(onePage(item('a', false))));
 
     expect(ids(result.current.rows)).toEqual([]);

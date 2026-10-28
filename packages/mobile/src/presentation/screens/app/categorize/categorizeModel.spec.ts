@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { choicesFor, impactOf, withSorted } from './categorizeModel.js';
-import type { CategoryChoice, Payment } from './categorizeModel.js';
+import { balancesFor, choicesFor, impactOf } from './categorizeModel.js';
+import type { CategoryChoice, Ledger, LedgerEntry, Payment } from './categorizeModel.js';
 
 function choice(overrides: Partial<CategoryChoice> = {}): CategoryChoice {
   return {
@@ -120,48 +120,53 @@ describe('choicesFor', () => {
   });
 });
 
-describe('withSorted', () => {
-  it('counts payments confirmed earlier, but not the one being previewed', () => {
-    const earlier = payment({ id: 'bolt', amountMinor: -1000n });
-    const sorted = new Map([
-      ['bolt', earlier],
-      ['orlen', payment()],
-    ]);
-    const picks = new Map([
-      ['bolt', 'transport'],
-      ['orlen', 'transport'],
-    ]);
+describe('balancesFor', () => {
+  const entry = (overrides: Partial<LedgerEntry> = {}): LedgerEntry => ({
+    payment: payment({ id: 'bolt', amountMinor: -1000n }),
+    plannedItemId: 'transport',
+    covered: false,
+    undone: false,
+    ...overrides,
+  });
+  const spent = (ledger: Ledger, skipId = 'orlen'): bigint | undefined =>
+    balancesFor([choice()], ledger, skipId)[0]?.spentMinor;
 
-    const [result] = withSorted([choice()], sorted, picks, 'orlen');
-
-    expect(result?.spentMinor).toBe(32239n);
+  it.each([
+    ['nothing confirmed', new Map(), 31239n],
+    ['a confirmed payment the balances lack (confirm)', new Map([['bolt', entry()]]), 32239n],
+    [
+      'the same payment after a refresh covered it',
+      new Map([['bolt', entry({ covered: true })]]),
+      31239n,
+    ],
+    ['an uncovered one that was undone before any refresh', new Map(), 31239n],
+    [
+      'a covered one that was undone, until the next refresh',
+      new Map([['bolt#undone1', entry({ covered: true, undone: true })]]),
+      30239n,
+    ],
+    [
+      'a payment dated outside the plan period, like the dashboard',
+      new Map([
+        ['old', entry({ payment: payment({ id: 'old', amountMinor: -1000n, day: '2026-09-30' }) })],
+      ]),
+      31239n,
+    ],
+    [
+      'a payment confirmed into another item',
+      new Map([['bolt', entry({ plannedItemId: 'groceries' })]]),
+      31239n,
+    ],
+  ])('%s', (_name, ledger, expected) => {
+    expect(spent(ledger)).toBe(expected);
   });
 
-  it('ignores a confirmed payment dated outside the plan period, like the dashboard', () => {
-    const outside = payment({ id: 'old', amountMinor: -1000n, day: '2026-09-30' });
+  it.each([
+    ['uncovered: not counted in its own preview', false, 31239n],
+    ['covered by a refresh: taken out of the balances (Confirmed card)', true, 18309n],
+  ])('the previewed payment itself, %s', (_name, covered, expected) => {
+    const own = entry({ payment: payment(), covered });
 
-    const [result] = withSorted(
-      [choice()],
-      new Map([['old', outside]]),
-      new Map([['old', 'transport']]),
-      'orlen',
-    );
-
-    expect(result?.spentMinor).toBe(31239n);
-  });
-
-  it('ignores payments of another currency and other categories', () => {
-    const sorted = new Map([
-      ['eur', payment({ id: 'eur', currency: 'EUR', amountMinor: -1000n })],
-      ['other', payment({ id: 'other', amountMinor: -1000n })],
-    ]);
-    const picks = new Map([
-      ['eur', 'transport'],
-      ['other', 'groceries'],
-    ]);
-
-    const [result] = withSorted([choice()], sorted, picks, 'x');
-
-    expect(result?.spentMinor).toBe(31239n);
+    expect(spent(new Map([['orlen', own]]))).toBe(expected);
   });
 });

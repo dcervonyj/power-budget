@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import type { TransactionListRow } from '../../../../infrastructure/transactions/TransactionListModel.js';
-import { choicesFor, impactOf, withSorted } from './categorizeModel.js';
-import type { CategoryChoice, Impact, Payment } from './categorizeModel.js';
+import { balancesFor, choicesFor, impactOf } from './categorizeModel.js';
+import type { CategoryChoice, Impact, Ledger, Payment } from './categorizeModel.js';
 
 /** `saving`: a Confirm is on its way. `done`: the server has the mapping. `undoing`: an Undo is on its way. */
 export type PaymentPhase = 'choosing' | 'saving' | 'done' | 'undoing';
@@ -12,13 +12,13 @@ export interface CategorizeSessionInput {
   readonly queue: readonly TransactionListRow[];
   readonly startIndex: number;
   readonly choices: readonly CategoryChoice[];
-  /** Payments the choices' balances already include; the preview must not add them again. */
-  readonly choicesCover?: ReadonlySet<string>;
+  /** The confirmed payments the balances may not count yet; owned by the container, read only here. */
+  readonly ledger: Ledger;
   /** Writes the mapping (null clears it); resolves once the server has it. */
   readonly write: (transactionId: string, plannedItemId: string | null) => Promise<void>;
   /** Ids whose write is on its way; shared with the container so a reopened sheet skips them. */
   readonly busyIds: Set<string>;
-  readonly onConfirmed: (transactionId: string) => void;
+  readonly onConfirmed: (payment: Payment, plannedItemId: string) => void;
   readonly onUndone: (transactionId: string) => void;
 }
 
@@ -61,16 +61,12 @@ export function useCategorizeSession(input: CategorizeSessionInput): CategorizeS
   const phase: PaymentPhase =
     (row === undefined ? undefined : phases.get(row.data.id)) ?? 'choosing';
   const sortedPayments = useMemo(() => donePayments(input.queue, phases), [input.queue, phases]);
-  const uncovered = useMemo(
-    () => withoutCovered(sortedPayments, input.choicesCover),
-    [sortedPayments, input.choicesCover],
-  );
   const options = useMemo(
     () =>
       payment === undefined
         ? []
-        : choicesFor(withSorted(input.choices, uncovered, picks, payment.id), payment),
-    [input.choices, uncovered, picks, payment],
+        : choicesFor(balancesFor(input.choices, input.ledger, payment.id), payment),
+    [input.choices, input.ledger, payment],
   );
   const pickedId =
     payment === undefined ? undefined : (picks.get(payment.id) ?? payment.suggestedPlannedItemId);
@@ -97,6 +93,7 @@ export function useCategorizeSession(input: CategorizeSessionInput): CategorizeS
       return;
     }
     const { id } = payment;
+    const confirmed = payment;
     const target = picked.plannedItemId;
     if (latest.current.busyIds.has(id)) {
       return;
@@ -109,7 +106,7 @@ export function useCategorizeSession(input: CategorizeSessionInput): CategorizeS
       () => {
         latest.current.busyIds.delete(id);
         setPhase(id, 'done');
-        latest.current.onConfirmed(id);
+        latest.current.onConfirmed(confirmed, target);
       },
       () => {
         latest.current.busyIds.delete(id);
@@ -197,15 +194,4 @@ function donePayments(
   });
 
   return new Map(done.map((row) => [row.data.id, paymentOf(row)]));
-}
-
-function withoutCovered(
-  payments: ReadonlyMap<string, Payment>,
-  covered: ReadonlySet<string> | undefined,
-): ReadonlyMap<string, Payment> {
-  if (covered === undefined) {
-    return payments;
-  }
-
-  return new Map([...payments].filter(([id]) => !covered.has(id)));
 }
