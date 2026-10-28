@@ -136,18 +136,21 @@ describe('layer lint (no-restricted-imports)', () => {
     expect(result.messages.map((m) => m.ruleId)).toEqual(RESTRICTED);
   });
 
-  it('shared-app application rules fire from its lint base dir with the real root config', async () => {
+  it('shared-app application rules resolve from its lint base dir with the real root config', async () => {
     const sharedApp = path.join(root, 'packages/shared-app');
     const fromSharedApp = new ESLint({ cwd: sharedApp });
-    const existing = require('fs')
-      .readdirSync(path.join(sharedApp, 'src/plans/application'))
-      .find((f: string) => f.endsWith('.ts'));
-    const [result] = await fromSharedApp.lintText(
-      `import { A } from '../../infrastructure/A.js';\n`,
-      {
-        filePath: path.join(sharedApp, 'src/plans/application', existing),
-      },
+    const config = await fromSharedApp.calculateConfigForFile(
+      path.join(sharedApp, 'src/plans/application/x.ts'),
     );
-    expect(result.messages.map((m) => m.ruleId)).toContain('no-restricted-imports');
+    const [severity, options] = config.rules['no-restricted-imports'];
+    expect(severity).toBe(2);
+    expect(options.patterns[0].group).toEqual(
+      expect.arrayContaining([
+        '**/infrastructure',
+        '**/infrastructure/**',
+        '**/presentation',
+        '**/presentation/**',
+      ]),
+    );
   });
 });
