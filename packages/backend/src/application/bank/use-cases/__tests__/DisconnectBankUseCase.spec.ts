@@ -1,3 +1,4 @@
+import { FixedClock } from '../../../../test/doubles/FixedClock.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
@@ -35,17 +36,21 @@ function makeConnection(overrides?: Partial<BankConnection>): BankConnection {
   };
 }
 
+const NOW = '2026-10-26T09:30:00.000Z';
+
 describe('DisconnectBankUseCase', () => {
   let connectionRepo: ReturnType<typeof mock<BankConnectionRepository>>;
   let registry: ReturnType<typeof mock<BankConnectorRegistry>>;
   let auditLogger: ReturnType<typeof mock<AuditLogger>>;
   let useCase: DisconnectBankUseCase;
+  let clock: FixedClock;
 
   beforeEach(() => {
     connectionRepo = mock<BankConnectionRepository>();
     registry = mock<BankConnectorRegistry>();
     auditLogger = mock<AuditLogger>();
-    useCase = new DisconnectBankUseCase(connectionRepo, registry, auditLogger);
+    clock = new FixedClock(NOW);
+    useCase = new DisconnectBankUseCase(connectionRepo, registry, auditLogger, clock);
   });
 
   it('disconnects a connection and logs the audit event', async () => {
@@ -71,7 +76,11 @@ describe('DisconnectBankUseCase', () => {
       userId: TEST_USER_ID,
     });
 
-    expect(connectionRepo.markDisconnected).toHaveBeenCalledOnce();
+    expect(connectionRepo.markDisconnected).toHaveBeenCalledExactlyOnceWith(
+      TEST_CONNECTION_ID,
+      new Date(NOW),
+      { householdId: TEST_HOUSEHOLD_ID },
+    );
     expect(auditLogger.log).toHaveBeenCalledOnce();
     const [event] = auditLogger.log.mock.calls[0]!;
     expect(event.action).toBe('bank.disconnected');

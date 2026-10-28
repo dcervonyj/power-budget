@@ -12,6 +12,7 @@ import type {
 } from '../../../../domain/notifications/ports.js';
 import type { EnqueueNotificationInput } from '../EnqueueNotificationUseCase.js';
 import { EnqueueNotificationUseCase } from '../EnqueueNotificationUseCase.js';
+import { FixedClock } from '../../../../test/doubles/FixedClock.js';
 import { DEFAULT_DIGEST_TIME_ZONE, RunWeeklyDigestUseCase } from '../RunWeeklyDigestUseCase.js';
 
 const HH_ID = 'hh-1' as HouseholdId;
@@ -39,6 +40,7 @@ const MEMBER: HouseholdMemberRow = {
 describe('RunWeeklyDigestUseCase', () => {
   let enqueued: EnqueueNotificationInput[];
   let useCase: RunWeeklyDigestUseCase;
+  let clock: FixedClock;
   let members: HouseholdMemberRow[];
   let summaries: Map<UserId, WeeklyDigestSummary>;
   let failures: Map<UserId, Error>;
@@ -69,7 +71,8 @@ describe('RunWeeklyDigestUseCase', () => {
     const run: WeeklyDigestRun = { read: reads };
     startRun = vi.fn(() => run);
     const summaryReader: WeeklyDigestSummaryReader = { startRun };
-    useCase = new RunWeeklyDigestUseCase(repo, enqueue, summaryReader);
+    clock = new FixedClock('2026-10-19T07:00:00Z');
+    useCase = new RunWeeklyDigestUseCase(repo, enqueue, summaryReader, clock);
   });
 
   it('defaults to Europe/Warsaw', () => {
@@ -84,7 +87,8 @@ describe('RunWeeklyDigestUseCase', () => {
     ['2026-10-19T07:00:00Z', '2026-W43'],
     ['2026-01-01T10:00:00Z', '2026-W01'],
   ])('labels %s with the ISO week-numbering year: %s', async (instant, label) => {
-    await useCase.execute(new Date(instant));
+    clock.set(instant);
+    await useCase.execute();
 
     expect(enqueued).toEqual([
       {
@@ -107,10 +111,10 @@ describe('RunWeeklyDigestUseCase', () => {
 
   it('computes the week from the Warsaw calendar date, not the server (UTC) date', async () => {
     // Sunday 23:30 UTC is already Monday 00:30 in Warsaw (CET, UTC+1).
-    const instant = new Date('2026-10-25T23:30:00Z');
+    clock.set('2026-10-25T23:30:00Z');
 
-    await useCase.execute(instant);
-    await useCase.execute(instant, 'UTC');
+    await useCase.execute();
+    await useCase.execute('UTC');
 
     expect(enqueued.map((n) => n.dedupeKey)).toEqual([
       `${HH_ID}:${USER_ID}:2026-W44`,
@@ -120,10 +124,10 @@ describe('RunWeeklyDigestUseCase', () => {
 
   it('crosses the ISO year in the target zone', async () => {
     // Sunday 29 Dec 2024 23:30 UTC is Monday 30 Dec in Warsaw (2025-W01) but still 2024-W52 in UTC.
-    const instant = new Date('2024-12-29T23:30:00Z');
+    clock.set('2024-12-29T23:30:00Z');
 
-    await useCase.execute(instant);
-    await useCase.execute(instant, 'UTC');
+    await useCase.execute();
+    await useCase.execute('UTC');
 
     expect(enqueued.map((n) => n.dedupeKey)).toEqual([
       `${HH_ID}:${USER_ID}:2025-W01`,
@@ -134,7 +138,7 @@ describe('RunWeeklyDigestUseCase', () => {
   it('formats the totals in the recipient locale', async () => {
     members = [{ ...MEMBER, locale: 'pl' }];
 
-    await useCase.execute(new Date('2026-10-19T07:00:00Z'));
+    await useCase.execute();
 
     expect(enqueued[0]?.payload['totalSpent']).toBe(formatMoney(SUMMARY.totalSpent, 'pl'));
     expect(enqueued[0]?.payload['totalSpent']).toMatch(/1\s?234,56\s?zł/);
@@ -143,7 +147,7 @@ describe('RunWeeklyDigestUseCase', () => {
   it('falls back to English formatting for an unknown locale', async () => {
     members = [{ ...MEMBER, locale: 'de' }];
 
-    await useCase.execute(new Date('2026-10-19T07:00:00Z'));
+    await useCase.execute();
 
     expect(enqueued[0]?.payload['totalPlanned']).toBe(formatMoney(SUMMARY.totalPlanned, 'en'));
   });
@@ -154,7 +158,7 @@ describe('RunWeeklyDigestUseCase', () => {
     summaries.set(bouncing.userId, SUMMARY);
     members = [MEMBER, noPlan, bouncing];
 
-    await useCase.execute(new Date('2026-10-19T07:00:00Z'));
+    await useCase.execute();
 
     expect(enqueued.map((n) => n.recipientUserId)).toEqual([USER_ID]);
   });
@@ -166,7 +170,7 @@ describe('RunWeeklyDigestUseCase', () => {
     failures.set(failing.userId, new Error('FX_RATE_UNAVAILABLE: no EUR/PLN'));
     members = [failing, MEMBER, later];
 
-    const result = await useCase.execute(new Date('2026-10-19T07:00:00Z'));
+    const result = await useCase.execute();
 
     expect(result).toEqual({
       skipped: [{ userId: 'u-2', reason: 'FX_RATE_UNAVAILABLE: no EUR/PLN' }],
@@ -186,9 +190,12 @@ describe('RunWeeklyDigestUseCase', () => {
     } as unknown as EnqueueNotificationUseCase;
     const run: WeeklyDigestRun = { read: async () => SUMMARY };
 
-    const result = await new RunWeeklyDigestUseCase(repo, enqueue, {
-      startRun: () => run,
-    }).execute(new Date('2026-10-19T07:00:00Z'));
+    const result = await new RunWeeklyDigestUseCase(
+      repo,
+      enqueue,
+      { startRun: () => run },
+      clock,
+    ).execute();
 
     expect(result).toEqual({ skipped: [{ userId: USER_ID, reason: 'outbox down' }] });
   });
@@ -198,7 +205,7 @@ describe('RunWeeklyDigestUseCase', () => {
     const second = { ...MEMBER, userId: 'u-2' as UserId };
     members = [MEMBER, second];
 
-    await useCase.execute(now);
+    await useCase.execute();
 
     expect(startRun).toHaveBeenCalledTimes(1);
     expect(startRun).toHaveBeenCalledWith(now);

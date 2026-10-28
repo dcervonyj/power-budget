@@ -43,6 +43,6 @@ describe('NotificationCronService', () => {
     await service.runWeeklyDigest();
 
     expect(digest.execute).toHaveBeenCalledTimes(1);
-    expect(digest.execute.mock.calls[0]?.[1]).toBe(DEFAULT_DIGEST_TIME_ZONE);
+    expect(digest.execute.mock.calls[0]?.[0]).toBe(DEFAULT_DIGEST_TIME_ZONE);
   });
 });

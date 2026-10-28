@@ -3,6 +3,7 @@ import type {
   BankConnectionRepository,
   BankConnectorRegistry,
 } from '../../../domain/bank/ports.js';
+import type { Clock } from '../../../domain/shared/ports.js';
 import type { AuditLogger } from '../../../domain/audit/ports.js';
 import {
   BankConnectionNotFoundError,
@@ -20,6 +21,7 @@ export class DisconnectBankUseCase {
     private readonly connectionRepo: BankConnectionRepository,
     private readonly registry: BankConnectorRegistry,
     private readonly auditLogger: AuditLogger,
+    private readonly clock: Clock,
   ) {}
 
   async execute(input: DisconnectBankInput): Promise<void> {
@@ -38,7 +40,7 @@ export class DisconnectBankUseCase {
       await connector.disconnect(connection.id, connection.encryptedConsent);
     }
 
-    const now = new Date();
+    const now = this.clock.now();
     await this.connectionRepo.markDisconnected(connection.id, now, {
       householdId: input.householdId,
     });

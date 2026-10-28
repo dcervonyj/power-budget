@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { HouseholdId, UserId } from '@power-budget/core';
 import { EnqueueNotificationUseCase } from '../application/notifications/use-cases/EnqueueNotificationUseCase.js';
 import { OverBudgetDetectorUseCase } from '../application/notifications/use-cases/OverBudgetDetectorUseCase.js';
+import { SequentialIdGenerator } from '../test/doubles/SequentialIdGenerator.js';
 import { InMemoryNotificationRepository } from '../test/doubles/InMemoryNotificationRepository.js';
 
 const TEST_HOUSEHOLD_ID = 'test-household-001' as HouseholdId;
@@ -13,7 +14,7 @@ describe('Notification E2E flow', () => {
 
   beforeEach(() => {
     repo = new InMemoryNotificationRepository();
-    enqueueNotification = new EnqueueNotificationUseCase(repo);
+    enqueueNotification = new EnqueueNotificationUseCase(repo, new SequentialIdGenerator());
 
     repo.addUser(TEST_USER_ID, {
       email: 'test@example.com',
