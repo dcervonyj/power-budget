@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { UUID_PATTERN } from './test-helpers.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { uuidv7 } from 'uuidv7';
 import { startContainers, stopContainers, resetState, getPool } from './setup.js';
@@ -133,7 +134,7 @@ describe('HTTP hygiene: validation, error codes, bigint money (real app)', () =>
       [userId],
     );
     const householdId = membership.rows[0]?.household_id;
-    expect(householdId).toEqual(expect.any(String));
+    expect(householdId).toMatch(UUID_PATTERN);
 
     const connectionId = uuidv7();
     const accountId = uuidv7();

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { EncryptedString } from '@power-budget/core';
+import { EncryptedString, UserId } from '@power-budget/core';
+import { testUuid } from '../../test/doubles/testUuid.js';
 import type { Encryption } from '../../domain/auth/ports.js';
 import { GoCardlessBankConnector } from './GoCardlessBankConnector.js';
 import { BankRateLimitedError } from '../../domain/bank/errors.js';
@@ -141,7 +142,7 @@ describe('GoCardlessBankConnector', () => {
 
       const connector = makeConnector();
       const result = await connector.initiateConsent({
-        userId: 'user-1' as never,
+        userId: UserId.of(testUuid('user-1')),
         bankId: 'PKO_PLPKOPPLPW',
         redirectUri: 'https://app.example.com/callback',
         historyDays: 90,

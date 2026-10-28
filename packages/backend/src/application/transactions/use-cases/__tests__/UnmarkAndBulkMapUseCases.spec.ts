@@ -6,11 +6,11 @@ import type {
   TransactionRepository,
   TransferRepository,
 } from '../../../../domain/transactions/ports.js';
-import type { Transaction } from '../../../../domain/transactions/entities.js';
 import { TransactionNotFoundError } from '../../../../domain/transactions/errors.js';
 import type { LearnMerchantRuleUseCase } from '../../../categorisation/LearnMerchantRuleUseCase.js';
 import { BulkMapTransactionsUseCase } from '../BulkMapTransactionsUseCase.js';
 import { UnmarkTransferUseCase } from '../UnmarkTransferUseCase.js';
+import { makeTransaction } from '../../../../test/doubles/transactions.js';
 
 const HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000b1');
 const USER = UserId.of('01900000-0000-7000-8000-0000000000b2');
@@ -24,7 +24,7 @@ describe('UnmarkTransferUseCase', () => {
   it("unmarks the caller's own transaction", async () => {
     const txRepo = mock<TransactionRepository>();
     const transferRepo = mock<TransferRepository>();
-    txRepo.findOwnedById.mockResolvedValue({ id: TX_1 } as Transaction);
+    txRepo.findOwnedById.mockResolvedValue(makeTransaction({ id: TX_1 }));
 
     await new UnmarkTransferUseCase(txRepo, transferRepo).execute({
       transactionId: TX_1,
@@ -83,8 +83,8 @@ describe('BulkMapTransactionsUseCase', () => {
     const txRepo = mock<TransactionRepository>();
     const mappingRepo = mock<MappingRepository>();
     const memory = mock<LearnMerchantRuleUseCase>();
-    const tx1 = { id: TX_1 } as Transaction;
-    const tx2 = { id: TX_2 } as Transaction;
+    const tx1 = makeTransaction({ id: TX_1 });
+    const tx2 = makeTransaction({ id: TX_2 });
     txRepo.findOwnedIds.mockResolvedValue([TX_1, TX_2]);
     txRepo.findById.mockImplementation(async (id) => (id === TX_1 ? tx1 : tx2));
 

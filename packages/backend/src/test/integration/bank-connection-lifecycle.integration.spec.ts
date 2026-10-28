@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { makeBankSyncJob } from '../doubles/bankSyncJob.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import type { Job } from 'bullmq';
 import { mock } from 'vitest-mock-extended';
 import { uuidv7 } from 'uuidv7';
 import { BankConnectionId } from '@power-budget/core';
@@ -282,7 +282,7 @@ describe('bank connection lifecycle (CLN-038, real app)', () => {
           trigger: 'manual',
           attended: true,
         };
-        await processor.process({ data: payload } as Job<BankSyncJobPayload>);
+        await processor.process(makeBankSyncJob(payload));
       }
 
       expect(syncRunRepo.start).not.toHaveBeenCalled();

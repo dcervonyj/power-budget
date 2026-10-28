@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { UUID_PATTERN } from './test-helpers.js';
 import jwt from 'jsonwebtoken';
 import { uuidv7 } from 'uuidv7';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -177,7 +178,7 @@ describe('Integration: bulk transfer and ignore (UI-015)', () => {
       expect(res.statusCode).toBe(204);
       const rows = await listed(ann);
       expect(rows.get(a)?.transfer).toEqual({
-        transferId: expect.any(String),
+        transferId: expect.stringMatching(UUID_PATTERN),
         counterpartTransactionId: null,
       });
       expect(rows.get(b)?.transfer?.counterpartTransactionId).toBeNull();

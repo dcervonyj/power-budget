@@ -183,23 +183,34 @@ async function map(id: TransactionId, plannedItemId: PlannedItemId): Promise<voi
 }
 
 async function suggestionOf(id: TransactionId): Promise<Record<string, unknown>> {
-  const { rows } = await fixtures.query(
+  const { rows } = await fixtures.query<Record<string, unknown>>(
     `SELECT suggested_planned_item_id, suggested_category_id, suggestion_source, auto_mapped
      FROM transactions WHERE id = $1`,
     [id],
   );
+  const [row] = rows;
+  if (row === undefined) {
+    throw new Error(`transaction ${id} not found`);
+  }
 
-  return rows[0] as Record<string, unknown>;
+  return row;
 }
 
 async function ruleOf(): Promise<{ category_id: string; hits: number; plan_kind_pref: string }> {
-  const { rows } = await fixtures.query(
-    `SELECT category_id, hits, plan_kind_pref FROM merchant_rules WHERE household_id = $1`,
-    [F.householdId],
-  );
+  const { rows } = await fixtures.query<{
+    category_id: string;
+    hits: number;
+    plan_kind_pref: string;
+  }>(`SELECT category_id, hits, plan_kind_pref FROM merchant_rules WHERE household_id = $1`, [
+    F.householdId,
+  ]);
   expect(rows).toHaveLength(1);
+  const [row] = rows;
+  if (row === undefined) {
+    throw new Error('merchant rule not found');
+  }
 
-  return rows[0] as { category_id: string; hits: number; plan_kind_pref: string };
+  return row;
 }
 
 describe('Integration: merchant memory (AI-003)', () => {

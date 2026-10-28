@@ -8,6 +8,7 @@ import type {
 import type { BankAccount, BankConnection } from '../../../../domain/bank/entities.js';
 import { BankConnectionNotFoundError } from '../../../../domain/bank/errors.js';
 import { ListConnectionAccountsUseCase } from '../ListConnectionAccountsUseCase.js';
+import { makeBankConnection } from '../../../../test/doubles/transactions.js';
 
 const HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
 const CONNECTION = BankConnectionId.of('01900000-0000-7000-8000-0000000000a2');
@@ -41,7 +42,7 @@ function setup(connection: BankConnection | null) {
   };
 }
 
-const ownConnection = { id: CONNECTION, householdId: HOUSEHOLD, userId: OWNER } as BankConnection;
+const ownConnection = makeBankConnection({ id: CONNECTION, householdId: HOUSEHOLD, userId: OWNER });
 
 describe('ListConnectionAccountsUseCase', () => {
   it("lists the accounts of the caller's own connection", async () => {

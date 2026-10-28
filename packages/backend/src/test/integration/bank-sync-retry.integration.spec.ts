@@ -1,9 +1,18 @@
 import 'reflect-metadata';
+import { makeBankSyncJob } from '../doubles/bankSyncJob.js';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { Queue, Worker, type Job } from 'bullmq';
 import { mock } from 'vitest-mock-extended';
 import { uuidv7 } from 'uuidv7';
-import { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
+import {
+  BankAccountId,
+  BankConnectionId,
+  EncryptedString,
+  HouseholdId,
+  UserId,
+} from '@power-budget/core';
+import { testUuid } from '../doubles/testUuid.js';
+import { makeBankAccount, makeBankConnection } from '../doubles/transactions.js';
 import { getDb, resetState, startContainers, stopContainers } from './setup.js';
 import { insertTestHousehold, insertTestUser } from './test-helpers.js';
 import * as schema from '../../../drizzle/schema.js';
@@ -13,7 +22,6 @@ import type {
   BankConnector,
   BankConnectorRegistry,
 } from '../../domain/bank/ports.js';
-import type { BankConnection } from '../../domain/bank/entities.js';
 import type { IngestBankTransactionsUseCase } from '../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import {
   BankSyncProcessor,
@@ -28,6 +36,14 @@ import {
 
 const QUEUE_NAME = 'cln-037-bank-sync';
 const DAY_MS = 24 * 3600 * 1000;
+
+function requireDate(value: Date | null): Date {
+  if (value === null) {
+    throw new Error('expected a successful sync run');
+  }
+
+  return value;
+}
 
 describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)', () => {
   let redisUrl: string;
@@ -62,26 +78,22 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
     });
 
     const connectionRepo = mock<BankConnectionRepository>();
-    const connection: BankConnection = {
+    const connection = makeBankConnection({
       id: connectionId,
       householdId,
       userId: UserId.of(user.id),
-      provider: 'in_memory' as never,
       bankId: 'test-bank',
-      externalConsentRef: null,
-      encryptedConsent: 'enc-token' as never,
-      expiresAt: null,
-      status: 'active',
-      disconnectedAt: null,
-      createdAt: new Date(),
-    };
+      encryptedConsent: EncryptedString.of('enc-token'),
+    });
     connectionRepo.findById.mockResolvedValue(connection);
     const bankAccountRepo = mock<BankAccountRepository>();
     bankAccountRepo.listByConnection.mockResolvedValue([
-      { id: 'acc-1', externalId: 'ext-1' } as never,
+      makeBankAccount({ id: BankAccountId.of(testUuid('acc-1')), externalId: 'ext-1' }),
     ]);
     connector = mock<BankConnector>();
-    connector.listAccounts.mockResolvedValue([{ externalId: 'ext-1' } as never]);
+    connector.listAccounts.mockResolvedValue([
+      { externalId: 'ext-1', name: 'Main', iban: null, currency: 'PLN', balanceMinor: 0n },
+    ]);
     connector.fetchTransactions.mockResolvedValue([]);
     const registry = mock<BankConnectorRegistry>();
     registry.resolve.mockReturnValue(connector);
@@ -104,7 +116,7 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
       ...data,
     };
 
-    return { data: payload } as Job<BankSyncJobPayload>;
+    return makeBankSyncJob(payload);
   }
 
   function lastDateFrom(): Date {
@@ -121,25 +133,24 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
     await processor.process(job());
     expect(Math.abs(lastDateFrom().getTime() - (before - 90 * DAY_MS))).toBeLessThan(60_000);
 
-    const lastSuccess = await syncRunRepo.lastSuccessfulAt(connectionId);
-    expect(lastSuccess).not.toBeNull();
+    const lastSuccess = requireDate(await syncRunRepo.lastSuccessfulAt(connectionId));
 
     await processor.process(job());
     expect(lastDateFrom().getTime()).toBe(
-      (lastSuccess as Date).getTime() - BankSyncProcessor.OVERLAP_DAYS * DAY_MS,
+      lastSuccess.getTime() - BankSyncProcessor.OVERLAP_DAYS * DAY_MS,
     );
   });
 
   it('a failed run does not move the watermark', async () => {
     await processor.process(job());
-    const lastSuccess = await syncRunRepo.lastSuccessfulAt(connectionId);
+    const lastSuccess = requireDate(await syncRunRepo.lastSuccessfulAt(connectionId));
     connector.listAccounts.mockRejectedValueOnce(new Error('bank down'));
     await expect(processor.process(job())).rejects.toThrow('bank down');
 
     expect(await syncRunRepo.lastSuccessfulAt(connectionId)).toEqual(lastSuccess);
     await processor.process(job());
     expect(lastDateFrom().getTime()).toBe(
-      (lastSuccess as Date).getTime() - BankSyncProcessor.OVERLAP_DAYS * DAY_MS,
+      lastSuccess.getTime() - BankSyncProcessor.OVERLAP_DAYS * DAY_MS,
     );
   });
 
