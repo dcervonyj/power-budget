@@ -20,5 +20,7 @@
   "shell.theme.label": "Оформление",
   "shell.theme.system": "Системное",
   "shell.theme.dark": "Ночь",
-  "shell.theme.light": "День"
+  "shell.theme.light": "День",
+  "shell.crash.message": "Что-то пошло не так. Обычно помогает перезагрузка страницы.",
+  "shell.crash.reload": "Перезагрузить"
 }

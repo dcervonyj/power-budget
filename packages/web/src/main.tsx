@@ -8,6 +8,11 @@ import '@fontsource-variable/geist';
 import '../../design-tokens/dist/tokens.css';
 import '../../design-tokens/dist/glass.css';
 import { AppProviders } from './AppProviders.js';
+import { StaticCrashFallback } from './presentation/shell/StaticCrashFallback.js';
+import { AppCrashFallback } from './presentation/shell/AppCrashFallback.js';
+import { staleChunkRecovery } from './infrastructure/lazyChunk.js';
+
+staleChunkRecovery.install();
 
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
@@ -23,19 +28,25 @@ Sentry.init({
   },
 });
 
-const SentryApp = Sentry.withErrorBoundary(
+// Inner boundary: translated fallback. Outer boundary: covers provider render errors and
+// failed locale chunks, where react-intl is unavailable, so it uses a small static string table.
+const GuardedApp = Sentry.withErrorBoundary(App, { fallback: <AppCrashFallback /> });
+
+const OuterGuard = Sentry.withErrorBoundary(
   () => (
     <BrowserRouter>
       <AppProviders>
-        <App />
+        <GuardedApp />
       </AppProviders>
     </BrowserRouter>
   ),
-  { fallback: <p>An error occurred.</p> },
+  {
+    fallback: <StaticCrashFallback />,
+  },
 );
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <SentryApp />
+    <OuterGuard />
   </React.StrictMode>,
 );
