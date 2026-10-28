@@ -1,6 +1,6 @@
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { uuidv7 } from 'uuidv7';
-import type { UserId, HouseholdId } from '@power-budget/core';
+import { HouseholdId, UserId } from '@power-budget/core';
 import type {
   UserRepository,
   HouseholdRepository,
@@ -52,7 +52,7 @@ export class LoginWithGoogleUseCase {
   }
 
   private async createUserWithHousehold(email: string): Promise<User> {
-    const userId = uuidv7() as UserId;
+    const userId = UserId.of(uuidv7());
     const user = await this.userRepo.create({
       id: userId,
       email,
@@ -61,7 +61,7 @@ export class LoginWithGoogleUseCase {
       passwordHash: null,
     });
 
-    const householdId = uuidv7() as HouseholdId;
+    const householdId = HouseholdId.of(uuidv7());
     const household = await this.householdRepo.create({
       id: householdId,
       name: `${user.displayName}'s household`,

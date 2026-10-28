@@ -17,7 +17,8 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import type { PlanId } from '@power-budget/core';
+import { PlanId } from '@power-budget/core';
+import { brandOrNotFound } from '../http/brandedIds.js';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
 import { GetHouseholdDashboardUseCase } from '../../application/households/use-cases/GetHouseholdDashboardUseCase.js';
@@ -62,7 +63,11 @@ export class HouseholdsController {
     // PLAN_NOT_FOUND is mapped to 404 `plan_not_found` by the exception filter.
     const result = await this.getHouseholdDashboard.execute({
       householdId: user.householdId,
-      planId: planId as PlanId,
+      planId: brandOrNotFound(
+        PlanId,
+        planId,
+        () => new Error(`PLAN_NOT_FOUND: Plan ${planId} not found`),
+      ),
       viewerUserId: user.userId,
       asOf: new Date(),
     });

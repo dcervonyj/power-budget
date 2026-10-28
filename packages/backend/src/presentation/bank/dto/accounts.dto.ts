@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsIn, IsString, Matches, MaxLength } from 'class-validator';
-import { CURRENCIES } from '@power-budget/core';
+import { CURRENCIES, type CurrencyCode } from '@power-budget/core';
 import type { Account } from '../../../domain/bank/entities.js';
 import { MoneyDto, toMoneyDto } from '../../http/money.js';
 
@@ -50,7 +50,7 @@ export class CreateManualAccountDto {
 
   @ApiProperty({ type: String, enum: CURRENCY_CODES, description: 'ISO 4217 currency code' })
   @IsIn(CURRENCY_CODES)
-  currency!: string;
+  currency!: CurrencyCode;
 }
 
 export function toAccountDto(account: Account): AccountDto {

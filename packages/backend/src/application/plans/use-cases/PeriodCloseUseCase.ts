@@ -1,5 +1,5 @@
-import { IsoDate } from '@power-budget/core';
-import type { IsoDateTime, PlanId } from '@power-budget/core';
+import { IsoDate, IsoDateTime } from '@power-budget/core';
+import type { PlanId } from '@power-budget/core';
 import type { PlanRepository } from '../../../domain/plans/ports.js';
 import { ClosePeriodSnapshotUseCase } from './ClosePeriodSnapshotUseCase.js';
 
@@ -33,7 +33,7 @@ export class PeriodCloseUseCase {
    */
   async execute(day: IsoDate, now: Date = new Date()): Promise<PeriodCloseResult> {
     const plans = await this.planRepo.findDueForClose(day);
-    const closedAt = now.toISOString() as IsoDateTime;
+    const closedAt = IsoDateTime.of(now.toISOString());
 
     let processed = 0;
     const failures = new Map<PlanId, Error>();

@@ -49,6 +49,28 @@ describe('GET /households/:id/dashboard (HTTP)', () => {
     expect(dashboard.execute).not.toHaveBeenCalled();
   });
 
+  it('returns 404 plan_not_found for a plan id the core type rejects, not 500', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/households/${ALICE_HOUSEHOLD}/dashboard?planId=00000000-0000-0000-0000-000000000000`,
+      headers: { authorization: bearerFor(ALICE, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(404);
+    expect(dashboard.execute).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 for a signed token whose subject is no user id, not 500', async () => {
+    const res = await app.inject({
+      method: 'GET',
+      url: `/households/${ALICE_HOUSEHOLD}/dashboard?planId=${PLAN}`,
+      headers: { authorization: bearerFor('not-a-user-id' as UserId, ALICE_HOUSEHOLD) },
+    });
+
+    expect(res.statusCode).toBe(401);
+    expect(dashboard.execute).not.toHaveBeenCalled();
+  });
+
   it("returns the caller's own household dashboard", async () => {
     const before = Date.now();
     const res = await app.inject({

@@ -1,4 +1,4 @@
-import type { UserId, HouseholdId, BankConnectionId } from '@power-budget/core';
+import { BankConnectionId, type UserId, type HouseholdId } from '@power-budget/core';
 import type { BankProvider, BankId } from '../../../domain/bank/entities.js';
 import type {
   BankConnectionRepository,
@@ -53,7 +53,7 @@ export class InitiateBankConnectionUseCase {
       historyDays: 90,
     });
 
-    const connectionId = this.ids.next() as BankConnectionId;
+    const connectionId = BankConnectionId.of(this.ids.next());
     await this.connectionRepo.create({
       id: connectionId,
       householdId: input.householdId,
