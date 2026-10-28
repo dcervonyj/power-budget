@@ -88,6 +88,12 @@ const layerLintBlocks = [
     CLIENT_FRAMEWORKS,
   ),
   block(['packages/{web,mobile}/src/infrastructure/**/*.{ts,tsx}'], ['presentation'], NONE),
+  // shared-app: feature-level application dirs (auth/application, plans/application, ...)
+  block(
+    ['packages/shared-app/src/*/application/**/*.{ts,tsx}'],
+    ['infrastructure', 'presentation'],
+    CLIENT_FRAMEWORKS,
+  ),
 ];
 
 // TEMPORARY allow-list (CLN-061): files that already violate a layer rule when the rule landed (29 files).

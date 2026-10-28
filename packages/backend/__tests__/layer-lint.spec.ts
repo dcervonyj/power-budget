@@ -58,6 +58,12 @@ describe('layer lint (no-restricted-imports)', () => {
     ],
     ['packages/web/src/application/x/x.ts', `import React from 'react';`],
     ['packages/web/src/infrastructure/x/x.ts', `import { A } from '../../presentation/A.js';`],
+    [
+      'packages/shared-app/src/plans/application/x.ts',
+      `import { A } from '../../infrastructure/A.js';`,
+    ],
+    ['packages/shared-app/src/plans/application/x.ts', `import { A } from '../../infrastructure';`],
+    ['packages/shared-app/src/plans/application/x.ts', `import React from 'react';`],
     ['packages/mobile/src/domain/x.ts', `import { A } from '../presentation/A.js';`],
     ['packages/mobile/src/infrastructure/x/x.ts', `import { A } from '../../presentation/A.js';`],
   ])('errors for %s: %s', async (file, code) => {
@@ -77,6 +83,7 @@ describe('layer lint (no-restricted-imports)', () => {
     ],
     ['packages/web/src/presentation/x.tsx', `import { A } from '../infrastructure/A.js';`],
     ['packages/web/src/application/x/x.ts', `import { A } from '../../domain/A.js';`],
+    ['packages/shared-app/src/plans/application/x.ts', `import { A } from '../domain/A.js';`],
   ])('allows %s: %s', async (file, code) => {
     expect(await ruleIds(file, code)).toEqual([]);
   });
@@ -127,5 +134,20 @@ describe('layer lint (no-restricted-imports)', () => {
       },
     );
     expect(result.messages.map((m) => m.ruleId)).toEqual(RESTRICTED);
+  });
+
+  it('shared-app application rules fire from its lint base dir with the real root config', async () => {
+    const sharedApp = path.join(root, 'packages/shared-app');
+    const fromSharedApp = new ESLint({ cwd: sharedApp });
+    const existing = require('fs')
+      .readdirSync(path.join(sharedApp, 'src/plans/application'))
+      .find((f: string) => f.endsWith('.ts'));
+    const [result] = await fromSharedApp.lintText(
+      `import { A } from '../../infrastructure/A.js';\n`,
+      {
+        filePath: path.join(sharedApp, 'src/plans/application', existing),
+      },
+    );
+    expect(result.messages.map((m) => m.ruleId)).toContain('no-restricted-imports');
   });
 });
