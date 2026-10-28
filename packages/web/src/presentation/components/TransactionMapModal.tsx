@@ -1,3 +1,4 @@
+import { apiClient, plansApi, referenceCatalogue } from '../../composition.js';
 import React, { useEffect, useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { formatMoney, parseMinorUnits } from '@power-budget/core';
@@ -5,10 +6,8 @@ import { readApiError } from '@power-budget/shared-app';
 import type { PlanDashboardResponseDto, SetMappingDto } from '@power-budget/shared-app/contract';
 import { Button } from './Button.js';
 import { MoneyView } from './MoneyView.js';
-import { apiClient, plansApi } from '../../AppProviders.js';
 import { toSupportedLocale } from '../i18n/supportedLocale.js';
 import { formatAmount } from '../i18n/formatAmount.js';
-import { referenceCatalogue } from '../../application/catalogue/catalogueInstance.js';
 import {
   loadPlannedItems,
   suggestedFirst,

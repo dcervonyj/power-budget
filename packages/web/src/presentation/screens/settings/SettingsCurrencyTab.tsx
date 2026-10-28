@@ -1,3 +1,4 @@
+import { settingsStore } from '../../../composition.js';
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import { observer } from 'mobx-react-lite';
@@ -14,7 +15,6 @@ import {
   SUCCESS_STYLE,
   chipStyle,
 } from './settingsStyles.js';
-import { settingsStore } from '../../../application/settings/SettingsStore.js';
 
 interface LocalSelectOption {
   value: string;

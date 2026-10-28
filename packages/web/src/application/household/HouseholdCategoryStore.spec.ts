@@ -3,17 +3,10 @@ import type {
   HouseholdDashboardCategoryDto,
   HouseholdDashboardResponseDto,
 } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
 import { HouseholdCategoryStore } from './HouseholdCategoryStore.js';
 import { deferred } from '../../test/deferred.js';
 
-vi.mock('../../AppProviders.js', () => ({
-  apiClient: {
-    get: vi.fn(),
-  },
-}));
-
-const mockGet = vi.mocked(apiClient.get);
+const mockGet = vi.fn();
 
 const groceries: HouseholdDashboardCategoryDto = {
   categoryId: 'cat-1',
@@ -46,7 +39,7 @@ describe('HouseholdCategoryStore', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    store = new HouseholdCategoryStore();
+    store = new HouseholdCategoryStore({ get: mockGet });
   });
 
   it('starts empty', () => {

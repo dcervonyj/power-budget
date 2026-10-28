@@ -1,3 +1,10 @@
+import {
+  apiClient,
+  categoriesApi,
+  dashboardStore,
+  planDashboardStore,
+  referenceCatalogue,
+} from '../../../composition.js';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useIntl } from 'react-intl';
 import { readApiError } from '@power-budget/shared-app';
@@ -19,18 +26,12 @@ import { ManualTransactionForm } from '../../components/ManualTransactionForm.js
 import { TransactionMapModal } from '../../components/TransactionMapModal.js';
 import { TransactionDetailModal } from '../../components/TransactionDetailModal.js';
 import { TransactionListView } from './TransactionListView.js';
-import { apiClient, categoriesApi } from '../../../AppProviders.js';
-import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
 import {
   loadPlannedItems,
   type PlannedItemLabel,
 } from '../../../application/transactions/PlannedItemLabels.js';
 import type { Transaction } from '../../../domain/transactions/Transaction.js';
 import type { CategoryDto, TransactionPageDto } from '@power-budget/shared-app/contract';
-import {
-  dashboardStore,
-  planDashboardStore,
-} from '../../../application/dashboard/DashboardStore.js';
 import {
   groupByDay,
   monthLeft,

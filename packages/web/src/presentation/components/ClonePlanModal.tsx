@@ -1,11 +1,10 @@
+import { plansApi, referenceCatalogue } from '../../composition.js';
 import React, { useState } from 'react';
 import { useIntl } from 'react-intl';
 import { Modal } from './Modal.js';
 import { ClonePlanForm } from './ClonePlanForm.js';
 import type { CustomPeriodValue } from './CustomPeriodPicker.js';
 import type { ClonePlanDto, PlanPeriodKindDto } from '@power-budget/shared-app/contract';
-import { plansApi } from '../../AppProviders.js';
-import { referenceCatalogue } from '../../application/catalogue/catalogueInstance.js';
 
 export interface ClonePlanModalProps {
   readonly isOpen: boolean;

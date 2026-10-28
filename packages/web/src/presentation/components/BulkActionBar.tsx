@@ -1,8 +1,8 @@
+import { bulkTransactionActions } from '../../composition.js';
 import React, { useState } from 'react';
 import { FormattedMessage, useIntl } from 'react-intl';
 import '../glass/controls/controls.css';
 import { readApiError } from '@power-budget/shared-app';
-import { bulkTransactionActions } from '../../AppProviders.js';
 import type { BulkAction } from '../../application/transactions/BulkTransactionActions.js';
 
 export interface BulkActionBarProps {

@@ -1,6 +1,6 @@
+import { apiClient } from '../../../composition.js';
 import React, { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { apiClient } from '../../../AppProviders.js';
 import { BankConsentCallbackView } from './BankConsentCallbackView.js';
 
 export function BankConsentCallbackScreen(): React.JSX.Element {

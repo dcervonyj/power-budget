@@ -6,8 +6,10 @@ import { darkTheme } from '@power-budget/design-tokens';
 import { ThemeProvider } from '../ThemeContext.js';
 import { TransactionMapModal } from '../TransactionMapModal.js';
 import { TransactionMapper } from '../../../infrastructure/api/TransactionMapper.js';
-import { referenceCatalogue } from '../../../application/catalogue/catalogueInstance.js';
-import { apiClient } from '../../../AppProviders.js';
+import { referenceCatalogue } from '../../../composition.js';
+import { spyOnApiClient } from '../../../test/apiClientSpies.js';
+
+const apiSpies = spyOnApiClient();
 
 vi.mock('../MoneyView.js', () => ({
   MoneyView: ({ amount }: { amount: { amountMinor: bigint; currency: string } }) => (
@@ -15,26 +17,8 @@ vi.mock('../MoneyView.js', () => ({
   ),
 }));
 
-vi.mock('../../../AppProviders.js', async () => {
-  const { CategoriesApi, PlansApi } = await import('@power-budget/shared-app');
-  const client = {
-    request: vi.fn(),
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  };
-
-  return {
-    apiClient: client,
-    plansApi: new PlansApi(client),
-    categoriesApi: new CategoriesApi(client),
-  };
-});
-
-const mockGet = vi.mocked(apiClient.get);
-const mockPatch = vi.mocked(apiClient.patch);
+const mockGet = apiSpies.get;
+const mockPatch = apiSpies.patch;
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <IntlProvider locale="en" messages={{}}>

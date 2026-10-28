@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
 import { MoneyView } from '../MoneyView.js';
+import { spyOnApiClient } from '../../../test/apiClientSpies.js';
+
+spyOnApiClient();
 
 const RATES = vi.hoisted(() => ({
   table: {
@@ -12,7 +15,6 @@ const RATES = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../AppProviders.js', () => ({ apiClient: {} }));
 vi.mock('../../../infrastructure/fx/FxRateCache.js', () => ({
   getCachedRates: () => RATES.table,
   fetchAndCacheRates: () => Promise.resolve(RATES.table),

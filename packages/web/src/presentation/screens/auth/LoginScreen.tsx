@@ -1,8 +1,8 @@
+import { apiClient, tokenStore } from '../../../composition.js';
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { readApiError } from '@power-budget/shared-app';
 import type { AuthTokensDto, LoginDto } from '@power-budget/shared-app/contract';
-import { apiClient, tokenStore } from '../../../AppProviders.js';
 import { returnPath } from '../../guards/returnPath.js';
 import { LoginView, type LoginError } from './LoginView.js';
 

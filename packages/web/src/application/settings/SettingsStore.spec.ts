@@ -1,29 +1,36 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Node 25+ hides jsdom's localStorage; the store reads it when the module loads.
-vi.hoisted(() => {
-  const items = new Map<string, string>();
-  vi.stubGlobal('localStorage', {
-    getItem: (key: string) => items.get(key) ?? null,
-    setItem: (key: string, value: string) => items.set(key, value),
-    removeItem: (key: string) => items.delete(key),
-    clear: () => items.clear(),
-  });
-});
-
-vi.mock('../../AppProviders.js', () => ({
-  apiClient: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn(), request: vi.fn() },
-}));
-
 import type { UserProfileDto } from '@power-budget/shared-app/contract';
-import { apiClient } from '../../AppProviders.js';
-import { SettingsStore } from './SettingsStore.js';
+import { SettingsStore, type SettingsHttp } from './SettingsStore.js';
+import type { KeyValueStore } from '../ports/KeyValueStore.js';
 import { deferred } from '../../test/deferred.js';
 
-const mockGet = vi.mocked(apiClient.get);
-const mockPost = vi.mocked(apiClient.post);
-const mockPatch = vi.mocked(apiClient.patch);
-const mockDelete = vi.mocked(apiClient.delete);
+const http = {
+  get: vi.fn(),
+  post: vi.fn(),
+  patch: vi.fn(),
+  delete: vi.fn(),
+} satisfies SettingsHttp;
+const mockGet = http.get;
+const mockPost = http.post;
+const mockPatch = http.patch;
+const mockDelete = http.delete;
+
+class MemoryKeyValueStore implements KeyValueStore {
+  private readonly items = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.items.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.items.set(key, value);
+  }
+}
+
+function newStore(): SettingsStore {
+  return new SettingsStore(http, new MemoryKeyValueStore());
+}
 
 const profile: UserProfileDto = {
   id: 'user-1',
@@ -52,7 +59,7 @@ describe('SettingsStore.deleteAccount', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    store = new SettingsStore();
+    store = newStore();
     store.householdId = 'hh-1';
   });
 
@@ -99,7 +106,7 @@ describe('SettingsStore profile (UserProfileDto)', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    store = new SettingsStore();
+    store = newStore();
   });
 
   it('loads every profile field from GET /users/me', async () => {
@@ -184,7 +191,7 @@ describe('SettingsStore.exportData', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.useFakeTimers();
-    store = new SettingsStore();
+    store = newStore();
     mockPost.mockResolvedValueOnce({ status: 202, data: undefined, headers: {} });
   });
 
@@ -260,7 +267,7 @@ describe('SettingsStore.resetSession', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    store = new SettingsStore();
+    store = newStore();
   });
 
   it("forgets the user's profile, currencies and progress", async () => {

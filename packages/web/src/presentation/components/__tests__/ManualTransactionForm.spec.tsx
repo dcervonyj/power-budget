@@ -7,24 +7,13 @@ import { toLocalIsoDate } from '@power-budget/core';
 import type { AccountDto } from '@power-budget/shared-app/contract';
 import { ThemeProvider } from '../ThemeContext.js';
 import { ManualTransactionForm, toSignedMinorUnits } from '../ManualTransactionForm.js';
-import { apiClient } from '../../../AppProviders.js';
 import en from '../../../../public/locales/en.json';
+import { spyOnApiClient } from '../../../test/apiClientSpies.js';
 
-vi.mock('../../../AppProviders.js', () => {
-  const client = {
-    request: vi.fn(),
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  };
+const apiSpies = spyOnApiClient();
 
-  return { apiClient: client };
-});
-
-const mockGet = vi.mocked(apiClient.get);
-const mockPost = vi.mocked(apiClient.post);
+const mockGet = apiSpies.get;
+const mockPost = apiSpies.post;
 
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <IntlProvider locale="en" messages={en}>

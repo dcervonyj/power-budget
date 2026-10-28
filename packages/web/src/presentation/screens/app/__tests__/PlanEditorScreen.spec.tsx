@@ -1,7 +1,8 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { categoriesApi, plansApi } from '../../../../AppProviders.js';
+import { categoriesApi, plansApi, settingsStore } from '../../../../composition.js';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 import { PlanEditorScreen } from '../PlanEditorScreen.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import {
@@ -12,29 +13,28 @@ import {
   RENT_ITEM,
 } from '../../../../test/dashboardFixtures.js';
 
-vi.mock('../../../../AppProviders.js', () => ({
-  plansApi: {
-    get: vi.fn(),
-    listItems: vi.fn(),
-    createItem: vi.fn(),
-    updateItem: vi.fn(),
-    deleteItem: vi.fn(),
-    update: vi.fn(),
-    dashboard: vi.fn(),
-  },
-  categoriesApi: { list: vi.fn() },
-}));
-vi.mock('../../../../application/settings/SettingsStore.js', () => ({
-  settingsStore: { profileLoaded: true, userId: 'user-1', loadProfile: vi.fn() },
-}));
+spyOnApiClient();
+const plansSpies = {
+  get: vi.spyOn(plansApi, 'get'),
+  listItems: vi.spyOn(plansApi, 'listItems'),
+  createItem: vi.spyOn(plansApi, 'createItem'),
+  updateItem: vi.spyOn(plansApi, 'updateItem'),
+  update: vi.spyOn(plansApi, 'update'),
+  dashboard: vi.spyOn(plansApi, 'dashboard'),
+};
+const categoriesList = vi.spyOn(categoriesApi, 'list');
+const loadProfile = vi.spyOn(settingsStore, 'loadProfile');
 
 describe('PlanEditorScreen amounts (UI-013)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(plansApi.get).mockResolvedValue(PLAN);
-    vi.mocked(plansApi.listItems).mockResolvedValue([RENT_ITEM]);
-    vi.mocked(categoriesApi.list).mockResolvedValue(CATEGORIES);
-    vi.mocked(plansApi.dashboard).mockRejectedValue(new Error('no dashboard'));
+    settingsStore.profileLoaded = true;
+    settingsStore.userId = 'user-1';
+    loadProfile.mockResolvedValue(undefined);
+    plansSpies.get.mockResolvedValue(PLAN);
+    plansSpies.listItems.mockResolvedValue([RENT_ITEM]);
+    categoriesList.mockResolvedValue(CATEGORIES);
+    plansSpies.dashboard.mockRejectedValue(new Error('no dashboard'));
   });
 
   it('shows a stored item in normal units, not minor units', async () => {
@@ -45,7 +45,7 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
   });
 
   it('sends what the user typed as exact minor units', async () => {
-    vi.mocked(plansApi.createItem).mockResolvedValue({
+    plansSpies.createItem.mockResolvedValue({
       ...RENT_ITEM,
       id: 'item-new',
       categoryId: 'cat-groceries',
@@ -73,7 +73,7 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
 
     await waitFor(() => {
-      expect(plansApi.createItem).toHaveBeenCalledWith('plan-1', {
+      expect(plansSpies.createItem).toHaveBeenCalledWith('plan-1', {
         categoryId: 'cat-groceries',
         direction: 'expense',
         amountMinor: '25050',
@@ -83,7 +83,7 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
   });
 
   it('saves an edited amount as minor units on blur', async () => {
-    vi.mocked(plansApi.updateItem).mockResolvedValue({
+    plansSpies.updateItem.mockResolvedValue({
       ...RENT_ITEM,
       amount: { amountMinor: '320000', currency: 'PLN' },
     });
@@ -93,7 +93,7 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
     fireEvent.blur(stored ?? document.body, { target: { value: '3 200' } });
 
     await waitFor(() => {
-      expect(plansApi.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
+      expect(plansSpies.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
         amountMinor: '320000',
         currency: 'PLN',
       });
@@ -104,10 +104,10 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
 describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(plansApi.get).mockResolvedValue(PLAN);
-    vi.mocked(plansApi.listItems).mockResolvedValue(ITEMS);
-    vi.mocked(categoriesApi.list).mockResolvedValue(CATEGORIES);
-    vi.mocked(plansApi.dashboard).mockResolvedValue(DASHBOARD);
+    plansSpies.get.mockResolvedValue(PLAN);
+    plansSpies.listItems.mockResolvedValue(ITEMS);
+    categoriesList.mockResolvedValue(CATEGORIES);
+    plansSpies.dashboard.mockResolvedValue(DASHBOARD);
   });
 
   it('shows the totals tiles in the plan currency and leaves other currencies out', async () => {
@@ -137,8 +137,8 @@ describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
   });
 
   it('keeps the editor alive while a custom period date is cleared', async () => {
-    vi.mocked(plansApi.get).mockResolvedValue({ ...PLAN, periodKind: 'custom' });
-    vi.mocked(plansApi.update).mockResolvedValue({
+    plansSpies.get.mockResolvedValue({ ...PLAN, periodKind: 'custom' });
+    plansSpies.update.mockResolvedValue({
       ...PLAN,
       periodKind: 'custom',
       period: { start: '', end: PLAN.period.end },
@@ -160,7 +160,7 @@ describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
   });
 
   it('moves a limit by one step with the stepper and sends exact minor units', async () => {
-    vi.mocked(plansApi.updateItem).mockResolvedValue({
+    plansSpies.updateItem.mockResolvedValue({
       ...RENT_ITEM,
       amount: { amountMinor: '301000', currency: 'PLN' },
     });
@@ -169,7 +169,7 @@ describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Increase the Rent limit' }));
 
     await waitFor(() => {
-      expect(plansApi.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
+      expect(plansSpies.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
         amountMinor: '301000',
         currency: 'PLN',
       });
@@ -183,7 +183,7 @@ describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
     fireEvent.keyDown(stepper, { key: 'ArrowDown' });
 
     await waitFor(() => {
-      expect(plansApi.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
+      expect(plansSpies.updateItem).toHaveBeenCalledWith('plan-1', 'item-rent', {
         amountMinor: '299000',
         currency: 'PLN',
       });
@@ -191,7 +191,7 @@ describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
   });
 
   it('still lists the items when the dashboard cannot be read', async () => {
-    vi.mocked(plansApi.dashboard).mockRejectedValue(new Error('down'));
+    plansSpies.dashboard.mockRejectedValue(new Error('down'));
     renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
 
     expect(await screen.findAllByLabelText('Amount')).not.toHaveLength(0);

@@ -2,11 +2,13 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
-import { bankConnectionStore } from '../../../../application/bank/BankConnectionStore.js';
+import { bankConnectionStore } from '../../../../composition.js';
 import { goToConsent } from '../../../../application/bank/consentRedirect.js';
 import { AddBankConnectionScreen } from '../AddBankConnectionScreen.js';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 
-vi.mock('../../../../AppProviders.js', () => ({ apiClient: { get: vi.fn(), post: vi.fn() } }));
+spyOnApiClient();
+
 vi.mock('../../../../application/bank/consentRedirect.js', () => ({
   consentRedirectUri: () => 'https://app.test/bank/consent/callback',
   goToConsent: vi.fn(),
