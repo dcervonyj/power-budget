@@ -66,7 +66,7 @@ describe('style ratchet', { timeout: 60_000 }, () => {
     expect(await ruleIds(code)).toContain('@typescript-eslint/member-ordering');
   });
 
-  describe('no function locals in backend class methods', () => {
+  describe('no function locals in class methods', () => {
     const rule = 'ratchet-local/no-function-local-in-method';
     const method = (body: string): string => `export class A {\n  run(): void {\n${body}\n  }\n}\n`;
 
@@ -97,8 +97,33 @@ describe('style ratchet', { timeout: 60_000 }, () => {
       expect(await ruleIds(method(body), backendFilePath)).not.toContain(rule);
     });
 
-    it('does not apply outside backend src', async () => {
-      expect(await ruleIds(method('const f = (): number => 1;\n    f();'))).not.toContain(rule);
+    it.each(['shared-app', 'web', 'mobile', 'core', 'design-tokens'])(
+      'flags an arrow local in %s src',
+      async (pkg) => {
+        const path = resolve(repoRoot, `packages/${pkg}/src/index.ts`);
+
+        expect(await ruleIds(method('const f = (): number => 1;\n    f();'), path)).toContain(rule);
+      },
+    );
+
+    it.each([
+      ['web', 'packages/web/src/main.tsx'],
+      ['mobile', 'packages/mobile/src/gallery/main.tsx'],
+    ])('flags locals in a class method of a %s .tsx file', async (_pkg, file) => {
+      const path = resolve(repoRoot, file);
+
+      expect(await ruleIds(method('const f = (): number => 1;\n    f();'), path)).toContain(rule);
+      expect(
+        await ruleIds(method('function g(): number {\n      return 1;\n    }\n    g();'), path),
+      ).toContain(rule);
+    });
+
+    it('does not apply to test files', async () => {
+      const path = resolve(repoRoot, 'packages/core/src/index.spec.ts');
+
+      expect(await ruleIds(method('const f = (): number => 1;\n    f();'), path)).not.toContain(
+        rule,
+      );
     });
   });
 });

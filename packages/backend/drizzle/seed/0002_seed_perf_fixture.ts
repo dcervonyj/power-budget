@@ -77,9 +77,14 @@ const TX_COUNT = 5000;
 const BATCH_SIZE = 500;
 
 function pickRoundRobin<T>(arr: ReadonlyArray<T>, index: number): T {
-  if (arr.length === 0) throw new Error('Cannot pick from empty array');
+  if (arr.length === 0) {
+    throw new Error('Cannot pick from empty array');
+  }
   const item = arr[index % arr.length];
-  if (item === undefined) throw new Error('Round-robin index out of bounds — this is a bug');
+  if (item === undefined) {
+    throw new Error('Round-robin index out of bounds — this is a bug');
+  }
+
   return item;
 }
 
@@ -102,6 +107,7 @@ async function seed(): Promise<void> {
   if (existing.length > 0) {
     console.log('Perf fixture already seeded — nothing to do.');
     await pool.end();
+
     return;
   }
 

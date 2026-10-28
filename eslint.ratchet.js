@@ -168,9 +168,22 @@ const typeAwareRules = {
  * relative to the package. They live here, not in the package config, so the root config (the pre-commit
  * `eslint --fix`) sees the same rules; otherwise it would strip the `eslint-disable` comments as unused.
  */
+const noFunctionLocalBlock = (files, extraIgnores = []) => ({
+  // CLN-074g/h: no arrow/function-expression locals in class methods; extract a named private method.
+  files,
+  ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', ...extraIgnores],
+  plugins: { 'ratchet-local': ratchetLocalPlugin },
+  rules: { 'ratchet-local/no-function-local-in-method': 'error' },
+});
+
 const DIRECTORY_RATCHETS = {
   // STYLE-03/05: Drizzle ids are branded in drizzle/schema.ts, so infrastructure maps rows without `as`.
   // A cast with no other way gets a one-line `eslint-disable-next-line` with the reason.
+  'shared-app': [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
+  web: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
+  mobile: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
+  core: [noFunctionLocalBlock(['src/**/*.ts'])],
+  'design-tokens': [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
   backend: [
     {
       files: [
@@ -185,13 +198,7 @@ const DIRECTORY_RATCHETS = {
         '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
       },
     },
-    {
-      // CLN-074g: no arrow/function-expression locals in class methods; extract a named private method.
-      files: ['src/**/*.ts'],
-      ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/test/**'],
-      plugins: { 'ratchet-local': ratchetLocalPlugin },
-      rules: { 'ratchet-local/no-function-local-in-method': 'error' },
-    },
+    noFunctionLocalBlock(['src/**/*.ts'], ['src/test/**']),
     {
       // CLN-074e: backend tests build typed fixtures instead of casting.
       files: [
