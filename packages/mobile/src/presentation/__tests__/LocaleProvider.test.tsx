@@ -1,5 +1,6 @@
 import React from 'react';
 import { Text } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { act, render, screen, waitFor } from '@testing-library/react-native';
 import { useIntl } from 'react-intl';
 import { LocaleProvider, useAppLocale } from '../LocaleProvider.js';
@@ -46,5 +47,31 @@ describe('LocaleProvider', () => {
     await waitFor(() => {
       expect(screen.getByText('Cześć')).toBeOnTheScreen();
     });
+  });
+
+  it('ignores a delayed stored-locale read once a language was chosen', async () => {
+    let releaseRead: (value: string | null) => void = () => undefined;
+    jest.spyOn(AsyncStorage, 'getItem').mockReturnValueOnce(
+      new Promise((resolve) => {
+        releaseRead = resolve;
+      }),
+    );
+    await render(
+      <LocaleProvider deviceLanguage="en">
+        <Probe />
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      switchTo('pl');
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Cześć')).toBeOnTheScreen();
+    });
+    await act(async () => {
+      releaseRead('en');
+    });
+
+    expect(screen.getByText('Cześć')).toBeOnTheScreen();
   });
 });
