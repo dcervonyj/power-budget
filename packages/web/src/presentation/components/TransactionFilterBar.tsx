@@ -1,28 +1,40 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
+import { CURRENCIES, isSupportedCurrency, type CurrencyCode } from '@power-budget/core';
 import type { TransactionStatus } from '../../domain/transactions/Transaction.js';
 import { FilterChips } from '../glass/controls/FilterChips.js';
 import { Icon } from '../glass/atoms/Icon.js';
 import '../glass/controls/controls.css';
 
+/** Every filter is applied by the API (`GET /transactions`, CLN-050). */
 export interface TransactionFilters {
   from: string;
   to: string;
+  /** Category id: rows mapped to a planned item of this category (`categoryId`). */
   category: string;
   /** Mapping filter, applied by the API (`unmappedOnly`, `mapped`, `transfer`). */
   status: '' | 'unmapped' | 'mapped' | 'transfer';
   /** Booking status, applied by the API (`status`). */
   booking: '' | TransactionStatus;
-  currency: string;
-  source: '' | 'gocardless' | 'wise' | 'manual';
+  currency: '' | CurrencyCode;
+  /**
+   * `bank_sync`: every bank row, whichever provider; a provider: rows that carry it (SYNC-001
+   * `source_kind`; rows synced before it carry none); `manual`: rows a user entered.
+   */
+  source: '' | 'bank_sync' | SourceProvider | 'manual';
   q: string;
 }
+
+/** The providers the API can filter by (`source`). */
+export type SourceProvider = 'enable_banking' | 'wise_webhook' | 'pko_email' | 'iko_push';
 
 export interface TransactionFilterBarProps {
   filters: TransactionFilters;
   onChange: (filters: TransactionFilters) => void;
   categories: { id: string; name: string }[];
 }
+
+const CURRENCY_CODES: readonly CurrencyCode[] = Object.keys(CURRENCIES).filter(isSupportedCurrency);
 
 const BAR_STYLE: React.CSSProperties = {
   display: 'flex',
@@ -250,20 +262,21 @@ export function TransactionFilterBar({
               id: 'screen.transactionList.filter.currency',
               defaultMessage: 'Currency',
             })}
-            <input
-              type="text"
-              className="pbg-ctl pbg-ctl-field"
+            <select
+              className="pbg-ctl"
               value={filters.currency}
               onChange={(e) => {
-                set('currency', e.target.value.toUpperCase());
+                set('currency', toCurrency(e.target.value));
               }}
-              placeholder={intl.formatMessage({
-                id: 'screen.transactionList.filter.currencyPlaceholder',
-                defaultMessage: 'EUR',
-              })}
-              maxLength={3}
-              style={{ ...FIELD_STYLE, width: 88 }}
-            />
+              style={FIELD_STYLE}
+            >
+              <option value="">{allLabel}</option>
+              {CURRENCY_CODES.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
           </label>
           <label style={LABEL_STYLE}>
             {intl.formatMessage({
@@ -279,16 +292,34 @@ export function TransactionFilterBar({
               style={FIELD_STYLE}
             >
               <option value="">{allLabel}</option>
-              <option value="gocardless">
+              <option value="bank_sync">
                 {intl.formatMessage({
-                  id: 'screen.transactionDetail.source.gocardless',
-                  defaultMessage: 'Bank (GoCardless)',
+                  id: 'screen.transactionDetail.source.bankSync',
+                  defaultMessage: 'Bank',
                 })}
               </option>
-              <option value="wise">
+              <option value="enable_banking">
                 {intl.formatMessage({
-                  id: 'screen.transactionDetail.source.wise',
+                  id: 'screen.transactionList.filter.source.enableBanking',
+                  defaultMessage: 'Enable Banking',
+                })}
+              </option>
+              <option value="wise_webhook">
+                {intl.formatMessage({
+                  id: 'screen.transactionList.filter.source.wise',
                   defaultMessage: 'Wise',
+                })}
+              </option>
+              <option value="pko_email">
+                {intl.formatMessage({
+                  id: 'screen.transactionList.filter.source.pkoEmail',
+                  defaultMessage: 'PKO email',
+                })}
+              </option>
+              <option value="iko_push">
+                {intl.formatMessage({
+                  id: 'screen.transactionList.filter.source.ikoPush',
+                  defaultMessage: 'IKO push',
                 })}
               </option>
               <option value="manual">
@@ -328,13 +359,30 @@ export function toBooking(value: string | null): TransactionFilters['booking'] {
   }
 }
 
+/**
+ * URL and select values. The old options `gocardless` and `wise` always returned every bank row, so
+ * their links keep that meaning; the providers have their own values (`wise_webhook`, ...).
+ */
 export function toSource(value: string | null): TransactionFilters['source'] {
   switch (value) {
     case 'gocardless':
     case 'wise':
+      return 'bank_sync';
+    case 'bank_sync':
+    case 'enable_banking':
+    case 'wise_webhook':
+    case 'pko_email':
+    case 'iko_push':
     case 'manual':
       return value;
     default:
       return '';
   }
+}
+
+/** A currency the API does not know reads as "all" (it would answer 400). */
+export function toCurrency(value: string | null): TransactionFilters['currency'] {
+  const code = value === null ? '' : value.toUpperCase();
+
+  return isSupportedCurrency(code) ? code : '';
 }

@@ -1,5 +1,6 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiQueryFrom } from '../http/ApiQueryFrom.js';
 import { AuditEventId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
@@ -19,6 +20,7 @@ export class AuditController {
   @ApiResponse({ status: 200, description: 'Paginated list of audit events', type: AuditPageDto })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiQueryFrom(ListAuditLogQueryDto)
   async list(
     @Query() query: ListAuditLogQueryDto,
     @CurrentUser() user: AuthenticatedUser,

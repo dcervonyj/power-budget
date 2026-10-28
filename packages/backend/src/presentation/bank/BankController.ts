@@ -22,6 +22,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { ApiQueryFrom } from '../http/ApiQueryFrom.js';
 import { BankConnectionId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
 import { CurrentUser, type AuthenticatedUser } from '../auth/decorators/CurrentUser.js';
@@ -98,6 +99,7 @@ export class BankController {
       'The bank provider is rate limiting (code bank_rate_limited); `Retry-After` is an ' +
       'HTTP-date when the provider gave one',
   })
+  @ApiQueryFrom(GetCatalogQueryDto)
   async catalogue(@Query() query: GetCatalogQueryDto): Promise<BankCatalogEntryDto[]> {
     const country = query.country ?? 'PL';
     const entries = await this.getCatalog.execute({ country });

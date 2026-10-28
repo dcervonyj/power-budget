@@ -116,12 +116,18 @@ describe('Integration: transaction list read model, accounts and manual transact
     member: Member,
     accountId: string,
     occurredOn: string,
-    extra: { status?: string; ignored?: boolean } = {},
+    extra: {
+      status?: string;
+      ignored?: boolean;
+      currency?: string;
+      source?: string;
+      sourceKind?: string;
+    } = {},
   ): Promise<string> {
     const id = uuidv7();
     await getPool().query(
-      `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, description, source, status, ignored)
-       VALUES ($1, $2, $3, $4, -100, 'PLN', 'tx', 'bank_sync', $5, $6)`,
+      `INSERT INTO transactions (id, household_id, account_id, occurred_on, amount_minor, currency, description, source, status, ignored, source_kind)
+       VALUES ($1, $2, $3, $4, -100, $7, 'tx', $8, $5, $6, $9)`,
       [
         id,
         member.householdId,
@@ -129,6 +135,9 @@ describe('Integration: transaction list read model, accounts and manual transact
         occurredOn,
         extra.status ?? 'booked',
         extra.ignored ?? false,
+        extra.currency ?? 'PLN',
+        extra.source ?? 'bank_sync',
+        extra.sourceKind ?? null,
       ],
     );
 
@@ -137,14 +146,14 @@ describe('Integration: transaction list read model, accounts and manual transact
 
   async function insertPlannedItem(
     member: Member,
-    plan: { name: string; archived: boolean },
+    plan: { name: string; archived: boolean; category?: string },
   ): Promise<{ planId: string; plannedItemId: string; categoryId: string }> {
     const planId = uuidv7();
     const plannedItemId = uuidv7();
     const categoryId = uuidv7();
     await getPool().query(
-      `INSERT INTO categories (id, household_id, name, kind) VALUES ($1, $2, 'Groceries', 'expense')`,
-      [categoryId, member.householdId],
+      `INSERT INTO categories (id, household_id, name, kind) VALUES ($1, $2, $3, 'expense')`,
+      [categoryId, member.householdId, plan.category ?? 'Groceries'],
     );
     await getPool().query(
       `INSERT INTO plans (id, household_id, owner_user_id, name, type, period_kind, period_start, period_end, base_currency, archived_at)
@@ -361,6 +370,73 @@ describe('Integration: transaction list read model, accounts and manual transact
         headers: me.headers,
       });
       expect(bad.statusCode).toBe(400);
+    });
+
+    it('applies categoryId, currency and source in SQL across keyset pages (CLN-050)', async () => {
+      const householdId = await insertHousehold();
+      const me = await insertUser(householdId, 'owner');
+      const account = await insertBankAccount(me);
+      const groceries = await insertPlannedItem(me, { name: 'October', archived: false });
+      const rent = await insertPlannedItem(me, {
+        name: 'October',
+        archived: false,
+        category: 'Rent',
+      });
+      const dates = ['2026-10-03', '2026-10-02', '2026-10-01'];
+
+      const rows: { id: string; category: string | null; currency: string; source: string }[] = [];
+      for (let i = 0; i < 24; i++) {
+        const currency = i % 2 === 0 ? 'EUR' : 'PLN';
+        const source = i % 6 === 5 ? 'manual' : i % 6 === 4 ? 'enable_banking' : 'legacy_bank';
+        const id = await insertTx(me, account, dates[i % dates.length]!, {
+          currency,
+          source: source === 'manual' ? 'manual' : 'bank_sync',
+          sourceKind: source === 'legacy_bank' ? undefined : source,
+          status: source === 'manual' ? 'manual' : 'booked',
+        });
+        const item = i % 3 === 0 ? groceries : i % 3 === 1 ? rent : null;
+        if (item !== null) {
+          await map(me, id, item.plannedItemId);
+        }
+        rows.push({ id, category: item === null ? null : item.categoryId, currency, source });
+      }
+      const ids = (keep: (row: (typeof rows)[number]) => boolean): Set<string> =>
+        new Set(rows.filter(keep).map((row) => row.id));
+      const seen = async (query: string): Promise<Set<string>> =>
+        new Set((await listAll(me, `${query}&limit=3`)).map((row) => row.id));
+
+      expect(await seen(`categoryId=${groceries.categoryId}`)).toEqual(
+        ids((row) => row.category === groceries.categoryId),
+      );
+      expect(await seen('currency=EUR')).toEqual(ids((row) => row.currency === 'EUR'));
+      expect(await seen('source=manual')).toEqual(ids((row) => row.source === 'manual'));
+      // Every bank row, with or without the SYNC-001 provider.
+      expect(await seen('source=bank_sync')).toEqual(ids((row) => row.source !== 'manual'));
+      expect(await seen('source=enable_banking')).toEqual(
+        ids((row) => row.source === 'enable_banking'),
+      );
+      expect(await seen(`categoryId=${rent.categoryId}&currency=PLN&source=bank_sync`)).toEqual(
+        ids(
+          (row) =>
+            row.category === rent.categoryId && row.currency === 'PLN' && row.source !== 'manual',
+        ),
+      );
+      expect(await seen(`categoryId=${uuidv7()}`)).toEqual(new Set());
+      // A category's rows are mapped: `mapped` keeps them all, `unmappedOnly` none.
+      expect(await seen(`categoryId=${groceries.categoryId}&mapped=true`)).toEqual(
+        ids((row) => row.category === groceries.categoryId),
+      );
+      expect(await seen(`categoryId=${groceries.categoryId}&unmappedOnly=true`)).toEqual(new Set());
+
+      // An empty cursor is a 400, not the first page.
+      for (const bad of ['currency=XYZ', 'source=gocardless', 'categoryId=nope', 'cursor=']) {
+        const res = await app.inject({
+          method: 'GET',
+          url: `/transactions?${bad}`,
+          headers: me.headers,
+        });
+        expect(res.statusCode).toBe(400);
+      }
     });
   });
 

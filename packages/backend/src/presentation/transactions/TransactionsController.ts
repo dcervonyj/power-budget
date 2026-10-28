@@ -21,8 +21,10 @@ import {
   ApiBody,
   ApiParam,
 } from '@nestjs/swagger';
+import { ApiQueryFrom } from '../http/ApiQueryFrom.js';
 import type {
   BankAccountId,
+  CategoryId,
   CurrencyCode,
   IsoDate,
   PlannedItemId,
@@ -91,6 +93,7 @@ export class TransactionsController {
   })
   @ApiResponse({ status: 400, description: 'Invalid query parameters' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiQueryFrom(ListTransactionsQueryDto)
   async list(
     @Query() query: ListTransactionsQueryDto,
     @CurrentUser() user: AuthenticatedUser,
@@ -111,6 +114,9 @@ export class TransactionsController {
         mapped: query.mapped,
         transfer: query.transfer,
         status: query.status,
+        categoryId: query.categoryId as CategoryId | undefined,
+        currency: query.currency,
+        source: query.source,
         cursor: query.cursor,
         limit: query.limit,
       },
