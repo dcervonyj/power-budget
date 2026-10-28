@@ -16,7 +16,7 @@ export interface AppConfig {
   readonly startWorker: boolean;
   readonly databaseUrl: string;
   readonly redisUrl: string;
-  readonly jwtSecret: string | null;
+  readonly jwtSecret: string;
   readonly kekBase64: string;
   readonly corsOrigins: string;
   readonly swaggerEnabled: boolean;
@@ -59,10 +59,7 @@ const MAX_PORT = 65535;
 export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
   const problems: string[] = [];
   const nodeEnv = text(env['NODE_ENV']) ?? 'development';
-  const jwtSecret =
-    role === 'api'
-      ? attempt(() => resolveJwtSecret(env['JWT_SECRET'], nodeEnv), null, problems)
-      : null;
+  const jwtSecret = attempt(() => resolveJwtSecret(env['JWT_SECRET'], nodeEnv), '', problems);
   const kekBase64 = text(env['KEK_BASE64']) ?? '';
   if (Buffer.from(kekBase64, 'base64').length !== KEK_BYTES) {
     problems.push(
@@ -184,7 +181,8 @@ function parseUrl(
     return fallback;
   }
   if (!URL.canParse(value)) {
-    problems.push(`${name} must be a valid URL, got "${value}".`);
+    // Never echo the value: a DB/Redis URL can embed credentials.
+    problems.push(`${name} must be a valid URL.`);
 
     return fallback;
   }

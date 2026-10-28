@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { uuidv7 } from 'uuidv7';
 import { BankModule } from '../../infrastructure/bank/BankModule.js';
 import { AuditModule, REDACTING_AUDIT_LOGGER } from '../../infrastructure/audit/AuditModule.js';
@@ -26,7 +25,7 @@ import { BankController } from './BankController.js';
 import { AccountsController } from './AccountsController.js';
 
 @Module({
-  imports: [BankModule, AuditModule, AuthModule, ConfigModule],
+  imports: [BankModule, AuditModule, AuthModule],
   controllers: [BankController, AccountsController],
   providers: [
     {

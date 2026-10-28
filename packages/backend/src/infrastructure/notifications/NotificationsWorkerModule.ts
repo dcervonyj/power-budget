@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_CONFIG, type AppConfig } from '../../config/AppConfig.js';
 import { QueueModule } from '../queue/queue.module.js';
 import { PlansModule } from '../plans/PlansModule.js';
 import { DrizzlePlanRepository } from '../plans/DrizzlePlanRepository.js';
@@ -9,7 +9,6 @@ import { DrizzleNotificationRepository } from './DrizzleNotificationRepository.j
 import { ResendEmailChannel } from './ResendEmailChannel.js';
 import { MjmlTemplateRenderer } from './MjmlTemplateRenderer.js';
 import { PlanActualsWeeklyDigestSummaryReader } from './PlanActualsWeeklyDigestSummaryReader.js';
-import { resolveEmailConfig } from './email-config.js';
 import { DispatchNotificationProcessor } from './workers/DispatchNotificationProcessor.js';
 import { NotificationCronService } from './crons/NotificationCronService.js';
 import { EnqueueNotificationUseCase } from '../../application/notifications/use-cases/EnqueueNotificationUseCase.js';
@@ -21,20 +20,14 @@ import { RunReconnectRemindersUseCase } from '../../application/notifications/us
  * reconnect-reminder and outbox-relay crons. Imported by WorkerModule only.
  */
 @Module({
-  imports: [ConfigModule, QueueModule, NotificationsModule, PlansModule],
+  imports: [QueueModule, NotificationsModule, PlansModule],
   providers: [
     {
       provide: ResendEmailChannel,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => {
-        // Boot check: a deployed worker without RESEND_API_KEY refuses to start.
-        const email = resolveEmailConfig({
-          RESEND_API_KEY: config.get<string>('RESEND_API_KEY'),
-          EMAIL_FROM: config.get<string>('EMAIL_FROM'),
-          NODE_ENV: config.get<string>('NODE_ENV'),
-        });
-
-        return new ResendEmailChannel(email.resendApiKey, email.from);
+      inject: [APP_CONFIG],
+      useFactory: (config: AppConfig) => {
+        // A deployed worker without RESEND_API_KEY already failed AppConfig validation.
+        return new ResendEmailChannel(config.resendApiKey, config.emailFrom);
       },
     },
     {

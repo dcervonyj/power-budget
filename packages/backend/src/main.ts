@@ -7,39 +7,40 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { WorkerModule } from './worker/worker.module';
 import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
-import {
-  assertBootEnv,
-  configureHttpSecurity,
-  resolveTrustProxy,
-} from './bootstrap/http-security.js';
+import { configureHttpSecurity } from './bootstrap/http-security.js';
+import { type AppConfig } from './config/AppConfig.js';
+import { loadAppConfig } from './config/load-app-config.js';
 
-Sentry.init({
-  dsn: process.env['SENTRY_DSN'],
-  environment: process.env['NODE_ENV'] ?? 'development',
-  release: process.env['SENTRY_RELEASE'],
-  beforeSend(event) {
-    // Strip PII from breadcrumbs
-    if (event.breadcrumbs) {
-      for (const crumb of event.breadcrumbs) {
-        if (crumb.data) {
-          delete crumb.data['email'];
-          delete crumb.data['householdId'];
-          delete crumb.data['userId'];
+function initSentry(config: AppConfig): void {
+  Sentry.init({
+    dsn: config.sentryDsn ?? undefined,
+    environment: config.nodeEnv,
+    release: config.sentryRelease ?? undefined,
+    beforeSend(event) {
+      // Strip PII from breadcrumbs
+      if (event.breadcrumbs) {
+        for (const crumb of event.breadcrumbs) {
+          if (crumb.data) {
+            delete crumb.data['email'];
+            delete crumb.data['householdId'];
+            delete crumb.data['userId'];
+          }
         }
       }
-    }
 
-    return event;
-  },
-});
+      return event;
+    },
+  });
+}
 
 async function bootstrap() {
-  // Refuse to start with a missing/weak JWT_SECRET or a wildcard CORS entry.
-  assertBootEnv(process.env);
+  // Fails fast, listing every missing/invalid variable (weak JWT_SECRET, wildcard CORS, ...).
+  const config = loadAppConfig('api');
+  initSentry(config);
 
   // request.ip (the per-IP rate-limit key) comes from X-Forwarded-For only for
   // the trusted proxy hops (TRUST_PROXY, default: private-range proxies).
-  const adapter = new FastifyAdapter({ trustProxy: resolveTrustProxy(process.env['TRUST_PROXY']) });
+  const adapter = new FastifyAdapter({ trustProxy: config.trustProxy });
   const nestApp: INestApplication = await NestFactory.create(AppModule, adapter, {
     // Webhook signature checks (Resend/Svix) need the exact request bytes.
     rawBody: true,
@@ -47,17 +48,20 @@ async function bootstrap() {
   const app = nestApp as unknown as NestFastifyApplication;
 
   // Swagger only with SWAGGER_ENABLED=true; CORS only from CORS_ORIGINS.
-  await configureHttpSecurity(nestApp, process.env);
+  await configureHttpSecurity(nestApp, {
+    CORS_ORIGINS: config.corsOrigins,
+    SWAGGER_ENABLED: String(config.swaggerEnabled),
+  });
 
   app.useGlobalFilters(new SentryExceptionFilter());
 
-  const port = process.env['PORT'] ?? 3000;
+  const port = config.port;
   await app.listen(port, '0.0.0.0');
   console.log(`API listening on port ${port}`);
 
   // Free-tier topology (ADR-002): a single container runs API + worker.
   // Standalone worker deployments use dist/src/worker.main.js instead.
-  if (process.env['START_WORKER'] === 'true') {
+  if (config.startWorker) {
     const worker = await NestFactory.createApplicationContext(WorkerModule, {
       logger: ['log', 'warn', 'error'],
     });

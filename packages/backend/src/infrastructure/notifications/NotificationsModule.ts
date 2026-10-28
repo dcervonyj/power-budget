@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
 import { getQueueToken } from '@nestjs/bullmq';
 import type { Queue } from 'bullmq';
 import { DatabaseModule } from '../database/database.module.js';
@@ -19,7 +18,7 @@ import { EnqueueNotificationUseCase } from '../../application/notifications/use-
  * which only the worker loads.
  */
 @Module({
-  imports: [DatabaseModule, ConfigModule, QueueModule],
+  imports: [DatabaseModule, QueueModule],
   providers: [
     DrizzleNotificationRepository,
     {
