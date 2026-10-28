@@ -93,8 +93,9 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
       const name = await findCategoryName(plansApi, categoriesApi, plannedItemId);
       // Lookups can overlap (a retry, a changed mapping); only the newest may answer.
       if (request === categoryRequest.current) {
+        // A mapped item whose category is not in the result is as unresolved as a failed request.
         setResolved(name === undefined ? undefined : { id: plannedItemId, name });
-        setCategoryFailed(false);
+        setCategoryFailed(name === undefined);
       }
     } catch {
       if (request === categoryRequest.current) {

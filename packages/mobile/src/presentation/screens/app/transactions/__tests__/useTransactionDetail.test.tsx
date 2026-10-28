@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { TransactionDetailDto } from '@power-budget/shared-app/contract';
-import { plansApi } from '../../../../../infrastructure/index.js';
+import { categoriesApi, plansApi } from '../../../../../infrastructure/index.js';
 import { transactionsGateway, writeQueue } from '../transactionsGateway.js';
 import { useTransactionDetail } from '../useTransactionDetail.js';
 
@@ -114,6 +114,8 @@ describe('useTransactionDetail category changes', () => {
 describe('useTransactionDetail notes and category lookup', () => {
   afterEach(() => {
     jest.mocked(plansApi.list).mockResolvedValue([]);
+    jest.mocked(plansApi.listItems).mockResolvedValue([]);
+    jest.mocked(categoriesApi.list).mockResolvedValue([]);
   });
 
   it('saves the note as entered, without trimming', async () => {
@@ -134,9 +136,23 @@ describe('useTransactionDetail notes and category lookup', () => {
     const { result } = await renderHook(() => useTransactionDetail('t1'));
     await waitFor(() => expect(result.current.categoryFailed).toBe(true));
 
-    jest.mocked(plansApi.list).mockResolvedValue([]);
+    jest.mocked(plansApi.list).mockResolvedValue([{ id: 'plan-1' }] as never);
+    jest
+      .mocked(plansApi.listItems)
+      .mockResolvedValue([{ id: 'item-9', categoryId: 'cat-1' }] as never);
+    jest.mocked(categoriesApi.list).mockResolvedValue([{ id: 'cat-1', name: 'Fuel' }] as never);
     await act(async () => result.current.retryCategory());
 
     await waitFor(() => expect(result.current.categoryFailed).toBe(false));
+    expect(result.current.categoryName).toBe('Fuel');
+  });
+
+  it('shows the same error when the lookup succeeds but the mapped item is not in the result', async () => {
+    detail.mockResolvedValue(detailDto(true));
+    jest.mocked(plansApi.list).mockResolvedValue([]);
+    const { result } = await renderHook(() => useTransactionDetail('t1'));
+
+    await waitFor(() => expect(result.current.categoryFailed).toBe(true));
+    expect(result.current.categoryName).toBeUndefined();
   });
 });
