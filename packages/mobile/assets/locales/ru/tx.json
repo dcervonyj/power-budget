@@ -40,6 +40,8 @@
   "tx.list.moreError": "Не удалось загрузить больше транзакций.",
   "tx.detail.pickerError": "Не удалось загрузить категории.",
   "tx.detail.categoryError": "Не удалось загрузить категорию этой транзакции.",
+  "tx.detail.optionExpense": "{planName} · Расход",
+  "tx.detail.optionIncome": "{planName} · Доход",
   "tx.detail.transferUnresolved": "Не удалось подтвердить статус перевода.",
   "tx.list.reloadError": "Не удалось обновить транзакции. Показанное может быть устаревшим.",
   "tx.list.monthError": "Не удалось загрузить итог месяца.",

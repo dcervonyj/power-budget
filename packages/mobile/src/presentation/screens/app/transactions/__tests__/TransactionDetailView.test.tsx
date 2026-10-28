@@ -68,6 +68,24 @@ describe('TransactionDetailView', () => {
     expect(onPickItem).toHaveBeenCalledWith('item-fuel');
   });
 
+  it('lets an income transaction be mapped to an income item, labelled as income', async () => {
+    const onPickItem = jest.fn();
+    const options = [
+      {
+        plannedItemId: 'item-salary',
+        direction: 'income',
+        planName: 'October',
+        categoryName: 'Salary',
+      },
+    ] as const;
+    await renderDetail({ pickerOpen: true, onPickItem, options });
+
+    expect(screen.getByText('October · Income')).toBeTruthy();
+    await userEvent.press(screen.getByRole('button', { name: /Salary/ }));
+
+    expect(onPickItem).toHaveBeenCalledWith('item-salary');
+  });
+
   it('shows an error with a retry when the categories failed to load', async () => {
     const onRetryOptions = jest.fn();
     await renderDetail({ pickerOpen: true, options: [], optionsStatus: 'error', onRetryOptions });

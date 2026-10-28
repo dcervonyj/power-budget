@@ -1,8 +1,9 @@
 import type { CategoriesApi, PlansApi } from '@power-budget/shared-app';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
 
-/** A planned item of an active plan that a transaction can be sorted into. */
+/** A planned item (expense or income) of an active plan that a transaction can be sorted into. */
 export interface PlannedItemOption {
+  readonly direction: PlannedItemDto['direction'];
   readonly plannedItemId: string;
   readonly planName: string;
   readonly categoryName: string;
@@ -36,15 +37,12 @@ async function optionsOf(
 ): Promise<PlannedItemOption[]> {
   const items = await plansApi.listItems(plan.id);
 
-  return items.filter(isExpense).map((item) => ({
+  return items.map((item) => ({
     plannedItemId: item.id,
+    direction: item.direction,
     planName: plan.name,
     categoryName: names.get(item.categoryId) ?? '',
   }));
-}
-
-function isExpense(item: PlannedItemDto): boolean {
-  return item.direction === 'expense';
 }
 
 /**

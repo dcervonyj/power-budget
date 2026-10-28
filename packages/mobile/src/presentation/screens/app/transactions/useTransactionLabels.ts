@@ -43,6 +43,7 @@ export interface TransactionLabels {
   pickerEmpty(): string;
   pickerError(): string;
   categoryError(): string;
+  optionSubtitle(planName: string, direction: 'expense' | 'income'): string;
   transferUnresolved(): string;
   statusTransfer(): string;
   statusToSort(): string;
@@ -155,6 +156,12 @@ export function useTransactionLabels(): TransactionLabels {
     pickerTitle: () => text('tx.detail.pickerTitle', 'Choose a category'),
     transferUnresolved: () =>
       text('tx.detail.transferUnresolved', 'Could not confirm the transfer status.'),
+    optionSubtitle: (planName, direction) =>
+      text(
+        direction === 'income' ? 'tx.detail.optionIncome' : 'tx.detail.optionExpense',
+        direction === 'income' ? '{planName} · Income' : '{planName} · Expense',
+        { planName },
+      ),
     categoryError: () =>
       text('tx.detail.categoryError', 'Could not load the category of this transaction.'),
     pickerError: () => text('tx.detail.pickerError', 'Could not load the categories.'),

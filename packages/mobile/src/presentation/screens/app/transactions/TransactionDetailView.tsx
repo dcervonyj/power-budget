@@ -297,7 +297,9 @@ function CategorySheet({
             style={styles.option}
           >
             <Text style={styles.body}>{option.categoryName}</Text>
-            <Text style={styles.dim}>{option.planName}</Text>
+            <Text style={styles.dim}>
+              {labels.optionSubtitle(option.planName, option.direction)}
+            </Text>
           </Pressable>
         ))}
       </View>
