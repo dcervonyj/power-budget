@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import { BankAccountId, HouseholdId, IsoDate, UserId } from '@power-budget/core';
-import type { Transaction } from '../../../../domain/transactions/entities.js';
+import { BankAccountId, HouseholdId, IsoDate, TransactionId, UserId } from '@power-budget/core';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import {
   BankAccountNotFoundError,
   TransactionCurrencyMismatchError,
 } from '../../../../domain/transactions/errors.js';
 import { AddManualTransactionUseCase } from '../AddManualTransactionUseCase.js';
+import { makeTransaction } from '../../../../test/doubles/transactions.js';
 
 const HOUSEHOLD = HouseholdId.of('01890a5d-ac96-774b-bcce-b302099a8057');
 const USER = UserId.of('01890a5d-ac96-774b-bcce-b302099a8058');
@@ -37,7 +37,7 @@ describe('AddManualTransactionUseCase', () => {
 
   it("looks the account up among the caller's own accounts in the household", async () => {
     repo.findOwnedAccount.mockResolvedValue({ id: ACCOUNT, currency: 'PLN' });
-    const created = { id: NEW_ID } as unknown as Transaction;
+    const created = makeTransaction({ id: TransactionId.of(NEW_ID) });
     repo.insertManual.mockResolvedValue(created);
 
     await expect(useCase.execute(input)).resolves.toBe(created);

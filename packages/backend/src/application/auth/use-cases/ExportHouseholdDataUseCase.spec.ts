@@ -42,6 +42,6 @@ describe('ExportHouseholdDataUseCase', () => {
     expect(exportRepo.create).toHaveBeenCalledOnce();
     expect(exportQueue.enqueue).toHaveBeenCalledOnce();
     expect(result.status).toBe('pending');
-    expect(result.exportId).toBeDefined();
+    expect(result.exportId).toBe(exportRepo.create.mock.calls[0]?.[0].id);
   });
 });

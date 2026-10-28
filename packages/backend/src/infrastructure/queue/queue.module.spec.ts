@@ -52,9 +52,9 @@ function buildModule(worker: Worker): QueueModule {
   });
   const discovery = mock<DiscoveryService>();
   discovery.getProviders.mockReturnValue([
-    { instance: new FakeProcessor(worker) } as unknown as ReturnType<
-      DiscoveryService['getProviders']
-    >[number],
+    mock<ReturnType<DiscoveryService['getProviders']>[number]>({
+      instance: new FakeProcessor(worker),
+    }),
   ]);
 
   return new QueueModule(config, moduleRef, discovery);

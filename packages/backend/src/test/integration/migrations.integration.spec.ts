@@ -19,6 +19,21 @@ interface Journal {
   entries: { idx: number; tag: string; when: number }[];
 }
 
+function isJournal(value: unknown): value is Journal {
+  return (
+    typeof value === 'object' && value !== null && Array.isArray(Reflect.get(value, 'entries'))
+  );
+}
+
+function readJournal(journalPath: string): Journal {
+  const parsed: unknown = JSON.parse(readFileSync(journalPath, 'utf8'));
+  if (!isJournal(parsed)) {
+    throw new Error(`${journalPath} has no entries`);
+  }
+
+  return parsed;
+}
+
 let admin: Pool;
 let adminUrl: string;
 const pools: Pool[] = [];
@@ -49,7 +64,7 @@ function folderUpTo(lastIdx: number): string {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'pb-migrations-'));
   cpSync(MIGRATIONS, dir, { recursive: true });
   const journalPath = path.join(dir, 'meta/_journal.json');
-  const journal = JSON.parse(readFileSync(journalPath, 'utf8')) as Journal;
+  const journal = readJournal(journalPath);
   journal.entries = journal.entries.filter((e) => e.idx <= lastIdx);
   writeFileSync(journalPath, JSON.stringify(journal));
 
@@ -57,7 +72,7 @@ function folderUpTo(lastIdx: number): string {
 }
 
 function fullJournal(): Journal {
-  return JSON.parse(readFileSync(path.join(MIGRATIONS, 'meta/_journal.json'), 'utf8')) as Journal;
+  return readJournal(path.join(MIGRATIONS, 'meta/_journal.json'));
 }
 
 async function applied(pool: Pool): Promise<number[]> {
@@ -625,7 +640,9 @@ describe('Integration: drizzle migrations and DB roles (CLN-018)', () => {
     it('covers tables created by later migrations through default privileges', async () => {
       await owner.query('CREATE TABLE later_table (id int PRIMARY KEY)');
 
-      await expect(app.query('INSERT INTO later_table VALUES (1)')).resolves.toBeDefined();
+      await expect(app.query('INSERT INTO later_table VALUES (1)')).resolves.toMatchObject({
+        rowCount: 1,
+      });
     });
 
     it('grants the app role DML on live_signals (SYNC-001)', async () => {

@@ -192,14 +192,11 @@ describe('ClosePeriodSnapshotUseCase', () => {
 
     await useCase.execute({ planId: PLAN_ID, householdId: HH_ID, closedAt: CLOSED_AT });
 
-    expect(leftoverSnapshotRepo.save).toHaveBeenCalledWith(
-      expect.objectContaining({
-        entries: expect.arrayContaining([
-          expect.objectContaining({
-            leftover: { amountMinor: 0n, currency: 'PLN' },
-          }),
-        ]),
-      }),
+    expect(leftoverSnapshotRepo.save).toHaveBeenCalledTimes(1);
+    const entries = vi.mocked(leftoverSnapshotRepo.save).mock.calls[0]?.[0].entries ?? [];
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.map((entry) => entry.leftover)).toEqual(
+      entries.map(() => ({ amountMinor: 0n, currency: 'PLN' })),
     );
   });
 

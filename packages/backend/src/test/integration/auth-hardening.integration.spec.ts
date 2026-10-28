@@ -5,6 +5,7 @@ import type { LightMyRequestResponse } from 'fastify';
 import Redis from 'ioredis';
 import { generateSync } from 'otplib';
 import { startContainers, stopContainers, resetState, getPool } from './setup.js';
+import { householdIdFromAccessToken } from './test-helpers.js';
 import { createTestApp } from './app.js';
 
 interface AuthResponse {
@@ -30,12 +31,12 @@ function totpCode(secret: string, stepOffset = 0): string {
 }
 
 function householdIdOf(accessToken: string): string {
-  const payload = accessToken.split('.')[1] ?? '';
-  const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
-    householdId: string;
-  };
+  const householdId = householdIdFromAccessToken(accessToken);
+  if (householdId === null) {
+    throw new Error('The access token has no household');
+  }
 
-  return claims.householdId;
+  return householdId;
 }
 
 /** 1..count, for sequential request loops. */
@@ -401,7 +402,7 @@ describe('HTTP auth hardening (real app)', () => {
       });
 
       expect(res.statusCode).toBe(429);
-      expect(res.headers['retry-after-account']).toBeDefined();
+      expect(res.headers['retry-after-account']).toMatch(/^\d+$/);
       expect(res.json()).toMatchObject({ statusCode: 429, code: 'too_many_requests' });
     });
 

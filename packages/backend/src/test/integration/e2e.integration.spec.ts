@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
+import { JWT_PATTERN } from './test-helpers.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { startContainers, stopContainers, resetState } from './setup.js';
 import { createTestApp } from './app.js';
@@ -43,13 +44,13 @@ describe('HTTP e2e: real Nest app on Fastify against Postgres + Redis', () => {
     });
     expect(registered.statusCode).toBe(201);
     const registeredBody = registered.json<AuthResponse>();
-    expect(registeredBody.accessToken).toEqual(expect.any(String));
+    expect(registeredBody.accessToken).toMatch(JWT_PATTERN);
 
     const loggedIn = await app.inject({ method: 'POST', url: '/auth/login', payload: credentials });
     expect(loggedIn.statusCode).toBe(201);
     const loginBody = loggedIn.json<AuthResponse>();
     expect(loginBody.userId).toBe(registeredBody.userId);
-    expect(loginBody.accessToken).toEqual(expect.any(String));
+    expect(loginBody.accessToken).toMatch(JWT_PATTERN);
   });
 
   it('login with a wrong password is rejected with 401', async () => {

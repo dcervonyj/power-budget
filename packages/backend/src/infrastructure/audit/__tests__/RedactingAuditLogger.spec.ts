@@ -28,7 +28,7 @@ describe('RedactingAuditLogger', () => {
     await logger.log(event);
 
     const logged = inner.log.mock.calls[0]?.[0];
-    expect(logged).toBeDefined();
+    expect(inner.log).toHaveBeenCalledTimes(1);
     expect(logged!.meta['iban']).toMatch(/^\*\*\*/);
     expect(logged!.meta['iban']).not.toBe('PL61109010140000071219812874');
   });
@@ -86,9 +86,12 @@ describe('RedactingAuditLogger', () => {
     await logger.log(event);
 
     const logged = inner.log.mock.calls[0]?.[0];
-    const payment = logged!.meta['payment'] as Record<string, unknown>;
-    expect(payment['iban']).toMatch(/^\*\*\*/);
-    expect(payment['amount']).toBe(100);
+    const payment: unknown = logged!.meta['payment'];
+    if (typeof payment !== 'object' || payment === null) {
+      throw new Error('payment meta was not redacted into an object');
+    }
+    expect(Reflect.get(payment, 'iban')).toMatch(/^\*\*\*/);
+    expect(Reflect.get(payment, 'amount')).toBe(100);
   });
 
   describe('by key, bigint-safe (audit M17)', () => {

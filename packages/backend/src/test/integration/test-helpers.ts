@@ -13,12 +13,36 @@ export async function withRollbackTransaction(
   const client: PoolClient = await pool.connect();
   try {
     await client.query('BEGIN');
-    const db = drizzle(client as unknown as Pool, { schema });
+    const db = drizzle(client, { schema });
     await fn(db);
   } finally {
     await client.query('ROLLBACK');
     client.release();
   }
+}
+
+/** Shape of a database-generated uuid, for ids a spec cannot know in advance. */
+export const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** An ISO-8601 UTC timestamp as the API serialises it. */
+export const ISO_UTC_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+/** Shape of a signed JWT: three base64url segments. */
+export const JWT_PATTERN = /^[\w-]+\.[\w-]+\.[\w-]+$/;
+
+/** The `householdId` claim of an access token, or null for a user without a household. */
+export function householdIdFromAccessToken(accessToken: string): string | null {
+  const payload = accessToken.split('.')[1] ?? '';
+  const claims: unknown = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+  if (typeof claims !== 'object' || claims === null) {
+    throw new Error('The access token payload is not an object');
+  }
+  const householdId: unknown = Reflect.get(claims, 'householdId');
+  if (typeof householdId === 'string' || householdId === null) {
+    return householdId;
+  }
+
+  throw new Error('The access token has no householdId claim');
 }
 
 export function makeUserId(): string {

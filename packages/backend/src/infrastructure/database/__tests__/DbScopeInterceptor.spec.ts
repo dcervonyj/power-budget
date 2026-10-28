@@ -1,5 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
+import type { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { HouseholdId, UserId } from '@power-budget/core';
 import { DbScopeInterceptor } from '../DbScopeInterceptor.js';
 import { currentDbScope, toDbScopeSettings, type DbScope } from '../DbScope.js';
@@ -9,16 +11,14 @@ const USER = UserId.of('01900000-0000-7000-8000-000000000001');
 const HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
 
 function httpContext(user: unknown): ExecutionContext {
-  const context: Partial<ExecutionContext> = {
-    getType: <T extends string>() => 'http' as T,
-    switchToHttp: () => ({
-      getRequest: <T>() => ({ user }) as T,
-      getResponse: <T>() => ({}) as T,
-      getNext: <T>() => ({}) as T,
-    }),
-  };
-
-  return context as ExecutionContext;
+  return mock<ExecutionContext>({
+    getType: vi.fn().mockReturnValue('http'),
+    switchToHttp: vi.fn().mockReturnValue(
+      mock<HttpArgumentsHost>({
+        getRequest: vi.fn().mockReturnValue({ user }),
+      }),
+    ),
+  });
 }
 
 /** A handler that reports the DbScope it runs in. */
@@ -28,7 +28,7 @@ function scopeProbe(): { handler: CallHandler; seen: () => DbScope | undefined }
     handle: () => {
       seen = currentDbScope();
 
-      return { subscribe: () => undefined } as never;
+      return mock<ReturnType<CallHandler['handle']>>();
     },
   };
 
@@ -83,6 +83,7 @@ describe('DbScope settings', () => {
     const sql = ScopedPool.settingsSql({
       kind: 'household',
       // The point of this spec is that a hostile id is escaped; the brand constructor would refuse it.
+      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       householdId: "x'; DROP TABLE users; --" as HouseholdId,
       userId: USER,
     });
