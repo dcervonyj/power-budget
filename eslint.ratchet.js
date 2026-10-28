@@ -5,6 +5,72 @@ const path = require('path');
 // Rules are enabled per package so each package can be brought to green and merged independently:
 // set `"eslintRatchet": true` in the package's package.json once the package is green.
 
+const WRAPPER_TYPES = [
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSTypeAssertion',
+  'TSNonNullExpression',
+];
+const FUNCTION_TYPES = ['ArrowFunctionExpression', 'FunctionExpression'];
+
+function unwrapExpression(node) {
+  return node && WRAPPER_TYPES.includes(node.type) ? unwrapExpression(node.expression) : node;
+}
+
+function isFunctionValue(node) {
+  const value = unwrapExpression(node);
+
+  return value !== null && value !== undefined && FUNCTION_TYPES.includes(value.type);
+}
+
+function nearestFunction(ancestors) {
+  return [...ancestors]
+    .reverse()
+    .find((node) => FUNCTION_TYPES.includes(node.type) || node.type === 'FunctionDeclaration');
+}
+
+/**
+ * CLN-074g (STYLE-07): a function declared as a local of a class method (`const f = () => ...`, wrapped in
+ * `as`/`satisfies`/`<T>`, or a nested `function f() {}`) must become a named private method. Only declarations whose
+ * nearest enclosing function is the method itself count; inline callbacks (`.map((x) => ...)`) and locals inside
+ * them are allowed.
+ */
+const noFunctionLocalInMethod = {
+  meta: {
+    type: 'suggestion',
+    schema: [],
+    messages: {
+      extract: 'Extract a function defined inside a class method into a named private method.',
+    },
+  },
+  create(context) {
+    function check(node, reported) {
+      const owner = nearestFunction(context.sourceCode.getAncestors(node));
+
+      if (
+        owner &&
+        owner.type === 'FunctionExpression' &&
+        owner.parent.type === 'MethodDefinition'
+      ) {
+        context.report({ node: reported, messageId: 'extract' });
+      }
+    }
+
+    return {
+      VariableDeclarator(node) {
+        if (isFunctionValue(node.init)) {
+          check(node, node);
+        }
+      },
+      FunctionDeclaration(node) {
+        check(node, node);
+      },
+    };
+  },
+};
+
+const ratchetLocalPlugin = { rules: { 'no-function-local-in-method': noFunctionLocalInMethod } };
+
 const PACKAGES_DIR = path.join(__dirname, 'packages');
 
 /** A package opts in with `"eslintRatchet": true` in its package.json, so each package can be ratcheted in its own PR. */
@@ -120,6 +186,13 @@ const DIRECTORY_RATCHETS = {
       },
     },
     {
+      // CLN-074g: no arrow/function-expression locals in class methods; extract a named private method.
+      files: ['src/**/*.ts'],
+      ignores: ['**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/test/**'],
+      plugins: { 'ratchet-local': ratchetLocalPlugin },
+      rules: { 'ratchet-local/no-function-local-in-method': 'error' },
+    },
+    {
       // CLN-074e: backend tests build typed fixtures instead of casting.
       files: [
         'src/**/*.spec.ts',
@@ -197,6 +270,7 @@ function directoryBlocks(pkg, prefix) {
   return (DIRECTORY_RATCHETS[pkg] ?? []).map((block) => ({
     files: block.files.map((file) => `${prefix}${file}`),
     ignores: block.ignores.map((glob) => (glob.startsWith('**/') ? glob : `${prefix}${glob}`)),
+    ...(block.plugins ? { plugins: block.plugins } : {}),
     rules: block.rules,
   }));
 }
