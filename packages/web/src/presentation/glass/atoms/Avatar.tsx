@@ -1,4 +1,5 @@
 import React from 'react';
+import { NO_LABEL } from '../../../domain/display.js';
 
 export interface AvatarPerson {
   readonly name: string;
@@ -103,5 +104,5 @@ function isNotEmpty(word: string): boolean {
 }
 
 function firstLetter(word: string): string {
-  return Array.from(word)[0] ?? '';
+  return Array.from(word)[0] ?? NO_LABEL;
 }

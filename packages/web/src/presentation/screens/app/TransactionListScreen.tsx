@@ -11,6 +11,7 @@ import { readApiError } from '@power-budget/shared-app';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { observer } from 'mobx-react-lite';
 import { useLocalObservable } from 'mobx-react-lite';
+import { NO_LABEL } from '../../../domain/display.js';
 import { Toast } from '../../components/shared/Toast.js';
 import {
   toBooking,
@@ -44,8 +45,6 @@ import {
 
 /** A filter that is not in the URL is empty, not absent. */
 const NO_FILTER_VALUE = '';
-/** The label of a planned item whose plan and category names are not loaded yet. */
-const NO_LABEL = '';
 
 export interface TransactionListScreenProps {
   /** Opens the detail modal over the list (route /transactions/:id). */

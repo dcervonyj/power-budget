@@ -156,4 +156,18 @@ describe('style ratchet', { timeout: 60_000 }, () => {
       expect(await ruleIds(assign, path)).not.toContain('no-restricted-syntax');
     });
   });
+
+  describe('mobile presentation keeps the CLN-036 contract-Dto selector next to the `??=` ban', () => {
+    const path = resolve(repoRoot, 'packages/mobile/src/presentation/App.tsx');
+    const call = (type: string): string =>
+      `declare const apiClient: { get<T>(url: string): T };\nexport const r = apiClient.get<${type}>('/x');\n`;
+
+    it('flags a local response type', async () => {
+      expect(await ruleIds(call('{ id: string }'), path)).toContain('no-restricted-syntax');
+    });
+
+    it('allows a contract *Dto type', async () => {
+      expect(await ruleIds(call('FooDto'), path)).not.toContain('no-restricted-syntax');
+    });
+  });
 });

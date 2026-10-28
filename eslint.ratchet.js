@@ -181,7 +181,19 @@ const noFunctionLocalBlock = (files, extraIgnores = []) => ({
  * checked and thrown on, not asserted or defaulted in place. Tests are exempt.
  */
 const NULLISH_ASSIGN_SELECTOR = "AssignmentExpression[operator='??=']";
-const noBangAndNullishAssign = (files, extraIgnores = []) => ({
+const NULLISH_ASSIGN_RESTRICTION = {
+  selector: NULLISH_ASSIGN_SELECTOR,
+  message: 'Do not default with `??=`; check the value and throw (required) or assign explicitly.',
+};
+// CLN-036 (eslint.base.js): mobile screens never type an HTTP response with a local type. A later block that sets
+// `no-restricted-syntax` replaces the earlier options, so the mobile presentation block below repeats this entry.
+const MOBILE_DTO_RESPONSE_RESTRICTION = {
+  selector:
+    'CallExpression[callee.property.name=/^(get|post|put|patch|delete)$/][typeArguments]:not([typeArguments.params.0.typeName.name=/Dto$/])',
+  message:
+    'Type an HTTP response with a generated contract *Dto from shared-app/contract (or call a typed *Api class), never a local type.',
+};
+const noBangAndNullishAssign = (files, extraIgnores = [], extraRestrictions = []) => ({
   files,
   ignores: [
     '**/*.test.ts',
@@ -193,14 +205,7 @@ const noBangAndNullishAssign = (files, extraIgnores = []) => ({
   ],
   rules: {
     '@typescript-eslint/no-non-null-assertion': 'error',
-    'no-restricted-syntax': [
-      'error',
-      {
-        selector: NULLISH_ASSIGN_SELECTOR,
-        message:
-          'Do not default with `??=`; check the value and throw (required) or assign explicitly.',
-      },
-    ],
+    'no-restricted-syntax': ['error', NULLISH_ASSIGN_RESTRICTION, ...extraRestrictions],
   },
 });
 
@@ -218,6 +223,11 @@ const DIRECTORY_RATCHETS = {
   mobile: [
     noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx']),
     noBangAndNullishAssign(['src/**/*.ts', 'src/**/*.tsx']),
+    noBangAndNullishAssign(
+      ['src/presentation/**/*.ts', 'src/presentation/**/*.tsx'],
+      [],
+      [MOBILE_DTO_RESPONSE_RESTRICTION],
+    ),
   ],
   core: [noFunctionLocalBlock(['src/**/*.ts']), noBangAndNullishAssign(['src/**/*.ts'])],
   'design-tokens': [

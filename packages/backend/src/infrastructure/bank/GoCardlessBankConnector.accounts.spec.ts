@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BankConnectionId, EncryptedString } from '@power-budget/core';
 import type { Encryption } from '../../domain/auth/ports.js';
-import { BankTransientError } from '../../domain/bank/errors.js';
+import { BankProviderDataError } from '../../domain/bank/errors.js';
 import { GoCardlessBankConnector } from './GoCardlessBankConnector.js';
 
 const CONSENT = EncryptedString.of('enc:{"requisitionId":"req-1","accounts":["acct-1"]}');
@@ -61,7 +61,7 @@ describe('GoCardlessBankConnector.listAccounts', () => {
     stubAccountDetails({ name: 'Main', iban: 'PL1' });
 
     await expect(connector().listAccounts(CONNECTION_ID, CONSENT)).rejects.toBeInstanceOf(
-      BankTransientError,
+      BankProviderDataError,
     );
   });
 });

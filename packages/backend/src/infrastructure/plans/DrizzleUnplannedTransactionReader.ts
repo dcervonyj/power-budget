@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { and, desc, eq, gte, lte, lt, notInArray, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lte, notInArray, sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type {
   UnplannedTransactionReader,
@@ -53,16 +53,10 @@ export class DrizzleUnplannedTransactionReader implements UnplannedTransactionRe
     // A forged cursor throws InvalidCursorError, mapped to 400 invalid_cursor.
     if (query.cursor !== undefined) {
       const parsed = decodeTransactionCursor(query.cursor);
-      const afterCursor = or(
-        lt(schema.transactions.occurredOn, parsed.occurredOn),
-        and(
-          eq(schema.transactions.occurredOn, parsed.occurredOn),
-          lt(schema.transactions.id, parsed.id),
-        ),
+      // Row value comparison, as in DrizzleTransactionRepository: no optional SQL node to drop.
+      conditions.push(
+        sql`(${schema.transactions.occurredOn}, ${schema.transactions.id}) < (${parsed.occurredOn}::date, ${parsed.id}::uuid)`,
       );
-      if (afterCursor !== undefined) {
-        conditions.push(afterCursor);
-      }
     }
 
     const rows = await this.db

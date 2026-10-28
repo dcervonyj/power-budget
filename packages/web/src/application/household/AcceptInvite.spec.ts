@@ -19,13 +19,14 @@ describe('AcceptInvite', () => {
     expect(setTokens).toHaveBeenCalledWith('new-access', 'refresh-1');
   });
 
-  it('fails without a refresh token instead of storing an empty one', async () => {
+  it('fails before joining when there is no refresh token', async () => {
     const signedOut = new AcceptInvite(
       { acceptInvite },
       { getRefreshToken: () => null, setTokens },
     );
 
     expect(await signedOut.execute('raw-token')).toEqual({ kind: 'failed', error: 'failed' });
+    expect(acceptInvite).not.toHaveBeenCalled();
     expect(setTokens).not.toHaveBeenCalled();
   });
 
