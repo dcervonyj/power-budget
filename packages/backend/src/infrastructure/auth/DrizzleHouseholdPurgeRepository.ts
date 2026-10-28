@@ -25,6 +25,7 @@ export const HOUSEHOLD_PURGED_TABLES: readonly string[] = [
   'planned_items',
   'leftover_snapshots',
   'plans',
+  'merchant_rules',
   'category_privacy',
   'categories',
   'household_exports',

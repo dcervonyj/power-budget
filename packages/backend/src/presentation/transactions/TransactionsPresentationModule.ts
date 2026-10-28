@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { uuidv7 } from 'uuidv7';
 import { TransactionsModule } from '../../infrastructure/transactions/TransactionsModule.js';
 import { DrizzleMappingRepository } from '../../infrastructure/transactions/DrizzleMappingRepository.js';
@@ -47,7 +47,12 @@ import { TransactionsController } from './TransactionsController.js';
       provide: LearnMerchantRuleUseCase,
       inject: [DrizzleMerchantRuleRepository, DrizzlePlannedItemResolver],
       useFactory: (rules: DrizzleMerchantRuleRepository, items: DrizzlePlannedItemResolver) =>
-        new LearnMerchantRuleUseCase(rules, items, () => new Date()),
+        new LearnMerchantRuleUseCase(
+          rules,
+          items,
+          () => new Date(),
+          (message) => new Logger(LearnMerchantRuleUseCase.name).warn(message),
+        ),
     },
     {
       provide: MapTransactionUseCase,

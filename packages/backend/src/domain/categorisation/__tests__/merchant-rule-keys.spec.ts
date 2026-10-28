@@ -75,6 +75,35 @@ describe('merchantRuleKeysOf', () => {
     ).toEqual([{ matchKind: 'merchant', pattern: 'jan kowalski' }]);
   });
 
+  it('does not learn shared bank boilerplate when the row names its counterparty', () => {
+    const boilerplate = 'ZAKUP PRZY UŻYCIU KARTY';
+    const biedronka = merchantRuleKeysOf({
+      ...noCounterparty,
+      counterpartyName: 'Biedronka',
+      description: boilerplate,
+    });
+    const rossmann = merchantRuleKeysOf({
+      ...noCounterparty,
+      counterpartyName: 'Rossmann',
+      description: boilerplate,
+    });
+
+    expect(biedronka).toEqual([{ matchKind: 'merchant', pattern: 'biedronka' }]);
+    expect(rossmann).toEqual([{ matchKind: 'merchant', pattern: 'rossmann' }]);
+  });
+
+  it('learns no key from bare bank boilerplate without a counterparty', () => {
+    expect(merchantRuleKeysOf({ ...noCounterparty, description: 'Zakup BLIK' })).toEqual([]);
+    expect(merchantRuleKeysOf({ ...noCounterparty, description: 'BLIK' })).toEqual([]);
+  });
+
+  it('drops a key longer than the 255 character pattern column', () => {
+    const description = `Biedronka ${'sklep spozywczy '.repeat(20)}`;
+
+    expect(description.length).toBeGreaterThan(300);
+    expect(merchantRuleKeysOf({ ...noCounterparty, description })).toEqual([]);
+  });
+
   it('lists a merchant key once', () => {
     const keys = merchantRuleKeysOf({
       counterpartyIbanHash: null,
