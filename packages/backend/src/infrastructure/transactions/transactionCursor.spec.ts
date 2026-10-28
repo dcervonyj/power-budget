@@ -25,6 +25,23 @@ describe('transaction cursor', () => {
     },
   );
 
+  it.each(['2026-10-01', '2026-12-31', '2026-01-15'])(
+    'accepts the padded base64 cursor the old unplanned reader issued for %s',
+    (date) => {
+      // Old encoder on master: Buffer.from(`${occurredOn}|${id}`).toString('base64')
+      const legacy = Buffer.from(`${date}|${ID}`).toString('base64');
+
+      expect(legacy).toMatch(/=$/);
+      expect(decodeTransactionCursor(legacy)).toEqual({ occurredOn: date, id: ID });
+    },
+  );
+
+  it('still rejects a forged legacy cursor with an impossible date', () => {
+    const legacy = Buffer.from(`2026-02-30|${ID}`).toString('base64');
+
+    expect(() => decodeTransactionCursor(legacy)).toThrow(InvalidCursorError);
+  });
+
   it('accepts a leap day', () => {
     const raw = Buffer.from(`2028-02-29|${ID}`).toString('base64url');
 
