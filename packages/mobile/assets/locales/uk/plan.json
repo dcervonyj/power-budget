@@ -53,5 +53,6 @@
   "plan.archive.title": "Архівувати план",
   "plan.archive.body": "Ви впевнені, що хочете архівувати цей план?",
   "plan.archive.cancel": "Скасувати",
-  "plan.archive.confirm": "Архівувати"
+  "plan.archive.confirm": "Архівувати",
+  "plan.error.categories": "Не вдалося завантажити категорії."
 }

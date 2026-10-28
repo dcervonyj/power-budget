@@ -29,6 +29,9 @@ export interface PlanEditorViewProps extends PlanItemHandlers {
   readonly draft: PlanDraftItem;
   readonly draftCategories: readonly SelectOption[];
   readonly saving: boolean;
+  readonly adding: boolean;
+  readonly categoriesFailed: boolean;
+  readonly onRetryCategories: () => void;
   readonly saveError: string | null;
   readonly onNameChange: (name: string) => void;
   readonly onBaseCurrencyChange: (currency: string) => void;
@@ -281,12 +284,16 @@ function NewItemForm({
   draft,
   draftCategories,
   plan,
+  adding,
+  categoriesFailed,
+  onRetryCategories,
   onDraftChange,
   onAddItem,
 }: PlanEditorViewProps): React.JSX.Element {
   const intl = useIntl();
   const glass = useGlass();
   const styles = useStyles();
+  const shared = usePlanStyles();
   const directionOptions: ReadonlyArray<{ value: PlannedItemDirectionDto; label: string }> = [
     {
       value: 'income',
@@ -304,6 +311,19 @@ function NewItemForm({
 
   return (
     <View>
+      {categoriesFailed ? (
+        <>
+          <Text accessibilityRole="alert" style={shared.noticeText}>
+            {intl.formatMessage({
+              id: 'plan.error.categories',
+              defaultMessage: 'Could not load categories.',
+            })}
+          </Text>
+          <Button variant="secondary" onPress={onRetryCategories}>
+            {intl.formatMessage({ id: 'plan.retry', defaultMessage: 'Try again' })}
+          </Button>
+        </>
+      ) : null}
       <SegmentedControl<PlannedItemDirectionDto>
         label={intl.formatMessage({ id: 'plan.item.direction', defaultMessage: 'Direction' })}
         options={directionOptions}
@@ -336,7 +356,7 @@ function NewItemForm({
         }}
         style={styles.amountInput}
       />
-      <Button variant="primary" onPress={onAddItem}>
+      <Button variant="primary" loading={adding} onPress={onAddItem}>
         {intl.formatMessage({ id: 'plan.item.add', defaultMessage: 'Add item' })}
       </Button>
     </View>

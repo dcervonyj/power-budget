@@ -40,6 +40,13 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
   const [loading, setLoading] = useState(planId !== undefined);
   const [loadFailed, setLoadFailed] = useState(planId === undefined);
   const [saving, setSaving] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [categoriesFailed, setCategoriesFailed] = useState(false);
+  const addingRef = useRef(false);
+  // Custom date saves run one after another; the last selection wins.
+  const dateQueue = useRef<Promise<void>>(Promise.resolve());
+  const pendingDates = useRef(0);
+  const confirmedPeriod = useRef<PlanDto['period'] | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [draft, setDraft] = useState<PlanDraftItem>(EMPTY_DRAFT);
   // Amount saves run one after another per item, so a slow earlier save cannot overwrite a newer one.
@@ -52,6 +59,16 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     [intl],
   );
 
+  const loadCategories = useCallback(async (): Promise<void> => {
+    try {
+      // Items may point at archived categories; without categories items show by id.
+      setCategories(await categoriesApi.list({ includeArchived: true }));
+      setCategoriesFailed(false);
+    } catch {
+      setCategoriesFailed(true);
+    }
+  }, []);
+
   const loadAll = useCallback(async (): Promise<void> => {
     if (planId === undefined) {
       return;
@@ -59,24 +76,23 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     setLoading(true);
     setLoadFailed(false);
     try {
-      const [loadedPlan, loadedItems, loadedCategories, loadedSpent] = await Promise.all([
+      const [loadedPlan, loadedItems, , loadedSpent] = await Promise.all([
         plansApi.get(planId),
         plansApi.listItems(planId),
-        // Items may point at archived categories; without categories items show by id.
-        categoriesApi.list({ includeArchived: true }).catch((): CategoryDto[] => []),
+        loadCategories(),
         loadSpent(planId),
       ]);
       setPlan(loadedPlan);
       setItems(loadedItems);
       confirmedItems.current = new Map(loadedItems.map((item) => [item.id, item]));
-      setCategories(loadedCategories);
+      confirmedPeriod.current = loadedPlan.period;
       setSpent(loadedSpent);
     } catch {
       setLoadFailed(true);
     } finally {
       setLoading(false);
     }
-  }, [planId]);
+  }, [planId, loadCategories]);
 
   useEffect(() => {
     void loadAll();
@@ -92,7 +108,21 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       const body: UpdatePlanDto = isSupportedCurrency(plan.baseCurrency)
         ? { name: plan.name.trim(), baseCurrency: plan.baseCurrency }
         : { name: plan.name.trim() };
-      setPlan(await plansApi.update(plan.id, body));
+      const sentName = plan.name;
+      const sentCurrency = plan.baseCurrency;
+      const saved = await plansApi.update(plan.id, body);
+      // Fields edited while the request was pending keep the newer text; the rest comes from the server.
+      setPlan((current) =>
+        current === null
+          ? current
+          : {
+              ...saved,
+              name: current.name === sentName ? saved.name : current.name,
+              baseCurrency:
+                current.baseCurrency === sentCurrency ? saved.baseCurrency : current.baseCurrency,
+              period: current.period,
+            },
+      );
     } catch {
       setSaveError(text('plan.error.save', 'Could not save the plan.'));
     } finally {
@@ -100,24 +130,37 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
     }
   }
 
-  async function handleCustomDates(start: string, end: string): Promise<void> {
+  function handleCustomDates(start: string, end: string): void {
     if (plan === null) {
       return;
     }
-    const previousPeriod = plan.period;
+    const planIdToSave = plan.id;
     setPlan({ ...plan, period: { start, end } });
+    pendingDates.current += 1;
+    dateQueue.current = dateQueue.current.then(() => saveDates(planIdToSave, start, end));
+  }
+
+  async function saveDates(planIdToSave: string, start: string, end: string): Promise<void> {
     try {
-      const saved = await plansApi.update(plan.id, { periodStart: start, periodEnd: end });
-      // Only the period comes from the server: unsaved name and currency edits stay as typed.
-      setPlan((current) => (current === null ? current : { ...current, period: saved.period }));
+      const saved = await plansApi.update(planIdToSave, { periodStart: start, periodEnd: end });
+      confirmedPeriod.current = saved.period;
+      if (pendingDates.current === 1) {
+        // Only the period comes from the server: unsaved name and currency edits stay as typed.
+        setPlan((current) => (current === null ? current : { ...current, period: saved.period }));
+      }
     } catch {
-      setPlan((current) => (current === null ? current : { ...current, period: previousPeriod }));
+      const confirmed = confirmedPeriod.current;
+      if (pendingDates.current === 1 && confirmed !== null) {
+        setPlan((current) => (current === null ? current : { ...current, period: confirmed }));
+      }
       setSaveError(text('plan.error.save', 'Could not save the plan.'));
+    } finally {
+      pendingDates.current -= 1;
     }
   }
 
   async function handleAddItem(): Promise<void> {
-    if (plan === null) {
+    if (plan === null || addingRef.current) {
       return;
     }
     const currency = plan.baseCurrency;
@@ -127,6 +170,8 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
 
       return;
     }
+    addingRef.current = true;
+    setAdding(true);
     try {
       const body: CreatePlannedItemDto = {
         categoryId: draft.categoryId,
@@ -141,6 +186,9 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
       setSaveError(null);
     } catch {
       setSaveError(text('plan.error.itemAdd', 'Could not add the item.'));
+    } finally {
+      addingRef.current = false;
+      setAdding(false);
     }
   }
 
@@ -296,6 +344,11 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
         .filter((category) => !category.archived && category.kind === draft.direction)
         .map((category) => ({ value: category.id, label: category.name }))}
       saving={saving}
+      adding={adding}
+      categoriesFailed={categoriesFailed}
+      onRetryCategories={() => {
+        void loadCategories();
+      }}
       saveError={saveError}
       onNameChange={(name) => {
         setPlan({ ...plan, name });
@@ -304,7 +357,7 @@ export function PlanEditorScreen({ route, navigation }: Props): React.JSX.Elemen
         setPlan({ ...plan, baseCurrency });
       }}
       onCustomDatesChange={(start, end) => {
-        void handleCustomDates(start, end);
+        handleCustomDates(start, end);
       }}
       onDraftChange={setDraft}
       onAddItem={() => {

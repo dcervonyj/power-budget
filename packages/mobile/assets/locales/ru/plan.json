@@ -53,5 +53,6 @@
   "plan.archive.title": "Архивировать план",
   "plan.archive.body": "Вы уверены, что хотите архивировать этот план?",
   "plan.archive.cancel": "Отмена",
-  "plan.archive.confirm": "Архивировать"
+  "plan.archive.confirm": "Архивировать",
+  "plan.error.categories": "Не удалось загрузить категории."
 }

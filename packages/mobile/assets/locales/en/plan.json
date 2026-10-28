@@ -53,5 +53,6 @@
   "plan.archive.title": "Archive plan",
   "plan.archive.body": "Are you sure you want to archive this plan?",
   "plan.archive.cancel": "Cancel",
-  "plan.archive.confirm": "Archive"
+  "plan.archive.confirm": "Archive",
+  "plan.error.categories": "Could not load categories."
 }

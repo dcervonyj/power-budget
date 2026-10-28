@@ -57,6 +57,9 @@ function props(overrides: Partial<PlanEditorViewProps> = {}): PlanEditorViewProp
     draft: { categoryId: '', direction: 'expense', amount: '' },
     draftCategories: [{ value: 'cat-home', label: 'Home' }],
     saving: false,
+    adding: false,
+    categoriesFailed: false,
+    onRetryCategories: jest.fn(),
     saveError: null,
     onNameChange: jest.fn(),
     onBaseCurrencyChange: jest.fn(),
@@ -226,5 +229,14 @@ describe('PlanEditorView actions', () => {
     await fireEvent.changeText(screen.getByDisplayValue('October'), 'November');
 
     expect(onNameChange).toHaveBeenCalledWith('November');
+  });
+
+  it('does not submit another item while one is being added', async () => {
+    const onAddItem = jest.fn();
+    await renderGlass(<PlanEditorView {...props({ adding: true, onAddItem })} />);
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(onAddItem).not.toHaveBeenCalled();
   });
 });
