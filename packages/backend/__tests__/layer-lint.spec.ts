@@ -26,6 +26,7 @@ const eslint = new ESLint({
 
 async function ruleIds(filePath: string, code: string): Promise<string[]> {
   const [result] = await eslint.lintText(code, { filePath: path.join(root, filePath) });
+
   return result.messages.map((m) => m.ruleId ?? 'parse-error');
 }
 
