@@ -33,15 +33,46 @@ describe('merchantRuleKeysOf', () => {
     expect(fromDescriptor).toEqual(fromName);
   });
 
-  it('learns no key from noise-only text or a generic transfer title', () => {
+  const noCounterparty = { counterpartyIbanHash: null, counterpartyName: null, merchant: null };
+
+  it('learns no key from a noise-only counterparty name', () => {
+    expect(
+      merchantRuleKeysOf({
+        ...noCounterparty,
+        counterpartyName: '123456789',
+        description: '',
+      }),
+    ).toEqual([]);
+  });
+
+  it('learns no key from a generic transfer title', () => {
+    expect(merchantRuleKeysOf({ ...noCounterparty, description: 'Faktura 123/2026' })).toEqual([]);
+    expect(merchantRuleKeysOf({ ...noCounterparty, description: 'Zwrot' })).toEqual([]);
+  });
+
+  it.each([
+    ['Biedronka', 'biedronka'],
+    ['BIEDRONKA 1234 WARSZAWA', 'biedronka'],
+  ])('learns a key from the description alone: %s', (description, pattern) => {
+    expect(merchantRuleKeysOf({ ...noCounterparty, description })).toEqual([
+      { matchKind: 'merchant', pattern },
+    ]);
+  });
+
+  it('still learns a key from a Wise card title', () => {
     const keys = merchantRuleKeysOf({
-      counterpartyIbanHash: null,
-      counterpartyName: '123456789',
-      merchant: null,
-      description: 'Faktura 123/2026',
+      ...noCounterparty,
+      description: 'Card transaction of 12.34 PLN issued by Biedronka',
     });
 
-    expect(keys).toEqual([]);
+    expect(keys).toHaveLength(1);
+    expect(keys[0]?.pattern).toContain('biedronka');
+  });
+
+  it('keeps the counterparty of a transfer description', () => {
+    expect(
+      merchantRuleKeysOf({ ...noCounterparty, description: 'Przelew do Jan Kowalski, czynsz' }),
+    ).toEqual([{ matchKind: 'merchant', pattern: 'jan kowalski' }]);
   });
 
   it('lists a merchant key once', () => {

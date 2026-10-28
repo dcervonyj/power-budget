@@ -39,7 +39,21 @@ export class BulkMapTransactionsUseCase {
     // The repository also rejects the whole batch if any planned item is foreign.
     await this.mappingRepo.bulkSet([...input.mappings], input.by, scope);
     for (const mapping of input.mappings) {
+      await this.learnBestEffort(mapping, input, scope);
+    }
+  }
+
+  /** Memory is best effort once the mappings are saved: a failed rule must not fail the request. */
+  private async learnBestEffort(
+    mapping: { transactionId: TransactionId; plannedItemId: PlannedItemId },
+    input: BulkMapTransactionsInput,
+    scope: { householdId: HouseholdId },
+  ): Promise<void> {
+    try {
       await this.learn(mapping, input, scope);
+    } catch {
+      // Each statement commits on its own (ScopedPool), so a failure here leaves the saved
+      // mappings intact; the rule is simply not learned for this row.
     }
   }
 
