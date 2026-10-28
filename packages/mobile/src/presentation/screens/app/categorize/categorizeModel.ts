@@ -88,25 +88,50 @@ export function choicesFor(choices: readonly CategoryChoice[], payment: Payment)
 }
 
 /**
- * Payments already confirmed in this session count in the choices they went to, so the preview of
- * the next payment starts from what is left after them (the dashboard was loaded before).
+ * One confirmed payment the balances may not include yet. `covered`: a balance load that started
+ * after its write already counts it. `undone`: a reversal of a covered entry that was undone; the
+ * loaded balances still count it until the next load. The ledger is keyed by payment id for a live
+ * entry; a reversal gets its own key, so a re-confirm to another item cannot clash with it.
  */
-export function withSorted(
+export interface LedgerEntry {
+  readonly payment: Payment;
+  readonly plannedItemId: string;
+  readonly covered: boolean;
+  readonly undone: boolean;
+}
+
+export type Ledger = ReadonlyMap<string, LedgerEntry>;
+
+/**
+ * The balances to preview `skipId` against: what the server last said, plus every confirmed payment
+ * it does not count yet, minus every undone one it still counts. `skipId` itself is taken out, so
+ * its own effect is never counted twice (also on the Confirmed card, after a refresh).
+ */
+export function balancesFor(
   choices: readonly CategoryChoice[],
-  sorted: ReadonlyMap<string, Payment>,
-  picks: ReadonlyMap<string, string>,
+  ledger: Ledger,
   skipId: string,
 ): CategoryChoice[] {
   return choices.map((choice) => {
     let spentMinor = choice.spentMinor;
-    for (const [id, payment] of sorted) {
-      if (id !== skipId && picks.get(id) === choice.plannedItemId && countsIn(choice, payment)) {
-        spentMinor += payment.amountMinor < 0n ? -payment.amountMinor : payment.amountMinor;
+    for (const entry of ledger.values()) {
+      if (entry.plannedItemId === choice.plannedItemId && countsIn(choice, entry.payment)) {
+        spentMinor += ledgerDelta(entry, entry.payment.id === skipId);
       }
     }
 
     return { ...choice, spentMinor };
   });
+}
+
+function ledgerDelta(entry: LedgerEntry, skipped: boolean): bigint {
+  const { amountMinor } = entry.payment;
+  const size = amountMinor < 0n ? -amountMinor : amountMinor;
+  if (entry.covered) {
+    return entry.undone || skipped ? -size : 0n;
+  }
+
+  return entry.undone || skipped ? 0n : size;
 }
 
 /** What the payment does to the chosen item: its light left before and after. */

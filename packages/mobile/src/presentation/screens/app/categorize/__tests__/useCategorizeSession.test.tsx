@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 import { useCategorizeSession } from '../useCategorizeSession.js';
 import type { CategorizeSessionInput } from '../useCategorizeSession.js';
-import { BOLT, CHOICES, ORLEN, QUEUE, ZABKA } from '../categorizeFixtures.js';
+import { BOLT, CHOICES, ORLEN, QUEUE, ZABKA, paymentOf } from '../categorizeFixtures.js';
 
 interface Deferred {
   readonly resolve: () => void;
@@ -26,6 +26,7 @@ async function setup(overrides: Partial<CategorizeSessionInput> = {}) {
     queue: QUEUE,
     startIndex: 0,
     choices: CHOICES,
+    ledger: new Map(),
     write,
     busyIds: new Set<string>(),
     onConfirmed,
@@ -69,7 +70,7 @@ describe('useCategorizeSession', () => {
 
     await settle(calls[0], 'resolve');
     expect(result.current.phase).toBe('done');
-    expect(onConfirmed).toHaveBeenCalledWith('orlen');
+    expect(onConfirmed).toHaveBeenCalledWith(paymentOf(ORLEN), 'item-health');
 
     await act(() => result.current.undo());
     expect(result.current.phase).toBe('undoing');
@@ -193,37 +194,42 @@ describe('useCategorizeSession', () => {
     expect(result.current.row).toBeUndefined();
   });
 
-  it('starts the preview of the next payment from what the confirmed ones took', async () => {
-    const { result, calls } = await setup({ queue: [ORLEN, ZABKA], startIndex: 0 });
-    const before = result.current.options.find((o) => o.plannedItemId === 'item-transport');
-    expect(before?.spentMinor).toBe(31239n);
+  describe('previews from the balances plus the ledger, owning no adjustments itself', () => {
+    const orlenEntry = (covered: boolean, undone = false) => ({
+      payment: paymentOf(ORLEN),
+      plannedItemId: 'item-transport',
+      covered,
+      undone,
+    });
+    const transportOf = (options: readonly { plannedItemId: string; spentMinor: bigint }[]) =>
+      options.find((o) => o.plannedItemId === 'item-transport')?.spentMinor;
 
-    await act(() => result.current.confirm());
-    await settle(calls[0], 'resolve');
-    await act(() => result.current.next());
-    await act(() => result.current.pick('item-transport'));
+    it.each([
+      ['an empty ledger', undefined, 31239n],
+      ['an uncovered earlier payment', orlenEntry(false), 31239n + 12930n],
+      ['an earlier payment the balances already count', orlenEntry(true), 31239n],
+      [
+        'an earlier payment that was undone but is still counted',
+        orlenEntry(true, true),
+        31239n - 12930n,
+      ],
+    ])('next payment with %s', async (_name, entry, spent) => {
+      const ledger = entry === undefined ? new Map() : new Map([['orlen', entry]]);
+      const { result } = await setup({ queue: [ZABKA], startIndex: 0, ledger });
 
-    const after = result.current.options.find((o) => o.plannedItemId === 'item-transport');
-    expect(after?.spentMinor).toBe(31239n + 12930n);
-  });
+      expect(transportOf(result.current.options)).toBe(spent);
+    });
 
-  it('does not add a confirmed payment again once the loaded balances include it', async () => {
-    const { result, calls, rerender } = await setup({ queue: [ORLEN, ZABKA], startIndex: 0 });
-    await act(() => result.current.confirm());
-    await settle(calls[0], 'resolve');
-    await act(() => result.current.next());
-    await act(() => result.current.pick('item-transport'));
-    const added = result.current.options.find((o) => o.plannedItemId === 'item-transport');
-    expect(added?.spentMinor).toBe(31239n + 12930n);
+    it.each([
+      ['not in the ledger yet', undefined, 31239n],
+      ['uncovered', orlenEntry(false), 31239n],
+      ['covered by a refresh, taken out of the balances once', orlenEntry(true), 31239n - 12930n],
+    ])('the payment itself, %s', async (_name, entry, spent) => {
+      const ledger = entry === undefined ? new Map() : new Map([['orlen', entry]]);
+      const { result } = await setup({ queue: [ORLEN], startIndex: 0, ledger });
 
-    // A retry reloaded balances that already count the confirmed payment.
-    const reloaded = CHOICES.map((c) =>
-      c.plannedItemId === 'item-transport' ? { ...c, spentMinor: c.spentMinor + 12930n } : c,
-    );
-    await rerender({ choices: reloaded, choicesCover: new Set([ORLEN.data.id]) });
-
-    const after = result.current.options.find((o) => o.plannedItemId === 'item-transport');
-    expect(after?.spentMinor).toBe(31239n + 12930n);
+      expect(transportOf(result.current.options)).toBe(spent);
+    });
   });
 
   it('settles a write that finishes after the sheet unmounted without throwing', async () => {
@@ -233,7 +239,7 @@ describe('useCategorizeSession', () => {
 
     await settle(calls[0], 'resolve');
 
-    expect(onConfirmed).toHaveBeenCalledWith('orlen');
+    expect(onConfirmed).toHaveBeenCalledWith(paymentOf(ORLEN), 'item-transport');
     expect(input.busyIds.size).toBe(0);
   });
 });
