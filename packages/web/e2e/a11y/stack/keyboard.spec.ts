@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { BackendApi, signInWithTokens, uniqueEmail } from '../../support/api.js';
 import { FULL_STACK } from '../../support/stack.js';
 import { escapesOfDialogTrap, walkTabOrder } from '../support/keyboard.js';
+import { seedCashTransactions } from '../support/seed.js';
 
 // DSN-050: keyboard-only pass on the real app: tab order and focus ring on the main screens, and
 // the Clone plan dialog traps Tab, closes on Esc and hands focus back to the button that opened it.
@@ -18,6 +19,7 @@ for (const path of SCREENS) {
       type: 'personal',
       baseCurrency: 'PLN',
     });
+    await seedCashTransactions(api, tokens.accessToken, ['Corner shop', 'Bakery']);
     await signInWithTokens(page, tokens);
     await page.goto(path);
     await page.waitForLoadState('networkidle');
@@ -51,6 +53,13 @@ test('Clone plan dialog traps focus, closes on Esc and returns focus to its open
   await page.keyboard.press('Enter');
   const dialog = page.getByRole('dialog');
   await expect(dialog).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () => document.querySelector('[role="dialog"]')?.contains(document.activeElement) ?? false,
+      ),
+    )
+    .toBe(true);
   expect(await escapesOfDialogTrap(page)).toEqual([]);
   await page.keyboard.press('Escape');
 

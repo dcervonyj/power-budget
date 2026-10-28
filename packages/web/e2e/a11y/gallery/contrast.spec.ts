@@ -19,10 +19,11 @@ async function attach(testInfo: TestInfo, rows: readonly TextMeasurement[]): Pro
 
 function failing(rows: readonly TextMeasurement[]): string[] {
   return rows
-    .filter((row) => row.worst < row.required)
-    .map(
-      (row) =>
-        `${row.tag} "${row.text}" ${row.color} on ${row.worstBackground}: ${row.worst.toFixed(2)} < ${String(row.required)}`,
+    .filter((row) => !row.measured || row.worst < row.required)
+    .map((row) =>
+      row.measured
+        ? `${row.tag} "${row.text}" ${row.color} on ${row.worstBackground}: ${row.worst.toFixed(2)} < ${String(row.required)}`
+        : `${row.tag} "${row.text}" ${row.color}: no glyph pixel found where the text is drawn`,
     );
 }
 
@@ -73,6 +74,26 @@ for (const theme of THEMES) {
       expect(measuredRows).toEqual(expectedRows);
       expect(failing(rows)).toEqual([]);
     });
+  });
+}
+
+// D7-SPEC R2.6 Lens "zł a day": the real Lens entries, text read from the rendered Lens.
+const LENS_ENTRIES = ['Light/LensEmpty', 'Light/LensFull', 'Light/LensSizes', 'Light/LensUnder'];
+
+for (const theme of THEMES) {
+  test(`Lens "zł a day" holds AA ${theme}`, async ({ page }, testInfo) => {
+    const rows: TextMeasurement[] = [];
+    for (const entry of LENS_ENTRIES) {
+      expect(galleryEntryIds).toContain(entry);
+      await openGalleryEntry(page, entry, theme);
+      const measured = await measureRenderedText(page, '#gallery-main');
+      const lens = measured.filter((row) => row.text.includes('a day'));
+      expect(lens.length, `${entry} has a "zł a day" text`).toBeGreaterThan(0);
+      rows.push(...lens.map((row) => ({ ...row, text: `${entry} / ${row.text}` })));
+    }
+    await attach(testInfo, rows);
+
+    expect(failing(rows)).toEqual([]);
   });
 }
 
