@@ -3,6 +3,7 @@ import type { MinorUnitAmount } from '@power-budget/core';
 import type { TxRowData } from '@power-budget/shared-app';
 import type {
   PlanDashboardResponseDto,
+  PlanDto,
   TransactionListItemDto,
 } from '@power-budget/shared-app/contract';
 
@@ -115,6 +116,11 @@ export function waitingToSort(
     .reduce((sum, row) => sum - row.data.amountMinor, 0n);
 
   return waiting > 0n ? { amountMinor: waiting, currency } : undefined;
+}
+
+/** The plan whose period covers `today` ('YYYY-MM-DD', bounds included); none means no plan this month. */
+export function currentPlanOf(plans: readonly PlanDto[], today: string): PlanDto | undefined {
+  return plans.find((plan) => plan.period.start <= today && today <= plan.period.end);
 }
 
 /** Planned expenses minus what was spent (mapped and unplanned), in the plan's base currency. */

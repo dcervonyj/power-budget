@@ -7,6 +7,7 @@ import {
   loadPlannedItemOptions,
 } from '../../../../infrastructure/transactions/PlannedItemCategories.js';
 import {
+  currentPlanOf,
   filterCounts,
   groupByDay,
   monthSummaryOf,
@@ -122,7 +123,7 @@ export function useTransactionList(): TransactionListState {
     monthRequest.current += 1;
     const request = monthRequest.current;
     try {
-      const [plan] = await plansApi.list('active');
+      const plan = currentPlanOf(await plansApi.list('active'), todayIso());
       const summary =
         plan === undefined ? undefined : monthSummaryOf(await plansApi.dashboard(plan.id));
       if (request === monthRequest.current) {
@@ -276,10 +277,12 @@ export function useTransactionList(): TransactionListState {
     void loadMonth();
   }, [loadFirstPage, loadMonth]);
 
+  // Focus: what changed elsewhere (rows, month, categories behind new suggestions) shows up.
   const reload = useCallback((): void => {
     void loadFirstPage(true);
     void loadMonth();
-  }, [loadFirstPage, loadMonth]);
+    void loadCategories();
+  }, [loadFirstPage, loadMonth, loadCategories]);
 
   const retry = useCallback((): void => {
     if (reloadFailed) {
@@ -382,4 +385,12 @@ function shownRow(
   }
 
   return undone.has(row.data.id) ? asUnsorted(row) : row;
+}
+
+function todayIso(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+
+  return `${now.getFullYear()}-${month}-${day}`;
 }
