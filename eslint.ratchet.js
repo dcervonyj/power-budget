@@ -180,8 +180,8 @@ const DIRECTORY_RATCHETS = {
   // STYLE-03/05: Drizzle ids are branded in drizzle/schema.ts, so infrastructure maps rows without `as`.
   // A cast with no other way gets a one-line `eslint-disable-next-line` with the reason.
   'shared-app': [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
-  web: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'], ['e2e/**', 'e2e-web/**'])],
-  mobile: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'], ['e2e/**'])],
+  web: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
+  mobile: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
   core: [noFunctionLocalBlock(['src/**/*.ts'])],
   'design-tokens': [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
   backend: [
