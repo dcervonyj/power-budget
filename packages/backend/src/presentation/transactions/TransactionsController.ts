@@ -385,12 +385,14 @@ export class TransactionsController {
     if (!rawPlannedItemId) {
       return;
     }
-    // Transaction ids first: a foreign batch answers transaction_not_found before a bad planned item id is looked at.
-    const transactionIds = dto.ids.map((txId) => this.transactionIdOf(txId));
-    const plannedItemId = this.plannedItemIdOf(rawPlannedItemId);
 
+    // The use case brands the planned item id after its ownership check, so a foreign batch answers
+    // transaction_not_found before a malformed planned item id is looked at.
     await this.bulkMapTransactions.execute({
-      mappings: transactionIds.map((transactionId) => ({ transactionId, plannedItemId })),
+      mappings: dto.ids.map((txId) => ({
+        transactionId: this.transactionIdOf(txId),
+        plannedItemId: typeof rawPlannedItemId === 'string' ? rawPlannedItemId : '',
+      })),
       by: user.userId,
       householdId: user.householdId,
       planId: STUB_PLAN_ID,
