@@ -9,7 +9,7 @@ import { uuidv7 } from 'uuidv7';
 //
 //   K6_BASE_URL=http://localhost:3100 DATABASE_URL=<owner url> pnpm db:seed:k6
 //
-// Prints `K6_EMAIL=... K6_PASSWORD=...` lines for the k6 run. Idempotent: a re-run logs in to
+// Logs only the user email and the counts, never the password. Idempotent: a re-run logs in to
 // the existing user and replaces its seeded rows.
 
 const BASE_URL = process.env['K6_BASE_URL'] ?? 'http://localhost:3100';
@@ -155,8 +155,6 @@ async function seed(): Promise<void> {
     await pool.end();
   }
 
-  console.log(`K6_EMAIL=${EMAIL}`);
-  console.log(`K6_PASSWORD=${PASSWORD}`);
   console.error(`seeded ${TX_COUNT} transactions (${MAPPED_PERCENT}% mapped) for ${EMAIL}`);
 }
 
