@@ -20,7 +20,7 @@ const config = parseAppConfig(
     KEK_BASE64: Buffer.alloc(32).toString('base64'),
     REDIS_URL: 'redis://localhost:6390',
   },
-  'api',
+  'worker',
 );
 
 class FakeProcessor extends WorkerHost {
@@ -63,13 +63,13 @@ function buildModule(worker: Worker): QueueModule {
 describe('QueueModule shutdown', () => {
   afterEach(async () => {
     vi.restoreAllMocks();
-    await releaseSharedQueueConnection(config.redisUrl);
+    await releaseSharedQueueConnection(config.redisUrl, config.role);
   });
 
   it('closes workers and queues, then quits the shared connection', async () => {
     buildQueueConnectionOptions(config);
     const quit = vi
-      .spyOn(getSharedQueueConnection(config.redisUrl), 'quit')
+      .spyOn(getSharedQueueConnection(config.redisUrl, config.role), 'quit')
       .mockResolvedValue('OK');
     const worker = fakeWorker('bank-sync', () => Promise.resolve());
 
@@ -82,7 +82,7 @@ describe('QueueModule shutdown', () => {
   it('logs a failed worker close, does not quit the connection and rejects', async () => {
     buildQueueConnectionOptions(config);
     const quit = vi
-      .spyOn(getSharedQueueConnection(config.redisUrl), 'quit')
+      .spyOn(getSharedQueueConnection(config.redisUrl, config.role), 'quit')
       .mockResolvedValue('OK');
     const logged = vi.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
     const worker = fakeWorker('bank-sync', () => Promise.reject(new Error('stalled')));
