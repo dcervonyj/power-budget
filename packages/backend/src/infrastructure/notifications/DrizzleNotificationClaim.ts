@@ -2,7 +2,7 @@ import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   SECRET_PAYLOAD_KEYS,
-  type NotificationOutbox,
+  type NotificationOutboxRow,
 } from '../../domain/notifications/entities.js';
 import type { ClaimedRecipient, NotificationClaim } from '../../domain/notifications/ports.js';
 import * as schema from '../../../drizzle/schema.js';
@@ -18,7 +18,7 @@ import * as schema from '../../../drizzle/schema.js';
 export class DrizzleNotificationClaim implements NotificationClaim {
   constructor(
     private readonly db: NodePgDatabase<typeof schema>,
-    readonly notification: NotificationOutbox,
+    readonly notification: NotificationOutboxRow,
     readonly recipient: ClaimedRecipient | null,
   ) {}
 

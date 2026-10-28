@@ -1,10 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-export interface SvixWebhookHeaders {
-  readonly id: string | undefined;
-  readonly timestamp: string | undefined;
-  readonly signature: string | undefined;
-}
+import type { WebhookHeaders, WebhookSignatureVerifier } from '../../domain/shared/ports.js';
 
 /**
  * Verifies Resend webhooks, which are signed with Svix (audit H2).
@@ -14,7 +10,7 @@ export interface SvixWebhookHeaders {
  * space-separated `v1,<base64>` entries. Without a configured secret every
  * request is rejected (fail closed).
  */
-export class SvixWebhookVerifier {
+export class SvixWebhookVerifier implements WebhookSignatureVerifier {
   private static readonly SECRET_PREFIX = 'whsec_';
   private static readonly SIGNATURE_VERSION = 'v1';
   private readonly key: Buffer | null;
@@ -27,11 +23,13 @@ export class SvixWebhookVerifier {
     this.key = SvixWebhookVerifier.decodeSecret(secret);
   }
 
-  verify(rawBody: Buffer | string | undefined, headers: SvixWebhookHeaders): boolean {
+  verify(rawBody: Buffer | string | undefined, headers: WebhookHeaders): boolean {
     if (this.key === null || rawBody === undefined) {
       return false;
     }
-    const { id, timestamp, signature } = headers;
+    const id = SvixWebhookVerifier.header(headers, 'svix-id');
+    const timestamp = SvixWebhookVerifier.header(headers, 'svix-timestamp');
+    const signature = SvixWebhookVerifier.header(headers, 'svix-signature');
     if (!id || !timestamp || !signature || !this.isFresh(timestamp)) {
       return false;
     }
@@ -64,6 +62,12 @@ export class SvixWebhookVerifier {
     }
 
     return false;
+  }
+
+  private static header(headers: WebhookHeaders, name: string): string | undefined {
+    const value = headers[name];
+
+    return Array.isArray(value) ? value[0] : value;
   }
 
   private static decodeSecret(secret: string | undefined): Buffer | null {

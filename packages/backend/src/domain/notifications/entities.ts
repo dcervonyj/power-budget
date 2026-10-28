@@ -1,4 +1,5 @@
 import type { HouseholdId, IsoDate, Money, UserId } from '@power-budget/core';
+import type { LocaleCode } from '../auth/entities.js';
 
 export type NotificationKind =
   'over_budget' | 'weekly_digest' | 'reconnect_reminder' | 'magic_link' | 'household_invite';
@@ -12,7 +13,7 @@ export const SECRET_PAYLOAD_KEYS: readonly string[] = ['link', 'token'];
 /** Sends per outbox row before it is marked failed for good. */
 export const MAX_DISPATCH_ATTEMPTS = 5;
 
-export interface NotificationOutbox {
+export interface NotificationOutboxRow {
   readonly id: string;
   readonly householdId: HouseholdId | null;
   /** Null for an address-only recipient (an invitee without an account). */
@@ -29,10 +30,20 @@ export interface NotificationOutbox {
   readonly attempts: number;
 }
 
+/** A notification for a user with an account. The outbox assigns the id. */
 export interface NewNotificationOutbox {
-  readonly id: string;
   readonly householdId?: HouseholdId | null;
   readonly recipientUserId: UserId;
+  readonly kind: NotificationKind;
+  readonly dedupeKey: string;
+  readonly payload: Record<string, unknown>;
+}
+
+/** A notification for an address without an account (an invitee who has not registered yet). */
+export interface NewAddressNotification {
+  readonly householdId: HouseholdId;
+  readonly email: string;
+  readonly locale: LocaleCode;
   readonly kind: NotificationKind;
   readonly dedupeKey: string;
   readonly payload: Record<string, unknown>;

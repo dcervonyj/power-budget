@@ -6,9 +6,9 @@ import type { UserId } from '@power-budget/core';
 import type {
   UserRepository,
   MagicLinkTokenRepository,
-  NotificationOutboxPort,
   AppConfigPort,
 } from '../../../domain/auth/ports.js';
+import type { NotificationOutbox } from '../../../domain/notifications/ports.js';
 import { RequestMagicLinkUseCase } from './RequestMagicLinkUseCase.js';
 import type { User } from '../../../domain/auth/entities.js';
 
@@ -31,13 +31,13 @@ function makeUser(): User {
 describe('RequestMagicLinkUseCase', () => {
   let userRepo: ReturnType<typeof mock<UserRepository>>;
   let magicLinkTokenRepo: ReturnType<typeof mock<MagicLinkTokenRepository>>;
-  let notificationOutbox: ReturnType<typeof mock<NotificationOutboxPort>>;
+  let notificationOutbox: ReturnType<typeof mock<NotificationOutbox>>;
   let useCase: RequestMagicLinkUseCase;
 
   beforeEach(() => {
     userRepo = mock<UserRepository>();
     magicLinkTokenRepo = mock<MagicLinkTokenRepository>();
-    notificationOutbox = mock<NotificationOutboxPort>();
+    notificationOutbox = mock<NotificationOutbox>();
     const config = mock<AppConfigPort>();
     config.get.mockReturnValue('https://power-budget.pages.dev/');
     useCase = new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox, config);

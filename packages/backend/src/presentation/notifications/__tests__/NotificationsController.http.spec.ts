@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto';
 import { mock } from 'vitest-mock-extended';
 import type { NotificationRepository } from '../../../domain/notifications/ports.js';
 import { RecordEmailBounceUseCase } from '../../../application/notifications/use-cases/RecordEmailBounceUseCase.js';
+import { RESEND_WEBHOOK_VERIFIER } from '../webhook-tokens.js';
 import { SvixWebhookVerifier } from '../../../infrastructure/notifications/SvixWebhookVerifier.js';
 import { NotificationsController } from '../NotificationsController.js';
 import { createHttpTestApp, type HttpTestApp } from '../../../test/http/createHttpTestApp.js';
@@ -35,7 +36,7 @@ describe('POST /notifications/bounce (HTTP)', () => {
       controllers: [NotificationsController],
       providers: [
         { provide: RecordEmailBounceUseCase, useValue: new RecordEmailBounceUseCase(repo) },
-        { provide: SvixWebhookVerifier, useValue: new SvixWebhookVerifier(secret) },
+        { provide: RESEND_WEBHOOK_VERIFIER, useValue: new SvixWebhookVerifier(secret) },
       ],
     });
   }
