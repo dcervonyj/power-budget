@@ -15,7 +15,7 @@
   },
   "scripts": {
     "build": "tsc -b && node dist/cli.js > dist/tokens.css && node dist/glass/cli.js > dist/glass.css",
-    "dev": "tsc -b --watch --preserveWatchOutput",
+    "dev": "node scripts/dev.mjs",
     "typecheck": "tsc -b --pretty",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
