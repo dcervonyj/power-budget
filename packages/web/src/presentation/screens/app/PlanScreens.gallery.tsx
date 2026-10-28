@@ -6,7 +6,12 @@ import { Drawer } from '../../components/Drawer.js';
 import { Modal } from '../../components/Modal.js';
 import { PlannedItemHistoryView } from '../../components/PlannedItemHistoryView.js';
 import { AmbientField } from '../../glass/material/AmbientField.js';
-import { PlanEditorView, type PlanDraftItem, type PlanEditorViewProps } from './PlanEditorView.js';
+import {
+  NO_DRAFT_ERRORS,
+  PlanEditorView,
+  type PlanDraftItem,
+  type PlanEditorViewProps,
+} from './PlanEditorView.js';
 import type { PlanItemRowModel } from './PlanItemRows.js';
 import { PlansListView, type PlansListViewProps } from './PlansListView.js';
 
@@ -99,6 +104,7 @@ function editorProps(overrides: Partial<PlanEditorViewProps> = {}): PlanEditorVi
     income: INCOME,
     limits: LIMITS,
     draft: DRAFT,
+    draftErrors: NO_DRAFT_ERRORS,
     draftCategories: [
       { value: 'cat-home', label: 'Home' },
       { value: 'cat-health', label: 'Health' },
@@ -114,6 +120,7 @@ function editorProps(overrides: Partial<PlanEditorViewProps> = {}): PlanEditorVi
     onSave: noop,
     onChange: noop,
     onHistory: noop,
+    onInvalidAmount: noop,
     onRemove: noop,
     ...overrides,
   };

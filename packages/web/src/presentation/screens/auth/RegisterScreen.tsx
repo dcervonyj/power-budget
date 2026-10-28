@@ -1,8 +1,9 @@
 import { apiClient } from '../../../composition.js';
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { readApiError } from '@power-budget/shared-app';
 import type { LocaleCode, RegisterDto } from '@power-budget/shared-app/contract';
-import { RegisterView, type RegisterError } from './RegisterView.js';
+import { MIN_PASSWORD_LENGTH, RegisterView, type RegisterError } from './RegisterView.js';
 
 const SUPPORTED_LOCALES: readonly LocaleCode[] = ['en', 'uk', 'ru', 'pl'];
 
@@ -12,8 +13,19 @@ function resolveLocale(): LocaleCode {
   return SUPPORTED_LOCALES.find((locale) => locale === stored) ?? 'en';
 }
 
-function isApiError(err: unknown): err is { response?: { status?: number } } {
-  return typeof err === 'object' && err !== null && 'response' in err;
+function classifyRegisterError(err: unknown): RegisterError {
+  const { status, code } = readApiError(err);
+  if (status === 409) {
+    return 'emailInUse';
+  }
+  if (status === 429 || code === 'too_many_requests') {
+    return 'tooManyAttempts';
+  }
+  if (status === 400) {
+    return 'invalidInput';
+  }
+
+  return 'serverError';
 }
 
 export function RegisterScreen(): React.JSX.Element {
@@ -27,6 +39,11 @@ export function RegisterScreen(): React.JSX.Element {
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setRegisterError('passwordTooShort');
+
+      return;
+    }
     setIsLoading(true);
     setRegisterError(null);
     try {
@@ -36,11 +53,7 @@ export function RegisterScreen(): React.JSX.Element {
       // Keep RequireAuth's target (an invite link) for the login that follows.
       navigate('/login', { state: location.state });
     } catch (err) {
-      if (isApiError(err) && err.response?.status === 409) {
-        setRegisterError('emailInUse');
-      } else {
-        setRegisterError('serverError');
-      }
+      setRegisterError(classifyRegisterError(err));
     } finally {
       setIsLoading(false);
     }

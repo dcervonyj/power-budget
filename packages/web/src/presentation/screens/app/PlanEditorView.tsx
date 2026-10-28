@@ -41,12 +41,22 @@ export interface PlanDraftItem {
   readonly currency: string;
 }
 
+/** Which fields of the new-item row failed the last "Add item" attempt. */
+export interface PlanDraftErrors {
+  readonly category: boolean;
+  readonly amount: boolean;
+  readonly currency: boolean;
+}
+
+export const NO_DRAFT_ERRORS: PlanDraftErrors = { category: false, amount: false, currency: false };
+
 export interface PlanEditorViewProps extends PlanItemRowHandlers {
   readonly plan: PlanDto;
   readonly totals: PlanTotals;
   readonly income: readonly PlanItemRowModel[];
   readonly limits: readonly PlanItemRowModel[];
   readonly draft: PlanDraftItem;
+  readonly draftErrors: PlanDraftErrors;
   readonly draftCategories: readonly SelectOption[];
   readonly saving: boolean;
   readonly saveError: string | null;
@@ -72,6 +82,12 @@ const TILE_CONTENT: React.CSSProperties = {
   gap: 'var(--pb-glass-space-xs)',
   alignItems: 'flex-start',
   padding: 'var(--pb-glass-space-lg) var(--pb-glass-space-xl)',
+};
+
+const FIELD_ERROR_STYLE: React.CSSProperties = {
+  margin: 0,
+  color: 'var(--pb-glass-over)',
+  fontSize: 'var(--pb-glass-type-small-web, 14px)',
 };
 
 const FORM_GRID: React.CSSProperties = {
@@ -327,6 +343,7 @@ function PlanDetails({
 
 function NewItemRow({
   draft,
+  draftErrors,
   draftCategories,
   onDraftChange,
   onAddItem,
@@ -358,62 +375,90 @@ function NewItemRow({
   });
 
   return (
-    <div style={FORM_GRID}>
-      <Select<PlannedItemDirectionDto>
-        options={directionOptions}
-        value={draft.direction}
-        label={intl.formatMessage({
-          id: 'screen.planEditor.itemDirectionHeader',
-          defaultMessage: 'Direction',
-        })}
-        id="plan-new-item-direction"
-        onChange={(direction) => {
-          // Categories are per kind: a new direction needs a new category.
-          onDraftChange({ ...draft, direction, categoryId: '' });
-        }}
-      />
-      <Select<string>
-        id="plan-new-item-category"
-        options={draftCategories}
-        value={draft.categoryId}
-        label={intl.formatMessage({
-          id: 'screen.planEditor.itemCategoryHeader',
-          defaultMessage: 'Category',
-        })}
-        placeholder={intl.formatMessage({
-          id: 'screen.planEditor.itemCategoryPlaceholder',
-          defaultMessage: 'Category',
-        })}
-        onChange={(categoryId) => {
-          onDraftChange({ ...draft, categoryId });
-        }}
-      />
-      <input
-        type="text"
-        inputMode="decimal"
-        value={draft.amount}
-        placeholder={amountLabel}
-        aria-label={amountLabel}
-        className="pbg-ctl pbg-ctl-field"
-        style={FIELD_INPUT_STYLE}
-        onChange={(event) => {
-          onDraftChange({ ...draft, amount: event.target.value });
-        }}
-      />
-      <input
-        type="text"
-        value={draft.currency}
-        placeholder={currencyLabel}
-        aria-label={currencyLabel}
-        className="pbg-ctl pbg-ctl-field"
-        style={FIELD_INPUT_STYLE}
-        onChange={(event) => {
-          onDraftChange({ ...draft, currency: event.target.value });
-        }}
-      />
-      <Button variant="primary" onClick={onAddItem}>
-        <FormattedMessage id="screen.planEditor.addItemButton" defaultMessage="Add item" />
-      </Button>
-    </div>
+    <>
+      <div style={FORM_GRID}>
+        <Select<PlannedItemDirectionDto>
+          options={directionOptions}
+          value={draft.direction}
+          label={intl.formatMessage({
+            id: 'screen.planEditor.itemDirectionHeader',
+            defaultMessage: 'Direction',
+          })}
+          id="plan-new-item-direction"
+          onChange={(direction) => {
+            // Categories are per kind: a new direction needs a new category.
+            onDraftChange({ ...draft, direction, categoryId: '' });
+          }}
+        />
+        <Select<string>
+          id="plan-new-item-category"
+          options={draftCategories}
+          value={draft.categoryId}
+          label={intl.formatMessage({
+            id: 'screen.planEditor.itemCategoryHeader',
+            defaultMessage: 'Category',
+          })}
+          placeholder={intl.formatMessage({
+            id: 'screen.planEditor.itemCategoryPlaceholder',
+            defaultMessage: 'Category',
+          })}
+          onChange={(categoryId) => {
+            onDraftChange({ ...draft, categoryId });
+          }}
+        />
+        <input
+          type="text"
+          inputMode="decimal"
+          value={draft.amount}
+          placeholder={amountLabel}
+          aria-label={amountLabel}
+          aria-invalid={draftErrors.amount}
+          className="pbg-ctl pbg-ctl-field"
+          style={FIELD_INPUT_STYLE}
+          onChange={(event) => {
+            onDraftChange({ ...draft, amount: event.target.value });
+          }}
+        />
+        <input
+          type="text"
+          value={draft.currency}
+          placeholder={currencyLabel}
+          aria-label={currencyLabel}
+          aria-invalid={draftErrors.currency}
+          className="pbg-ctl pbg-ctl-field"
+          style={FIELD_INPUT_STYLE}
+          onChange={(event) => {
+            onDraftChange({ ...draft, currency: event.target.value });
+          }}
+        />
+        <Button variant="primary" onClick={onAddItem}>
+          <FormattedMessage id="screen.planEditor.addItemButton" defaultMessage="Add item" />
+        </Button>
+      </div>
+      {draftErrors.category && (
+        <p role="alert" style={FIELD_ERROR_STYLE}>
+          <FormattedMessage
+            id="screen.planEditor.fieldError.category"
+            defaultMessage="Choose a category for the item."
+          />
+        </p>
+      )}
+      {draftErrors.amount && (
+        <p role="alert" style={FIELD_ERROR_STYLE}>
+          <FormattedMessage
+            id="screen.planEditor.fieldError.amount"
+            defaultMessage="Enter a valid amount, for example 250.50."
+          />
+        </p>
+      )}
+      {draftErrors.currency && (
+        <p role="alert" style={FIELD_ERROR_STYLE}>
+          <FormattedMessage
+            id="screen.planEditor.fieldError.currency"
+            defaultMessage="Enter a supported currency code, for example PLN."
+          />
+        </p>
+      )}
+    </>
   );
 }

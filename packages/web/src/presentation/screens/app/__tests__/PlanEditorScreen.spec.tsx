@@ -105,6 +105,95 @@ describe('PlanEditorScreen amounts (UI-013)', () => {
   });
 });
 
+describe('PlanEditorScreen silent failures (CLN-047)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(plansApi.get).mockResolvedValue(PLAN);
+    vi.mocked(plansApi.listItems).mockResolvedValue([RENT_ITEM]);
+    vi.mocked(categoriesApi.list).mockResolvedValue(CATEGORIES);
+    vi.mocked(plansApi.dashboard).mockRejectedValue(new Error('no dashboard'));
+  });
+
+  it('prefills the new item currency with the plan currency', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    const currencies = await screen.findAllByLabelText('Currency');
+
+    expect(currencies[currencies.length - 1]).toHaveValue(PLAN.baseCurrency);
+  });
+
+  it('shows a field error for a missing category and amount instead of doing nothing', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    await screen.findAllByLabelText('Amount');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(await screen.findByText('Choose a category for the item.')).toBeInTheDocument();
+    expect(screen.getByText('Enter a valid amount, for example 250.50.')).toBeInTheDocument();
+    expect(plansApi.createItem).not.toHaveBeenCalled();
+  });
+
+  it('reports only the currency, not the amount, when the currency is empty', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    await screen.findAllByLabelText('Amount');
+    const currencies = screen.getAllByLabelText('Currency');
+    fireEvent.change(currencies[currencies.length - 1] ?? document.body, {
+      target: { value: '' },
+    });
+    const amounts = screen.getAllByLabelText('Amount');
+    fireEvent.change(amounts[amounts.length - 1] ?? document.body, { target: { value: '10' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+
+    expect(
+      await screen.findByText('Enter a supported currency code, for example PLN.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Enter a valid amount, for example 250.50.')).toBeNull();
+  });
+
+  it('clears the kept-amount message on the next edit', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    const [stored] = await screen.findAllByLabelText('Amount');
+    fireEvent.change(stored ?? document.body, { target: { value: 'abc' } });
+    fireEvent.blur(stored ?? document.body);
+    await screen.findByText(/That amount is not valid/);
+    vi.mocked(plansApi.updateItem).mockResolvedValue({
+      ...RENT_ITEM,
+      amount: { amountMinor: '320000', currency: 'PLN' },
+    });
+
+    fireEvent.change(stored ?? document.body, { target: { value: '3200' } });
+    fireEvent.blur(stored ?? document.body);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/That amount is not valid/)).toBeNull();
+    });
+  });
+
+  it('clears the field errors when the user edits the row', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    await screen.findAllByLabelText('Amount');
+    fireEvent.click(screen.getByRole('button', { name: 'Add item' }));
+    await screen.findByText('Choose a category for the item.');
+    const amounts = screen.getAllByLabelText('Amount');
+
+    fireEvent.change(amounts[amounts.length - 1] ?? document.body, { target: { value: '5' } });
+
+    expect(screen.queryByText('Choose a category for the item.')).toBeNull();
+  });
+
+  it('tells the user when an inline amount is not valid and restores the stored amount', async () => {
+    renderWithProviders(<PlanEditorScreen />, { url: '/plans/plan-1', path: '/plans/:id' });
+    const [stored] = await screen.findAllByLabelText('Amount');
+
+    fireEvent.change(stored ?? document.body, { target: { value: 'abc' } });
+    fireEvent.blur(stored ?? document.body);
+
+    expect(await screen.findByText(/That amount is not valid/)).toBeInTheDocument();
+    expect(stored).toHaveValue('3000.00');
+    expect(plansApi.updateItem).not.toHaveBeenCalled();
+  });
+});
+
 describe('PlanEditorScreen D7 plan layout (DSN-023)', () => {
   beforeEach(() => {
     vi.clearAllMocks();

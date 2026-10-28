@@ -23,7 +23,12 @@ import type { CustomPeriodValue } from '../../components/CustomPeriodPicker.js';
 import { PlannedItemHistoryDrawer } from '../../components/PlannedItemHistoryDrawer.js';
 import { ErrorBanner } from '../../components/shared/ErrorBanner.js';
 import { SkeletonBlock } from '../../components/shared/SkeletonBlock.js';
-import { PlanEditorView, type PlanDraftItem } from './PlanEditorView.js';
+import {
+  NO_DRAFT_ERRORS,
+  PlanEditorView,
+  type PlanDraftErrors,
+  type PlanDraftItem,
+} from './PlanEditorView.js';
 import type { PlanItemChange, PlanItemRowModel } from './PlanItemRows.js';
 import { PAGE_STYLE } from './planStyles.js';
 
@@ -60,6 +65,7 @@ export function PlanEditorScreen(): React.JSX.Element {
     null,
   );
   const [draftItem, setDraftItem] = useState<PlanDraftItem>(EMPTY_DRAFT);
+  const [draftErrors, setDraftErrors] = useState<PlanDraftErrors>(NO_DRAFT_ERRORS);
 
   const fetchData = useCallback(async (): Promise<void> => {
     if (!id) return;
@@ -75,6 +81,10 @@ export function PlanEditorScreen(): React.JSX.Element {
         loadSpent(id),
       ]);
       setPlan(loadedPlan);
+      // The new-item row starts in the plan's own currency.
+      setDraftItem((prev) =>
+        prev.currency === '' ? { ...prev, currency: loadedPlan.baseCurrency } : prev,
+      );
       setTotalsCurrency(loadedPlan.baseCurrency);
       setItems(loadedItems);
       setCategories(loadedCategories);
@@ -162,7 +172,16 @@ export function PlanEditorScreen(): React.JSX.Element {
     if (!plan) return;
     const currency = draftItem.currency.trim().toUpperCase();
     const amountMinor = toMinorUnitsString(draftItem.amount, currency);
-    if (!draftItem.categoryId || amountMinor === null || !isSupportedCurrency(currency)) return;
+    // An empty or unsupported currency makes the amount unparsable too: report the currency only.
+    setDraftErrors({
+      category: !draftItem.categoryId,
+      amount: isSupportedCurrency(currency) && amountMinor === null,
+      currency: !isSupportedCurrency(currency),
+    });
+    if (!draftItem.categoryId || amountMinor === null || !isSupportedCurrency(currency)) {
+      return;
+    }
+    setSaveError(null);
 
     try {
       const body: CreatePlannedItemDto = {
@@ -174,7 +193,7 @@ export function PlanEditorScreen(): React.JSX.Element {
       const created = await plansApi.createItem(plan.id, body);
       referenceCatalogue.invalidate();
       setItems((prev) => [...prev, created]);
-      setDraftItem(EMPTY_DRAFT);
+      setDraftItem({ ...EMPTY_DRAFT, currency: plan.baseCurrency });
     } catch {
       setSaveError(
         intl.formatMessage({
@@ -185,8 +204,18 @@ export function PlanEditorScreen(): React.JSX.Element {
     }
   };
 
+  const handleInvalidAmount = (): void => {
+    setSaveError(
+      intl.formatMessage({
+        id: 'screen.planEditor.invalidAmountError',
+        defaultMessage: 'That amount is not valid, so the previous amount was kept.',
+      }),
+    );
+  };
+
   const handleUpdateItem = async (item: PlannedItemDto, changes: PlanItemChange): Promise<void> => {
     if (!plan) return;
+    setSaveError(null);
     const prevItems = items;
     const amount = {
       amountMinor: changes.amountMinor ?? item.amount.amountMinor,
@@ -271,6 +300,7 @@ export function PlanEditorScreen(): React.JSX.Element {
         income={rows.filter((row) => row.direction === 'income')}
         limits={rows.filter((row) => row.direction === 'expense')}
         draft={draftItem}
+        draftErrors={draftErrors}
         draftCategories={categories
           .filter((c) => !c.archived && c.kind === draftItem.direction)
           .map((c) => ({ value: c.id, label: c.name }))}
@@ -289,7 +319,11 @@ export function PlanEditorScreen(): React.JSX.Element {
         onCustomDatesChange={(dates) => {
           void handleCustomDatesChange(dates);
         }}
-        onDraftChange={setDraftItem}
+        onDraftChange={(draft) => {
+          setDraftItem(draft);
+          setSaveError(null);
+          setDraftErrors(NO_DRAFT_ERRORS);
+        }}
         onAddItem={() => {
           void handleAddItem();
         }}
@@ -302,6 +336,7 @@ export function PlanEditorScreen(): React.JSX.Element {
             void handleUpdateItem(item, change);
           }
         }}
+        onInvalidAmount={handleInvalidAmount}
         onHistory={(itemId) => {
           setHistoryDrawer({ planId: plan.id, itemId });
         }}
