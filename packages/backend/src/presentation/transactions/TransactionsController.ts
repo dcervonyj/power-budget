@@ -213,7 +213,7 @@ export class TransactionsController {
       householdId: user.householdId,
       userId: user.userId,
       patch: {
-        notes: dto.notes ?? undefined,
+        notes: dto.notes,
         ignored: dto.ignored,
       },
     });
