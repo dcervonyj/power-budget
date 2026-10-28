@@ -66,9 +66,12 @@ import { TransactionsController } from './TransactionsController.js';
     },
     {
       provide: BulkMapTransactionsUseCase,
-      inject: [DrizzleTransactionRepository, DrizzleMappingRepository],
-      useFactory: (txRepo: DrizzleTransactionRepository, mappingRepo: DrizzleMappingRepository) =>
-        new BulkMapTransactionsUseCase(txRepo, mappingRepo),
+      inject: [DrizzleTransactionRepository, DrizzleMappingRepository, LearnMerchantRuleUseCase],
+      useFactory: (
+        txRepo: DrizzleTransactionRepository,
+        mappingRepo: DrizzleMappingRepository,
+        merchantMemory: LearnMerchantRuleUseCase,
+      ) => new BulkMapTransactionsUseCase(txRepo, mappingRepo, merchantMemory),
     },
     {
       provide: BulkActOnTransactionsUseCase,
