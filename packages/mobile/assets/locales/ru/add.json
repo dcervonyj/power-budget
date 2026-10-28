@@ -20,6 +20,7 @@
   "add.save.empty": "Введите сумму",
   "add.save.saving": "Сохранение…",
   "add.saved.title": "Добавлено",
+  "add.saved.unsorted": "Сохранено, но не добавлено в {category}. Найдите расход в разделе «Разобрать».",
   "add.saved.line": "{amount} · {category}",
   "add.saved.safe": "Безопасно потратить сегодня теперь {amount} в день.",
   "add.undo": "Отменить",

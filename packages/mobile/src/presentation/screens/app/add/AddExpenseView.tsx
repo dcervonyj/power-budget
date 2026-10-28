@@ -39,6 +39,8 @@ export interface AddExpenseViewProps {
   readonly accountId: string;
   readonly status: AddExpenseStatus;
   /** Message of the last failed save or undo; null when there was none. */
+  /** The expense is saved but its category could not be attached; it waits in To sort. */
+  readonly unsorted: boolean;
   readonly error: string | null;
   readonly onTypedChange: (typed: string) => void;
   readonly onCategoryChange: (categoryId: string) => void;
@@ -351,7 +353,7 @@ function categoryLine(
 function Pickers(props: AddExpenseViewProps): React.JSX.Element {
   const styles = useStyles();
   const intl = useIntl();
-  const saving = props.status === 'saving' || props.status === 'retry';
+  const saving = props.status === 'saving';
 
   return (
     <View style={styles.group}>
@@ -461,6 +463,17 @@ function SavedPanel(props: SavedPanelProps): React.JSX.Element {
               { amount, category: props.category?.name ?? '' },
             )}
           </Text>
+          {props.unsorted ? (
+            <Text style={styles.savedLine}>
+              {intl.formatMessage(
+                {
+                  id: 'add.saved.unsorted',
+                  defaultMessage: 'Saved, but not added to {category}. Find it in To sort.',
+                },
+                { category: props.category?.name ?? '' },
+              )}
+            </Text>
+          ) : null}
           {props.impact === null ? null : (
             <Text style={styles.savedLine}>
               {intl.formatMessage(

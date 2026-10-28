@@ -36,6 +36,7 @@ export interface AddExpenseState {
   readonly categoryId: string;
   readonly accountId: string;
   readonly status: AddExpenseStatus;
+  readonly unsorted: boolean;
   readonly error: string | null;
   readonly today: string;
   readonly setTyped: (typed: string) => void;
@@ -65,7 +66,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [today, setToday] = useState(() => toLocalIsoDate(new Date()));
-  const created = useRef<CreatedExpense | null>(null);
+  const [unsorted, setUnsorted] = useState(false);
   const requestId = useRef(0);
   const unplannedName = intl.formatMessage({
     id: 'add.category.unplannedName',
@@ -129,7 +130,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   );
 
   const save = useCallback(() => {
-    if (load.kind !== 'ready' || (status !== 'editing' && status !== 'retry')) {
+    if (load.kind !== 'ready' || statusRef.current !== 'editing') {
       return;
     }
     const category = load.data.categories.find((option) => option.id === categoryId);
@@ -139,7 +140,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     }
     changeStatus('saving');
     setError(null);
-    void persist(sources.api, created, {
+    void persist(sources.api, {
       accountId: account.id,
       occurredOn: toLocalIsoDate(new Date()),
       spentMinor: typedAmountMinor(typed, account.currency),
@@ -147,9 +148,9 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
       description: category.name,
       plannedItemId: category.plannedItemId,
     }).then(
-      (transactionId) => {
-        created.current = null;
-        setSavedId(transactionId);
+      (result) => {
+        setSavedId(result.id);
+        setUnsorted(!result.mapped);
         changeStatus('saved');
       },
       () => {
@@ -159,10 +160,10 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
             defaultMessage: 'Could not save the expense. Try again.',
           }),
         );
-        changeStatus(created.current === null ? 'editing' : 'retry');
+        changeStatus('editing');
       },
     );
-  }, [accountId, categoryId, intl, load, sources.api, status, typed]);
+  }, [accountId, categoryId, intl, load, sources.api, typed]);
 
   /**
    * One rule for every dashboard read: each refresh takes a ticket and only the latest ticket
@@ -213,6 +214,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
           setTypedRaw('');
         }
         setSavedId(null);
+        setUnsorted(false);
         changeStatus('editing');
       });
     },
@@ -297,6 +299,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     categoryId,
     accountId,
     status,
+    unsorted,
     error,
     today,
     setTyped,
@@ -330,27 +333,28 @@ async function loadData(
   };
 }
 
-interface CreatedExpense {
+interface Persisted {
   readonly id: string;
-  readonly plannedItemId: string | null;
+  /** False when the transaction exists but the planned item could not be attached. */
+  readonly mapped: boolean;
 }
 
-/** Creates the transaction once; after a failed mapping a retry only maps the kept id. */
-async function persist(
-  api: AddExpenseApi,
-  created: { current: CreatedExpense | null },
-  expense: NewExpense,
-): Promise<string> {
-  if (created.current === null) {
-    const transaction = await api.create(expense);
-    created.current = { id: transaction.id, plannedItemId: expense.plannedItemId };
+/**
+ * Creates the transaction once. If only the mapping fails the expense is already saved: it is
+ * left as an uncategorized transaction (the To sort list shows it) and is never posted again.
+ */
+async function persist(api: AddExpenseApi, expense: NewExpense): Promise<Persisted> {
+  const transaction = await api.create(expense);
+  if (expense.plannedItemId === null) {
+    return { id: transaction.id, mapped: true };
   }
-  const { id, plannedItemId } = created.current;
-  if (plannedItemId !== null) {
-    await api.map(id, plannedItemId);
+  try {
+    await api.map(transaction.id, expense.plannedItemId);
+  } catch {
+    return { id: transaction.id, mapped: false };
   }
 
-  return id;
+  return { id: transaction.id, mapped: true };
 }
 
 function refreshError(intl: IntlShape): string {

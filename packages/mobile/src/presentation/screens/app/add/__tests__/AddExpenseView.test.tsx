@@ -20,6 +20,7 @@ function props(overrides: Partial<AddExpenseViewProps> = {}): AddExpenseViewProp
     categoryId: 'groceries',
     accounts: FIXTURE_ACCOUNTS,
     accountId: 'pko',
+    unsorted: false,
     status: 'editing',
     error: null,
     onTypedChange: jest.fn(),

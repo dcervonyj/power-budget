@@ -19,6 +19,7 @@ const BASE: AddExpenseViewProps = {
   categoryId: 'groceries',
   accounts: FIXTURE_ACCOUNTS,
   accountId: 'pko',
+  unsorted: false,
   status: 'editing',
   error: null,
   onTypedChange: ignore,
