@@ -18,11 +18,10 @@ jest.mock('../../../../theme/useMotion.js', () => ({
 function props(overrides: Partial<SettingsViewProps> = {}): SettingsViewProps {
   return {
     loadState: 'ready',
-    email: 'anna@example.com',
+    profile: { email: 'anna@example.com', locale: 'en' },
     nameDraft: 'Anna',
     nameSave: 'idle',
     preference: 'system',
-    locale: 'en',
     baseCurrency: 'PLN',
     preferencesError: false,
     biometricAvailable: true,
@@ -138,11 +137,13 @@ describe('SettingsView', () => {
   });
 
   it('shows a retryable load error but keeps Appearance and sign out', async () => {
-    const view = props({ loadState: 'error' });
+    const view = props({ loadState: 'error', profile: null });
     await renderView(view);
 
     expect(screen.getByText('Could not load your profile.')).toBeOnTheScreen();
     expect(screen.queryByText('Save changes')).toBeNull();
+    expect(screen.queryByText('anna@example.com')).toBeNull();
+    expect(screen.queryByText('Language')).toBeNull();
     expect(screen.getByRole('radio', { name: 'Night' })).toBeOnTheScreen();
     expect(screen.getByText('Sign out')).toBeOnTheScreen();
   });

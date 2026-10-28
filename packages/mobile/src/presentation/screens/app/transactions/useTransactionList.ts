@@ -203,6 +203,7 @@ export function useTransactionList(): TransactionListState {
   const setMapping = useCallback(
     async (row: TransactionListRow, plannedItemId: string | null): Promise<boolean> => {
       const id = row.data.id;
+      // Kept: no entry means no request in flight, a true zero.
       inFlight.current.set(id, (inFlight.current.get(id) ?? 0) + 1);
       clock.current += 1;
       changedAt.current.set(id, clock.current);

@@ -15,7 +15,7 @@ import { Input } from '../../../components/Input.js';
 import { makeStyles } from '../../../theme/index.js';
 import type { ThemePreference } from '../../../theme/index.js';
 import { LOCALE_NAMES, SETTINGS_CURRENCIES, SETTINGS_LOCALES } from './settingsTypes.js';
-import type { SettingsViewProps } from './settingsTypes.js';
+import type { SettingsProfile, SettingsViewProps } from './settingsTypes.js';
 
 const PREFERENCES: readonly ThemePreference[] = ['system', 'dark', 'light'];
 
@@ -64,9 +64,9 @@ export function SettingsView(props: SettingsViewProps): React.JSX.Element {
   return (
     <ScrollView contentContainerStyle={styles.page} testID="settings-screen">
       {props.loadState === 'error' ? <SettingsLoadError onRetry={props.onRetry} /> : null}
-      {props.loadState === 'ready' ? <ProfileSection {...props} /> : null}
+      {props.profile === null ? null : <ProfileSection {...props} profile={props.profile} />}
       <AppearanceSection {...props} />
-      {props.loadState === 'ready' ? <PreferencesSection {...props} /> : null}
+      {props.profile === null ? null : <PreferencesSection {...props} profile={props.profile} />}
       {props.biometricAvailable ? <BiometricSection {...props} /> : null}
       {signOut}
     </ScrollView>
@@ -87,7 +87,9 @@ function SettingsLoadError({ onRetry }: { readonly onRetry: () => void }): React
   );
 }
 
-function ProfileSection(props: SettingsViewProps): React.JSX.Element {
+function ProfileSection(
+  props: SettingsViewProps & { readonly profile: SettingsProfile },
+): React.JSX.Element {
   const intl = useIntl();
   const styles = useStyles();
   const name = intl.formatMessage({ id: 'settings.profile.name', defaultMessage: 'Display name' });
@@ -99,7 +101,7 @@ function ProfileSection(props: SettingsViewProps): React.JSX.Element {
       </Text>
       <View style={styles.identity}>
         <Avatar person={{ name: props.nameDraft }} size={56} />
-        <Text style={styles.email}>{props.email}</Text>
+        <Text style={styles.email}>{props.profile.email}</Text>
       </View>
       <Input label={name} value={props.nameDraft} onChangeText={props.onNameChange} />
       <Button
@@ -182,7 +184,9 @@ function AppearanceSection({
   );
 }
 
-function PreferencesSection(props: SettingsViewProps): React.JSX.Element {
+function PreferencesSection(
+  props: SettingsViewProps & { readonly profile: SettingsProfile },
+): React.JSX.Element {
   const intl = useIntl();
   const styles = useStyles();
   const language = intl.formatMessage({ id: 'settings.locale.title', defaultMessage: 'Language' });
@@ -198,7 +202,7 @@ function PreferencesSection(props: SettingsViewProps): React.JSX.Element {
       </Text>
       <FilterChips
         label={language}
-        value={props.locale}
+        value={props.profile.locale}
         onChange={props.onLocaleChange}
         options={SETTINGS_LOCALES.map((value) => ({ value, label: LOCALE_NAMES[value] }))}
       />

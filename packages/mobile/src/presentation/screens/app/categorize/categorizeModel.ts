@@ -1,4 +1,4 @@
-import { NO_LABEL } from '../../../../domain/display.js';
+import { requireCategoryName } from '../../../../domain/categoryName.js';
 import { parseMinorUnits } from '@power-budget/core';
 import type { MinorUnitAmount } from '@power-budget/core';
 import { lightFraction } from '@power-budget/shared-app';
@@ -64,7 +64,7 @@ export function choicesOf(
 
   return lines.map(({ line, direction }) => ({
     plannedItemId: line.plannedItemId,
-    name: categoryNames.get(line.categoryId) ?? NO_LABEL,
+    name: requireCategoryName(categoryNames, line.categoryId),
     planName,
     direction,
     plannedMinor: parseMinorUnits(line.planned.amountMinor),

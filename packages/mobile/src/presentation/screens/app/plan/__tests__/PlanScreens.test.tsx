@@ -149,13 +149,6 @@ describe('PlanEditorScreen', () => {
     expect(mockApi.updateItem).toHaveBeenCalledTimes(1);
   });
 
-  it('labels an item by its category id when the category list lacks it', async () => {
-    mockCategories.list.mockResolvedValue([]);
-    await renderGlass(<PlanEditorScreen {...editorProps()} />);
-
-    expect(await screen.findByLabelText(`${ITEM.categoryId} amount`)).toBeTruthy();
-  });
-
   it('rolls an amount back and shows an error when the save fails', async () => {
     mockApi.updateItem.mockImplementation(
       () => new Promise((_resolve, reject) => setTimeout(() => reject(new Error('boom')), 20)),

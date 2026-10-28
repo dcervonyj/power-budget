@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { PlanDashboardResponseDto } from '@power-budget/shared-app/contract';
+import { UnknownCategoryError } from '../../../domain/categoryName.js';
 import { DashboardView } from '../DashboardView.js';
 
 const money = (amountMinor: string): { amountMinor: string; currency: 'PLN' } => ({
@@ -43,19 +44,37 @@ const dto: PlanDashboardResponseDto = {
 };
 
 describe('DashboardView.fromDto', () => {
+  it('rejects a line whose category is not in the name map', () => {
+    expect(() => DashboardView.fromDto(dto, new Map([['cat-1', 'Food']]))).toThrow(
+      UnknownCategoryError,
+    );
+  });
+
   it('maps lines, names and the period from the contract shape', () => {
-    const view = DashboardView.fromDto(dto, new Map([['cat-1', 'Food']]));
+    const view = DashboardView.fromDto(
+      dto,
+      new Map([
+        ['cat-1', 'Food'],
+        ['cat-2', 'Rent'],
+      ]),
+    );
 
     expect(view.periodStart).toBe('2026-10-01');
     expect(view.periodEnd).toBe('2026-10-31');
     expect(view.incomeRows).toEqual([]);
-    expect(view.expenseRows.map((row) => row.name)).toEqual(['Food', '']);
+    expect(view.expenseRows.map((row) => row.name)).toEqual(['Food', 'Rent']);
     expect(view.net).toEqual(money('-500'));
     expect(view.unplannedExpenses).toEqual(money('4200'));
   });
 
   it('computes the ratio from exact bigints and is 0 when nothing is planned', () => {
-    const view = DashboardView.fromDto(dto, new Map());
+    const view = DashboardView.fromDto(
+      dto,
+      new Map([
+        ['cat-1', 'Food'],
+        ['cat-2', 'Rent'],
+      ]),
+    );
 
     expect(view.expenseRows.map((row) => row.ratio)).toEqual([0.5, 0]);
   });

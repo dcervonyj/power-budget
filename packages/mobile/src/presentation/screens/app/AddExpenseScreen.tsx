@@ -96,7 +96,7 @@ function createSources(): AddExpenseGateway {
   return {
     activePlans: () => plansApi.list('active'),
     dashboard: (planId) => plansApi.dashboard(planId),
-    categories: () => categoriesApi.list(),
+    categories: () => categoriesApi.list({ includeArchived: true }),
     accounts: () => api.accounts(),
     api,
   };
