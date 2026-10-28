@@ -77,10 +77,10 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "axios": "^1.18.0",
-    "mobx": "^6"
+    "axios": "^1.18.0"
   },
   "peerDependencies": {
+    "mobx": "^6",
     "mobx-react-lite": "^4.0.7",
     "react": "^18.2.0 || ^19.0.0"
   },
@@ -95,6 +95,7 @@
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^18",
+    "mobx": "^6.16.1",
     "mobx-react-lite": "^4.0.7",
     "openapi-typescript": "^7.13.0",
     "react": "^18",
