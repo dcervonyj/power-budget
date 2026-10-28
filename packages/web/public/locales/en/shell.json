@@ -20,5 +20,7 @@
   "shell.theme.label": "Appearance",
   "shell.theme.system": "System",
   "shell.theme.dark": "Night",
-  "shell.theme.light": "Day"
+  "shell.theme.light": "Day",
+  "shell.crash.message": "Something went wrong. Reloading the page usually fixes it.",
+  "shell.crash.reload": "Reload"
 }
