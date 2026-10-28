@@ -40,5 +40,7 @@
   "tx.list.moreError": "Could not load more transactions.",
   "tx.detail.pickerError": "Could not load the categories.",
   "tx.list.reloadError": "Could not refresh the transactions. What you see may be out of date.",
+  "tx.list.monthError": "Could not load the month summary.",
+  "tx.list.categoriesError": "Could not load the categories, so suggestions cannot be confirmed.",
   "tx.list.loadedOnly": "Counts and totals cover the transactions loaded so far."
 }

@@ -48,6 +48,8 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
 
   const load = useCallback(async (): Promise<void> => {
     try {
+      // Writes still on their way (a Confirm on the list) land first, or this read shows the old mapping.
+      await writeQueue.run(() => Promise.resolve());
       const view = TransactionView.fromDetail(await transactionsGateway.detail(transactionId));
       setTransaction(view);
       setNotes(view.notes ?? '');

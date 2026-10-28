@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { TransactionListItemDto, TransactionPageDto } from '@power-budget/shared-app/contract';
+import { categoriesApi, plansApi } from '../../../../../infrastructure/index.js';
 import { transactionsGateway } from '../transactionsGateway.js';
 import { useTransactionList } from '../useTransactionList.js';
 
@@ -184,5 +185,37 @@ describe('useTransactionList pending changes and stale pages', () => {
 
     expect(result.current.counts.all).toBe(1);
     expect(result.current.hasMore).toBe(false);
+  });
+});
+
+describe('useTransactionList supporting loads', () => {
+  afterEach(() => {
+    jest.mocked(plansApi.list).mockResolvedValue([]);
+    jest.mocked(categoriesApi.list).mockResolvedValue([]);
+  });
+
+  it('flags a failed month summary and recovers on retry', async () => {
+    page.mockResolvedValue(onePage(item('a', false)));
+    jest.mocked(plansApi.list).mockRejectedValue(new Error('offline'));
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.monthFailed).toBe(true));
+    expect(result.current.month).toBeUndefined();
+
+    jest.mocked(plansApi.list).mockResolvedValue([]);
+    await act(async () => result.current.retrySupport());
+
+    await waitFor(() => expect(result.current.monthFailed).toBe(false));
+  });
+
+  it('flags failed categories, which hide Confirm, and recovers on retry', async () => {
+    page.mockResolvedValue(onePage(item('a', false, 'item-1')));
+    jest.mocked(categoriesApi.list).mockRejectedValue(new Error('offline'));
+    const { result } = await renderHook(() => useTransactionList());
+    await waitFor(() => expect(result.current.categoriesFailed).toBe(true));
+
+    jest.mocked(categoriesApi.list).mockResolvedValue([]);
+    await act(async () => result.current.retrySupport());
+
+    await waitFor(() => expect(result.current.categoriesFailed).toBe(false));
   });
 });

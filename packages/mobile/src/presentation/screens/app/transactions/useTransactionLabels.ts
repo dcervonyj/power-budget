@@ -21,6 +21,8 @@ export interface TransactionLabels {
   sortError(): string;
   moreError(): string;
   reloadError(): string;
+  monthError(): string;
+  categoriesError(): string;
   loadedOnly(): string;
   detailError(): string;
   detailNotFound(): string;
@@ -122,6 +124,12 @@ export function useTransactionLabels(): TransactionLabels {
       text(
         'tx.list.reloadError',
         'Could not refresh the transactions. What you see may be out of date.',
+      ),
+    monthError: () => text('tx.list.monthError', 'Could not load the month summary.'),
+    categoriesError: () =>
+      text(
+        'tx.list.categoriesError',
+        'Could not load the categories, so suggestions cannot be confirmed.',
       ),
     loadedOnly: () =>
       text('tx.list.loadedOnly', 'Counts and totals cover the transactions loaded so far.'),

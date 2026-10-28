@@ -40,5 +40,7 @@
   "tx.list.moreError": "Nie udało się wczytać kolejnych transakcji.",
   "tx.detail.pickerError": "Nie udało się wczytać kategorii.",
   "tx.list.reloadError": "Nie udało się odświeżyć transakcji. To, co widzisz, może być nieaktualne.",
+  "tx.list.monthError": "Nie udało się wczytać podsumowania miesiąca.",
+  "tx.list.categoriesError": "Nie udało się wczytać kategorii, więc nie można potwierdzić sugestii.",
   "tx.list.loadedOnly": "Liczby i sumy obejmują dotąd wczytane transakcje."
 }
