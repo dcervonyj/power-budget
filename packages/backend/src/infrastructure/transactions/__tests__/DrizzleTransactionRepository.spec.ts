@@ -55,7 +55,11 @@ describe('DrizzleTransactionRepository', () => {
   }
 
   it('insertBankBatch writes the batch with one statement and counts the created rows', async () => {
-    const mockDb = { execute: vi.fn().mockResolvedValue({ rows: [{ id: 'a' }] }) };
+    const mockDb = {
+      execute: vi.fn().mockResolvedValue({ rows: [{ id: 'a' }] }),
+      transaction: vi.fn(),
+    };
+    mockDb.transaction.mockImplementation((work: (tx: unknown) => unknown) => work(mockDb));
 
     const repo = new DrizzleTransactionRepository(mockDb as never);
     const created = await repo.insertBankBatch([bankRow('a', 'e1'), bankRow('b', 'e2')], OWNER);

@@ -49,8 +49,10 @@ export class SuggestFromMerchantRulesUseCase {
     householdId: HouseholdId,
     itemByRuleAndDate: Map<string, PlannedItemId | null>,
   ): Promise<TransactionSuggestionFields | null> {
-    // A confident planned item hint (AI-004) is tried first and wins; a weak one yields to a rule.
-    if (row.ignored || (row.suggestion !== undefined && !isWeakHintSuggestion(row.suggestion))) {
+    // A confident planned item hint (AI-004) is tried first and wins; a weak one is kept unless
+    // a rule resolves to a planned item with a higher confidence.
+    const hint = row.suggestion;
+    if (row.ignored || (hint !== undefined && !isWeakHintSuggestion(hint))) {
       return null;
     }
 
@@ -77,10 +79,18 @@ export class SuggestFromMerchantRulesUseCase {
       itemByRuleAndDate.set(cacheKey, plannedItemId);
     }
 
+    const confidence = merchantRuleConfidence(rule.hits);
+    if (
+      hint !== undefined &&
+      (plannedItemId === null || confidence <= (hint.suggestionConfidence ?? 0))
+    ) {
+      return null;
+    }
+
     return {
       suggestedPlannedItemId: plannedItemId,
       suggestedCategoryId: rule.categoryId,
-      suggestionConfidence: merchantRuleConfidence(rule.hits),
+      suggestionConfidence: confidence,
       suggestionSource: 'merchant_rule',
       autoMapped: false,
     };
