@@ -25,7 +25,10 @@ export class DrizzleHouseholdExportRepository implements HouseholdExportReposito
         createdAt: new Date(),
       })
       .returning();
-    if (!row) throw new Error('Failed to create export');
+    if (!row) {
+      throw new Error('Failed to create export');
+    }
+
     return this.toEntity(row);
   }
 
@@ -49,6 +52,7 @@ export class DrizzleHouseholdExportRepository implements HouseholdExportReposito
       .from(schema.householdExports)
       .where(eq(schema.householdExports.id, id))
       .limit(1);
+
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
@@ -59,6 +63,7 @@ export class DrizzleHouseholdExportRepository implements HouseholdExportReposito
       .where(eq(schema.householdExports.householdId, householdId))
       .orderBy(desc(schema.householdExports.createdAt))
       .limit(1);
+
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 

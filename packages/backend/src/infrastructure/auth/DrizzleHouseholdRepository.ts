@@ -17,6 +17,7 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
 
   async findById(id: HouseholdId): Promise<Household | null> {
     const rows = await this.db.select().from(schema.households).where(eq(schema.households.id, id));
+
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
@@ -30,6 +31,7 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
         createdAt: new Date(),
       })
       .returning();
+
     return this.toEntity(rows[0]!);
   }
 
@@ -42,6 +44,7 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
     await this.db
       .insert(schema.householdUsers)
       .values({ householdId, userId, role, joinedAt: now });
+
     return { householdId, userId, role, joinedAt: now };
   }
 
@@ -54,7 +57,10 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
       .from(schema.householdUsers)
       .where(eq(schema.householdUsers.householdId, householdId));
     const row = rows.find((r) => r.userId === userId);
-    if (!row) return null;
+    if (!row) {
+      return null;
+    }
+
     return {
       householdId: row.householdId as HouseholdId,
       userId: row.userId as UserId,
@@ -70,6 +76,7 @@ export class DrizzleHouseholdRepository implements HouseholdRepository {
       .innerJoin(schema.households, eq(schema.householdUsers.householdId, schema.households.id))
       .where(eq(schema.householdUsers.userId, userId))
       .limit(1);
+
     return rows[0] ? this.toEntity(rows[0].household) : null;
   }
 

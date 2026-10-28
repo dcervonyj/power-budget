@@ -4,6 +4,7 @@ import type { Plan, NewPlan, PlanPeriod, PlanPeriodKind } from './entities.js';
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
   d.setUTCDate(d.getUTCDate() + days);
+
   return d;
 }
 
@@ -59,17 +60,20 @@ function nextPeriod(periodKind: PlanPeriodKind, current: PlanPeriod): PlanPeriod
   switch (periodKind) {
     case 'weekly': {
       const nextEnd = addDays(nextStart, 6);
+
       return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
     case 'monthly': {
       const anchorDay = monthlyAnchorDay(parseIsoDate(current.start), end);
       const nextEnd = addDays(addMonthsClamped(nextStart, 1, anchorDay), -1);
+
       return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
     case 'custom': {
       const start = parseIsoDate(current.start);
       const durationDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
       const nextEnd = addDays(nextStart, durationDays);
+
       return { start: toIsoDate(nextStart), end: toIsoDate(nextEnd) };
     }
   }
@@ -98,6 +102,7 @@ export class PlanCloning {
    */
   static buildClone(source: Plan, newId: Plan['id'], overridePeriod?: PlanPeriod): NewPlan {
     const period = PlanCloning.computeClonePeriod(source, overridePeriod);
+
     return {
       id: newId,
       householdId: source.householdId,
@@ -117,7 +122,9 @@ export class PlanCloning {
    * the owner; the candidate's own id (on update) is ignored.
    */
   static assertNoDuplicateActivePlan(existing: Plan[], candidate: PlanCandidate): void {
-    if (candidate.periodKind === 'custom') return; // custom is exempt
+    if (candidate.periodKind === 'custom') {
+      return;
+    } // custom is exempt
 
     const conflict = existing.find(
       (p) =>

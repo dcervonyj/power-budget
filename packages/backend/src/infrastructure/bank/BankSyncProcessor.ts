@@ -80,7 +80,9 @@ export class BankSyncProcessor extends WorkerHost {
 
       for (const rawAccount of accounts) {
         const dbAccount = dbAccounts.find((a) => a.externalId === rawAccount.externalId);
-        if (dbAccount === undefined) continue;
+        if (dbAccount === undefined) {
+          continue;
+        }
 
         // Scheduled sync: nobody is present, so no PSU context (SYNC-003 adds attended runs).
         const rawTxs = await connector.fetchTransactions({
@@ -133,7 +135,9 @@ export class BankSyncProcessor extends WorkerHost {
   }
 
   private checkExpiryReminder(connection: { expiresAt: Date | null }): void {
-    if (connection.expiresAt === null) return;
+    if (connection.expiresAt === null) {
+      return;
+    }
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(
       sevenDaysFromNow.getDate() + BankSyncProcessor.RECONNECT_REMINDER_DAYS,

@@ -30,6 +30,7 @@ export class IdempotentIngest {
     const ordinal = input.ordinal ?? 0;
     // Ordinal 0 keeps the key every earlier ingest stored, so no history is re-ingested.
     const raw = (ordinal >= 1 ? [...parts, ordinal.toString()] : parts).join('|');
+
     return createHash('sha256').update(raw).digest('hex').slice(0, 32);
   }
 
