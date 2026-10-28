@@ -46,6 +46,8 @@ export class ApiClient implements HttpClient {
   private readonly _axios: AxiosInstance;
   private refreshInFlight = false;
   private refreshQueue: QueuedRequest[] = [];
+  /** Bumped on every deliberate sign-out; a refresh that started earlier must not store tokens. */
+  private sessionEpoch = 0;
 
   constructor(
     baseURL: string,
@@ -106,6 +108,15 @@ export class ApiClient implements HttpClient {
     headers?: Record<string, string>,
   ): Promise<HttpResponse<T>> {
     return this.request<T>({ url, method: 'DELETE', ...(headers ? { headers } : {}) });
+  }
+
+  /**
+   * Ends the session on purpose (sign-out): refreshes already in flight are invalidated first, so
+   * a late rotated pair can never be stored again after the tokens are cleared.
+   */
+  async invalidateSession(): Promise<void> {
+    this.sessionEpoch += 1;
+    await this.endSession();
   }
 
   private attachAccessToken(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
@@ -177,7 +188,11 @@ export class ApiClient implements HttpClient {
       await this.endSession();
       throw originalError;
     }
+    const epoch = this.sessionEpoch;
     const outcome = await this.requestRefresh(refreshToken);
+    if (epoch !== this.sessionEpoch) {
+      throw originalError;
+    }
     if (outcome.kind === 'adopted') {
       return outcome.accessToken;
     }

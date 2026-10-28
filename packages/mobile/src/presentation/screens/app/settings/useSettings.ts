@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useIntl } from 'react-intl';
 import type { UpdateUserProfileDto, UserProfileDto } from '@power-budget/shared-app/contract';
-import { apiClient, biometricUnlockService, tokenStore } from '../../../../infrastructure/index.js';
+import { apiClient, biometricUnlockService } from '../../../../infrastructure/index.js';
 import { useAppLocale } from '../../../LocaleProvider.js';
 import { useTheme } from '../../../theme/index.js';
 import type {
@@ -18,7 +18,9 @@ const SAVED_VISIBLE_MS = 2500;
 export function useSettings(): SettingsViewProps {
   const intl = useIntl();
   const { preference, setPreference } = useTheme();
-  const { setLocale } = useAppLocale();
+  const { locale: appLocale, setLocale } = useAppLocale();
+  const appLocaleRef = useRef(appLocale);
+  appLocaleRef.current = appLocale;
   const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
   const [profile, setProfile] = useState<UserProfileDto | null>(null);
   const [loadState, setLoadState] = useState<SettingsLoadState>('loading');
@@ -34,12 +36,15 @@ export function useSettings(): SettingsViewProps {
     try {
       const loaded = (await apiClient.get<UserProfileDto>('/users/me')).data;
       setProfile(loaded);
+      if (loaded.locale !== appLocaleRef.current) {
+        setLocale(loaded.locale);
+      }
       setNameDraft(loaded.displayName);
       setLoadState('ready');
     } catch {
       setLoadState('error');
     }
-  }, []);
+  }, [setLocale]);
 
   useEffect(() => {
     void load();
@@ -116,7 +121,7 @@ export function useSettings(): SettingsViewProps {
   async function signOut(): Promise<void> {
     setSigningOut(true);
     try {
-      await tokenStore.clearTokens();
+      await apiClient.invalidateSession();
     } finally {
       setSigningOut(false);
     }

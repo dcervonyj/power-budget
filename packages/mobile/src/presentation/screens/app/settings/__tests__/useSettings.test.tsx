@@ -22,7 +22,7 @@ jest.mock('../../../../LocaleProvider.js', () => ({
 
 const mockGet = jest.fn();
 const mockPatch = jest.fn();
-const mockClearTokens = jest.fn();
+const mockInvalidate = jest.fn();
 const mockCanUse = jest.fn();
 const mockIsEnabled = jest.fn();
 const mockSetEnabled = jest.fn();
@@ -33,8 +33,8 @@ jest.mock('../../../../../infrastructure/index.js', () => ({
   apiClient: {
     get: (url: string): Promise<unknown> => mockGet(url),
     patch: (url: string, body: unknown): Promise<unknown> => mockPatch(url, body),
+    invalidateSession: (): Promise<void> => mockInvalidate(),
   },
-  tokenStore: { clearTokens: (): Promise<void> => mockClearTokens() },
   biometricUnlockService: {
     canUseBiometrics: (): Promise<boolean> => mockCanUse(),
     isBiometricEnabled: (): Promise<boolean> => mockIsEnabled(),
@@ -73,7 +73,7 @@ beforeEach(() => {
     .mockImplementation((_url: string, body: object) =>
       Promise.resolve({ data: { ...PROFILE, ...body } }),
     );
-  mockClearTokens.mockReset().mockResolvedValue(undefined);
+  mockInvalidate.mockReset().mockResolvedValue(undefined);
   mockCanUse.mockReset().mockResolvedValue(true);
   mockIsEnabled.mockReset().mockResolvedValue(false);
   mockSetEnabled.mockReset().mockResolvedValue(undefined);
@@ -168,13 +168,13 @@ describe('useSettings', () => {
     expect(mockSetEnabled).toHaveBeenCalledWith(true);
   });
 
-  it('clears the tokens on sign out', async () => {
+  it('invalidates in-flight refreshes and ends the session on sign out', async () => {
     const { result } = await renderHook(useSettings, { wrapper });
     await act(async () => {
       result.current.onSignOut();
     });
 
-    expect(mockClearTokens).toHaveBeenCalledTimes(1);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
   });
 
   it('applies concurrent saves in order, so the last choice wins', async () => {
@@ -210,5 +210,24 @@ describe('useSettings', () => {
     await waitFor(() => {
       expect(result.current.baseCurrency).toBe('USD');
     });
+  });
+
+  it('applies the server locale to the app when it differs on load', async () => {
+    mockGet.mockResolvedValue({ data: { ...PROFILE, locale: 'pl' } });
+    const { result } = await renderHook(useSettings, { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loadState).toBe('ready');
+    });
+    expect(mockSetLocale).toHaveBeenCalledWith('pl');
+  });
+
+  it('leaves the app language alone when the server locale already matches', async () => {
+    const { result } = await renderHook(useSettings, { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.loadState).toBe('ready');
+    });
+    expect(mockSetLocale).not.toHaveBeenCalled();
   });
 });

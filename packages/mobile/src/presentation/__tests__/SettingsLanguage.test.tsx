@@ -37,8 +37,8 @@ jest.mock('../../infrastructure/index.js', () => ({
     get: (): Promise<unknown> => Promise.resolve({ data: PROFILE }),
     patch: (_url: string, body: object): Promise<unknown> =>
       Promise.resolve({ data: { ...PROFILE, ...body } }),
+    invalidateSession: (): Promise<void> => Promise.resolve(),
   },
-  tokenStore: { clearTokens: (): Promise<void> => Promise.resolve() },
   biometricUnlockService: {
     canUseBiometrics: (): Promise<boolean> => Promise.resolve(false),
     isBiometricEnabled: (): Promise<boolean> => Promise.resolve(false),
