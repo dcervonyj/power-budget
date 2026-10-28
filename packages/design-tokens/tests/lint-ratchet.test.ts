@@ -11,13 +11,14 @@ process.env.TSESTREE_SINGLE_RUN = 'false';
 
 const repoRoot = resolve(__dirname, '../../..');
 const filePath = resolve(repoRoot, 'packages/design-tokens/src/index.ts');
+const backendFilePath = resolve(repoRoot, 'packages/backend/src/app.module.ts');
 const eslint = new ESLint({
   cwd: repoRoot,
   overrideConfigFile: resolve(repoRoot, 'eslint.config.js'),
 });
 
-async function ruleIds(code: string): Promise<string[]> {
-  const [result] = await eslint.lintText(code, { filePath });
+async function ruleIds(code: string, path: string = filePath): Promise<string[]> {
+  const [result] = await eslint.lintText(code, { filePath: path });
 
   return result.messages.map((message) => message.ruleId ?? 'parse-error');
 }
@@ -63,5 +64,41 @@ describe('style ratchet', { timeout: 60_000 }, () => {
     const code = 'export class A {\n  private b(): void {}\n\n  c(): void {}\n}\n';
 
     expect(await ruleIds(code)).toContain('@typescript-eslint/member-ordering');
+  });
+
+  describe('no function locals in backend class methods', () => {
+    const rule = 'ratchet-local/no-function-local-in-method';
+    const method = (body: string): string => `export class A {\n  run(): void {\n${body}\n  }\n}\n`;
+
+    it.each([
+      ['an arrow local', 'const f = (): number => 1;\n    f();'],
+      ['an `as` wrapped arrow', 'const f = ((): number => 1) as () => number;\n    f();'],
+      [
+        'a `satisfies` wrapped arrow',
+        'const f = ((): number => 1) satisfies () => number;\n    f();',
+      ],
+      ['an angle-bracket wrapped arrow', 'const f = <() => number>(() => 1);\n    f();'],
+      ['a nested function declaration', 'function f(): number {\n      return 1;\n    }\n    f();'],
+      [
+        'a local in a nested block',
+        'if (Math.random()) {\n      const f = (): number => 1;\n      f();\n    }',
+      ],
+    ])('flags %s', async (_name, body) => {
+      expect(await ruleIds(method(body), backendFilePath)).toContain(rule);
+    });
+
+    it.each([
+      ['an inline callback', '[1].map((x) => x + 1);'],
+      [
+        'a local inside an inline callback',
+        '[1].forEach((x) => {\n      const g = (): number => x;\n      g();\n    });',
+      ],
+    ])('allows %s', async (_name, body) => {
+      expect(await ruleIds(method(body), backendFilePath)).not.toContain(rule);
+    });
+
+    it('does not apply outside backend src', async () => {
+      expect(await ruleIds(method('const f = (): number => 1;\n    f();'))).not.toContain(rule);
+    });
   });
 });
