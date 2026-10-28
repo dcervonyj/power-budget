@@ -10,15 +10,16 @@ import {
   TransactionNotFoundError,
   AlreadyMappedError,
 } from '../../../../domain/transactions/errors.js';
-import type { Transaction, TransactionMapping } from '../../../../domain/transactions/entities.js';
-import { TransactionId, UserId, HouseholdId } from '@power-budget/core';
+import { TransactionId, TransferId, UserId, HouseholdId } from '@power-budget/core';
+import { makeTransaction, makeTransactionMapping } from '../../../../test/doubles/transactions.js';
+import { testUuid } from '../../../../test/doubles/testUuid.js';
 
 const txId = TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f');
 const userId = UserId.of('01900000-8ccf-7eb7-88be-5e5b937e1768');
 const householdId = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
 
-const fakeTx = { id: txId, householdId } as unknown as Transaction;
-const fakeMapping = { id: 'mapping-1', transactionId: txId } as unknown as TransactionMapping;
+const fakeTx = makeTransaction({ id: txId, householdId });
+const fakeMapping = makeTransactionMapping({ transactionId: txId });
 
 const baseInput = {
   transactionId: txId,
@@ -56,11 +57,7 @@ describe('MarkAsTransferUseCase', () => {
   it('marks transaction as transfer', async () => {
     txRepo.findOwnedById.mockResolvedValue(fakeTx);
     mappingRepo.findByTransaction.mockResolvedValue(null);
-    transferRepo.mark.mockResolvedValue(
-      'tr-1' as unknown as ReturnType<typeof transferRepo.mark> extends Promise<infer R>
-        ? R
-        : never,
-    );
+    transferRepo.mark.mockResolvedValue(TransferId.of(testUuid('tr-1')));
 
     await useCase.execute(baseInput);
 

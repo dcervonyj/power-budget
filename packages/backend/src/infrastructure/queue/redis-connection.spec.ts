@@ -43,7 +43,7 @@ describe('buildQueueConnectionOptions', () => {
 
     expect(options.connection).toBeInstanceOf(Redis);
     expect(options.connection).toBe(getSharedQueueConnection(UPSTASH_URL, 'api'));
-    expect(getSharedQueueConnection(UPSTASH_URL, 'api').options.tls).toBeDefined();
+    expect(getSharedQueueConnection(UPSTASH_URL, 'api').options.tls).toBe(true);
   });
 
   it('bounds retries on the API (producer) connection so an enqueue fails fast in an outage', () => {
@@ -72,7 +72,7 @@ describe('buildQueueConnectionOptions', () => {
   it('keeps TLS, username and password of a rediss:// (Upstash) URL', () => {
     const client = parsedByIoredis(UPSTASH_URL);
 
-    expect(client.options.tls).toBeDefined();
+    expect(client.options.tls).toBe(true);
     expect(client.options.username).toBe('default');
     expect(client.options.password).toBe('s3cret');
     expect(client.options.host).toBe('eu1-example-12345.upstash.io');

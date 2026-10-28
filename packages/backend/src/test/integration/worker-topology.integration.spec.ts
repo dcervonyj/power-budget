@@ -99,10 +99,10 @@ describe('worker topology against real Redis + Postgres', () => {
     try {
       await expect(
         queue.add('dispatch', {}, { jobId: `dispatch-${CONNECTION_ID}` }),
-      ).resolves.toBeDefined();
+      ).resolves.toMatchObject({ id: `dispatch-${CONNECTION_ID}` });
       await expect(
         queue.add('period-close', {}, { jobId: 'period-close-2026-10-21' }),
-      ).resolves.toBeDefined();
+      ).resolves.toMatchObject({ id: 'period-close-2026-10-21' });
       await expect(
         queue.add('dispatch', {}, { jobId: `dispatch:${CONNECTION_ID}` }),
       ).rejects.toThrow('Custom Id cannot contain :');

@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mock } from 'vitest-mock-extended';
-import { HouseholdId, UserId } from '@power-budget/core';
-import type { TransactionId } from '@power-budget/core';
+import { HouseholdId, TransactionId, UserId } from '@power-budget/core';
 import { TransactionsController } from '../TransactionsController.js';
 import { AddManualTransactionUseCase } from '../../../application/transactions/use-cases/AddManualTransactionUseCase.js';
 import { BulkActOnTransactionsUseCase } from '../../../application/transactions/use-cases/BulkActOnTransactionsUseCase.js';
@@ -34,7 +33,7 @@ describe('TransactionsController ids (HTTP)', () => {
   let app: HttpTestApp;
   let list: ReturnType<typeof mock<ListTransactionsUseCase>>;
   let get: ReturnType<typeof mock<GetTransactionUseCase>>;
-  let owned: string[];
+  let owned: TransactionId[];
   let mappingRepo: ReturnType<typeof mock<MappingRepository>>;
   let unmark: ReturnType<typeof mock<UnmarkTransferUseCase>>;
 
@@ -44,7 +43,7 @@ describe('TransactionsController ids (HTTP)', () => {
     owned = [];
     mappingRepo = mock<MappingRepository>();
     const txRepo = mock<TransactionRepository>();
-    txRepo.findOwnedIds.mockImplementation(async () => owned as TransactionId[]);
+    txRepo.findOwnedIds.mockImplementation(async () => owned);
     const bulkMap = new BulkMapTransactionsUseCase(
       txRepo,
       mappingRepo,
@@ -160,7 +159,7 @@ describe('TransactionsController ids (HTTP)', () => {
   });
 
   it('POST /transactions/bulk answers planned_item_not_found for own ids and a malformed planned item id', async () => {
-    owned = [V4_ID];
+    owned = [TransactionId.of(V4_ID)];
 
     const res = await app.inject({
       method: 'POST',

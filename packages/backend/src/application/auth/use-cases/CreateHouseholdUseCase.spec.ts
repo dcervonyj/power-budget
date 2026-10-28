@@ -38,7 +38,11 @@ describe('CreateHouseholdUseCase', () => {
 
     expect(result.name).toBe('Test HH');
     expect(householdRepo.create).toHaveBeenCalledOnce();
-    expect(householdRepo.addMember).toHaveBeenCalledWith(expect.any(String), USER_ID, 'owner');
+    expect(householdRepo.addMember).toHaveBeenCalledWith(
+      householdRepo.create.mock.calls[0]?.[0].id,
+      USER_ID,
+      'owner',
+    );
   });
 
   it('throws AlreadyInHouseholdError if user already has a household', async () => {

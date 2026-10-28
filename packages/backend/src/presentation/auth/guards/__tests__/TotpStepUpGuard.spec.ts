@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { ForbiddenException } from '@nestjs/common';
 import { mock } from 'vitest-mock-extended';
 import type { ExecutionContext } from '@nestjs/common';
+import type { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { EncryptedString, UserId } from '@power-budget/core';
 import type { TotpSecretRepository, TotpStepUpStore } from '../../../../domain/auth/ports.js';
 import type { TotpSecret } from '../../../../domain/auth/entities.js';
@@ -13,13 +14,13 @@ const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 function makeContext(userId: UserId | null): ExecutionContext {
   const request = userId ? { user: { userId, householdId: null } } : {};
 
-  return {
+  return mock<ExecutionContext>({
     getHandler: vi.fn(),
     getClass: vi.fn(),
-    switchToHttp: () => ({
-      getRequest: () => request,
-    }),
-  } as unknown as ExecutionContext;
+    switchToHttp: vi
+      .fn()
+      .mockReturnValue(mock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) })),
+  });
 }
 
 function makeSecret(verifiedAt: Date | null): TotpSecret {

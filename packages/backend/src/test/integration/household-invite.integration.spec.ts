@@ -7,6 +7,7 @@ import type { Job } from 'bullmq';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { LightMyRequestResponse } from 'fastify';
 import { startContainers, stopContainers, resetState, getDb, getPool } from './setup.js';
+import { householdIdFromAccessToken } from './test-helpers.js';
 import { createTestApp } from './app.js';
 import { InMemoryEmailChannel, type SentEmail } from '../doubles/InMemoryEmailChannel.js';
 import { DrizzleNotificationRepository } from '../../infrastructure/notifications/DrizzleNotificationRepository.js';
@@ -34,16 +35,19 @@ const BOB = 'bob@example.com';
 const TEMPLATE_DIR = join(__dirname, '../../infrastructure/notifications/templates');
 const INVITE_LINK = /href="http:\/\/localhost:3000\/invite\/accept\?token=([0-9a-f]{64})"/;
 
-function householdIdOf(accessToken: string): string | null {
-  const payload = accessToken.split('.')[1] ?? '';
-  const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
-    householdId: string | null;
-  };
+function householdIdOf(accessToken: string): string {
+  const householdId = householdIdFromAccessToken(accessToken);
+  if (householdId === null) {
+    throw new Error('The access token has no household');
+  }
 
-  return claims.householdId;
+  return householdId;
 }
 
-function tokenFrom(email: SentEmail): string {
+function tokenFrom(email: SentEmail | undefined): string {
+  if (email === undefined) {
+    throw new Error('No invite email was sent');
+  }
   const match = INVITE_LINK.exec(email.html);
   if (match?.[1] === undefined) {
     throw new Error(`No invite link in the email to ${email.to}`);
@@ -170,7 +174,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
       to: BOB,
       subject: 'You are invited to a household — Power Budget',
     });
-    const token = tokenFrom(mail as SentEmail);
+    const token = tokenFrom(mail);
     const outbox = await getPool().query<{
       recipient_user_id: string | null;
       recipient_email: string;
@@ -204,12 +208,12 @@ describe('household invite journey (real app, app role + RLS)', () => {
     expect(joined.householdId).toBe(annHousehold);
     expect(householdIdOf(joined.accessToken)).toBe(annHousehold);
 
-    expect(await membersOf(annHousehold as string)).toEqual([
+    expect(await membersOf(annHousehold)).toEqual([
       { user_id: ann.userId, role: 'owner' },
       { user_id: bob.userId, role: 'member' },
     ]);
     // The empty solo household was left and is due for deletion.
-    expect(await membersOf(bobSoloHousehold as string)).toEqual([]);
+    expect(await membersOf(bobSoloHousehold)).toEqual([]);
     const solo = await getPool().query<{ delete_scheduled_at: Date | null }>(
       'SELECT delete_scheduled_at FROM households WHERE id = $1',
       [bobSoloHousehold],
@@ -217,7 +221,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
     expect(solo.rows[0]?.delete_scheduled_at).toBeInstanceOf(Date);
 
     // Both read the shared household under RLS; Bob's stale token does not.
-    const planId = await insertPlan(annHousehold as string, ann.userId);
+    const planId = await insertPlan(annHousehold, ann.userId);
     const dashboard = `/households/${annHousehold}/dashboard?planId=${planId}`;
     expect((await call('GET', dashboard, ann.accessToken)).statusCode).toBe(200);
     expect((await call('GET', dashboard, joined.accessToken)).statusCode).toBe(200);
@@ -277,7 +281,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
       "SELECT recipient_user_id FROM notifications_outbox WHERE kind = 'household_invite'",
     );
     expect(outbox.rows[0]?.recipient_user_id).toBe(bob.userId);
-    expect((await accept(bob, tokenFrom(mail as SentEmail))).statusCode).toBe(200);
+    expect((await accept(bob, tokenFrom(mail))).statusCode).toBe(200);
   });
 
   it('rejects a user signed in with another email and keeps the invite open', async () => {
@@ -286,7 +290,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
     const [mail] = await deliverEmails();
     const eve = await register('eve@example.com');
 
-    const res = await accept(eve, tokenFrom(mail as SentEmail));
+    const res = await accept(eve, tokenFrom(mail));
 
     expect(res.statusCode).toBe(403);
     expect(res.json()).toMatchObject({ code: 'email_mismatch' });
@@ -301,7 +305,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
     const bob = await register(BOB);
     await getPool().query("UPDATE household_invites SET expires_at = now() - interval '1 minute'");
 
-    const res = await accept(bob, tokenFrom(mail as SentEmail));
+    const res = await accept(bob, tokenFrom(mail));
 
     expect(res.statusCode).toBe(410);
     expect(res.json()).toMatchObject({ code: 'invite_expired' });
@@ -329,7 +333,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
     const again = await call('DELETE', `/households/invites/${created.id}`, ann.accessToken);
     expect(again.statusCode).toBe(404);
 
-    const res = await accept(bob, tokenFrom(mail as SentEmail));
+    const res = await accept(bob, tokenFrom(mail));
     expect(res.statusCode).toBe(404);
     expect(res.json()).toMatchObject({ code: 'invite_not_found' });
   });
@@ -344,9 +348,9 @@ describe('household invite journey (real app, app role + RLS)', () => {
     const [second] = await deliverEmails();
     const bob = await register(BOB);
 
-    expect(tokenFrom(second as SentEmail)).not.toBe(tokenFrom(first as SentEmail));
-    expect((await accept(bob, tokenFrom(first as SentEmail))).statusCode).toBe(404);
-    expect((await accept(bob, tokenFrom(second as SentEmail))).statusCode).toBe(200);
+    expect(tokenFrom(second)).not.toBe(tokenFrom(first));
+    expect((await accept(bob, tokenFrom(first))).statusCode).toBe(404);
+    expect((await accept(bob, tokenFrom(second))).statusCode).toBe(200);
   });
 
   it('a new invite replaces the open one', async () => {
@@ -364,7 +368,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
     const created = await invite(ann, BOB);
     const [mail] = await deliverEmails();
     const bob = await register(BOB);
-    const joined = (await accept(bob, tokenFrom(mail as SentEmail))).json<{
+    const joined = (await accept(bob, tokenFrom(mail))).json<{
       accessToken: string;
     }>();
     const carol = await register('carol@example.com');
@@ -389,7 +393,7 @@ describe('household invite journey (real app, app role + RLS)', () => {
     expect(memberInvite.statusCode).toBe(403);
     expect(memberResend.statusCode).toBe(403);
     expect(strangerRevoke.statusCode).toBe(404);
-    expect(await membersOf(householdIdOf(carol.accessToken) as string)).toEqual([
+    expect(await membersOf(householdIdOf(carol.accessToken))).toEqual([
       { user_id: carol.userId, role: 'owner' },
     ]);
   });
@@ -399,15 +403,15 @@ describe('household invite journey (real app, app role + RLS)', () => {
     await invite(ann, BOB);
     const [mail] = await deliverEmails();
     const bob = await register(BOB);
-    const bobHousehold = householdIdOf(bob.accessToken) as string;
+    const bobHousehold = householdIdOf(bob.accessToken);
     await insertPlan(bobHousehold, bob.userId);
 
-    const res = await accept(bob, tokenFrom(mail as SentEmail));
+    const res = await accept(bob, tokenFrom(mail));
 
     expect(res.statusCode).toBe(409);
     expect(res.json()).toMatchObject({ code: 'household_not_empty' });
     expect(await membersOf(bobHousehold)).toEqual([{ user_id: bob.userId, role: 'owner' }]);
-    expect(await membersOf(householdIdOf(ann.accessToken) as string)).toHaveLength(1);
+    expect(await membersOf(householdIdOf(ann.accessToken))).toHaveLength(1);
     const listed = await call('GET', '/households/invites', ann.accessToken);
     expect(listed.json<InviteResponse[]>()).toHaveLength(1);
   });
@@ -417,11 +421,11 @@ describe('household invite journey (real app, app role + RLS)', () => {
     await invite(ann, BOB);
     const [mail] = await deliverEmails();
     const bob = await register(BOB);
-    const token = tokenFrom(mail as SentEmail);
+    const token = tokenFrom(mail);
 
     const results = await Promise.all([accept(bob, token), accept(bob, token)]);
 
     expect(results.map((res) => res.statusCode).sort()).toEqual([200, 409]);
-    expect(await membersOf(householdIdOf(ann.accessToken) as string)).toHaveLength(2);
+    expect(await membersOf(householdIdOf(ann.accessToken))).toHaveLength(2);
   });
 });

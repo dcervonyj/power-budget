@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mock } from 'vitest-mock-extended';
 import type { ExecutionContext } from '@nestjs/common';
+import type { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { UnauthorizedException } from '@nestjs/common';
 import { parseAppConfig } from '../../../config/AppConfig.js';
 import * as jwt from 'jsonwebtoken';
@@ -84,9 +85,9 @@ describe('JwtAuthGuard', () => {
       headers: { authorization: authHeader },
     };
     const ctx = mock<ExecutionContext>();
-    ctx.switchToHttp.mockReturnValue({
-      getRequest: () => request,
-    } as ReturnType<ExecutionContext['switchToHttp']>);
+    ctx.switchToHttp.mockReturnValue(
+      mock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) }),
+    );
 
     return ctx;
   }
@@ -146,14 +147,14 @@ describe('JwtAuthGuard', () => {
       headers: { authorization: `Bearer ${token}` },
     };
     const ctx = mock<ExecutionContext>();
-    ctx.switchToHttp.mockReturnValue({
-      getRequest: () => request,
-    } as ReturnType<ExecutionContext['switchToHttp']>);
+    ctx.switchToHttp.mockReturnValue(
+      mock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) }),
+    );
 
     const result = guard.canActivate(ctx);
 
     expect(result).toBe(true);
-    expect((request as { user?: { userId: string } }).user?.userId).toBe(TEST_USER_ID);
+    expect(request['user']).toEqual({ userId: TEST_USER_ID, householdId: TEST_HOUSEHOLD_ID });
   });
 });
 

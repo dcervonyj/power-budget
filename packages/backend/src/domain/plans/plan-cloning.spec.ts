@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { IsoDate, IsoDateTime } from '@power-budget/core';
+import { HouseholdId, IsoDate, IsoDateTime, PlanId, UserId } from '@power-budget/core';
+import { testUuid } from '../../test/doubles/testUuid.js';
 import { PlanCloning, PlanPeriods } from './plan-cloning.js';
 import type { Plan } from './entities.js';
 
 function makePlan(overrides: Partial<Plan> = {}): Plan {
   return {
-    id: 'plan-1' as Plan['id'],
-    householdId: 'hh-1' as Plan['householdId'],
-    ownerUserId: 'u-1' as Plan['ownerUserId'],
+    id: PlanId.of(testUuid('plan-1')),
+    householdId: HouseholdId.of(testUuid('hh-1')),
+    ownerUserId: UserId.of(testUuid('u-1')),
     name: 'Jan Plan',
     type: 'personal',
     periodKind: 'monthly',
@@ -149,7 +150,7 @@ describe('PlanCloning', () => {
       type: 'personal' as const,
       periodKind: 'monthly' as const,
       period: JAN,
-      ownerUserId: 'u-1' as Plan['ownerUserId'],
+      ownerUserId: UserId.of(testUuid('u-1')),
     };
 
     it('passes when no conflicts', () => {
@@ -180,7 +181,7 @@ describe('PlanCloning', () => {
     });
 
     it("does not conflict with another member's personal plan", () => {
-      const partners = makePlan({ ownerUserId: 'u-2' as Plan['ownerUserId'] });
+      const partners = makePlan({ ownerUserId: UserId.of(testUuid('u-2')) });
       expect(() => PlanCloning.assertNoDuplicateActivePlan([partners], candidate)).not.toThrow();
     });
 

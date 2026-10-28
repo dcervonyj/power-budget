@@ -353,7 +353,7 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
           ]),
         ),
       ).rejects.toMatchObject({ code: '42501' });
-      await expect(insert(A.accountId, A.plannedItemId)).resolves.toBeDefined();
+      await expect(insert(A.accountId, A.plannedItemId)).resolves.toMatchObject({ rowCount: 1 });
     });
 
     it('scopes live_signals to the household, its members and its transactions (SYNC-001)', async () => {
@@ -386,7 +386,9 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       expect(
         await count(`live_signals WHERE id = $1 AND state = 'received'`, [B.liveSignalId]),
       ).toBe(1);
-      await expect(insert(A.householdId, A.userId, A.liveTxId)).resolves.toBeDefined();
+      await expect(insert(A.householdId, A.userId, A.liveTxId)).resolves.toMatchObject({
+        rowCount: 1,
+      });
     });
 
     it('scopes merchant_rules to the household, its members, categories and transactions (AI-003)', async () => {
@@ -444,7 +446,9 @@ describe('Integration: tenancy (RLS + scoped repositories) as the least-privileg
       expect(updated.rowCount).toBe(0);
       expect(deleted.rowCount).toBe(0);
       expect(await count('merchant_rules WHERE id = $1 AND hits = 0', [ruleB])).toBe(1);
-      await expect(insert(A.householdId, A.userId, catA, A.txId)).resolves.toBeDefined();
+      await expect(insert(A.householdId, A.userId, catA, A.txId)).resolves.toMatchObject({
+        rowCount: 1,
+      });
       const seenByB = await asTenant(B, () => appPool.query('SELECT id FROM merchant_rules'));
       expect(seenByB.rows).toEqual([{ id: ruleB }]);
     });

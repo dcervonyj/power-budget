@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mock } from 'vitest-mock-extended';
 import { PlanId, HouseholdId, IsoDate, IsoDateTime, UserId } from '@power-budget/core';
 import type { Plan } from '../../../../domain/plans/entities.js';
 import type { PlanRepository } from '../../../../domain/plans/ports.js';
@@ -39,7 +40,7 @@ describe('PeriodCloseUseCase', () => {
       archive: vi.fn(),
       findDueForClose: vi.fn(),
     };
-    closePeriodSnapshot = { execute: vi.fn() } as unknown as ClosePeriodSnapshotUseCase;
+    closePeriodSnapshot = mock<ClosePeriodSnapshotUseCase>({ execute: vi.fn() });
     useCase = new PeriodCloseUseCase(planRepo, closePeriodSnapshot);
   });
 
@@ -105,9 +106,12 @@ describe('PeriodCloseUseCase', () => {
       .catch((err: unknown) => err);
 
     expect(failure).toBeInstanceOf(PeriodCloseFailedError);
+    if (!(failure instanceof PeriodCloseFailedError)) {
+      throw failure;
+    }
     expect(failure).toMatchObject({ plansProcessed: 1 });
-    expect([...(failure as PeriodCloseFailedError).failures.keys()]).toEqual([PLAN_ID_1]);
-    expect((failure as PeriodCloseFailedError).message).toContain('DB error');
+    expect([...failure.failures.keys()]).toEqual([PLAN_ID_1]);
+    expect(failure.message).toContain('DB error');
     expect(closePeriodSnapshot.execute).toHaveBeenCalledTimes(2);
   });
 });

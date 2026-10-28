@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { makeBankSyncJob } from '../../../test/doubles/bankSyncJob.js';
 import { mock } from 'vitest-mock-extended';
 import type { Job } from 'bullmq';
 import type {
@@ -11,7 +12,16 @@ import type {
 import type { IngestBankTransactionsUseCase } from '../../../application/transactions/use-cases/IngestBankTransactionsUseCase.js';
 import { BankSyncProcessor, type BankSyncJobPayload } from '../BankSyncProcessor.js';
 import type { BankConnection, RawTransaction } from '../../../domain/bank/entities.js';
-import { BankConnectionId, HouseholdId, SyncRunId } from '@power-budget/core';
+import {
+  BankAccountId,
+  BankConnectionId,
+  EncryptedString,
+  HouseholdId,
+  SyncRunId,
+  UserId,
+} from '@power-budget/core';
+import { testUuid } from '../../../test/doubles/testUuid.js';
+import { makeBankAccount, makeBankConnection } from '../../../test/doubles/transactions.js';
 import { IsoDate } from '@power-budget/core';
 
 const CONNECTION_ID = BankConnectionId.of('01900000-78db-7ecf-8203-561e43789f28');
@@ -19,32 +29,26 @@ const HOUSEHOLD_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
 const SYNC_RUN_ID = SyncRunId.of('01900000-bc3f-7172-888b-8556e34db1e3');
 
 function makeJob(overrides: Partial<BankSyncJobPayload> = {}): Job<BankSyncJobPayload> {
-  return {
-    data: {
-      connectionId: CONNECTION_ID,
-      householdId: HOUSEHOLD_ID,
-      trigger: 'scheduled',
-      attended: false,
-      ...overrides,
-    },
-  } as Job<BankSyncJobPayload>;
+  return makeBankSyncJob({
+    connectionId: CONNECTION_ID,
+    householdId: HOUSEHOLD_ID,
+    trigger: 'scheduled',
+    attended: false,
+    ...overrides,
+  });
 }
 
 function makeConnection(overrides: Partial<BankConnection> = {}): BankConnection {
-  return {
+  return makeBankConnection({
     id: CONNECTION_ID,
     householdId: HOUSEHOLD_ID,
-    userId: 'user-1' as never,
-    provider: 'in_memory' as never,
+    userId: UserId.of(testUuid('user-1')),
     bankId: 'test-bank',
     externalConsentRef: 'ref-1',
-    encryptedConsent: 'enc-token' as never,
-    expiresAt: null,
-    status: 'active',
-    disconnectedAt: null,
+    encryptedConsent: EncryptedString.of('enc-token'),
     createdAt: new Date(),
     ...overrides,
-  };
+  });
 }
 
 describe('BankSyncProcessor', () => {
@@ -90,18 +94,14 @@ describe('BankSyncProcessor', () => {
       currency: 'PLN',
       balanceMinor: 10000n,
     };
-    const dbAccount = {
-      id: 'db-acc-1' as never,
+    const dbAccount = makeBankAccount({
+      id: BankAccountId.of(testUuid('db-acc-1')),
       householdId: HOUSEHOLD_ID,
       connectionId: CONNECTION_ID,
       externalId: 'ext-acc-1',
       name: 'My Account',
-      iban: null,
-      currency: 'PLN',
       balanceMinor: 10000n,
-      lastSyncedAt: null,
-      createdAt: new Date(),
-    };
+    });
     const rawTxs: RawTransaction[] = [
       {
         accountExternalId: 'ext-acc-1',
@@ -160,7 +160,7 @@ describe('BankSyncProcessor', () => {
       householdId: HOUSEHOLD_ID,
     };
 
-    await processor.process({ data: legacyData } as Job<BankSyncJobPayload>);
+    await processor.process(makeBankSyncJob(legacyData));
 
     expect(syncRunRepo.start).toHaveBeenCalledWith(CONNECTION_ID, {
       trigger: 'scheduled',
@@ -221,7 +221,7 @@ describe('BankSyncProcessor', () => {
         { externalId: 'ext-acc-1', name: 'A', iban: null, currency: 'PLN', balanceMinor: 0n },
       ]);
       bankAccountRepo.listByConnection.mockResolvedValue([
-        { id: 'db-acc-1' as never, externalId: 'ext-acc-1' } as never,
+        makeBankAccount({ id: BankAccountId.of(testUuid('db-acc-1')), externalId: 'ext-acc-1' }),
       ]);
       connector.fetchTransactions.mockResolvedValue([]);
     });
@@ -273,18 +273,13 @@ describe('BankSyncProcessor', () => {
       currency: 'PLN',
       balanceMinor: 0n,
     };
-    const dbAccount = {
-      id: 'db-acc-1' as never,
+    const dbAccount = makeBankAccount({
+      id: BankAccountId.of(testUuid('db-acc-1')),
       householdId: HOUSEHOLD_ID,
       connectionId: CONNECTION_ID,
       externalId: 'ext-acc-1',
       name: 'Test',
-      iban: null,
-      currency: 'PLN',
-      balanceMinor: 0n,
-      lastSyncedAt: null,
-      createdAt: new Date(),
-    };
+    });
     connector.listAccounts.mockResolvedValue([rawAccount]);
     bankAccountRepo.listByConnection.mockResolvedValue([dbAccount]);
     connector.fetchTransactions.mockResolvedValue([]);

@@ -14,10 +14,10 @@ describe('SEED_CATEGORIES', () => {
 
   it('all have names in all 4 locales', () => {
     for (const cat of SEED_CATEGORIES) {
-      expect(cat.names.en).toBeTruthy();
-      expect(cat.names.uk).toBeTruthy();
-      expect(cat.names.ru).toBeTruthy();
-      expect(cat.names.pl).toBeTruthy();
+      expect(cat.names.en).toMatch(/\S/);
+      expect(cat.names.uk).toMatch(/\S/);
+      expect(cat.names.ru).toMatch(/\S/);
+      expect(cat.names.pl).toMatch(/\S/);
     }
   });
 
@@ -30,7 +30,7 @@ describe('SEED_CATEGORIES', () => {
 
   it('all have icon and color set', () => {
     for (const cat of SEED_CATEGORIES) {
-      expect(cat.icon).toBeTruthy();
+      expect(cat.icon).toMatch(/\S/);
       expect(cat.color).toMatch(/^#[0-9A-Fa-f]{6}$/);
     }
   });

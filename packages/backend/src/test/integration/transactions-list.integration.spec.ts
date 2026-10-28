@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { UUID_PATTERN } from './test-helpers.js';
 import jwt from 'jsonwebtoken';
 import { uuidv7 } from 'uuidv7';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -263,7 +264,7 @@ describe('Integration: transaction list read model, accounts and manual transact
       const back = byId.get(pairIn)!;
       expect(out).toMatchObject({ mapping: null, mappingSource: 'none' });
       expect(out.transfer).toEqual({
-        transferId: expect.any(String),
+        transferId: expect.stringMatching(UUID_PATTERN),
         counterpartTransactionId: pairIn,
       });
       expect(back.transfer).toEqual({
@@ -271,7 +272,7 @@ describe('Integration: transaction list read model, accounts and manual transact
         counterpartTransactionId: pairOut,
       });
       expect(byId.get(standalone)?.transfer).toEqual({
-        transferId: expect.any(String),
+        transferId: expect.stringMatching(UUID_PATTERN),
         counterpartTransactionId: null,
       });
       expect(byId.get(ignored)).toMatchObject({ ignored: true, mapping: null, transfer: null });
@@ -488,7 +489,7 @@ describe('Integration: transaction list read model, accounts and manual transact
       expect(mineItems.map((a) => a.id).sort()).toEqual([myBank, cash.id].sort());
       expect(mineItems.find((a) => a.id === myBank)).toMatchObject({
         kind: 'bank',
-        connectionId: expect.any(String),
+        connectionId: expect.stringMatching(UUID_PATTERN),
         balance: { amountMinor: '9007199254740993', currency: 'PLN' },
       });
 
