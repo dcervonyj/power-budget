@@ -45,7 +45,11 @@ export class AcceptInvite {
     }
     try {
       const joined = await this.households.acceptInvite(token);
-      await this.tokens.setTokens(joined.accessToken, this.tokens.getRefreshToken() ?? '');
+      const refreshToken = this.tokens.getRefreshToken();
+      if (refreshToken === null) {
+        throw new Error('Accepting an invite needs the signed-in session refresh token');
+      }
+      await this.tokens.setTokens(joined.accessToken, refreshToken);
 
       return { kind: 'joined', householdId: joined.householdId };
     } catch (err) {

@@ -73,8 +73,8 @@ export class DrizzleHouseholdExportRepository implements HouseholdExportReposito
       householdId: row.householdId,
       requestedByUserId: row.requestedByUserId,
       status: row.status,
-      downloadUrl: row.downloadUrl ?? null,
-      expiresAt: row.expiresAt ?? null,
+      downloadUrl: row.downloadUrl,
+      expiresAt: row.expiresAt,
       createdAt: row.createdAt,
     };
   }

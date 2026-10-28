@@ -115,6 +115,11 @@ module.exports = [
       'no-restricted-syntax': [
         'error',
         {
+          selector: "AssignmentExpression[operator='??=']",
+          message:
+            'Do not default with `??=`; check the value and throw (required) or assign explicitly.',
+        },
+        {
           selector:
             'CallExpression[callee.property.name=/^(get|post|put|patch|delete)$/][typeArguments]:not([typeArguments.params.0.typeName.name=/Dto$/])',
           message:

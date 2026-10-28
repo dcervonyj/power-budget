@@ -19,6 +19,16 @@ describe('AcceptInvite', () => {
     expect(setTokens).toHaveBeenCalledWith('new-access', 'refresh-1');
   });
 
+  it('fails without a refresh token instead of storing an empty one', async () => {
+    const signedOut = new AcceptInvite(
+      { acceptInvite },
+      { getRefreshToken: () => null, setTokens },
+    );
+
+    expect(await signedOut.execute('raw-token')).toEqual({ kind: 'failed', error: 'failed' });
+    expect(setTokens).not.toHaveBeenCalled();
+  });
+
   it('does not call the API without a token', async () => {
     expect(await useCase.execute(' ')).toEqual({ kind: 'failed', error: 'missing_token' });
     expect(acceptInvite).not.toHaveBeenCalled();

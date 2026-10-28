@@ -80,10 +80,10 @@ export class DrizzleBankAccountRepository implements BankAccountRepository {
         connectionId: r.connectionId,
         externalId: r.externalId,
         name: r.name,
-        iban: r.iban ?? null,
+        iban: r.iban,
         currency: r.currency,
         balanceMinor: r.balanceMinor,
-        lastSyncedAt: r.lastSyncedAt ?? null,
+        lastSyncedAt: r.lastSyncedAt,
         createdAt: r.createdAt,
       },
     ];

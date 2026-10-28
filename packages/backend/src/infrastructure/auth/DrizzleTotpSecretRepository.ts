@@ -116,8 +116,8 @@ function toEntity(row: TotpSecretRow): TotpSecret {
     userId: row.userId,
     encryptedSecret: row.encryptedSecret,
     enrolledAt: row.enrolledAt,
-    verifiedAt: row.verifiedAt ?? null,
-    lastUsedTimeStep: row.lastUsedTimeStep ?? null,
+    verifiedAt: row.verifiedAt,
+    lastUsedTimeStep: row.lastUsedTimeStep,
     pendingEncryptedSecret: row.pendingEncryptedSecret,
   };
 }

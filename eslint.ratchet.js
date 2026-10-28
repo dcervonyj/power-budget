@@ -176,15 +176,56 @@ const noFunctionLocalBlock = (files, extraIgnores = []) => ({
   rules: { 'ratchet-local/no-function-local-in-method': 'error' },
 });
 
+/**
+ * CLN-074i (STYLE-13): no non-null `!` and no `??=` in production code. A required value that can be absent must be
+ * checked and thrown on, not asserted or defaulted in place. Tests are exempt.
+ */
+const NULLISH_ASSIGN_SELECTOR = "AssignmentExpression[operator='??=']";
+const noBangAndNullishAssign = (files, extraIgnores = []) => ({
+  files,
+  ignores: [
+    '**/*.test.ts',
+    '**/*.test.tsx',
+    '**/*.spec.ts',
+    '**/*.spec.tsx',
+    '**/__tests__/**',
+    ...extraIgnores,
+  ],
+  rules: {
+    '@typescript-eslint/no-non-null-assertion': 'error',
+    'no-restricted-syntax': [
+      'error',
+      {
+        selector: NULLISH_ASSIGN_SELECTOR,
+        message:
+          'Do not default with `??=`; check the value and throw (required) or assign explicitly.',
+      },
+    ],
+  },
+});
+
 const DIRECTORY_RATCHETS = {
   // STYLE-03/05: Drizzle ids are branded in drizzle/schema.ts, so infrastructure maps rows without `as`.
   // A cast with no other way gets a one-line `eslint-disable-next-line` with the reason.
-  'shared-app': [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
-  web: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
-  mobile: [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
-  core: [noFunctionLocalBlock(['src/**/*.ts'])],
-  'design-tokens': [noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx'])],
+  'shared-app': [
+    noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx']),
+    noBangAndNullishAssign(['src/**/*.ts', 'src/**/*.tsx']),
+  ],
+  web: [
+    noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx']),
+    noBangAndNullishAssign(['src/**/*.ts', 'src/**/*.tsx']),
+  ],
+  mobile: [
+    noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx']),
+    noBangAndNullishAssign(['src/**/*.ts', 'src/**/*.tsx']),
+  ],
+  core: [noFunctionLocalBlock(['src/**/*.ts']), noBangAndNullishAssign(['src/**/*.ts'])],
+  'design-tokens': [
+    noFunctionLocalBlock(['src/**/*.ts', 'src/**/*.tsx']),
+    noBangAndNullishAssign(['src/**/*.ts', 'src/**/*.tsx']),
+  ],
   backend: [
+    noBangAndNullishAssign(['src/**/*.ts'], ['src/test/**']),
     {
       files: [
         'src/infrastructure/**/*.ts',

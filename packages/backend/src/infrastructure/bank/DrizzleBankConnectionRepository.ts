@@ -135,11 +135,11 @@ export class DrizzleBankConnectionRepository implements BankConnectionRepository
       userId: row.userId,
       provider: row.provider,
       bankId: row.bankId,
-      externalConsentRef: row.externalConsentRef ?? null,
-      encryptedConsent: row.encryptedConsent ?? null,
-      expiresAt: row.expiresAt ?? null,
+      externalConsentRef: row.externalConsentRef,
+      encryptedConsent: row.encryptedConsent,
+      expiresAt: row.expiresAt,
       status: row.status,
-      disconnectedAt: row.disconnectedAt ?? null,
+      disconnectedAt: row.disconnectedAt,
       createdAt: row.createdAt,
     };
   }

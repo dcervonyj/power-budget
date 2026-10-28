@@ -310,7 +310,7 @@ export class BankController {
         connectionId: BankConnectionId.of(id),
         householdId: user.householdId,
         userId: user.userId,
-        redirectUri: body.redirectUri ?? 'https://app.power-budget.test/connect/callback',
+        redirectUri: body.redirectUri,
       });
 
       return toBankReconnectLinkDto(output);

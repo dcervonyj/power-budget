@@ -5,7 +5,7 @@ import type { UserId } from '@power-budget/core';
 import type { Account, ManualAccount, NewManualAccount } from '../../domain/bank/entities.js';
 import type { AccountRepository, HouseholdScope } from '../../domain/bank/ports.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
-import { currencyOf } from '../database/row-values.js';
+import { currencyOf, insertedRow } from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
 
 /** Bank and manual accounts, always filtered to their owner (accounts are private). */
@@ -43,7 +43,7 @@ export class DrizzleAccountRepository implements AccountRepository {
       })
       .returning();
 
-    return this.toManualAccount(rows[0]!);
+    return this.toManualAccount(insertedRow(rows, 'manual account'));
   }
 
   private toAccount(row: schema.SelectBankAccount): Account {
