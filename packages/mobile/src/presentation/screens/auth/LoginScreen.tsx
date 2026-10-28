@@ -15,6 +15,8 @@ function toLoginError(error: unknown): LoginError {
     case 'invalidCredentials':
     case 'invalidTotp':
       return failure;
+    case 'emailInUse':
+    case 'other':
     default:
       return 'serverError';
   }

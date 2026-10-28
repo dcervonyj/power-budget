@@ -45,6 +45,7 @@ export function MappingPickerModal({
       const results = await Promise.all(
         active.map(async (p) => {
           const items = await plansApi.listItems(p.id);
+
           return { plan: p, items };
         }),
       );
@@ -55,7 +56,9 @@ export function MappingPickerModal({
   }, []);
 
   useEffect(() => {
-    if (visible) void load();
+    if (visible) {
+      void load();
+    }
   }, [visible, load]);
 
   const allItems: Array<{ plan: PlanDto; item: PlannedItemDto }> = [];
@@ -65,8 +68,13 @@ export function MappingPickerModal({
     }
   }
   const sorted = [...allItems].sort((a, b) => {
-    if (a.item.id === currentPlannedItemId) return -1;
-    if (b.item.id === currentPlannedItemId) return 1;
+    if (a.item.id === currentPlannedItemId) {
+      return -1;
+    }
+    if (b.item.id === currentPlannedItemId) {
+      return 1;
+    }
+
     return 0;
   });
 
@@ -107,6 +115,7 @@ export function MappingPickerModal({
                 parseMinorUnits(item.amount.amountMinor),
                 item.amount.currency,
               );
+
               return (
                 <TouchableOpacity
                   style={[styles.row, isCurrent && styles.rowCurrent]}

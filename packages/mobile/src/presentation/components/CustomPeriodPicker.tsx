@@ -11,6 +11,7 @@ function toIsoDate(d: Date): string {
 
 function fromIsoDate(s: string): Date {
   const d = new Date(`${s}T00:00:00Z`);
+
   return isNaN(d.getTime()) ? new Date() : d;
 }
 
@@ -31,6 +32,7 @@ export function CustomPeriodPicker({ startDate, endDate, onChange }: Props): Rea
   const handleChange = (_event: DateTimePickerEvent, date: Date | undefined): void => {
     if (!date) {
       setPicking(null);
+
       return;
     }
     const iso = toIsoDate(date);

@@ -71,6 +71,7 @@ function toItem(
   options: { readonly tabBarBadge?: number | string } | undefined,
 ): TabBarItem {
   const badge = typeof options?.tabBarBadge === 'number' ? options.tabBarBadge : undefined;
+
   return {
     key,
     label: labels.tab(spec.key),
