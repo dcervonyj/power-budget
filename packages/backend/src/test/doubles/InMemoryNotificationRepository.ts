@@ -64,10 +64,10 @@ class InMemoryNotificationClaim implements NotificationClaim {
 }
 
 export class InMemoryNotificationRepository implements NotificationRepository, NotificationOutbox {
-  constructor(private readonly ids: IdGenerator = new SequentialIdGenerator()) {}
-
   private readonly _outbox: StoredNotification[] = [];
   private readonly users = new Map<string, UserRecord>();
+
+  constructor(private readonly ids: IdGenerator = new SequentialIdGenerator()) {}
 
   /** Expose stored notifications as the read-only domain type. */
   get outbox(): NotificationOutboxRow[] {
