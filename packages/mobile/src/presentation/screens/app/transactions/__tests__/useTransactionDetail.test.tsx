@@ -56,13 +56,21 @@ function detailDto(mapped = false): TransactionDetailDto {
   return dto as unknown as TransactionDetailDto;
 }
 
-function deferred(): { promise: Promise<undefined>; resolve: () => void } {
-  const holder: { resolve: () => void } = { resolve: () => undefined };
-  const promise = new Promise<undefined>((resolve) => {
+function deferred(): {
+  promise: Promise<undefined>;
+  resolve: () => void;
+  reject: () => void;
+} {
+  const holder: { resolve: () => void; reject: () => void } = {
+    resolve: () => undefined,
+    reject: () => undefined,
+  };
+  const promise = new Promise<undefined>((resolve, reject) => {
     holder.resolve = () => resolve(undefined);
+    holder.reject = () => reject(new Error('failed'));
   });
 
-  return { promise, resolve: holder.resolve };
+  return { promise, resolve: holder.resolve, reject: holder.reject };
 }
 
 beforeEach(() => {
@@ -193,5 +201,65 @@ describe('useTransactionDetail transfer switch', () => {
     await waitFor(() => expect(result.current.failure).toBe('save'));
     await waitFor(() => expect(result.current.transaction?.isTransfer).toBe(false));
     expect(detail).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores the failure of an older tap once a newer tap happened', async () => {
+    detail.mockResolvedValue(detailDto());
+    const first = deferred();
+    jest.mocked(transactionsGateway.setTransfer).mockReset();
+    jest
+      .mocked(transactionsGateway.setTransfer)
+      .mockReturnValueOnce(first.promise as never)
+      .mockResolvedValue(undefined as never);
+    const { result } = await renderHook(() => useTransactionDetail('t1'));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    await act(async () => result.current.toggleTransfer(true));
+    await act(async () => result.current.toggleTransfer(false));
+    await act(async () => first.reject());
+    await waitFor(() => expect(transactionsGateway.setTransfer).toHaveBeenCalledTimes(2));
+
+    expect(result.current.transaction?.isTransfer).toBe(false);
+    expect(result.current.failure).toBeNull();
+    expect(result.current.transferUnresolved).toBe(false);
+    expect(detail).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not let a re-read that started before a newer tap overwrite it', async () => {
+    detail.mockResolvedValueOnce(detailDto());
+    jest.mocked(transactionsGateway.setTransfer).mockReset();
+    jest
+      .mocked(transactionsGateway.setTransfer)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue(undefined as never);
+    const { result } = await renderHook(() => useTransactionDetail('t1'));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    const staleRead = deferred();
+    detail.mockImplementationOnce(() => staleRead.promise.then(() => detailDto()));
+    await act(async () => result.current.toggleTransfer(true));
+    await waitFor(() => expect(detail).toHaveBeenCalledTimes(2));
+    await act(async () => result.current.toggleTransfer(true));
+    await act(async () => staleRead.resolve());
+
+    expect(result.current.transaction?.isTransfer).toBe(true);
+  });
+
+  it('shows an unresolved state with a retry when the write and the re-read both fail', async () => {
+    detail.mockResolvedValueOnce(detailDto());
+    jest.mocked(transactionsGateway.setTransfer).mockReset();
+    jest.mocked(transactionsGateway.setTransfer).mockRejectedValue(new Error('offline'));
+    const { result } = await renderHook(() => useTransactionDetail('t1'));
+    await waitFor(() => expect(result.current.status).toBe('ready'));
+
+    detail.mockRejectedValueOnce(new Error('offline'));
+    await act(async () => result.current.toggleTransfer(true));
+    await waitFor(() => expect(result.current.transferUnresolved).toBe(true));
+
+    detail.mockResolvedValueOnce(detailDto());
+    await act(async () => result.current.retryTransfer());
+
+    await waitFor(() => expect(result.current.transferUnresolved).toBe(false));
+    expect(result.current.transaction?.isTransfer).toBe(false);
   });
 });

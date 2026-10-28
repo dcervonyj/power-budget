@@ -26,6 +26,9 @@ export interface TransactionDetailState {
   readonly retryOptions: () => void;
   /** The category of the mapped item could not be looked up. */
   readonly categoryFailed: boolean;
+  /** The transfer switch shows the user's intent, but the server state could not be confirmed. */
+  readonly transferUnresolved: boolean;
+  readonly retryTransfer: () => void;
   readonly retryCategory: () => void;
   readonly openPicker: () => void;
   readonly closePicker: () => void;
@@ -45,6 +48,8 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
   const [optionsStatus, setOptionsStatus] = useState<OptionsStatus>('loading');
   const [resolved, setResolved] = useState<{ id: string; name: string } | undefined>(undefined);
   const [categoryFailed, setCategoryFailed] = useState(false);
+  const [transferUnresolved, setTransferUnresolved] = useState(false);
+  const transferEdit = useRef(0);
   const categoryRequest = useRef(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [notes, setNotes] = useState('');
@@ -55,8 +60,14 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
     try {
       // Writes still on their way (a Confirm on the list) land first, or this read shows the old mapping.
       await writeQueue.run(() => Promise.resolve());
+      const edit = transferEdit.current;
       const view = TransactionView.fromDetail(await transactionsGateway.detail(transactionId));
-      setTransaction(view);
+      // A tap on the transfer switch while this loaded keeps its intent.
+      setTransaction((previous) =>
+        previous !== undefined && edit !== transferEdit.current
+          ? { ...view, isTransfer: previous.isTransfer }
+          : view,
+      );
       setNotes(view.notes ?? '');
       setStatus('ready');
     } catch {
@@ -145,32 +156,51 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
     void changeMapping(null);
   }, [changeMapping]);
 
-  const reread = useCallback(async (): Promise<void> => {
-    try {
-      await writeQueue.run(() => Promise.resolve());
-      const view = TransactionView.fromDetail(await transactionsGateway.detail(transactionId));
-      setTransaction(view);
-    } catch {
-      // The failure toast is already up; the switch keeps its last position until a reload.
-    }
-  }, [transactionId]);
+  // The transfer switch: what is shown is the user's latest intent. Every tap is a new edit; a write
+  // or re-read result only counts while no newer edit has happened since it started.
+  const confirmTransfer = useCallback(
+    async (edit: number): Promise<void> => {
+      try {
+        await writeQueue.run(() => Promise.resolve());
+        const view = TransactionView.fromDetail(await transactionsGateway.detail(transactionId));
+        if (edit === transferEdit.current) {
+          setTransaction((previous) =>
+            previous === undefined ? previous : { ...previous, isTransfer: view.isTransfer },
+          );
+          setTransferUnresolved(false);
+        }
+      } catch {
+        if (edit === transferEdit.current) {
+          setTransferUnresolved(true);
+        }
+      }
+    },
+    [transactionId],
+  );
 
   const toggleTransfer = useCallback(
     (isTransfer: boolean): void => {
-      // The switch moves at once, so the next tap can reverse it; the writes queue up in tap order
-      // and the last intent wins. A failure re-reads the server state instead of guessing.
+      transferEdit.current += 1;
+      const edit = transferEdit.current;
+      setTransferUnresolved(false);
       setTransaction((previous) =>
         previous === undefined ? previous : { ...previous, isTransfer },
       );
       void writeQueue
         .run(() => transactionsGateway.setTransfer(transactionId, isTransfer))
         .catch(() => {
-          setFailure('save');
-          void reread();
+          if (edit === transferEdit.current) {
+            setFailure('save');
+            void confirmTransfer(edit);
+          }
         });
     },
-    [transactionId, reread],
+    [transactionId, confirmTransfer],
   );
+
+  const retryTransfer = useCallback((): void => {
+    void confirmTransfer(transferEdit.current);
+  }, [confirmTransfer]);
 
   const saveNotes = useCallback((): void => {
     // The text stays as entered; only an all-blank note counts as no note.
@@ -208,6 +238,8 @@ export function useTransactionDetail(transactionId: string): TransactionDetailSt
     failure,
     retry,
     categoryFailed,
+    transferUnresolved,
+    retryTransfer,
     retryCategory: useCallback((): void => {
       if (mappedId !== undefined) {
         void lookUpCategory(mappedId);
