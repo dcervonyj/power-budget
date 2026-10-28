@@ -1,7 +1,7 @@
 {
   "overview.categories.empty": "В этом плане ещё нет запланированных расходов.",
   "overview.categories.legend": "Свет = оставшиеся деньги",
-  "overview.categories.showAll": "Показать {count, plural, one {# категорию} few {все # категории} many {все # категорий} other {все # категории}}",
+  "overview.categories.showAll": "Показать все {count, plural, one {# категорию} few {# категории} many {# категорий} other {# категории}}",
   "overview.categories.showFewer": "Показать меньше",
   "overview.categories.title": "Категории",
   "overview.empty.action": "К планам",

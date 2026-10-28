@@ -1,7 +1,7 @@
 {
   "overview.categories.empty": "Ten plan nie ma jeszcze zaplanowanych wydatków.",
   "overview.categories.legend": "Światło = pozostałe pieniądze",
-  "overview.categories.showAll": "Pokaż {count, plural, one {# kategorię} few {wszystkie # kategorie} many {wszystkie # kategorii} other {wszystkie # kategorii}}",
+  "overview.categories.showAll": "Pokaż wszystkie {count, plural, one {# kategorię} few {# kategorie} many {# kategorii} other {# kategorii}}",
   "overview.categories.showFewer": "Pokaż mniej",
   "overview.categories.title": "Kategorie",
   "overview.empty.action": "Przejdź do planów",

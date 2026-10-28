@@ -1,7 +1,7 @@
 {
   "overview.categories.empty": "У цьому плані ще немає запланованих витрат.",
   "overview.categories.legend": "Світло = гроші, що лишилися",
-  "overview.categories.showAll": "Показати {count, plural, one {# категорію} few {усі # категорії} many {усі # категорій} other {усі # категорії}}",
+  "overview.categories.showAll": "Показати всі {count, plural, one {# категорію} few {# категорії} many {# категорій} other {# категорії}}",
   "overview.categories.showFewer": "Показати менше",
   "overview.categories.title": "Категорії",
   "overview.empty.action": "До планів",
