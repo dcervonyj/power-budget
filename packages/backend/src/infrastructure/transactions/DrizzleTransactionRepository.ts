@@ -153,18 +153,22 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     }
 
     const payload = JSON.stringify(inputs.map(this.toBankInsert, this), this.jsonValueOf);
-    const result = await this.db.execute(sql`
-      INSERT INTO transactions (${sql.raw(BANK_INSERT_COLUMNS.map(columnName).join(', '))})
-      SELECT ${sql.raw(BANK_INSERT_COLUMNS.map(columnName).join(', '))}
-      FROM jsonb_to_recordset(${payload}::jsonb) AS batch(${sql.raw(
-        BANK_INSERT_COLUMNS.map(columnDefinition).join(', '),
-      )})
-      ON CONFLICT DO NOTHING
-      RETURNING id
-    `);
-    await this.mapAutoMapped(inputs, result.rows, autoMappedBy);
 
-    return result.rows.length;
+    // One DB transaction: a row flagged auto-mapped must never commit without its mapping.
+    return this.db.transaction(async (tx) => {
+      const result = await tx.execute(sql`
+        INSERT INTO transactions (${sql.raw(BANK_INSERT_COLUMNS.map(columnName).join(', '))})
+        SELECT ${sql.raw(BANK_INSERT_COLUMNS.map(columnName).join(', '))}
+        FROM jsonb_to_recordset(${payload}::jsonb) AS batch(${sql.raw(
+          BANK_INSERT_COLUMNS.map(columnDefinition).join(', '),
+        )})
+        ON CONFLICT DO NOTHING
+        RETURNING id
+      `);
+      await this.mapAutoMapped(tx, inputs, result.rows, autoMappedBy);
+
+      return result.rows.length;
+    });
   }
 
   async insertManual(input: NewManualTransaction): Promise<Transaction> {
@@ -465,11 +469,11 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       );
   }
 
-  /** live → pending | booked, pending → booked (plan-banking.md §1.7). */
   // AI-004: a row the hint matcher auto-mapped gets its mapping (source 'rule', so a manual map or
   // unmap replaces it), only when the row is new: a skipped duplicate never gets one and an
   // existing mapping is never overwritten.
   private async mapAutoMapped(
+    tx: Pick<NodePgDatabase<typeof schema>, 'execute'>,
     inputs: readonly NewTransaction[],
     created: readonly Record<string, unknown>[],
     autoMappedBy: UserId,
@@ -482,7 +486,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       return;
     }
 
-    await this.db.execute(sql`
+    await tx.execute(sql`
       INSERT INTO transaction_mappings
         (transaction_id, household_id, planned_item_id, amount_minor, currency, mapped_by, source)
       SELECT id, household_id, suggested_planned_item_id, amount_minor, currency,
@@ -501,6 +505,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     return row['id'];
   }
 
+  /** live → pending | booked, pending → booked (plan-banking.md §1.7). */
   private upgradableFrom(target: UpgradeTargetStatus): readonly ProvisionalTransactionStatus[] {
     switch (target) {
       case 'pending':
