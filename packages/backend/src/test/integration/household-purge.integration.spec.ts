@@ -147,6 +147,21 @@ async function seedHousehold(
      VALUES ($1, $2, $3, 'weekly_digest', $4)`,
     [randomUUID(), householdId, owner, `k-${householdId}`],
   );
+  const syncRunId = randomUUID();
+  await q.query(`INSERT INTO sync_runs (id, connection_id, status) VALUES ($1, $2, 'success')`, [
+    syncRunId,
+    connectionId,
+  ]);
+  await q.query(
+    `INSERT INTO bank_fetch_ledger (id, household_id, account_id, connection_id, call_kind, sync_run_id)
+     VALUES ($1, $2, $3, $4, 'transactions', $5)`,
+    [randomUUID(), householdId, accountId, connectionId, syncRunId],
+  );
+  await q.query(
+    `INSERT INTO live_signals (id, household_id, owner_user_id, source, dedupe_key, payload_enc, transaction_id)
+     VALUES ($1, $2, $3, 'wise_webhook', $4, 'enc', $5)`,
+    [randomUUID(), householdId, owner, `sig-${householdId}`, txId],
+  );
   await q.query(
     `INSERT INTO audit_log (id, household_id, actor_user_id, action, subject_type, subject_id)
      VALUES ($1, $2, $3, 'plan.created', 'plan', $4)`,
@@ -215,6 +230,8 @@ describe('Integration: household purge (CLN-022) as the least-privilege app role
       ['household_users', 'household_id'],
       ['bank_connections', 'household_id'],
       ['bank_accounts', 'household_id'],
+      ['bank_fetch_ledger', 'household_id'],
+      ['live_signals', 'household_id'],
       ['transactions', 'household_id'],
       ['plans', 'household_id'],
       ['planned_items', 'household_id'],
@@ -243,6 +260,8 @@ describe('Integration: household purge (CLN-022) as the least-privilege app role
     expect(await count('sessions', 'user_id', partner)).toBe(1);
     expect(await count('households', 'id', other.householdId)).toBe(1);
     expect(await count('transactions', 'household_id', other.householdId)).toBe(2);
+    expect(await count('bank_fetch_ledger', 'household_id', other.householdId)).toBe(1);
+    expect(await count('live_signals', 'household_id', other.householdId)).toBe(1);
     const audit = await fixtures.query<{ household_id: string | null; actor: string | null }>(
       `SELECT household_id, actor_user_id AS actor FROM audit_log WHERE action = 'plan.created'
        ORDER BY household_id NULLS FIRST`,
