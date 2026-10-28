@@ -23,6 +23,15 @@ module.exports = [
       },
     },
   },
+  // CLN-074a (STYLE-03/05): no type assertions in infrastructure production code. Ids are branded in the Drizzle
+  // schema, so repositories map rows without casts. Where no other way exists, disable per line with a reason.
+  {
+    files: ['src/infrastructure/**/*.ts'],
+    ignores: ['**/*.test.ts', '**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'never' }],
+    },
+  },
   {
     files: ['**/*.ts'],
     plugins: {

@@ -1,16 +1,9 @@
+import { TransactionMappingId } from '@power-budget/core';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, eq, inArray } from 'drizzle-orm';
 import type { NodePgDatabase, NodePgQueryResultHKT } from 'drizzle-orm/node-postgres';
 import type { PgDatabase } from 'drizzle-orm/pg-core';
-import type {
-  CurrencyCode,
-  HouseholdId,
-  IsoDateTime,
-  PlannedItemId,
-  TransactionId,
-  TransactionMappingId,
-  UserId,
-} from '@power-budget/core';
+import type { CurrencyCode, PlannedItemId, TransactionId, UserId } from '@power-budget/core';
 import type { HouseholdScope, MappingRepository } from '../../domain/transactions/ports.js';
 import type { TransactionMapping } from '../../domain/transactions/entities.js';
 import {
@@ -18,7 +11,7 @@ import {
   TransactionNotFoundError,
 } from '../../domain/transactions/errors.js';
 import { DRIZZLE_DB } from '../database/database.module.js';
-import { SUPPORTED_CURRENCY_CODES } from '../database/row-values.js';
+import { SUPPORTED_CURRENCY_CODES, currencyOf, isoDateTimeOf } from '../database/row-values.js';
 import * as schema from '../../../drizzle/schema.js';
 
 /** The pool-bound database or a transaction on it. */
@@ -98,12 +91,12 @@ export class DrizzleMappingRepository implements MappingRepository {
 
     return {
       // transactionId serves as id since transactionId is the PK
-      id: row.mapping.transactionId as TransactionMappingId,
-      transactionId: row.mapping.transactionId as TransactionId,
-      plannedItemId: row.mapping.plannedItemId as PlannedItemId,
-      householdId: row.householdId as HouseholdId,
-      mappedBy: row.mapping.mappedBy as UserId,
-      mappedAt: row.mapping.mappedAt.toISOString() as IsoDateTime,
+      id: TransactionMappingId.of(row.mapping.transactionId),
+      transactionId: row.mapping.transactionId,
+      plannedItemId: row.mapping.plannedItemId,
+      householdId: row.householdId,
+      mappedBy: row.mapping.mappedBy,
+      mappedAt: isoDateTimeOf(row.mapping.mappedAt),
     };
   }
 
@@ -156,8 +149,8 @@ export class DrizzleMappingRepository implements MappingRepository {
 
     return new Map(
       rows.map((row) => [
-        row.id as TransactionId,
-        { amountMinor: row.amountMinor, currency: row.currency as CurrencyCode },
+        row.id,
+        { amountMinor: row.amountMinor, currency: currencyOf(row.currency) },
       ]),
     );
   }

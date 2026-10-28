@@ -58,7 +58,8 @@ export class MjmlTemplateRenderer implements TemplateRenderer {
   private loadMjml(): MjmlRender {
     if (this.mjml2html === undefined) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      this.mjml2html = require('mjml') as MjmlRender;
+      const render: MjmlRender = require('mjml');
+      this.mjml2html = render;
     }
 
     return this.mjml2html;

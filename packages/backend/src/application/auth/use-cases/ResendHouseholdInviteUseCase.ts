@@ -1,4 +1,4 @@
-import type { HouseholdId, UserId } from '@power-budget/core';
+import type { HouseholdId, UserId, HouseholdInviteId } from '@power-budget/core';
 import type { HouseholdInviteRepository, UserRepository } from '../../../domain/auth/ports.js';
 import { InviteNotFoundError, UserNotFoundError } from '../../../domain/auth/errors.js';
 import type { HouseholdAccess } from '../services/HouseholdAccess.js';
@@ -8,7 +8,7 @@ import { toHouseholdInviteView, type HouseholdInviteView } from './HouseholdInvi
 export interface ResendHouseholdInviteInput {
   readonly userId: UserId;
   readonly householdId: HouseholdId;
-  readonly inviteId: string;
+  readonly inviteId: HouseholdInviteId;
 }
 
 /** Sends an open invite again with a new token and a new 7-day expiry; the old link dies. */

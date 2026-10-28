@@ -19,17 +19,48 @@ import {
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import type {
+  BankProvider,
+  EncryptedString,
+  IsoDate,
+  LocaleCode,
+  PlanType,
+  AuditEventId,
+  AuthMethodId,
+  BankAccountId,
+  BankConnectionId,
+  CategoryId,
+  FxRateId,
+  HouseholdExportId,
+  HouseholdId,
+  HouseholdInviteId,
+  LeftoverSnapshotId,
+  NotificationEventId,
+  PlanId,
+  PlannedItemId,
+  PlannedItemVersionId,
+  SessionId,
+  SyncRunId,
+  TransactionId,
+  TransferId,
+  UserId,
+} from '@power-budget/core';
+import type { BankConnectionStatus } from '../src/domain/bank/entities.js';
+import type { NotificationKind } from '../src/domain/notifications/entities.js';
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
 export const users = pgTable(
   'users',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<UserId>().primaryKey(),
     email: varchar('email', { length: 320 }).notNull(),
     displayName: varchar('display_name', { length: 255 }).notNull().default(''),
-    localePreference: varchar('locale_preference', { length: 10 }),
-    defaultLocale: varchar('default_locale', { length: 10 }).notNull().default('en'),
+    localePreference: varchar('locale_preference', { length: 10 }).$type<LocaleCode>(),
+    defaultLocale: varchar('default_locale', { length: 10 })
+      .$type<LocaleCode>()
+      .notNull()
+      .default('en'),
     // Preferences (CLN-011): NULL base currency means "use the household's".
     baseCurrency: char('base_currency', { length: 3 }),
     timezone: varchar('timezone', { length: 64 }).notNull().default('UTC'),
@@ -43,7 +74,7 @@ export const users = pgTable(
 );
 
 export const households = pgTable('households', {
-  id: uuid('id').primaryKey(),
+  id: uuid('id').$type<HouseholdId>().primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
   baseCurrency: char('base_currency', { length: 3 }).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -55,12 +86,14 @@ export const householdUsers = pgTable(
   'household_users',
   {
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     userId: uuid('user_id')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
-    role: varchar('role', { length: 20 }).notNull().default('member'),
+    role: varchar('role', { length: 20 }).$type<'owner' | 'member'>().notNull().default('member'),
     joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -72,8 +105,9 @@ export const householdUsers = pgTable(
 export const authMethods = pgTable(
   'auth_methods',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<AuthMethodId>().primaryKey(),
     userId: uuid('user_id')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
     kind: varchar('kind', { length: 20 }).notNull(),
@@ -91,8 +125,9 @@ export const authMethods = pgTable(
 export const sessions = pgTable(
   'sessions',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<SessionId>().primaryKey(),
     userId: uuid('user_id')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
     refreshTokenHash: varchar('refresh_token_hash', { length: 255 }).notNull(),
@@ -108,21 +143,23 @@ export const sessions = pgTable(
 
 export const totpSecrets = pgTable('totp_secrets', {
   userId: uuid('user_id')
+    .$type<UserId>()
     .primaryKey()
     .references(() => users.id),
-  encryptedSecret: text('encrypted_secret').notNull(),
+  encryptedSecret: text('encrypted_secret').$type<EncryptedString>().notNull(),
   enrolledAt: timestamp('enrolled_at', { withTimezone: true }).notNull().defaultNow(),
   verifiedAt: timestamp('verified_at', { withTimezone: true }),
   // Last accepted TOTP time step (CLN-004, audit M9): a code is accepted once.
   lastUsedTimeStep: bigint('last_used_time_step', { mode: 'number' }),
   // A replacement secret waiting for its first valid code (CLN-032, BE-BUGS-01);
   // the active secret above stays in force until then.
-  pendingEncryptedSecret: text('pending_encrypted_secret'),
+  pendingEncryptedSecret: text('pending_encrypted_secret').$type<EncryptedString>(),
 });
 
 export const magicLinkTokens = pgTable('magic_link_tokens', {
   tokenHash: text('token_hash').primaryKey(),
   userId: uuid('user_id')
+    .$type<UserId>()
     .notNull()
     .references(() => users.id, { onDelete: 'cascade' }),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -132,8 +169,9 @@ export const magicLinkTokens = pgTable('magic_link_tokens', {
 export const householdInvites = pgTable(
   'household_invites',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<HouseholdInviteId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     email: varchar('email', { length: 320 }).notNull(),
@@ -142,8 +180,12 @@ export const householdInvites = pgTable(
     acceptedAt: timestamp('accepted_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     // CLN-006: who sent the invite, who accepted it, and owner revocation.
-    invitedByUserId: uuid('invited_by_user_id').references(() => users.id),
-    acceptedByUserId: uuid('accepted_by_user_id').references(() => users.id),
+    invitedByUserId: uuid('invited_by_user_id')
+      .$type<UserId>()
+      .references(() => users.id),
+    acceptedByUserId: uuid('accepted_by_user_id')
+      .$type<UserId>()
+      .references(() => users.id),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
   },
   (t) => [
@@ -160,21 +202,26 @@ export const householdInvites = pgTable(
 export const bankConnections = pgTable(
   'bank_connections',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<BankConnectionId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     userId: uuid('user_id')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
-    provider: varchar('provider', { length: 30 }).notNull(),
+    provider: varchar('provider', { length: 30 }).$type<BankProvider>().notNull(),
     bankId: varchar('bank_id', { length: 100 }).notNull(),
     externalConsentRef: varchar('external_consent_ref', { length: 255 }),
-    encryptedConsent: text('encrypted_consent'),
+    encryptedConsent: text('encrypted_consent').$type<EncryptedString>(),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     // BNK-003: active | expired | revoked | disconnected plus the bank v2 states
     // pending_authorization | expiring | reauth_required | failed. expiresAt is the consent valid_until.
-    status: varchar('status', { length: 20 }).notNull().default('active'),
+    status: varchar('status', { length: 20 })
+      .$type<BankConnectionStatus>()
+      .notNull()
+      .default('active'),
     providerSessionId: varchar('provider_session_id', { length: 255 }),
     aspspName: varchar('aspsp_name', { length: 100 }),
     aspspCountry: char('aspsp_country', { length: 2 }),
@@ -195,16 +242,20 @@ export const bankConnections = pgTable(
 export const bankAccounts = pgTable(
   'bank_accounts',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<BankAccountId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     // CLN-023: 'bank' rows come from a connection; 'manual' rows (cash wallets) have none.
     kind: varchar('kind', { length: 20 }).notNull().default('bank'),
     ownerUserId: uuid('owner_user_id')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
-    connectionId: uuid('connection_id').references(() => bankConnections.id),
+    connectionId: uuid('connection_id')
+      .$type<BankConnectionId>()
+      .references(() => bankConnections.id),
     externalId: varchar('external_id', { length: 255 }),
     name: varchar('name', { length: 255 }).notNull(),
     iban: varchar('iban', { length: 34 }),
@@ -217,7 +268,9 @@ export const bankAccounts = pgTable(
     // predate it and for manual accounts); providerAccountUid changes with every session.
     identificationHash: varchar('identification_hash', { length: 128 }),
     providerAccountUid: varchar('provider_account_uid', { length: 255 }),
-    secondaryConnectionId: uuid('secondary_connection_id').references(() => bankConnections.id),
+    secondaryConnectionId: uuid('secondary_connection_id')
+      .$type<BankConnectionId>()
+      .references(() => bankConnections.id),
     lastBookedSyncAt: timestamp('last_booked_sync_at', { withTimezone: true }),
     lastAttendedSyncAt: timestamp('last_attended_sync_at', { withTimezone: true }),
     lastLiveSignalAt: timestamp('last_live_signal_at', { withTimezone: true }),
@@ -246,16 +299,18 @@ export const bankAccounts = pgTable(
 export const transactions = pgTable(
   'transactions',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<TransactionId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     accountId: uuid('account_id')
+      .$type<BankAccountId>()
       .notNull()
       .references(() => bankAccounts.id),
     externalId: varchar('external_id', { length: 255 }),
     // The economic date: the transaction date when the bank sends one, else the booking date.
-    occurredOn: date('occurred_on').notNull(),
+    occurredOn: date('occurred_on').$type<IsoDate>().notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
     description: text('description').notNull().default(''),
@@ -287,12 +342,16 @@ export const transactions = pgTable(
     originalCurrency: char('original_currency', { length: 3 }),
     // Provisional snapshots kept when a live/pending row is upgraded in place.
     reconciliation: jsonb('reconciliation'),
-    suggestedPlannedItemId: uuid('suggested_planned_item_id').references(() => plannedItems.id, {
-      onDelete: 'set null',
-    }),
-    suggestedCategoryId: uuid('suggested_category_id').references(() => categories.id, {
-      onDelete: 'set null',
-    }),
+    suggestedPlannedItemId: uuid('suggested_planned_item_id')
+      .$type<PlannedItemId>()
+      .references(() => plannedItems.id, {
+        onDelete: 'set null',
+      }),
+    suggestedCategoryId: uuid('suggested_category_id')
+      .$type<CategoryId>()
+      .references(() => categories.id, {
+        onDelete: 'set null',
+      }),
     suggestionConfidence: numeric('suggestion_confidence', {
       precision: 4,
       scale: 3,
@@ -338,15 +397,17 @@ export const transactionMappings = pgTable(
   'transaction_mappings',
   {
     transactionId: uuid('transaction_id')
+      .$type<TransactionId>()
       .primaryKey()
       .references(() => transactions.id),
     // CLN-051: the transaction's household, so the RLS policy is a column compare instead of a
     // transactions lookup per mapping row. The composite foreign key below keeps it in sync.
-    householdId: uuid('household_id').notNull(),
-    plannedItemId: uuid('planned_item_id').notNull(),
+    householdId: uuid('household_id').$type<HouseholdId>().notNull(),
+    plannedItemId: uuid('planned_item_id').$type<PlannedItemId>().notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
     mappedBy: uuid('mapped_by')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
     mappedAt: timestamp('mapped_at', { withTimezone: true }).notNull().defaultNow(),
@@ -367,15 +428,20 @@ export const transactionMappings = pgTable(
 export const transfers = pgTable(
   'transfers',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<TransferId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     txAId: uuid('tx_a_id')
+      .$type<TransactionId>()
       .notNull()
       .references(() => transactions.id),
-    txBId: uuid('tx_b_id').references(() => transactions.id),
+    txBId: uuid('tx_b_id')
+      .$type<TransactionId>()
+      .references(() => transactions.id),
     markedBy: uuid('marked_by')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
     markedAt: timestamp('marked_at', { withTimezone: true }).notNull().defaultNow(),
@@ -392,13 +458,16 @@ export const transfers = pgTable(
 export const plans = pgTable(
   'plans',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<PlanId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
-    ownerUserId: uuid('owner_user_id').references(() => users.id),
+    ownerUserId: uuid('owner_user_id')
+      .$type<UserId>()
+      .references(() => users.id),
     name: varchar('name', { length: 255 }).notNull(),
-    type: varchar('type', { length: 20 }).notNull(),
+    type: varchar('type', { length: 20 }).$type<PlanType>().notNull(),
     periodKind: varchar('period_kind', { length: 20 }).notNull(),
     periodStart: date('period_start').notNull(),
     periodEnd: date('period_end').notNull(),
@@ -413,14 +482,16 @@ export const plans = pgTable(
 export const plannedItems = pgTable(
   'planned_items',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<PlannedItemId>().primaryKey(),
     planId: uuid('plan_id')
+      .$type<PlanId>()
       .notNull()
       .references(() => plans.id),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
-    categoryId: uuid('category_id').notNull(),
+    categoryId: uuid('category_id').$type<CategoryId>().notNull(),
     direction: varchar('direction', { length: 10 }).notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
@@ -439,16 +510,19 @@ export const plannedItems = pgTable(
 export const plannedItemVersions = pgTable(
   'planned_item_versions',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<PlannedItemVersionId>().primaryKey(),
     plannedItemId: uuid('planned_item_id')
+      .$type<PlannedItemId>()
       .notNull()
       .references(() => plannedItems.id),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     before: jsonb('before'),
     after: jsonb('after').notNull(),
     changedBy: uuid('changed_by')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
     changedAt: timestamp('changed_at', { withTimezone: true }).notNull().defaultNow(),
@@ -462,8 +536,10 @@ export const plannedItemVersions = pgTable(
 export const categories = pgTable(
   'categories',
   {
-    id: uuid('id').primaryKey(),
-    householdId: uuid('household_id').references(() => households.id),
+    id: uuid('id').$type<CategoryId>().primaryKey(),
+    householdId: uuid('household_id')
+      .$type<HouseholdId>()
+      .references(() => households.id),
     seedKey: varchar('seed_key', { length: 100 }),
     name: varchar('name', { length: 100 }).notNull(),
     kind: varchar('kind', { length: 20 }).notNull().default('expense'),
@@ -482,12 +558,15 @@ export const categories = pgTable(
 
 export const categoryPrivacy = pgTable('category_privacy', {
   categoryId: uuid('category_id')
+    .$type<CategoryId>()
     .primaryKey()
     .references(() => categories.id),
   householdId: uuid('household_id')
+    .$type<HouseholdId>()
     .notNull()
     .references(() => households.id),
   updatedBy: uuid('updated_by')
+    .$type<UserId>()
     .notNull()
     .references(() => users.id),
   level: varchar('level', { length: 30 }).notNull().default('full_detail'),
@@ -505,7 +584,7 @@ export const currencies = pgTable('currencies', {
 export const fxRates = pgTable(
   'fx_rates',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<FxRateId>().primaryKey(),
     base: char('base', { length: 3 }).notNull(),
     quote: char('quote', { length: 3 }).notNull(),
     rateOnDate: date('rate_on_date').notNull(),
@@ -524,11 +603,14 @@ export const fxRates = pgTable(
 export const leftoverSnapshots = pgTable(
   'leftover_snapshots',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<LeftoverSnapshotId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
-    planId: uuid('plan_id').references(() => plans.id),
+    planId: uuid('plan_id')
+      .$type<PlanId>()
+      .references(() => plans.id),
     periodEnd: date('period_end').notNull(),
     amountMinor: bigint('amount_minor', { mode: 'bigint' }).notNull(),
     currency: char('currency', { length: 3 }).notNull(),
@@ -545,15 +627,19 @@ export const leftoverSnapshots = pgTable(
 export const notificationsOutbox = pgTable(
   'notifications_outbox',
   {
-    id: uuid('id').primaryKey(),
-    householdId: uuid('household_id').references(() => households.id),
+    id: uuid('id').$type<NotificationEventId>().primaryKey(),
+    householdId: uuid('household_id')
+      .$type<HouseholdId>()
+      .references(() => households.id),
     // Null for an email address without an account yet (CLN-006: household invite).
-    recipientUserId: uuid('recipient_user_id').references(() => users.id),
+    recipientUserId: uuid('recipient_user_id')
+      .$type<UserId>()
+      .references(() => users.id),
     recipientEmail: varchar('recipient_email', { length: 320 }),
-    recipientLocale: varchar('recipient_locale', { length: 10 }),
-    kind: varchar('kind', { length: 50 }).notNull(),
+    recipientLocale: varchar('recipient_locale', { length: 10 }).$type<LocaleCode>(),
+    kind: varchar('kind', { length: 50 }).$type<NotificationKind>().notNull(),
     dedupeKey: varchar('dedupe_key', { length: 255 }).notNull(),
-    payload: jsonb('payload').notNull().default({}),
+    payload: jsonb('payload').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     sentAt: timestamp('sent_at', { withTimezone: true }),
     failedAt: timestamp('failed_at', { withTimezone: true }),
@@ -578,16 +664,20 @@ export const notificationsOutbox = pgTable(
 export const auditLog = pgTable(
   'audit_log',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<AuditEventId>().primaryKey(),
     // SET NULL: a purge (CLN-022) keeps the audit rows and anonymises them via the FK action.
-    householdId: uuid('household_id').references(() => households.id, { onDelete: 'set null' }),
-    actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    householdId: uuid('household_id')
+      .$type<HouseholdId>()
+      .references(() => households.id, { onDelete: 'set null' }),
+    actorUserId: uuid('actor_user_id')
+      .$type<UserId>()
+      .references(() => users.id, { onDelete: 'set null' }),
     action: varchar('action', { length: 100 }).notNull(),
     subjectType: varchar('subject_type', { length: 100 }).notNull(),
     subjectId: uuid('subject_id').notNull(),
     before: jsonb('before'),
     after: jsonb('after'),
-    context: jsonb('context'),
+    context: jsonb('context').$type<Record<string, unknown>>(),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -602,14 +692,19 @@ export const auditLog = pgTable(
 export const householdExports = pgTable(
   'household_exports',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<HouseholdExportId>().primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     requestedByUserId: uuid('requested_by_user_id')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
-    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    status: varchar('status', { length: 20 })
+      .$type<'pending' | 'processing' | 'ready' | 'failed'>()
+      .notNull()
+      .default('pending'),
     downloadUrl: text('download_url'),
     expiresAt: timestamp('expires_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -625,11 +720,14 @@ export const householdExports = pgTable(
 export const syncRuns = pgTable(
   'sync_runs',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').$type<SyncRunId>().primaryKey(),
     connectionId: uuid('connection_id')
+      .$type<BankConnectionId>()
       .notNull()
       .references(() => bankConnections.id),
-    accountId: uuid('account_id').references(() => bankAccounts.id),
+    accountId: uuid('account_id')
+      .$type<BankAccountId>()
+      .references(() => bankAccounts.id),
     status: varchar('status', { length: 20 }).notNull().default('running'),
     lastSuccessfulAt: timestamp('last_successful_at', { withTimezone: true }),
     errorMessage: text('error_message'),
@@ -657,12 +755,15 @@ export const bankFetchLedger = pgTable(
   {
     id: uuid('id').primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     accountId: uuid('account_id')
+      .$type<BankAccountId>()
       .notNull()
       .references(() => bankAccounts.id),
     connectionId: uuid('connection_id')
+      .$type<BankConnectionId>()
       .notNull()
       .references(() => bankConnections.id),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
@@ -670,7 +771,9 @@ export const bankFetchLedger = pgTable(
     attended: boolean('attended').notNull().default(false),
     httpStatus: integer('http_status'),
     errorCode: varchar('error_code', { length: 100 }),
-    syncRunId: uuid('sync_run_id').references(() => syncRuns.id),
+    syncRunId: uuid('sync_run_id')
+      .$type<SyncRunId>()
+      .references(() => syncRuns.id),
   },
   (t) => [
     index('bank_fetch_ledger_account_at_idx').on(t.accountId, t.at),
@@ -689,9 +792,11 @@ export const liveSignals = pgTable(
   {
     id: uuid('id').primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     ownerUserId: uuid('owner_user_id')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
     source: varchar('source', { length: 20 }).notNull(),
@@ -702,7 +807,9 @@ export const liveSignals = pgTable(
     parsed: jsonb('parsed'),
     parserVersion: varchar('parser_version', { length: 50 }),
     state: varchar('state', { length: 20 }).notNull().default('received'),
-    transactionId: uuid('transaction_id').references(() => transactions.id),
+    transactionId: uuid('transaction_id')
+      .$type<TransactionId>()
+      .references(() => transactions.id),
     error: text('error'),
   },
   (t) => [
@@ -724,24 +831,33 @@ export const merchantRules = pgTable(
   {
     id: uuid('id').primaryKey(),
     householdId: uuid('household_id')
+      .$type<HouseholdId>()
       .notNull()
       .references(() => households.id),
     // The account owner whose correction taught the rule; NULL would mean household-wide.
-    ownerUserId: uuid('owner_user_id').references(() => users.id),
-    matchKind: varchar('match_kind', { length: 30 }).notNull(),
+    ownerUserId: uuid('owner_user_id')
+      .$type<UserId>()
+      .references(() => users.id),
+    matchKind: varchar('match_kind', { length: 30 })
+      .$type<'merchant' | 'counterparty_iban_hash' | 'descriptor_regex'>()
+      .notNull(),
     // The normalised merchant key, or the counterparty IBAN hash (never a raw IBAN).
     pattern: varchar('pattern', { length: 255 }).notNull(),
     categoryId: uuid('category_id')
+      .$type<CategoryId>()
       .notNull()
       .references(() => categories.id),
-    planKindPref: varchar('plan_kind_pref', { length: 20 }),
+    planKindPref: varchar('plan_kind_pref', { length: 20 }).$type<PlanType>(),
     alwaysAsk: boolean('always_ask').notNull().default(false),
     hits: integer('hits').notNull().default(0),
     lastHitAt: timestamp('last_hit_at', { withTimezone: true }),
-    createdFromTx: uuid('created_from_tx').references(() => transactions.id, {
-      onDelete: 'set null',
-    }),
+    createdFromTx: uuid('created_from_tx')
+      .$type<TransactionId>()
+      .references(() => transactions.id, {
+        onDelete: 'set null',
+      }),
     createdBy: uuid('created_by')
+      .$type<UserId>()
       .notNull()
       .references(() => users.id),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

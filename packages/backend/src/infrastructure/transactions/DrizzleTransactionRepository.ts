@@ -128,17 +128,17 @@ interface ListRow {
   readonly tx: schema.SelectTransaction;
   readonly mappingOrigin: string | null;
   readonly mappedAt: Date | null;
-  readonly plannedItemId: string | null;
-  readonly planId: string | null;
+  readonly plannedItemId: PlannedItemId | null;
+  readonly planId: PlanId | null;
   readonly planName: string | null;
   readonly planArchivedAt: Date | null;
-  readonly categoryId: string | null;
+  readonly categoryId: CategoryId | null;
   readonly categoryName: string | null;
   readonly categorySeedKey: string | null;
-  readonly transferAsAId: string | null;
-  readonly transferAsACounterpart: string | null;
-  readonly transferAsBId: string | null;
-  readonly transferAsBCounterpart: string | null;
+  readonly transferAsAId: TransferId | null;
+  readonly transferAsACounterpart: TransactionId | null;
+  readonly transferAsBId: TransferId | null;
+  readonly transferAsBCounterpart: TransactionId | null;
 }
 
 @Injectable()
@@ -215,7 +215,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .limit(1);
     const row = rows[0];
 
-    return row ? { id: row.id as BankAccountId, currency: currencyOf(row.currency) } : null;
+    return row ? { id: row.id, currency: currencyOf(row.currency) } : null;
   }
 
   async findById(id: TransactionId, scope: HouseholdScope): Promise<Transaction | null> {
@@ -276,7 +276,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
         ),
       );
 
-    return rows.map((row) => row.id as TransactionId);
+    return rows.map((row) => row.id);
   }
 
   /**
@@ -846,11 +846,11 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     }
 
     return {
-      plannedItemId: row.plannedItemId as PlannedItemId,
-      planId: row.planId as PlanId,
+      plannedItemId: row.plannedItemId,
+      planId: row.planId,
       planName: row.planName,
       planArchived: row.planArchivedAt !== null,
-      categoryId: row.categoryId as CategoryId,
+      categoryId: row.categoryId,
       categoryName: row.categoryName,
       categorySeedKey: row.categorySeedKey,
       origin: oneOf(MAPPING_ORIGINS, row.mappingOrigin, 'mapping source'),
@@ -861,14 +861,14 @@ export class DrizzleTransactionRepository implements TransactionRepository {
   private toTransferLink(row: ListRow): TransactionTransferLink | null {
     if (row.transferAsAId !== null) {
       return {
-        transferId: row.transferAsAId as TransferId,
-        counterpartTransactionId: row.transferAsACounterpart as TransactionId | null,
+        transferId: row.transferAsAId,
+        counterpartTransactionId: row.transferAsACounterpart,
       };
     }
     if (row.transferAsBId !== null) {
       return {
-        transferId: row.transferAsBId as TransferId,
-        counterpartTransactionId: row.transferAsBCounterpart as TransactionId | null,
+        transferId: row.transferAsBId,
+        counterpartTransactionId: row.transferAsBCounterpart,
       };
     }
 
