@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiClient } from '../ApiClient.js';
 import { readApiError } from '../ApiError.js';
-import { HttpError, NETWORK_CODE } from '../HttpError.js';
+import { HttpError, NETWORK_CODE, TIMEOUT_CODE } from '../HttpError.js';
 import type { SecureTokenStore } from '../../tokens/SecureTokenStore.js';
 
 const BASE_URL = 'http://api.test/';
@@ -143,5 +143,37 @@ describe('ApiClient transport', () => {
 
     expect(signals).toHaveLength(1);
     expect(signals[0]?.aborted).toBe(true);
+  });
+
+  it('reports an aborted request as a TIMEOUT HttpError without a response', async () => {
+    vi.useFakeTimers();
+    const client = clientWith(function hang(_input, init) {
+      return new Promise<Response>(function never(_resolve, reject) {
+        init.signal?.addEventListener('abort', function onAbort() {
+          reject(new DOMException('aborted', 'AbortError'));
+        });
+      });
+    });
+
+    const outcome = failureOf(client.request({ url: '/slow', method: 'GET', timeoutMs: 100 }));
+    await vi.advanceTimersByTimeAsync(100);
+    const failure = await outcome;
+
+    expect(failure).toBeInstanceOf(HttpError);
+    expect((failure as HttpError).code).toBe(TIMEOUT_CODE);
+    expect(readApiError(failure).status).toBe(0);
+  });
+
+  it('treats a protocol-relative URL as absolute', async () => {
+    const calls: Call[] = [];
+    const client = clientWith(async (input, init) => {
+      calls.push({ input, init });
+
+      return new Response('{}', { status: 200 });
+    });
+
+    await client.get('//cdn.test/x');
+
+    expect(calls[0]?.input).toBe('//cdn.test/x');
   });
 });

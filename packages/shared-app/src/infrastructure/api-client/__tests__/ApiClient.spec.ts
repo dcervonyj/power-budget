@@ -65,7 +65,9 @@ type FetchFake = (input: string, init: RequestInit) => Promise<Response>;
 const HANG_GUARD_MS = 1000;
 
 function respond(status: number, data: unknown): Response {
-  return new Response(JSON.stringify(data), { status });
+  const nullBody = status === 204 || status === 205 || status === 304;
+
+  return new Response(nullBody ? null : JSON.stringify(data), { status });
 }
 
 /** Fast enough for the hang guard; the production default waits 3 s. */
@@ -145,6 +147,7 @@ function withinGuard<T>(promise: Promise<T>): Promise<T> {
 
 describe('ApiClient token refresh', () => {
   let fetchFake: FetchFake;
+  let answered: { url: string; status: number }[];
   let seen: SeenRequest[];
   let routes: Record<string, Route>;
   let store: InMemoryTokenStore;
@@ -164,6 +167,7 @@ describe('ApiClient token refresh', () => {
 
   beforeEach(() => {
     seen = [];
+    answered = [];
     routes = {};
     store = new InMemoryTokenStore();
     unauthenticated = 0;
@@ -182,6 +186,8 @@ describe('ApiClient token refresh', () => {
       if (status === NETWORK_ERROR) {
         throw new TypeError('Failed to fetch');
       }
+
+      answered.push({ url, status });
 
       return respond(status, data);
     };
@@ -509,6 +515,9 @@ describe('ApiClient token refresh', () => {
       '/auth/logout',
     ]);
     expect(seen[2]?.body).toEqual({ refreshToken: 'new-refresh' });
+    expect(answered.filter((a) => a.url === '/auth/logout').map((a) => a.status)).toEqual([
+      401, 204,
+    ]);
     expect(store.access).toBeNull();
   });
 
@@ -540,6 +549,7 @@ describe('ApiClient token refresh', () => {
     expect(logout).toHaveLength(1);
     expect(logout[0]?.body).toEqual({ refreshToken: 'new-refresh' });
     expect(logout[0]?.authorization).toBe('Bearer new-access');
+    expect(answered.find((a) => a.url === '/auth/logout')?.status).toBe(204);
   });
 
   it('does not start a refresh while the sign-out is waiting', async () => {

@@ -3,6 +3,8 @@ export interface HttpRequest {
   method: string;
   headers?: Record<string, string>;
   body?: unknown;
+  /** Aborts the call after this many milliseconds; no timeout when absent. */
+  timeoutMs?: number;
 }
 
 export interface HttpResponse<T = unknown> {
