@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 import { categoriesApi, plansApi } from '../../../../infrastructure/index.js';
-import { SerialQueue } from '../../../../infrastructure/transactions/SerialQueue.js';
 import { loadAllPages } from '../../../../infrastructure/transactions/TransactionPaging.js';
 import {
   categoryNameByItem,
@@ -21,7 +20,7 @@ import type {
   MonthSummary,
   TransactionListRow,
 } from '../../../../infrastructure/transactions/TransactionListModel.js';
-import { transactionsGateway } from './transactionsGateway.js';
+import { transactionsGateway, writeQueue } from './transactionsGateway.js';
 import type { TransactionListStatus } from './TransactionListView.js';
 
 export type ListFailure = 'sort' | 'more';
@@ -65,7 +64,12 @@ export function useTransactionList(): TransactionListState {
   const [month, setMonth] = useState<MonthSummary | undefined>(undefined);
   const [categoryOfItem, setCategoryOfItem] = useState<ReadonlyMap<string, string>>(new Map());
   const moreInFlight = useRef(false);
-  const mappingQueue = useRef(new SerialQueue());
+  // Rows the user changed: their state is laid over every server load until that load is newer
+  // than the change, so a reload cannot show a confirmed row as unsorted or the other way round.
+  const [undone, setUndone] = useState<ReadonlySet<string>>(new Set());
+  const inFlight = useRef(new Map<string, number>());
+  const changedAt = useRef(new Map<string, number>());
+  const clock = useRef(0);
   const [reloadFailed, setReloadFailed] = useState(false);
   // Reloads can overlap (focus, pull to refresh, retry); only the newest answer may be applied.
   const listRequest = useRef(0);
@@ -74,6 +78,7 @@ export function useTransactionList(): TransactionListState {
   const loadFirstPage = useCallback(async (keepOnError: boolean): Promise<void> => {
     listRequest.current += 1;
     const request = listRequest.current;
+    const startedAt = clock.current;
     try {
       const loaded = await loadAllPages(fetchPage);
       if (request !== listRequest.current) {
@@ -81,7 +86,10 @@ export function useTransactionList(): TransactionListState {
       }
       setItems(loaded.items);
       setNextCursor(loaded.nextCursor);
-      setApplied(new Set());
+      const keep = (id: string): boolean =>
+        isLaidOver(id, startedAt, inFlight.current, changedAt.current);
+      setApplied((previous) => new Set([...previous].filter(keep)));
+      setUndone((previous) => new Set([...previous].filter(keep)));
       setReloadFailed(false);
       setStatus('ready');
     } catch {
@@ -125,7 +133,13 @@ export function useTransactionList(): TransactionListState {
     );
   }, [loadFirstPage, loadMonth]);
 
-  const rows = useMemo(() => toListRows(items, categoryOfItem), [items, categoryOfItem]);
+  const rows = useMemo(
+    () =>
+      toListRows(items, categoryOfItem).map((row) =>
+        undone.has(row.data.id) ? asUnsorted(row) : row,
+      ),
+    [items, categoryOfItem, undone],
+  );
   const groups = useMemo(
     () => groupByDay(visibleRows(rows, filter, applied)),
     [rows, filter, applied],
@@ -142,9 +156,14 @@ export function useTransactionList(): TransactionListState {
     }
     moreInFlight.current = true;
     setLoadingMore(true);
+    const generation = listRequest.current;
     void transactionsGateway
       .page(nextCursor)
       .then((page) => {
+        // A reload in the meantime replaced the list and the cursor: this page belongs to the old one.
+        if (generation !== listRequest.current) {
+          return;
+        }
         setItems((previous) => [...previous, ...page.items]);
         setNextCursor(page.nextCursor);
       })
@@ -157,10 +176,12 @@ export function useTransactionList(): TransactionListState {
 
   const setMapping = useCallback(
     async (row: TransactionListRow, plannedItemId: string | null): Promise<boolean> => {
+      const id = row.data.id;
+      inFlight.current.set(id, (inFlight.current.get(id) ?? 0) + 1);
+      clock.current += 1;
+      changedAt.current.set(id, clock.current);
       try {
-        await mappingQueue.current.run(() =>
-          transactionsGateway.setMapping(row.data.id, plannedItemId),
-        );
+        await writeQueue.run(() => transactionsGateway.setMapping(id, plannedItemId));
         void loadMonth();
 
         return true;
@@ -168,6 +189,10 @@ export function useTransactionList(): TransactionListState {
         setFailure('sort');
 
         return false;
+      } finally {
+        clock.current += 1;
+        changedAt.current.set(id, clock.current);
+        settle(inFlight.current, id);
       }
     },
     [loadMonth],
@@ -180,6 +205,7 @@ export function useTransactionList(): TransactionListState {
         return;
       }
       setApplied((previous) => new Set(previous).add(id));
+      setUndone((previous) => withoutId(previous, id));
       void setMapping(row, row.suggestedPlannedItemId).then((saved) => {
         if (!saved) {
           setApplied((previous) => withoutId(previous, id));
@@ -196,9 +222,11 @@ export function useTransactionList(): TransactionListState {
         return;
       }
       setApplied((previous) => withoutId(previous, id));
+      setUndone((previous) => new Set(previous).add(id));
       void setMapping(row, null).then((saved) => {
         if (!saved) {
           setApplied((previous) => new Set(previous).add(id));
+          setUndone((previous) => withoutId(previous, id));
         }
       });
     },
@@ -258,4 +286,37 @@ function withoutId(ids: ReadonlySet<string>, id: string): ReadonlySet<string> {
 
 function fetchPage(cursor?: string): ReturnType<typeof transactionsGateway.page> {
   return transactionsGateway.page(cursor);
+}
+
+/** True while the user's change of this row is newer than, or still racing with, a server load. */
+function isLaidOver(
+  id: string,
+  loadStartedAt: number,
+  inFlight: ReadonlyMap<string, number>,
+  changedAt: ReadonlyMap<string, number>,
+): boolean {
+  return inFlight.has(id) || (changedAt.get(id) ?? 0) > loadStartedAt;
+}
+
+function settle(inFlight: Map<string, number>, id: string): void {
+  const remaining = (inFlight.get(id) ?? 1) - 1;
+  if (remaining <= 0) {
+    inFlight.delete(id);
+
+    return;
+  }
+  inFlight.set(id, remaining);
+}
+
+/** A row whose category was just cleared, shown as unsorted until the server agrees. */
+function asUnsorted(row: TransactionListRow): TransactionListRow {
+  if (row.kind !== 'sorted') {
+    return row;
+  }
+
+  return {
+    ...row,
+    kind: 'toSort',
+    data: { ...row.data, status: 'to-sort', categoryLabel: undefined },
+  };
 }
