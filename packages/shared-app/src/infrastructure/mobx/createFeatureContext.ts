@@ -5,8 +5,10 @@ export function createFeatureContext<C>() {
 
   function useFeatureContext(): C {
     const ctx = useContext(Context);
-    if (!ctx)
+    if (!ctx) {
       throw new Error('Feature context not found. Did you forget to wrap with the provider?');
+    }
+
     return ctx;
   }
 

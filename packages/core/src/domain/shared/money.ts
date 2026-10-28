@@ -23,11 +23,13 @@ export const Money = {
 
   add(a: Money, b: Money): Money {
     Money.assertSameCurrency(a, b);
+
     return { amountMinor: a.amountMinor + b.amountMinor, currency: a.currency };
   },
 
   sub(a: Money, b: Money): Money {
     Money.assertSameCurrency(a, b);
+
     return { amountMinor: a.amountMinor - b.amountMinor, currency: a.currency };
   },
 
@@ -45,8 +47,13 @@ export const Money = {
 
   compare(a: Money, b: Money): -1 | 0 | 1 {
     Money.assertSameCurrency(a, b);
-    if (a.amountMinor < b.amountMinor) return -1;
-    if (a.amountMinor > b.amountMinor) return 1;
+    if (a.amountMinor < b.amountMinor) {
+      return -1;
+    }
+    if (a.amountMinor > b.amountMinor) {
+      return 1;
+    }
+
     return 0;
   },
 

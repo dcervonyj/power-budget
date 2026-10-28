@@ -67,6 +67,7 @@ function formatPart(part: Intl.NumberFormatPart, fraction: string, zeroWhole: bo
  */
 export function formatDate(date: IsoDate | Date, locale: SupportedLocale): string {
   const d = typeof date === 'string' ? new Date(date + 'T00:00:00Z') : date;
+
   return new Intl.DateTimeFormat(LOCALE_BCP47[locale], {
     dateStyle: 'medium',
     timeZone: 'UTC',

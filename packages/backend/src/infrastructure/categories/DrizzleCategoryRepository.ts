@@ -60,7 +60,9 @@ export class DrizzleCategoryRepository implements CategoryRepository {
           color: input.color,
         })
         .returning();
-      if (!row) throw new Error('Failed to create category');
+      if (!row) {
+        throw new Error('Failed to create category');
+      }
 
       return this.toEntity(row);
     } catch (error) {
@@ -79,7 +81,9 @@ export class DrizzleCategoryRepository implements CategoryRepository {
         })
         .where(this.ownedBy(id, scope))
         .returning();
-      if (!row) throw new Error(`CATEGORY_NOT_FOUND: Category ${id} not found`);
+      if (!row) {
+        throw new Error(`CATEGORY_NOT_FOUND: Category ${id} not found`);
+      }
 
       return this.toEntity(row);
     } catch (error) {

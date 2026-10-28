@@ -20,7 +20,9 @@ export class RunReconnectRemindersUseCase {
       const expiring = await this.notificationRepo.findExpiringConnections(threshold);
 
       for (const conn of expiring) {
-        if (conn.emailBouncing) continue;
+        if (conn.emailBouncing) {
+          continue;
+        }
 
         const daysUntilExpiry = Math.max(
           0,

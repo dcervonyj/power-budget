@@ -12,6 +12,7 @@ export class DrizzleUserRepository implements UserRepository {
 
   async findById(id: UserId): Promise<User | null> {
     const rows = await this.db.select().from(schema.users).where(eq(schema.users.id, id));
+
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
@@ -20,6 +21,7 @@ export class DrizzleUserRepository implements UserRepository {
       .select()
       .from(schema.users)
       .where(eq(schema.users.email, email.toLowerCase()));
+
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
@@ -36,6 +38,7 @@ export class DrizzleUserRepository implements UserRepository {
         updatedAt: new Date(),
       })
       .returning();
+
     return this.toEntity(rows[0]!);
   }
 

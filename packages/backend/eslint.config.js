@@ -2,6 +2,7 @@
 // Backend-specific ESLint flat config.
 // Extends the root monorepo config and adds the local `no-repo-without-scope` rule.
 const rootConfig = require('../../eslint.config.js');
+const { ratchetForPackage } = require('../../eslint.ratchet.js');
 const { backendLayerBlocks } = require('../../eslint.layers.js');
 const localRules = require('./eslint-local-rules.cjs');
 const tsParser = require('@typescript-eslint/parser');
@@ -9,6 +10,7 @@ const tsParser = require('@typescript-eslint/parser');
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
   ...rootConfig,
+  ...ratchetForPackage('backend'),
   // Root layer globs are relative to the repo root and do not match here; re-apply them for this base dir (CLN-061).
   ...backendLayerBlocks(''),
   // __tests__/** are vitest fixtures, not part of the main tsconfig — disable type-aware rules.

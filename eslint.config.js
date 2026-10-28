@@ -8,6 +8,7 @@ const tsParser = require('@typescript-eslint/parser');
 const tsPlugin = require('@typescript-eslint/eslint-plugin');
 const formatjsPlugin = require('eslint-plugin-formatjs').default;
 const { layerLintBlocks } = require('./eslint.layers.js');
+const { ratchetBlocks } = require('./eslint.ratchet.js');
 
 /** @type {import('eslint').Linter.FlatConfig[]} */
 module.exports = [
@@ -71,6 +72,11 @@ module.exports = [
   // ─── Per-layer import restrictions (CLN-061) ─────────────────────
   // Defined in eslint.layers.js; must come after the scaffold above so it overrides it.
   ...layerLintBlocks,
+
+  // ─── Style ratchet (CLN-062) ─────────────────────────────────────────────
+  // curly, padding before return, switch exhaustiveness, member order, no *Helper, lodash ban.
+  // Enabled per package; see eslint.ratchet.js.
+  ...ratchetBlocks,
 
   // ─── formatjs: no-literal-string in presentation layers ─────────────────
   // Ensures all user-visible strings in presentation/ go through react-intl.

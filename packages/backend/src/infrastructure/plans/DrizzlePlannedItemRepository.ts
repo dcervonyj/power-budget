@@ -35,7 +35,10 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
         note: item.note ?? null,
       })
       .returning();
-    if (!row) throw new Error('Failed to add planned item');
+    if (!row) {
+      throw new Error('Failed to add planned item');
+    }
+
     return this.toEntity(row);
   }
 
@@ -45,6 +48,7 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
       .from(schema.plannedItems)
       .where(this.byId(id, scope))
       .limit(1);
+
     return rows[0] ? this.toEntity(rows[0]) : null;
   }
 
@@ -131,6 +135,7 @@ export class DrizzlePlannedItemRepository implements PlannedItemRepository {
         ),
       )
       .orderBy(asc(schema.plannedItems.createdAt), asc(schema.plannedItems.id));
+
     return rows.map((r) => this.toEntity(r));
   }
 

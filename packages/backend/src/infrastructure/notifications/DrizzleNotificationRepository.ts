@@ -161,8 +161,11 @@ export class DrizzleNotificationRepository implements NotificationRepository {
       .where(eq(schema.users.id, userId))
       .limit(1);
 
-    if (rows.length === 0 || !rows[0]) return null;
+    if (rows.length === 0 || !rows[0]) {
+      return null;
+    }
     const r = rows[0];
+
     return {
       email: r.email,
       displayName: r.displayName,

@@ -17,10 +17,10 @@ import {
 
 /** Every error response has this shape; HttpException bodies may add fields (e.g. `errors`). */
 export interface ErrorResponseBody {
+  readonly [extra: string]: unknown;
   readonly statusCode: number;
   readonly code: string;
   readonly message: string;
-  readonly [extra: string]: unknown;
 }
 
 interface ResolvedError {

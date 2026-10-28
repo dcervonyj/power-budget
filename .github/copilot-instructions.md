@@ -106,7 +106,11 @@ export class GoCardlessBankConnector implements BankConnector { ... }
 export class EcbFxRateProvider implements FxRateProvider { ... }
 ```
 
-Use case classes: `RegisterUser`, `LoginWithPassword`, `MapTransaction`, `GetPlanDashboard` (verb-noun, no "UseCase" suffix).
+Use case classes carry the `UseCase` suffix, as every one of the 73 existing ones does: `RegisterUserUseCase`, `LoginWithPasswordUseCase`, `MapTransactionUseCase`, `GetPlanDashboardUseCase` (verb-noun + `UseCase`; file name equals class name). Do not rename existing ones.
+
+Never name anything `*Helper` (class, function, variable or file). Name it by what it does.
+
+These style rules are enforced as ESLint errors (`eslint.ratchet.js`): `curly` (always braces), a blank line before `return`, `@typescript-eslint/switch-exhaustiveness-check` (list every union member as a `case`; a `default` does not make a union switch exhaustive; for a closed union use `default: return assertNever(x)`), `@typescript-eslint/member-ordering` (fields, constructor, public methods, protected methods, private methods), no `*Helper` names, and no `lodash` import (use `lodash-es`).
 
 ## Branded ID types
 

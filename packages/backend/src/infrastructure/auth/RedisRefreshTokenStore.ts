@@ -21,6 +21,7 @@ export class RedisRefreshTokenStore implements RefreshTokenStore {
     const token = generateToken();
     const key = `refresh:${hash(token)}`;
     await this.redis.set(key, userId, 'EX', ttlSeconds);
+
     return token;
   }
 
