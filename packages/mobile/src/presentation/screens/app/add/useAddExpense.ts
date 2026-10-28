@@ -45,6 +45,7 @@ export interface AddExpenseState {
   readonly save: () => void;
   readonly undo: () => void;
   readonly addAnother: () => void;
+  readonly retryRefresh: () => void;
 }
 
 /** Loads the plan, categories and accounts, and runs save / undo / add another. */
@@ -65,6 +66,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const [attempt, setAttempt] = useState(0);
   const [today, setToday] = useState(() => toLocalIsoDate(new Date()));
   const created = useRef<CreatedExpense | null>(null);
+  const requestId = useRef(0);
   const unplannedName = intl.formatMessage({
     id: 'add.category.unplannedName',
     defaultMessage: 'Unplanned',
@@ -163,18 +165,23 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   }, [accountId, categoryId, intl, load, sources.api, status, typed]);
 
   /**
-   * Fetches fresh data. A background refresh (`force` false) only lands while editing: once an
-   * expense is saved the Saved view applies it on top of the totals it was saved against, so
-   * fresher totals that already contain it would count it twice.
+   * One rule for every dashboard read: each refresh takes a ticket and only the latest ticket
+   * lands, so an older read can never overwrite newer totals. A background refresh (`force`
+   * false) also only lands while editing: once an expense is saved the Saved view applies it
+   * on top of the totals it was saved against, so fresher totals that contain it would count
+   * it twice. Resolves true when the totals were read (landed or superseded), false on failure.
    */
   const refresh = useCallback(
     (force: boolean): Promise<boolean> => {
+      requestId.current += 1;
+      const ticket = requestId.current;
+
       return loadData(sources, unplannedName).then(
         (next) => {
           if (next.kind !== 'ready') {
             return false;
           }
-          if (force || statusRef.current === 'editing') {
+          if (ticket === requestId.current && (force || statusRef.current === 'editing')) {
             setLoad(next);
           }
 
@@ -186,6 +193,32 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     [sources, unplannedName],
   );
 
+  /** Refreshes with editing locked; only a successful latest refresh unlocks it. */
+  const refreshThenEdit = useCallback(
+    (resetAmount: boolean) => {
+      setError(null);
+      changeStatus('refreshing');
+      const ticket = requestId.current + 1;
+      void refresh(true).then((ok) => {
+        if (ticket !== requestId.current) {
+          return;
+        }
+        if (!ok) {
+          setError(refreshError(intl));
+          changeStatus('stale');
+
+          return;
+        }
+        if (resetAmount) {
+          setTypedRaw('');
+        }
+        setSavedId(null);
+        changeStatus('editing');
+      });
+    },
+    [changeStatus, intl, refresh],
+  );
+
   const undo = useCallback(() => {
     if (savedId === null || status !== 'saved') {
       return;
@@ -194,11 +227,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     changeStatus('undoing');
     void sources.api.undo(savedId).then(
       () => {
-        setSavedId(null);
-        // Fresh totals for the next expense; if the read fails the totals from before the save stay.
-        void refresh(true).then(() => {
-          changeStatus('editing');
-        });
+        refreshThenEdit(false);
       },
       () => {
         setError(
@@ -210,9 +239,12 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
         changeStatus('saved');
       },
     );
-  }, [changeStatus, intl, refresh, savedId, sources.api, status]);
+  }, [changeStatus, intl, refreshThenEdit, savedId, sources.api, status]);
 
   const refreshOrWarn = useCallback(() => {
+    if (statusRef.current !== 'editing') {
+      return;
+    }
     void refresh(false).then((ok) => {
       if (!ok) {
         setError(refreshError(intl));
@@ -224,20 +256,15 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     if (status !== 'saved') {
       return;
     }
-    setError(null);
-    changeStatus('refreshing');
-    void refresh(true).then((ok) => {
-      if (!ok) {
-        setError(refreshError(intl));
-        changeStatus('saved');
+    refreshThenEdit(true);
+  }, [refreshThenEdit, status]);
 
-        return;
-      }
-      setTypedRaw('');
-      setSavedId(null);
-      changeStatus('editing');
-    });
-  }, [changeStatus, intl, refresh, status]);
+  const retryRefresh = useCallback(() => {
+    if (status !== 'stale') {
+      return;
+    }
+    refreshThenEdit(true);
+  }, [refreshThenEdit, status]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (next) => {
@@ -279,6 +306,7 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     save,
     undo,
     addAnother,
+    retryRefresh,
   };
 }
 

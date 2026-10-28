@@ -259,9 +259,8 @@ describe('AddExpenseScreen', () => {
     await waitFor(() =>
       expect(screen.getByText('Could not refresh your plan. Try again.')).toBeTruthy(),
     );
-    expect(screen.getByText('Added')).toBeTruthy();
     expect(screen.queryByRole('radio', { name: 'Groceries' })).toBeNull();
-    await userEvent.setup().press(screen.getByRole('button', { name: 'Add another' }));
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     expect(screen.queryByText('Could not refresh your plan. Try again.')).toBeNull();
   });
@@ -282,7 +281,7 @@ describe('AddExpenseScreen', () => {
     jest.useRealTimers();
   });
 
-  it('R1-F1: a refresh while Saved does not count the saved expense twice', async () => {
+  it('R1-F1: a refresh that lands while Saved does not count the saved expense twice', async () => {
     const listeners: Array<(state: string) => void> = [];
     jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
       listeners.push(listener);
@@ -291,30 +290,38 @@ describe('AddExpenseScreen', () => {
     });
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
-    await typeAmount(['8', '4']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 84\.00/ }));
-    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
-    const before = screen.getByText(/Safe to spend today is now/).props.children;
-    mockDashboard.mockResolvedValue({
-      ...DASHBOARD,
-      totalActualExpenses: money('661340'),
-      expenseLines: [
-        { ...DASHBOARD.expenseLines[0], actual: money('123264'), remaining: money('96736') },
-      ],
-    });
-
+    let landLate: (dashboard: PlanDashboardResponseDto) => void = () => undefined;
+    mockDashboard.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          landLate = resolve;
+        }),
+    );
     await act(async () => {
       listeners.forEach((listener) => {
         listener('active');
       });
     });
+    await typeAmount(['8', '4']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 84\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    const before = screen.getByText(/Safe to spend today is now/).props.children;
 
-    await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      landLate({
+        ...DASHBOARD,
+        totalActualExpenses: money('661340'),
+        expenseLines: [
+          { ...DASHBOARD.expenseLines[0], actual: money('123264'), remaining: money('96736') },
+        ],
+      });
+    });
+
     expect(screen.getByText(/Safe to spend today is now/).props.children).toEqual(before);
     expect(screen.getByTestId('add-category-line')).toHaveTextContent(/1,051\.36 → PLN 967\.36/);
   });
 
-  it('R1-F2: Undo locks Add another until it completes, then refreshes the totals', async () => {
+  it('R2-F2: Undo locks Add another until it completes, then refreshes the totals', async () => {
     let finishUndo: () => void = () => undefined;
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
@@ -340,5 +347,60 @@ describe('AddExpenseScreen', () => {
     });
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     expect(mockDashboard).toHaveBeenCalledTimes(2);
+  });
+
+  it('R2-F3: a refresh started before Undo cannot overwrite the totals read after it', async () => {
+    const listeners: Array<(state: string) => void> = [];
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, listener) => {
+      listeners.push(listener);
+
+      return { remove: jest.fn() };
+    });
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    let landOld: (dashboard: PlanDashboardResponseDto) => void = () => undefined;
+    mockDashboard.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          landOld = resolve;
+        }),
+    );
+    await act(async () => {
+      listeners.forEach((listener) => {
+        listener('active');
+      });
+    });
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Undo' }));
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+
+    await act(async () => {
+      landOld({ ...DASHBOARD, asOf: '2026-10-22', unplannedExpenses: money('99999900') });
+    });
+
+    expect(screen.getByTestId('add-safe-after')).toHaveTextContent(/476/);
+    expect(screen.queryByText(/999/)).toBeNull();
+  });
+
+  it('R2-F4: a failed refresh after Undo shows an error with Retry and keeps editing locked', async () => {
+    await renderAdd(<AddExpenseScreen />);
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    await typeAmount(['5']);
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
+    mockDashboard.mockRejectedValueOnce(new Error('offline'));
+
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Undo' }));
+
+    await waitFor(() =>
+      expect(screen.getByText('Could not refresh your plan. Try again.')).toBeTruthy(),
+    );
+    expect(screen.queryByRole('radio', { name: 'Groceries' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Add another' })).toBeNull();
+    await userEvent.setup().press(screen.getByRole('button', { name: 'Retry' }));
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
+    expect(mockDashboard).toHaveBeenCalledTimes(3);
   });
 });

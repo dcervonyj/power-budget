@@ -46,6 +46,8 @@ export interface AddExpenseViewProps {
   readonly onSave: () => void;
   readonly onUndo: () => void;
   readonly onAddAnother: () => void;
+  /** Retries the totals read that failed after Add another or Undo. */
+  readonly onRetryRefresh: () => void;
   readonly onBackToToday: () => void;
 }
 
@@ -119,7 +121,11 @@ export function AddExpenseView(props: AddExpenseViewProps): React.JSX.Element {
       ? null
       : computeImpact(props.plan, category, amountMinor);
   const editing =
-    props.status !== 'saved' && props.status !== 'refreshing' && props.status !== 'undoing';
+    props.status !== 'saved' &&
+    props.status !== 'refreshing' &&
+    props.status !== 'undoing' &&
+    props.status !== 'stale';
+  const stale = props.status === 'stale';
 
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
@@ -127,10 +133,15 @@ export function AddExpenseView(props: AddExpenseViewProps): React.JSX.Element {
       {impact === null || props.plan === null ? null : (
         <ImpactPanel plan={props.plan} impact={impact} category={category} />
       )}
-      {props.error === null ? null : <ErrorBanner message={props.error} />}
+      {props.error === null ? null : (
+        <ErrorBanner
+          message={props.error}
+          onRetry={props.status === 'stale' ? props.onRetryRefresh : undefined}
+        />
+      )}
       {editing ? (
         <Pickers {...props} />
-      ) : (
+      ) : stale ? null : (
         <SavedPanel {...props} impact={impact} category={category} amountMinor={amountMinor} />
       )}
       {editing ? <KeypadBlock {...props} category={category} amountMinor={amountMinor} /> : null}
