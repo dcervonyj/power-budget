@@ -109,15 +109,48 @@ describe('PlanDashboardStore polling and reference data', () => {
     expect(categories.list).toHaveBeenCalledOnce();
   });
 
-  it('reads the reference data again after a local change', async () => {
+  it('reads the reference data again on the next load after a local change, not on a poll', async () => {
     await store.load('plan-1');
-
     catalogue.invalidate();
-    await store.poll('plan-1');
+    const afterLoad = requestCount();
 
+    await store.poll('plan-1');
+    await store.poll('plan-1');
+    expect(requestCount() - afterLoad).toBe(2);
+
+    await store.load('plan-1');
     expect(plans.get).toHaveBeenCalledTimes(2);
     expect(plans.listItems).toHaveBeenCalledTimes(2);
     expect(categories.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('polls with exactly one request even when the reference reads failed at load', async () => {
+    plans.listItems.mockRejectedValueOnce(new Error('down'));
+    categories.list.mockRejectedValueOnce(new Error('down'));
+    await store.load('plan-1');
+    const afterLoad = requestCount();
+
+    await store.poll('plan-1');
+    await store.poll('plan-1');
+
+    expect(requestCount() - afterLoad).toBe(2);
+    expect(plans.dashboard).toHaveBeenCalledTimes(3);
+  });
+
+  it('starts no unplanned request for a load that a newer load replaced', async () => {
+    const slow = deferred<PlanDashboardDto>();
+    plans.dashboard.mockReturnValueOnce(slow.promise);
+    const older = store.load('plan-1');
+    await store.load('plan-1');
+    const unplannedAfterNewer = plans.unplanned.mock.calls.length;
+    const pages = store.unplannedExpenses;
+
+    slow.resolve({ ...DASHBOARD, asOf: '2026-10-01' });
+    await older;
+
+    expect(plans.unplanned).toHaveBeenCalledTimes(unplannedAfterNewer);
+    expect(store.unplannedExpenses).toBe(pages);
+    expect(store.dashboard?.asOf).toBe(DASHBOARD.asOf);
   });
 
   it('does a full load when there is no dashboard yet (first poll after a failure)', async () => {
