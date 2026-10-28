@@ -59,7 +59,11 @@ const MAX_PORT = 65535;
 export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
   const problems: string[] = [];
   const nodeEnv = text(env['NODE_ENV']) ?? 'development';
-  const jwtSecret = attempt(() => resolveJwtSecret(env['JWT_SECRET'], nodeEnv), '', problems);
+  const jwtSecret = attempt(
+    () => resolveJwtSecret(text(env['JWT_SECRET']) ?? undefined, nodeEnv),
+    '',
+    problems,
+  );
   const kekBase64 = text(env['KEK_BASE64']) ?? '';
   if (Buffer.from(kekBase64, 'base64').length !== KEK_BYTES) {
     problems.push(

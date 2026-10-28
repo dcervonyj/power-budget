@@ -73,6 +73,13 @@ describe('parseAppConfig', () => {
     expect(problemsOf({ KEK_BASE64: KEK }, 'worker')).toContain('JWT_SECRET is not set');
   });
 
+  it('rejects a whitespace-only JWT_SECRET for api and worker', () => {
+    const blank = { NODE_ENV: 'production', KEK_BASE64: KEK, JWT_SECRET: ' '.repeat(40) };
+
+    expect(problemsOf(blank, 'api')).toContain('JWT_SECRET is not set');
+    expect(problemsOf(blank, 'worker')).toContain('JWT_SECRET is not set');
+  });
+
   it('treats empty and blank values as unset: defaults for optional, errors for required', () => {
     const config = parseAppConfig({ ...VALID, DATABASE_URL: '', REDIS_URL: '   ' }, 'api');
 
