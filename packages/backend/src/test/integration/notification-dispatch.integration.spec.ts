@@ -5,9 +5,9 @@ import { Queue, Worker, type Job } from 'bullmq';
 import { mock } from 'vitest-mock-extended';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
-import type { UserId } from '@power-budget/core';
+import type { HouseholdId, UserId } from '@power-budget/core';
 import { getDb, getPool, resetState, startContainers, stopContainers } from './setup.js';
-import { insertTestUser } from './test-helpers.js';
+import { insertTestHousehold, insertTestUser } from './test-helpers.js';
 import * as schema from '../../../drizzle/schema.js';
 import type { NotificationKind } from '../../domain/notifications/entities.js';
 import type { EmailMessage } from '../../domain/notifications/ports.js';
@@ -181,6 +181,41 @@ describe('notification dispatch against real Postgres + Redis', () => {
     const pending = await repo.findPendingBatch(10);
     expect(pending.map((n) => n.id)).toEqual(scheduled);
     expect(scheduled).toHaveLength(1);
+  });
+
+  it('the outbox writes an address-only invite row, deduplicates it and schedules it once', async () => {
+    const household = await insertTestHousehold(getDb());
+    const scheduled: string[] = [];
+    const outbox = new DrizzleNotificationOutbox(
+      getDb(),
+      { schedule: async (id) => void scheduled.push(id) },
+      new UuidV7Generator(),
+      new SystemClock(),
+    );
+    const invite = {
+      householdId: household.id as HouseholdId,
+      email: 'Eve@Example.com',
+      locale: 'uk' as const,
+      kind: 'household_invite' as const,
+      dedupeKey: 'cln-067:invite',
+      payload: { inviterName: 'Ann' },
+    };
+
+    await outbox.enqueueToAddress(invite);
+    await outbox.enqueueToAddress(invite);
+
+    const [stored] = await repo.findPendingBatch(10);
+    expect(stored).toMatchObject({
+      householdId: household.id,
+      recipientUserId: null,
+      recipientEmail: 'eve@example.com',
+      recipientLocale: 'uk',
+      kind: 'household_invite',
+      dedupeKey: 'cln-067:invite',
+      payload: { inviterName: 'Ann' },
+    });
+    expect(await repo.findPendingBatch(10)).toHaveLength(1);
+    expect(scheduled).toEqual([stored?.id]);
   });
 
   it('the outbox keeps the row when the dispatch queue is down (the relay cron picks it up)', async () => {
