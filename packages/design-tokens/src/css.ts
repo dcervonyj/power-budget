@@ -12,6 +12,7 @@ function flattenColors(color: Theme['color'], prefix: string): Record<string, st
       result[`${prefix}-color-${toKebab(group)}-${toKebab(key)}`] = value;
     }
   }
+
   return result;
 }
 
@@ -56,6 +57,7 @@ function flattenTheme(theme: Theme): Record<string, string> {
 function renderBlock(selector: string, vars: Record<string, string>): string {
   const sorted = Object.entries(vars).sort(([a], [b]) => a.localeCompare(b));
   const lines = sorted.map(([k, v]) => `  ${k}: ${v};`).join('\n');
+
   return `${selector} {\n${lines}\n}`;
 }
 
@@ -91,5 +93,6 @@ if (Array.isArray(process.argv) && process.argv[1] === fileURLToPath(import.meta
 
 function fileURLToPath(url: string | URL): string {
   const href = url instanceof URL ? url.href : url;
+
   return new URL(href).pathname;
 }

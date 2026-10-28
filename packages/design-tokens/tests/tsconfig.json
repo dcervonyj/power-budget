@@ -4,5 +4,5 @@
     "noEmit": true,
     "rootDir": ".."
   },
-  "include": ["glass*.test.ts"]
+  "include": ["glass*.test.ts", "lint-ratchet.test.ts"]
 }
