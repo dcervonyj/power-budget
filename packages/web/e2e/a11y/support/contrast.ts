@@ -303,7 +303,7 @@ async function measureAgainstScreenshot(input: {
     const [tr, tg, tb, ta] = probe.color;
     let worst = Infinity;
     let worstBackground = '';
-    function measure(minAlong: number): number {
+    function measure(minAlong: number, looseness: number): number {
       let counted = 0;
       for (const rect of probe.rects) {
         const x = Math.max(0, Math.floor(rect.x));
@@ -346,7 +346,7 @@ async function measureAgainstScreenshot(input: {
             }
             const along = (sr * dr + sg * dg + sb * db) / span;
             const off = Math.hypot(sr - along * dr, sg - along * dg, sb - along * db);
-            if (along < minAlong || along > 1.15 || off > 16) {
+            if (along < minAlong || along > 1.15 || off > 16 + looseness * Math.sqrt(span)) {
               continue;
             }
           }
@@ -363,9 +363,14 @@ async function measureAgainstScreenshot(input: {
     }
     // Glyph pixels only. None found means the text is not drawn where it should be: the probe
     // is reported unmeasured (and fails) instead of passing on the pixels around it.
-    // Thin glyphs (a minus sign, a hairline) never reach full coverage: a second pass takes
-    // pixels at least a third covered. Their ratio is still against the full text colour.
-    const measured = measure(0.85) > 0 || measure(0.3) > 0;
+    // Thin glyphs (a minus sign, a full stop, a comma) never reach full coverage, and how far
+    // they get depends on the renderer: later passes take pixels at least a third, then a tenth
+    // covered. A last pass also allows the colour fringes of sub-pixel (LCD) antialiasing, the
+    // Linux renderer's habit on small punctuation: the pixel may stray from the background-to-text
+    // line by a quarter of the contrast. The ratio is against the full text colour, so coverage
+    // does not change it. Text that is not drawn at all differs in no pixel and stays unmeasured.
+    const measured =
+      measure(0.85, 0) > 0 || measure(0.3, 0) > 0 || measure(0.1, 0) > 0 || measure(0.1, 0.25) > 0;
 
     return {
       text: probe.text,
