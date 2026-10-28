@@ -3,7 +3,6 @@ import { parseAppConfig } from '../../config/AppConfig.js';
 import { Redis } from 'ioredis';
 import {
   buildQueueConnectionOptions,
-  closeSharedQueueConnections,
   getSharedQueueConnection,
   releaseSharedQueueConnection,
 } from './redis-connection.js';
@@ -28,7 +27,8 @@ function parsedByIoredis(url: string): Redis {
 
 describe('buildQueueConnectionOptions', () => {
   afterEach(async () => {
-    await closeSharedQueueConnections();
+    await releaseSharedQueueConnection(UPSTASH_URL);
+    await releaseSharedQueueConnection('redis://localhost:6379');
     while (clients.length > 0) {
       clients.pop()?.disconnect();
     }
@@ -79,10 +79,6 @@ describe('buildQueueConnectionOptions', () => {
 });
 
 describe('releaseSharedQueueConnection', () => {
-  afterEach(async () => {
-    await closeSharedQueueConnections();
-  });
-
   it('quits the shared connection exactly once, when the last context releases it', async () => {
     const config = parseAppConfig(BASE_ENV, 'api');
     buildQueueConnectionOptions(config); // API context
