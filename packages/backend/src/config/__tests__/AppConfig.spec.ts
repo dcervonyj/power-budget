@@ -94,6 +94,15 @@ describe('parseAppConfig', () => {
     );
   });
 
+  it('rejects a KEK with an invalid or misplaced character, even if 32 bytes still decode', () => {
+    const corrupted = `${KEK.slice(0, 10)}!${KEK.slice(10)}`;
+    const unpadded = KEK.replace(/=+$/, '');
+
+    expect(problemsOf({ ...VALID, KEK_BASE64: corrupted }, 'api')).toContain('KEK_BASE64 must be');
+    expect(problemsOf({ ...VALID, KEK_BASE64: unpadded }, 'api')).toContain('KEK_BASE64 must be');
+    expect(problemsOf({ ...VALID, KEK_BASE64: KEK }, 'api')).toBe('');
+  });
+
   it('uses secrets byte-for-byte while rejecting blank ones', () => {
     const padded = ` ${JWT} `;
     const config = parseAppConfig({ ...VALID, JWT_SECRET: padded, KEK_BASE64: ` ${KEK}\n` }, 'api');

@@ -65,7 +65,7 @@ export function parseAppConfig(env: AppEnv, role: AppRole): AppConfig {
   // Every rule runs on the trimmed copy; the original value is what gets used.
   const jwtSecret = attempt(() => resolveSecret(env['JWT_SECRET'], nodeEnv), '', problems);
   const kekBase64 = secret(env['KEK_BASE64']) ?? '';
-  if (Buffer.from(text(env['KEK_BASE64']) ?? '', 'base64').length !== KEK_BYTES) {
+  if (!isValidKek(text(env['KEK_BASE64']))) {
     problems.push(
       `KEK_BASE64 must be ${KEK_BYTES} random bytes, base64-encoded (for example \`openssl rand -base64 32\`).`,
     );
@@ -157,6 +157,17 @@ function attempt<T, F>(run: () => T, fallback: F, problems: string[]): T | F {
 
 function toBullet(problem: string): string {
   return `  - ${problem}`;
+}
+
+const STRICT_BASE64 = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+
+/** Buffer.from(.., 'base64') silently drops bad characters, so check the alphabet first. */
+function isValidKek(trimmed: string | null): boolean {
+  return (
+    trimmed !== null &&
+    STRICT_BASE64.test(trimmed) &&
+    Buffer.from(trimmed, 'base64').length === KEK_BYTES
+  );
 }
 
 function resolveSecret(raw: string | undefined, nodeEnv: string): string {
