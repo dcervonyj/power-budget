@@ -3,7 +3,7 @@
 // server (which imports those files) hot-reloads. Build output is unchanged:
 // the same cli commands as the `build` script produce the CSS.
 import { execFileSync, spawn } from 'node:child_process';
-import { existsSync, watch, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, watch, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -45,9 +45,9 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 }
 
 for (const dir of watched) {
-  if (existsSync(join(root, dir))) {
-    watch(join(root, dir), schedule);
-  }
+  // Create the output dirs up front so a fresh checkout (no dist yet) is still watched.
+  mkdirSync(join(root, dir), { recursive: true });
+  watch(join(root, dir), schedule);
 }
 if (existsSync(join(root, 'dist/cli.js'))) {
   regenerate();
