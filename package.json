@@ -45,6 +45,7 @@
   },
   "pnpm": {
     "overrides": {
+      "@unicode/unicode-17.0.0": "1.6.17",
       "undici@<7": "^6.29.1",
       "undici@>=7": "^7.30.1",
       "brace-expansion@<2": "^1.1.21",

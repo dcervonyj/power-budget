@@ -7,11 +7,16 @@ const LOCALE_FILE = /[\\/]public[\\/]locales[\\/].+\.json$/;
 
 /** Parses every ICU message into its AST. Throws on an invalid message, so a bad copy fails the build. */
 export function compileMessages(
-  messages: Record<string, string>,
+  messages: Record<string, unknown>,
   file: string,
 ): Record<string, unknown> {
   const compiled: Record<string, unknown> = {};
   for (const [id, message] of Object.entries(messages)) {
+    if (typeof message !== 'string') {
+      throw new Error(
+        `${path.basename(file)}: message "${id}" must be a string, got ${typeof message}`,
+      );
+    }
     try {
       compiled[id] = parse(message, { captureLocation: false });
     } catch (error) {
@@ -32,11 +37,12 @@ export function precompiledMessages(): Plugin {
     // After vite:json, whose output is replaced by the AST module.
     enforce: 'post',
     transform(_code, id) {
-      const file = id.split('?')[0] ?? id;
-      if (!LOCALE_FILE.test(file)) {
+      const [file = id, query = ''] = id.split('?');
+      // ?raw and ?url imports want the file as is, not an AST module.
+      if (!LOCALE_FILE.test(file) || /(^|&)(raw|url)\b/.test(query)) {
         return null;
       }
-      const messages: Record<string, string> = JSON.parse(readFileSync(file, 'utf8'));
+      const messages: Record<string, unknown> = JSON.parse(readFileSync(file, 'utf8'));
 
       return {
         code: `export default ${JSON.stringify(compileMessages(messages, file))};`,

@@ -11,7 +11,7 @@
     "preview:gallery": "vite preview --mode gallery --port 4174 --strictPort",
     "typecheck": "tsc --noEmit && tsc --noEmit -p e2e",
     "lint": "eslint src --ext .ts,.tsx",
-    "test": "vitest run",
+    "test": "vitest run && vitest run -c vitest.noparser.config.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "clean": "rm -rf dist .turbo",

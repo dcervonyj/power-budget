@@ -9,6 +9,7 @@ export default defineConfig({
     maxWorkers: 4,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    exclude: ['src/test/noParser.spec.tsx', 'src/test/bundleNoParser.spec.ts', 'node_modules/**'],
     include: ['src/**/*.spec.tsx', 'src/**/*.spec.ts', '__tests__/**/*.spec.ts'],
     coverage: {
       provider: 'v8',
