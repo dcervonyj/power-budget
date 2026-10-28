@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState } from 'react-native';
 import { useIntl } from 'react-intl';
 import { toLocalIsoDate } from '@power-budget/core';
 import type {
@@ -11,7 +12,7 @@ import { buildAddExpenseData, UNPLANNED_ID } from './addExpenseData.js';
 import type { AddExpenseData } from './addExpenseData.js';
 import { typedAmountMinor } from './addExpenseImpact.js';
 import type { AddExpenseStatus } from './addExpenseModel.js';
-import type { AddExpenseApi } from './AddExpenseApi.js';
+import type { AddExpenseApi, NewExpense } from './AddExpenseApi.js';
 
 /** The reads the container needs; the screen wires them to the real API clients. */
 export interface AddExpenseGateway {
@@ -56,7 +57,8 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
   const [error, setError] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [today] = useState(() => toLocalIsoDate(new Date()));
+  const [today, setToday] = useState(() => toLocalIsoDate(new Date()));
+  const created = useRef<CreatedExpense | null>(null);
   const unplannedName = intl.formatMessage({
     id: 'add.category.unplannedName',
     defaultMessage: 'Unplanned',
@@ -103,31 +105,30 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     }
     setStatus('saving');
     setError(null);
-    void sources.api
-      .add({
-        accountId: account.id,
-        occurredOn: today,
-        spentMinor: typedAmountMinor(typed, account.currency),
-        currency: account.currency,
-        description: category.name,
-        plannedItemId: category.plannedItemId,
-      })
-      .then(
-        (transaction) => {
-          setSavedId(transaction.id);
-          setStatus('saved');
-        },
-        () => {
-          setError(
-            intl.formatMessage({
-              id: 'add.error.save',
-              defaultMessage: 'Could not save the expense. Try again.',
-            }),
-          );
-          setStatus('editing');
-        },
-      );
-  }, [accountId, categoryId, intl, load, sources.api, status, today, typed]);
+    void persist(sources.api, created, {
+      accountId: account.id,
+      occurredOn: toLocalIsoDate(new Date()),
+      spentMinor: typedAmountMinor(typed, account.currency),
+      currency: account.currency,
+      description: category.name,
+      plannedItemId: category.plannedItemId,
+    }).then(
+      (transactionId) => {
+        created.current = null;
+        setSavedId(transactionId);
+        setStatus('saved');
+      },
+      () => {
+        setError(
+          intl.formatMessage({
+            id: 'add.error.save',
+            defaultMessage: 'Could not save the expense. Try again.',
+          }),
+        );
+        setStatus('editing');
+      },
+    );
+  }, [accountId, categoryId, intl, load, sources.api, status, typed]);
 
   const undo = useCallback(() => {
     if (savedId === null) {
@@ -150,12 +151,37 @@ export function useAddExpense(sources: AddExpenseGateway): AddExpenseState {
     );
   }, [intl, savedId, sources.api]);
 
+  const keepReady = useCallback((next: AddExpenseLoad) => {
+    if (next.kind === 'ready') {
+      setLoad(next);
+    }
+  }, []);
+
+  const refresh = useCallback(() => {
+    void loadData(sources, unplannedName).then(keepReady, ignoreFailure);
+  }, [keepReady, sources, unplannedName]);
+
   const addAnother = useCallback(() => {
     setTyped('');
     setSavedId(null);
     setError(null);
     setStatus('editing');
-  }, []);
+    refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (next) => {
+      if (next !== 'active') {
+        return;
+      }
+      setToday(toLocalIsoDate(new Date()));
+      refresh();
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refresh]);
 
   return {
     load,
@@ -193,4 +219,31 @@ async function loadData(
     kind: 'ready',
     data: buildAddExpenseData({ plan, dashboard, categories, accounts, unplannedName }),
   };
+}
+
+interface CreatedExpense {
+  readonly id: string;
+  readonly plannedItemId: string | null;
+}
+
+/** Creates the transaction once; after a failed mapping a retry only maps the kept id. */
+async function persist(
+  api: AddExpenseApi,
+  created: { current: CreatedExpense | null },
+  expense: NewExpense,
+): Promise<string> {
+  if (created.current === null) {
+    const transaction = await api.create(expense);
+    created.current = { id: transaction.id, plannedItemId: expense.plannedItemId };
+  }
+  const { id, plannedItemId } = created.current;
+  if (plannedItemId !== null) {
+    await api.map(id, plannedItemId);
+  }
+
+  return id;
+}
+
+function ignoreFailure(): void {
+  // A failed background refresh keeps the figures already on screen.
 }

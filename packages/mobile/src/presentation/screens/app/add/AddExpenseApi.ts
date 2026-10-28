@@ -27,7 +27,8 @@ export class AddExpenseApi {
     return res.data;
   }
 
-  async add(expense: NewExpense): Promise<TransactionDto> {
+  /** Creates the outgoing transaction; mapping is a separate call so a failed map can be retried alone. */
+  async create(expense: NewExpense): Promise<TransactionDto> {
     const body: AddManualTransactionDto = {
       accountId: expense.accountId,
       occurredOn: expense.occurredOn,
@@ -36,13 +37,12 @@ export class AddExpenseApi {
       description: expense.description,
     };
     const res = await this.http.post<TransactionDto>('/transactions', body);
-    if (expense.plannedItemId !== null) {
-      await this.http.patch(`/transactions/${res.data.id}/mapping`, {
-        plannedItemId: expense.plannedItemId,
-      });
-    }
 
     return res.data;
+  }
+
+  async map(transactionId: string, plannedItemId: string): Promise<void> {
+    await this.http.patch(`/transactions/${transactionId}/mapping`, { plannedItemId });
   }
 
   /** There is no delete: undo soft-ignores the transaction so it counts in no total. */
