@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildQuery, toTransactions } from './TransactionListQuery.js';
+import { buildQuery, toListQuery, toTransactions } from './TransactionListQuery.js';
 import type { TransactionFilters } from '../../presentation/components/TransactionFilterBar.js';
 import type { TransactionListItemDto } from '@power-budget/shared-app/contract';
 
@@ -40,7 +40,7 @@ function dto(
 }
 
 describe('buildQuery', () => {
-  it('sends only the parameters GET /transactions accepts', () => {
+  it('sends every filter to GET /transactions', () => {
     const query = buildQuery(
       {
         from: '2026-10-01',
@@ -49,14 +49,14 @@ describe('buildQuery', () => {
         status: 'unmapped',
         booking: 'pending',
         currency: 'PLN',
-        source: 'wise',
+        source: 'bank_sync',
         q: 'rent',
       },
       'cursor-1',
     );
 
     expect(query).toBe(
-      'from=2026-10-01&to=2026-10-31&q=rent&unmappedOnly=true&status=pending&limit=50&cursor=cursor-1',
+      'from=2026-10-01&to=2026-10-31&q=rent&unmappedOnly=true&status=pending&categoryId=cat-1&currency=PLN&source=bank_sync&limit=50&cursor=cursor-1',
     );
   });
 
@@ -65,8 +65,29 @@ describe('buildQuery', () => {
     expect(buildQuery({ ...noFilters, status: 'transfer' })).toBe('transfer=true&limit=50');
   });
 
+  it('sends manual rows as source=manual', () => {
+    expect(buildQuery({ ...noFilters, source: 'manual' })).toBe('source=manual&limit=50');
+  });
+
+  it('sends a provider as the source', () => {
+    expect(buildQuery({ ...noFilters, source: 'wise_webhook' })).toBe(
+      'source=wise_webhook&limit=50',
+    );
+  });
+
   it('sends just the page size without filters', () => {
     expect(buildQuery(noFilters)).toBe('limit=50');
+  });
+});
+
+describe('toListQuery', () => {
+  it('builds the typed contract query', () => {
+    expect(toListQuery({ ...noFilters, currency: 'EUR', category: 'cat-1' }, 'c')).toEqual({
+      categoryId: 'cat-1',
+      currency: 'EUR',
+      limit: 50,
+      cursor: 'c',
+    });
   });
 });
 
@@ -77,17 +98,7 @@ describe('toTransactions', () => {
     hasMore: false,
   };
 
-  it('filters currency and source on the page', () => {
-    expect(toTransactions(page, { ...noFilters, currency: 'EUR' }).map((t) => t.id)).toEqual(['b']);
-    expect(toTransactions(page, { ...noFilters, source: 'gocardless' }).map((t) => t.id)).toEqual([
-      'a',
-    ]);
-  });
-
-  it('keeps every row the API returned for the mapping filter (no client-side status filter)', () => {
-    expect(toTransactions(page, { ...noFilters, status: 'unmapped' }).map((t) => t.id)).toEqual([
-      'a',
-      'b',
-    ]);
+  it('keeps every row the API returned: the API applies every filter', () => {
+    expect(toTransactions(page).map((t) => t.id)).toEqual(['a', 'b']);
   });
 });

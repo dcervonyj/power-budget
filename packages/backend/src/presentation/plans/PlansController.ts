@@ -22,6 +22,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { ApiQueryFrom } from '../http/ApiQueryFrom.js';
 import { CategoryId, IsoDate, PlanId, PlannedItemId } from '@power-budget/core';
 import type { HouseholdId } from '@power-budget/core';
 import { JwtAuthGuard } from '../auth/guards/JwtAuthGuard.js';
@@ -98,6 +99,7 @@ export class PlansController {
     summary: 'List plans: household plans plus your own personal plans',
   })
   @ApiResponse({ status: 200, description: 'Plans ordered by period start', type: [PlanDto] })
+  @ApiQueryFrom(ListPlansQueryDto)
   async list(
     @Query() query: ListPlansQueryDto,
     @CurrentUser() user: AuthenticatedUser,

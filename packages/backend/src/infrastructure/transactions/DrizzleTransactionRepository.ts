@@ -12,6 +12,7 @@ import {
   isNotNull,
   isNull,
   lte,
+  not,
   notExists,
   notInArray,
   or,
@@ -48,6 +49,7 @@ import type {
   TransactionListMapping,
   TransactionPatch,
   TransactionQuery,
+  TransactionSourceFilter,
   TransactionTransferLink,
   TransactionUpgrade,
   UpgradeTargetStatus,
@@ -503,7 +505,7 @@ export class DrizzleTransactionRepository implements TransactionRepository {
       .from(t)
       .where(and(...this.rowConditions(query, scope)))
       .orderBy(desc(t.occurredOn), desc(t.id));
-    if (!query.unmappedOnly && !query.mapped) {
+    if (!query.unmappedOnly && !this.probesMapping(query)) {
       return rows.limit(size).as('page');
     }
 
@@ -547,6 +549,19 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     if (query.status) {
       conditions.push(eq(t.status, query.status));
     }
+    if (query.currency) {
+      conditions.push(eq(t.currency, query.currency));
+    }
+    if (query.source) {
+      conditions.push(this.sourceCondition(query.source));
+    }
+    if (query.categoryId && query.unmappedOnly) {
+      // Only mapped rows have a category.
+      conditions.push(sql`false`);
+    }
+    if (query.categoryId) {
+      conditions.push(not(notInArray(t.id, this.mappedToCategory(query.categoryId, scope))));
+    }
     if (query.unmappedOnly || query.mapped) {
       conditions.push(...this.notATransfer(scope), eq(t.ignored, false));
     }
@@ -562,7 +577,8 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     if (query.transfer === false) {
       conditions.push(...this.notATransfer(scope));
     }
-    if (query.cursor) {
+    // An empty cursor is invalid (400), not the first page.
+    if (query.cursor !== undefined) {
       const after = decodeTransactionCursor(query.cursor);
       // Row value, not `a < x OR (a = x AND b < y)`: the planner turns it into an index bound.
       conditions.push(
@@ -578,11 +594,16 @@ export class DrizzleTransactionRepository implements TransactionRepository {
     if (query.unmappedOnly) {
       conditions.push(notExists(this.mappingOf(rowId)));
     }
-    if (query.mapped) {
+    if (this.probesMapping(query)) {
       conditions.push(exists(this.mappingOf(rowId)));
     }
 
     return conditions;
+  }
+
+  /** A row of a category is mapped already, so `mapped` needs no probe of its own there. */
+  private probesMapping(query: TransactionQuery): boolean {
+    return query.mapped === true && !query.categoryId;
   }
 
   private ownedAccountIds(ownerUserId: UserId, scope: HouseholdScope) {
@@ -620,6 +641,49 @@ export class DrizzleTransactionRepository implements TransactionRepository {
         // `NOT IN` is never true when the list holds a NULL; a one-sided transfer has no `tx_b`.
         .where(and(eq(schema.transfers.householdId, scope.householdId), isNotNull(txId)))
     );
+  }
+
+  /** `bank_sync` and `manual` test the row's `source`; a provider tests the SYNC-001 `source_kind`. */
+  private sourceCondition(source: TransactionSourceFilter): SQL {
+    const t = schema.transactions;
+    switch (source) {
+      case 'bank_sync':
+      case 'manual':
+        return eq(t.source, source);
+      case 'enable_banking':
+      case 'wise_webhook':
+      case 'pko_email':
+      case 'iko_push':
+        return eq(t.sourceKind, source);
+      default: {
+        const unreachable: never = source;
+        throw new Error(`Unknown transaction source filter ${String(unreachable)}`);
+      }
+    }
+  }
+
+  /**
+   * The household's transactions mapped to a planned item of `categoryId`, tested as
+   * `NOT (id NOT IN (...))`: like the transfer sides, a hashed subplan that reads the category's
+   * mappings once per query. A plain `IN` becomes a semi-join; the planner underestimates the
+   * category's rows and then looks each one up per own account, or probes every own row (2.7k-12k
+   * buffers on the audit fixture against about 1.2k). `transaction_id` is the primary key, so the
+   * list holds no NULL and the double negation is exactly `IN`.
+   */
+  private mappedToCategory(categoryId: CategoryId, scope: HouseholdScope) {
+    return this.db
+      .select({ id: schema.transactionMappings.transactionId })
+      .from(schema.transactionMappings)
+      .innerJoin(
+        schema.plannedItems,
+        eq(schema.plannedItems.id, schema.transactionMappings.plannedItemId),
+      )
+      .where(
+        and(
+          eq(schema.plannedItems.householdId, scope.householdId),
+          eq(schema.plannedItems.categoryId, categoryId),
+        ),
+      );
   }
 
   private notATransfer(scope: HouseholdScope): SQL[] {

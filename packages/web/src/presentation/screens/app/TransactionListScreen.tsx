@@ -7,6 +7,7 @@ import { useLocalObservable } from 'mobx-react-lite';
 import { Toast } from '../../components/shared/Toast.js';
 import {
   toBooking,
+  toCurrency,
   toMappingFilter,
   toSource,
   type TransactionFilters,
@@ -92,7 +93,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
     category: searchParams.get('category') ?? '',
     status: toMappingFilter(searchParams.get('status')),
     booking: toBooking(searchParams.get('booking')),
-    currency: searchParams.get('currency') ?? '',
+    currency: toCurrency(searchParams.get('currency')),
     source: toSource(searchParams.get('source')),
     q: searchParams.get('q') ?? '',
   };
@@ -118,6 +119,8 @@ export const TransactionListScreen = observer(function TransactionListScreen({
   const sentinelRef = useRef<HTMLDivElement>(null);
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
+  /** Bumped on every first-page load: a "load more" page of older filters is dropped. */
+  const listGeneration = useRef(0);
 
   // Load categories once
   useEffect(() => {
@@ -143,6 +146,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
   // Reset and load the first page when the filters change or a reload is asked for.
   useEffect(() => {
     let cancelled = false;
+    listGeneration.current += 1;
     setLoading(true);
     setError(null);
     setTransactions([]);
@@ -155,7 +159,7 @@ export const TransactionListScreen = observer(function TransactionListScreen({
         );
         if (cancelled) return;
         const page = res.data;
-        setTransactions(toTransactions(page, filtersRef.current));
+        setTransactions(toTransactions(page));
         setNextCursor(page.nextCursor);
       } catch {
         if (!cancelled) {
@@ -180,12 +184,16 @@ export const TransactionListScreen = observer(function TransactionListScreen({
   const loadMore = useCallback(async (): Promise<void> => {
     if (loadingMore || !nextCursor) return;
     setLoadingMore(true);
+    const generation = listGeneration.current;
     try {
       const res = await apiClient.get<TransactionPageDto>(
         `/transactions?${buildQuery(filtersRef.current, nextCursor)}`,
       );
+      if (generation !== listGeneration.current) {
+        return;
+      }
       const page = res.data;
-      setTransactions((prev) => [...prev, ...toTransactions(page, filtersRef.current)]);
+      setTransactions((prev) => [...prev, ...toTransactions(page)]);
       setNextCursor(page.nextCursor);
     } catch {
       // silently fail so user can try scrolling again

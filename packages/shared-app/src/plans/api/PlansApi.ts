@@ -3,6 +3,7 @@ import type {
   ClonePlanDto,
   CreatePlanDto,
   CreatePlannedItemDto,
+  ListPlansQueryDto,
   PlanDashboardResponseDto,
   PlanDto,
   PlannedItemDto,
@@ -13,7 +14,7 @@ import type {
 } from '../../contract/dto.js';
 
 /** `GET /plans?status=`; the API lists active plans when no status is sent. */
-export type PlanStatusFilter = 'active' | 'archived' | 'all';
+export type PlanStatusFilter = NonNullable<ListPlansQueryDto['status']>;
 
 /** Which side of the unplanned list: money spent or money received outside the plan. */
 export type UnplannedDirection = 'income' | 'expense';

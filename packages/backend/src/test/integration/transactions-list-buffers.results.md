@@ -29,3 +29,21 @@ PERF_1M=1 npx vitest run --config src/test/integration/vitest.integration.config
 
 The run prints `CLN048 <case> buffers=<n>` per case and fails if any page reads 2,000 buffers or more. Without
 `PERF_1M` the spec seeds 2 households (10,000 rows) for CI; on master all 6 cases fail there (7,535-34,781 buffers).
+
+## CLN-050: server-side `categoryId`, `currency` and `source` filters
+
+Same spec, CI size (2 households, 10,000 rows, 3,333 own rows), as the app role under RLS:
+
+| page                                 | buffers     |
+| ------------------------------------ | ----------- |
+| `categoryId`                         | 1,602-1,671 |
+| `categoryId` + `currency` + `mapped` | 1,773       |
+| `currency=EUR`                       | 590-604     |
+| `source=bank_sync`                   | 576-590     |
+| `currency=USD` (no own row)          | 231         |
+
+Before, currency and source were filtered on the client, so a rare currency paged through the whole history (about 200
+`GET /transactions` calls at 10k rows, audit PERF-07); the USD case is now one query of 231 buffers. The category filter
+reads the category's mappings once (a hashed subplan, written `NOT (id NOT IN (...))`: a plain `IN` became a semi-join
+that cost 2.7k-12k buffers). About 900 of its buffers are the `transaction_mappings` RLS subplan per mapping row, which
+CLN-051 removes.
