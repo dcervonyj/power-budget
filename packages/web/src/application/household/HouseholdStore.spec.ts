@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import type {
   HouseholdDashboardResponseDto,
@@ -5,7 +6,11 @@ import type {
   HouseholdMemberResponseDto,
   PlanDto,
 } from '@power-budget/shared-app/contract';
-import { HouseholdStore } from './HouseholdStore.js';
+import {
+  HouseholdStore,
+  type HouseholdMembersApi,
+  type HouseholdPlansApi,
+} from './HouseholdStore.js';
 import { PLAN, apiError } from '../../test/dashboardFixtures.js';
 import { deferred } from '../../test/deferred.js';
 
@@ -46,14 +51,14 @@ const AGGREGATES: HouseholdDashboardResponseDto = {
 };
 
 function makeApi() {
-  return {
+  return createMock<HouseholdMembersApi>({
     members: vi.fn().mockResolvedValue([OWNER]),
     invites: vi.fn().mockResolvedValue([INVITE]),
     invite: vi.fn().mockResolvedValue(INVITE),
     resendInvite: vi.fn().mockResolvedValue(INVITE),
     revokeInvite: vi.fn().mockResolvedValue(undefined),
     dashboard: vi.fn().mockResolvedValue(AGGREGATES),
-  };
+  });
 }
 
 describe('HouseholdStore', () => {
@@ -64,7 +69,7 @@ describe('HouseholdStore', () => {
   beforeEach(() => {
     api = makeApi();
     list = vi.fn().mockResolvedValue([PERSONAL, PLAN]);
-    store = new HouseholdStore(api, { list });
+    store = new HouseholdStore(api, createMock<HouseholdPlansApi>({ list }));
   });
 
   it('loads the members, the owner’s open invite and the household plan totals', async () => {
