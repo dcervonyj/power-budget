@@ -70,6 +70,25 @@ describe('SettingsStore.hydrateFromProfile', () => {
   });
 });
 
+describe('SettingsStore when the device storage refuses writes', () => {
+  const refusing: KeyValueStore = {
+    getItem: (): null => null,
+    setItem: (): never => {
+      throw new Error('quota');
+    },
+  };
+
+  it('still takes over the profile read by the guard', () => {
+    const store = new SettingsStore(http, refusing);
+
+    expect(() =>
+      store.hydrateFromProfile({ ...profile, interestingCurrencies: ['USD'] }),
+    ).not.toThrow();
+    expect(store.interestingCurrencies).toEqual(['USD']);
+    expect(store.profileLoaded).toBe(true);
+  });
+});
+
 describe('SettingsStore.deleteAccount', () => {
   let store: SettingsStore;
 

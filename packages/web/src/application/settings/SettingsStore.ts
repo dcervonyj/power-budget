@@ -144,7 +144,7 @@ export class SettingsStore {
   }
 
   async saveCurrency(): Promise<void> {
-    this.storage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(this.interestingCurrencies));
+    this.cache(INTERESTING_CURRENCIES_KEY, JSON.stringify(this.interestingCurrencies));
     if (!isSupportedCurrency(this.baseCurrency)) {
       this.saveError = 'unsupported_currency';
 
@@ -313,6 +313,15 @@ export class SettingsStore {
     }
   }
 
+  /** The device cache only: a refused write must not break reading or saving the profile. */
+  private cache(key: string, value: string): void {
+    try {
+      this.storage.setItem(key, value);
+    } catch {
+      // The profile is the source of truth; the next read fills the cache again.
+    }
+  }
+
   private applyProfile(session: number, profile: UserProfileDto): void {
     if (session !== this.session) {
       return;
@@ -324,11 +333,11 @@ export class SettingsStore {
     this.householdId = profile.householdId;
     if (profile.baseCurrency !== null) {
       this.baseCurrency = profile.baseCurrency;
-      this.storage.setItem(BASE_CURRENCY_KEY, profile.baseCurrency);
+      this.cache(BASE_CURRENCY_KEY, profile.baseCurrency);
     }
     // The profile is the source of truth: a new device or a signed-out browser gets the list back.
     this.interestingCurrencies = [...profile.interestingCurrencies];
-    this.storage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(profile.interestingCurrencies));
+    this.cache(INTERESTING_CURRENCIES_KEY, JSON.stringify(profile.interestingCurrencies));
   }
 }
 
