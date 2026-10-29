@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId, HouseholdId } from '@power-budget/core';
 import type {
   UserRepository,
@@ -38,17 +38,17 @@ function makeHousehold(): Household {
 }
 
 describe('LoginWithGoogleUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let oauthProvider: ReturnType<typeof mock<OAuthProvider>>;
-  let loginPolicy: ReturnType<typeof mock<LoginPolicy>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let oauthProvider: ReturnType<typeof createMock<OAuthProvider>>;
+  let loginPolicy: ReturnType<typeof createMock<LoginPolicy>>;
   let useCase: LoginWithGoogleUseCase;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    householdRepo = mock<HouseholdRepository>();
-    oauthProvider = mock<OAuthProvider>();
-    loginPolicy = mock<LoginPolicy>();
+    userRepo = createMock<UserRepository>();
+    householdRepo = createMock<HouseholdRepository>();
+    oauthProvider = createMock<OAuthProvider>();
+    loginPolicy = createMock<LoginPolicy>();
     loginPolicy.issueSession.mockResolvedValue({
       accessToken: 'access-token',
       refreshToken: 'refresh-token',

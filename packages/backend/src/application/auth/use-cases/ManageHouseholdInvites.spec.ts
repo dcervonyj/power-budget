@@ -1,6 +1,6 @@
 import { HouseholdInviteId } from '@power-budget/core';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { HouseholdInviteRepository, UserRepository } from '../../../domain/auth/ports.js';
 import type { HouseholdAccess } from '../services/HouseholdAccess.js';
 import type { HouseholdInviteMailer, InviteToken } from '../services/HouseholdInviteMailer.js';
@@ -28,18 +28,18 @@ const TOKEN: InviteToken = { token: 'raw-2', tokenHash: 'hash-2', expiresAt: NEW
 const INPUT = { userId: OWNER_ID, householdId: HOUSEHOLD_ID, inviteId: INVITE_ID };
 
 describe('household invite management', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let inviteRepo: ReturnType<typeof mock<HouseholdInviteRepository>>;
-  let access: ReturnType<typeof mock<HouseholdAccess>>;
-  let mailer: ReturnType<typeof mock<HouseholdInviteMailer>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let inviteRepo: ReturnType<typeof createMock<HouseholdInviteRepository>>;
+  let access: ReturnType<typeof createMock<HouseholdAccess>>;
+  let mailer: ReturnType<typeof createMock<HouseholdInviteMailer>>;
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(NOW);
-    userRepo = mock<UserRepository>();
-    inviteRepo = mock<HouseholdInviteRepository>();
-    access = mock<HouseholdAccess>();
-    mailer = mock<HouseholdInviteMailer>();
+    userRepo = createMock<UserRepository>();
+    inviteRepo = createMock<HouseholdInviteRepository>();
+    access = createMock<HouseholdAccess>();
+    mailer = createMock<HouseholdInviteMailer>();
     access.assertOwner.mockResolvedValue(undefined);
     userRepo.findById.mockResolvedValue(makeUser());
     mailer.issueToken.mockReturnValue(TOKEN);

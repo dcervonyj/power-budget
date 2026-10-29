@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Reflector } from '@nestjs/core';
 import { ForbiddenException } from '@nestjs/common';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { ExecutionContext } from '@nestjs/common';
 import type { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { EncryptedString, UserId } from '@power-budget/core';
@@ -14,12 +14,14 @@ const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 function makeContext(userId: UserId | null): ExecutionContext {
   const request = userId ? { user: { userId, householdId: null } } : {};
 
-  return mock<ExecutionContext>({
+  return createMock<ExecutionContext>({
     getHandler: vi.fn(),
     getClass: vi.fn(),
     switchToHttp: vi
       .fn()
-      .mockReturnValue(mock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) })),
+      .mockReturnValue(
+        createMock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) }),
+      ),
   });
 }
 
@@ -47,14 +49,14 @@ async function rejectionOf(promise: Promise<unknown>): Promise<ForbiddenExceptio
 }
 
 describe('TotpStepUpGuard', () => {
-  let stepUpStore: ReturnType<typeof mock<TotpStepUpStore>>;
-  let totpSecretRepo: ReturnType<typeof mock<TotpSecretRepository>>;
+  let stepUpStore: ReturnType<typeof createMock<TotpStepUpStore>>;
+  let totpSecretRepo: ReturnType<typeof createMock<TotpSecretRepository>>;
   let reflector: Reflector;
   let guard: TotpStepUpGuard;
 
   beforeEach(() => {
-    stepUpStore = mock<TotpStepUpStore>();
-    totpSecretRepo = mock<TotpSecretRepository>();
+    stepUpStore = createMock<TotpStepUpStore>();
+    totpSecretRepo = createMock<TotpSecretRepository>();
     reflector = new Reflector();
     guard = new TotpStepUpGuard(reflector, stepUpStore, totpSecretRepo);
   });

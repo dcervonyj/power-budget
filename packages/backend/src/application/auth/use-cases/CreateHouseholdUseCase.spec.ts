@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId, HouseholdId } from '@power-budget/core';
 import type { HouseholdRepository, UserRepository } from '../../../domain/auth/ports.js';
 import { CreateHouseholdUseCase } from './CreateHouseholdUseCase.js';
@@ -14,13 +14,13 @@ function makeHousehold(): Household {
 }
 
 describe('CreateHouseholdUseCase', () => {
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
   let useCase: CreateHouseholdUseCase;
 
   beforeEach(() => {
-    householdRepo = mock<HouseholdRepository>();
-    userRepo = mock<UserRepository>();
+    householdRepo = createMock<HouseholdRepository>();
+    userRepo = createMock<UserRepository>();
     useCase = new CreateHouseholdUseCase(householdRepo, userRepo);
   });
 

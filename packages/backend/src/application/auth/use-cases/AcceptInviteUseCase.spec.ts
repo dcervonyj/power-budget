@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type {
   HouseholdRepository,
   UserRepository,
@@ -36,19 +36,19 @@ const NOW = new Date('2026-10-21T12:00:00Z');
 const PARTNER = makeUser({ id: PARTNER_ID, email: 'Bob@Example.com', displayName: 'Bob' });
 
 describe('AcceptInviteUseCase', () => {
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let inviteRepo: ReturnType<typeof mock<HouseholdInviteRepository>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let inviteRepo: ReturnType<typeof createMock<HouseholdInviteRepository>>;
+  let jwtIssuer: ReturnType<typeof createMock<JwtAccessTokenIssuer>>;
   let useCase: AcceptInviteUseCase;
 
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(NOW);
-    householdRepo = mock<HouseholdRepository>();
-    userRepo = mock<UserRepository>();
-    inviteRepo = mock<HouseholdInviteRepository>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
+    householdRepo = createMock<HouseholdRepository>();
+    userRepo = createMock<UserRepository>();
+    inviteRepo = createMock<HouseholdInviteRepository>();
+    jwtIssuer = createMock<JwtAccessTokenIssuer>();
     useCase = new AcceptInviteUseCase(householdRepo, userRepo, inviteRepo, jwtIssuer);
 
     inviteRepo.findByTokenHash.mockResolvedValue(

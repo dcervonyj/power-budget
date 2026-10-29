@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { ThrottlerModule } from '@nestjs/throttler';
 import type { Provider } from '@nestjs/common';
 import { HouseholdId, UserId, HouseholdInviteId } from '@power-budget/core';
@@ -47,22 +47,22 @@ const BOB_HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000b1');
 const INVITE_ID = HouseholdInviteId.of('01900000-0000-7000-8000-0000000000c1');
 
 interface InviteUseCaseMocks {
-  readonly invite: ReturnType<typeof mock<InviteToHouseholdUseCase>>;
-  readonly accept: ReturnType<typeof mock<AcceptInviteUseCase>>;
-  readonly resend: ReturnType<typeof mock<ResendHouseholdInviteUseCase>>;
-  readonly revoke: ReturnType<typeof mock<RevokeHouseholdInviteUseCase>>;
-  readonly list: ReturnType<typeof mock<ListHouseholdInvitesUseCase>>;
-  readonly members: ReturnType<typeof mock<ListHouseholdMembersUseCase>>;
+  readonly invite: ReturnType<typeof createMock<InviteToHouseholdUseCase>>;
+  readonly accept: ReturnType<typeof createMock<AcceptInviteUseCase>>;
+  readonly resend: ReturnType<typeof createMock<ResendHouseholdInviteUseCase>>;
+  readonly revoke: ReturnType<typeof createMock<RevokeHouseholdInviteUseCase>>;
+  readonly list: ReturnType<typeof createMock<ListHouseholdInvitesUseCase>>;
+  readonly members: ReturnType<typeof createMock<ListHouseholdMembersUseCase>>;
 }
 
 function makeInviteMocks(): InviteUseCaseMocks {
   return {
-    invite: mock<InviteToHouseholdUseCase>(),
-    accept: mock<AcceptInviteUseCase>(),
-    resend: mock<ResendHouseholdInviteUseCase>(),
-    revoke: mock<RevokeHouseholdInviteUseCase>(),
-    list: mock<ListHouseholdInvitesUseCase>(),
-    members: mock<ListHouseholdMembersUseCase>(),
+    invite: createMock<InviteToHouseholdUseCase>(),
+    accept: createMock<AcceptInviteUseCase>(),
+    resend: createMock<ResendHouseholdInviteUseCase>(),
+    revoke: createMock<RevokeHouseholdInviteUseCase>(),
+    list: createMock<ListHouseholdInvitesUseCase>(),
+    members: createMock<ListHouseholdMembersUseCase>(),
   };
 }
 
@@ -98,27 +98,27 @@ function makeMembership(role: 'owner' | 'member'): HouseholdMembership {
 
 describe('DELETE /households/:id (HTTP)', () => {
   let app: HttpTestApp;
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let stepUpStore: ReturnType<typeof mock<TotpStepUpStore>>;
-  let totpSecretRepo: ReturnType<typeof mock<TotpSecretRepository>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let stepUpStore: ReturnType<typeof createMock<TotpStepUpStore>>;
+  let totpSecretRepo: ReturnType<typeof createMock<TotpSecretRepository>>;
 
   beforeEach(async () => {
-    householdRepo = mock<HouseholdRepository>();
-    stepUpStore = mock<TotpStepUpStore>();
+    householdRepo = createMock<HouseholdRepository>();
+    stepUpStore = createMock<TotpStepUpStore>();
     stepUpStore.isRecent.mockResolvedValue(true);
-    totpSecretRepo = mock<TotpSecretRepository>();
+    totpSecretRepo = createMock<TotpSecretRepository>();
     totpSecretRepo.findByUser.mockResolvedValue(makeTotpSecret());
     householdRepo.findById.mockImplementation(async (id: HouseholdId) => makeHousehold(id));
     householdRepo.scheduleDelete.mockResolvedValue(undefined);
     app = await createHttpTestApp({
       controllers: [HouseholdsController],
       providers: [
-        { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
+        { provide: CreateHouseholdUseCase, useValue: createMock<CreateHouseholdUseCase>() },
         ...inviteProviders(makeInviteMocks()),
-        { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
+        { provide: ExportHouseholdDataUseCase, useValue: createMock<ExportHouseholdDataUseCase>() },
         {
           provide: GetHouseholdExportStatusUseCase,
-          useValue: mock<GetHouseholdExportStatusUseCase>(),
+          useValue: createMock<GetHouseholdExportStatusUseCase>(),
         },
         { provide: DeleteHouseholdUseCase, useValue: new DeleteHouseholdUseCase(householdRepo) },
         { provide: RedisTotpStepUpStore, useValue: stepUpStore },
@@ -208,20 +208,20 @@ describe('DELETE /households/:id (HTTP)', () => {
 
 describe('GET /households/export/status (HTTP)', () => {
   let app: HttpTestApp;
-  let statusUseCase: ReturnType<typeof mock<GetHouseholdExportStatusUseCase>>;
+  let statusUseCase: ReturnType<typeof createMock<GetHouseholdExportStatusUseCase>>;
 
   beforeEach(async () => {
-    statusUseCase = mock<GetHouseholdExportStatusUseCase>();
+    statusUseCase = createMock<GetHouseholdExportStatusUseCase>();
     app = await createHttpTestApp({
       controllers: [HouseholdsController],
       providers: [
-        { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
+        { provide: CreateHouseholdUseCase, useValue: createMock<CreateHouseholdUseCase>() },
         ...inviteProviders(makeInviteMocks()),
-        { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
+        { provide: ExportHouseholdDataUseCase, useValue: createMock<ExportHouseholdDataUseCase>() },
         { provide: GetHouseholdExportStatusUseCase, useValue: statusUseCase },
-        { provide: DeleteHouseholdUseCase, useValue: mock<DeleteHouseholdUseCase>() },
-        { provide: RedisTotpStepUpStore, useValue: mock<TotpStepUpStore>() },
-        { provide: DrizzleTotpSecretRepository, useValue: mock<TotpSecretRepository>() },
+        { provide: DeleteHouseholdUseCase, useValue: createMock<DeleteHouseholdUseCase>() },
+        { provide: RedisTotpStepUpStore, useValue: createMock<TotpStepUpStore>() },
+        { provide: DrizzleTotpSecretRepository, useValue: createMock<TotpSecretRepository>() },
       ],
       imports: [ThrottlerModule.forRoot({ throttlers: [...AUTH_THROTTLERS] })],
     });
@@ -306,16 +306,16 @@ describe('household invite endpoints (HTTP)', () => {
     app = await createHttpTestApp({
       controllers: [HouseholdsController],
       providers: [
-        { provide: CreateHouseholdUseCase, useValue: mock<CreateHouseholdUseCase>() },
+        { provide: CreateHouseholdUseCase, useValue: createMock<CreateHouseholdUseCase>() },
         ...inviteProviders(mocks),
-        { provide: ExportHouseholdDataUseCase, useValue: mock<ExportHouseholdDataUseCase>() },
+        { provide: ExportHouseholdDataUseCase, useValue: createMock<ExportHouseholdDataUseCase>() },
         {
           provide: GetHouseholdExportStatusUseCase,
-          useValue: mock<GetHouseholdExportStatusUseCase>(),
+          useValue: createMock<GetHouseholdExportStatusUseCase>(),
         },
-        { provide: DeleteHouseholdUseCase, useValue: mock<DeleteHouseholdUseCase>() },
-        { provide: RedisTotpStepUpStore, useValue: mock<TotpStepUpStore>() },
-        { provide: DrizzleTotpSecretRepository, useValue: mock<TotpSecretRepository>() },
+        { provide: DeleteHouseholdUseCase, useValue: createMock<DeleteHouseholdUseCase>() },
+        { provide: RedisTotpStepUpStore, useValue: createMock<TotpStepUpStore>() },
+        { provide: DrizzleTotpSecretRepository, useValue: createMock<TotpSecretRepository>() },
       ],
       imports: [ThrottlerModule.forRoot({ throttlers: [...AUTH_THROTTLERS] })],
     });

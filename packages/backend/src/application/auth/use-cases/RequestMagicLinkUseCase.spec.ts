@@ -1,7 +1,7 @@
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { createHash } from 'node:crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId } from '@power-budget/core';
 import type {
   UserRepository,
@@ -29,16 +29,16 @@ function makeUser(): User {
 }
 
 describe('RequestMagicLinkUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let magicLinkTokenRepo: ReturnType<typeof mock<MagicLinkTokenRepository>>;
-  let notificationOutbox: ReturnType<typeof mock<NotificationOutbox>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let magicLinkTokenRepo: ReturnType<typeof createMock<MagicLinkTokenRepository>>;
+  let notificationOutbox: ReturnType<typeof createMock<NotificationOutbox>>;
   let useCase: RequestMagicLinkUseCase;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    magicLinkTokenRepo = mock<MagicLinkTokenRepository>();
-    notificationOutbox = mock<NotificationOutbox>();
-    const config = mock<AppConfigPort>();
+    userRepo = createMock<UserRepository>();
+    magicLinkTokenRepo = createMock<MagicLinkTokenRepository>();
+    notificationOutbox = createMock<NotificationOutbox>();
+    const config = createMock<AppConfigPort>();
     config.get.mockReturnValue('https://power-budget.pages.dev/');
     useCase = new RequestMagicLinkUseCase(userRepo, magicLinkTokenRepo, notificationOutbox, config);
   });

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { HouseholdMember } from '../../../domain/auth/entities.js';
 import type { HouseholdRepository } from '../../../domain/auth/ports.js';
 import type { HouseholdAccess } from '../services/HouseholdAccess.js';
@@ -31,12 +31,12 @@ const MEMBERS: HouseholdMember[] = [
 ];
 
 describe('ListHouseholdMembersUseCase', () => {
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let access: ReturnType<typeof mock<HouseholdAccess>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let access: ReturnType<typeof createMock<HouseholdAccess>>;
 
   beforeEach(() => {
-    householdRepo = mock<HouseholdRepository>();
-    access = mock<HouseholdAccess>();
+    householdRepo = createMock<HouseholdRepository>();
+    access = createMock<HouseholdAccess>();
   });
 
   it('lists the members for a member of the household', async () => {
