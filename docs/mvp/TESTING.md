@@ -74,6 +74,8 @@ Total: **167+ tests** across unit + integration layers. This document defines th
 | Vitest (existing)          | Test runner                                                                   | No change needed                                                 |
 | `@golevelup/ts-vitest`     | Typed port mocks: `createMock<T>(overrides)` (`@golevelup/ts-jest` in mobile) | Already in use; replaces `vitest-mock-extended` in new specs     |
 
+Auto-stubbed `createMock<T>()` members return mocks, so stub every value the code under test reads.
+
 **Do not add `testcontainers`** to the backend — the GitHub Actions service container (`postgres:16.4-alpine`) already provides an identical environment and avoids Docker-in-Docker complexity on CI.
 
 ### 2.4 Folder structure (target state)
