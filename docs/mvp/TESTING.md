@@ -72,7 +72,7 @@ Total: **167+ tests** across unit + integration layers. This document defines th
 | GitHub Actions `services:` | Real Postgres 16 in CI                                                        | Already present in CI yaml                                       |
 | `pg-mem` (optional)        | In-memory Postgres for unit-speed tests                                       | Only for schema-validation tests; prefer real PG for integration |
 | Vitest (existing)          | Test runner                                                                   | No change needed                                                 |
-| `@golevelup/ts-vitest`     | Typed port mocks: `createMock<T>(overrides)` (`@golevelup/ts-jest` in mobile) | Already in use; replaces `vitest-mock-extended` in new specs     |
+| `@golevelup/ts-vitest`     | Typed port mocks: `createMock<T>(overrides)` (`@golevelup/ts-jest` in mobile) | Used by all specs (`vitest-mock-extended` removed)               |
 
 Auto-stubbed `createMock<T>()` members return mocks, so stub every value the code under test reads.
 
