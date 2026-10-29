@@ -15,10 +15,13 @@ import {
 
 interface StepBankConnectProps {
   onSkip: () => void;
+  /** The link below opens another screen; the wizard keeps its answers for the way back. */
+  onLeave: () => void;
 }
 
 export const StepBankConnect = observer(function StepBankConnect({
   onSkip,
+  onLeave,
 }: StepBankConnectProps): React.JSX.Element {
   return (
     <div style={STEP_STYLE}>
@@ -35,7 +38,12 @@ export const StepBankConnect = observer(function StepBankConnect({
         />
       </p>
       <div style={STACK_STYLE}>
-        <Link to={ROUTE_PATHS.bankConnections} className="pbg-ctl" style={linkButtonStyle(true)}>
+        <Link
+          to={ROUTE_PATHS.bankConnections}
+          onClick={onLeave}
+          className="pbg-ctl"
+          style={linkButtonStyle(true)}
+        >
           <FormattedMessage
             id="onboarding.step.bankConnect.connectNow"
             defaultMessage="Connect now"

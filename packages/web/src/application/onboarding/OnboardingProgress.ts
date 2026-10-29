@@ -8,9 +8,11 @@ import { OnboardingStore } from './OnboardingStore.js';
  */
 export class OnboardingProgress implements SessionScoped {
   private current: OnboardingStore | null = null;
+  private leftForLink = false;
 
   /** The wizard in progress, or a new one when none has been started. */
   resume(): OnboardingStore {
+    this.leftForLink = false;
     if (this.current === null) {
       this.current = new OnboardingStore();
     }
@@ -18,8 +20,24 @@ export class OnboardingProgress implements SessionScoped {
     return this.current;
   }
 
+  /** The wizard sends the user to the bank or plan screens through one of its own links. */
+  leaveForLink(): void {
+    if (this.current !== null) {
+      this.leftForLink = true;
+    }
+  }
+
+  /**
+   * True from the moment the wizard's own link was followed until the wizard is shown again. A
+   * direct URL to those screens never sets it, so it cannot be used to skip onboarding.
+   */
+  get isLeftForLink(): boolean {
+    return this.leftForLink;
+  }
+
   clear(): void {
     this.current = null;
+    this.leftForLink = false;
   }
 
   resetSession(): void {

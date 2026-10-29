@@ -67,6 +67,7 @@ export const OnboardingWizard = observer(function OnboardingWizard({
       onBack={store.back.bind(store)}
       onNext={handleNext}
       onSkip={handleSkip}
+      onLeave={onboardingProgress.leaveForLink.bind(onboardingProgress)}
       saveFailed={saveFailed}
     />
   );

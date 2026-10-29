@@ -707,6 +707,24 @@ describe('Plans, categories and preferences API (real app)', () => {
       });
       expect(tooMany.statusCode).toBe(400);
 
+      const nullCurrencies = await app.inject({
+        method: 'PATCH',
+        url: '/users/me',
+        headers: anna.auth,
+        payload: { interestingCurrencies: null },
+      });
+      expect(nullCurrencies.statusCode).toBe(400);
+      const stillThere = await app.inject({ method: 'GET', url: '/users/me', headers: anna.auth });
+      expect(stillThere.json()).toMatchObject({ interestingCurrencies: ['USD', 'GBP'] });
+
+      const nullCompleted = await app.inject({
+        method: 'PATCH',
+        url: '/users/me',
+        headers: anna.auth,
+        payload: { onboardingCompleted: null },
+      });
+      expect(nullCompleted.statusCode).toBe(400);
+
       const badZone = await app.inject({
         method: 'PATCH',
         url: '/users/me',

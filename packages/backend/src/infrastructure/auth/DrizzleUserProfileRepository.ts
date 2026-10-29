@@ -63,10 +63,10 @@ export class DrizzleUserProfileRepository implements UserProfileRepository {
         ...(patch.locale !== undefined ? { localePreference: patch.locale } : {}),
         ...(patch.baseCurrency !== undefined ? { baseCurrency: patch.baseCurrency } : {}),
         ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}),
-        ...(patch.interestingCurrencies !== undefined
+        ...(Array.isArray(patch.interestingCurrencies)
           ? { interestingCurrencies: [...patch.interestingCurrencies] }
           : {}),
-        ...(patch.onboardingCompleted !== undefined
+        ...(typeof patch.onboardingCompleted === 'boolean'
           ? { onboardingCompletedAt: patch.onboardingCompleted ? new Date() : null }
           : {}),
         updatedAt: new Date(),
