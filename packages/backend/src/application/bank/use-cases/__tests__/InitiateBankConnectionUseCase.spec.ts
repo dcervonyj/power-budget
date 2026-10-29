@@ -1,6 +1,6 @@
 import { SequentialIdGenerator } from '../../../../test/doubles/SequentialIdGenerator.js';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
 import type {
   BankConnectionRepository,
@@ -45,15 +45,15 @@ function makeTotp(verifiedAt: Date | null = new Date()): TotpSecret {
 }
 
 describe('InitiateBankConnectionUseCase', () => {
-  let connectionRepo: ReturnType<typeof mock<BankConnectionRepository>>;
-  let registry: ReturnType<typeof mock<BankConnectorRegistry>>;
-  let totpSecretRepo: ReturnType<typeof mock<TotpSecretRepository>>;
+  let connectionRepo: ReturnType<typeof createMock<BankConnectionRepository>>;
+  let registry: ReturnType<typeof createMock<BankConnectorRegistry>>;
+  let totpSecretRepo: ReturnType<typeof createMock<TotpSecretRepository>>;
   let useCase: InitiateBankConnectionUseCase;
 
   beforeEach(() => {
-    connectionRepo = mock<BankConnectionRepository>();
-    registry = mock<BankConnectorRegistry>();
-    totpSecretRepo = mock<TotpSecretRepository>();
+    connectionRepo = createMock<BankConnectionRepository>();
+    registry = createMock<BankConnectorRegistry>();
+    totpSecretRepo = createMock<TotpSecretRepository>();
     useCase = new InitiateBankConnectionUseCase(
       connectionRepo,
       registry,

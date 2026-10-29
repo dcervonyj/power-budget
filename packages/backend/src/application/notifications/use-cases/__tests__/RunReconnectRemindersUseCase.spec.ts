@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId, BankConnectionId } from '@power-budget/core';
 import type { ExpiringConnectionRow } from '../../../../domain/notifications/entities.js';
 import type { NotificationRepository } from '../../../../domain/notifications/ports.js';
@@ -26,9 +26,9 @@ describe('RunReconnectRemindersUseCase', () => {
     const findExpiringConnections = vi.fn(async (threshold: Date) =>
       threshold.getTime() === new Date('2026-11-03T09:00:00Z').getTime() ? [CONNECTION] : [],
     );
-    const repo = mock<NotificationRepository>({ findExpiringConnections });
+    const repo = createMock<NotificationRepository>({ findExpiringConnections });
     const execute = vi.fn(async () => undefined);
-    const enqueue = mock<EnqueueNotificationUseCase>({ execute });
+    const enqueue = createMock<EnqueueNotificationUseCase>({ execute });
 
     await new RunReconnectRemindersUseCase(repo, enqueue, clock).execute();
 

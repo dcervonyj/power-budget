@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { BankAccountId, HouseholdId, IsoDate, TransactionId, UserId } from '@power-budget/core';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import {
@@ -27,11 +27,11 @@ const input = {
 };
 
 describe('AddManualTransactionUseCase', () => {
-  let repo: ReturnType<typeof mock<TransactionRepository>>;
+  let repo: ReturnType<typeof createMock<TransactionRepository>>;
   let useCase: AddManualTransactionUseCase;
 
   beforeEach(() => {
-    repo = mock<TransactionRepository>();
+    repo = createMock<TransactionRepository>();
     useCase = new AddManualTransactionUseCase(repo, () => NEW_ID);
   });
 
