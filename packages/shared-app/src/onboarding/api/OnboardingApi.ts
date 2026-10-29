@@ -4,6 +4,8 @@ import type { UpdateUserProfileDto, UserProfileDto } from '../../contract/dto.js
 export interface OnboardingChoices {
   readonly language: string;
   readonly baseCurrency: string;
+  /** Currencies tracked next to the base currency; left unchanged on the profile when omitted. */
+  readonly interestingCurrencies?: readonly string[];
 }
 
 type ProfileLocale = NonNullable<UpdateUserProfileDto['locale']>;
@@ -44,6 +46,9 @@ export class OnboardingApi {
     const baseCurrency = PROFILE_CURRENCIES.find((code) => code === choices.baseCurrency);
     const body: UpdateUserProfileDto = {
       onboardingCompleted: true,
+      ...(choices.interestingCurrencies !== undefined
+        ? { interestingCurrencies: [...choices.interestingCurrencies] }
+        : {}),
       ...(locale !== undefined ? { locale } : {}),
       ...(baseCurrency !== undefined ? { baseCurrency } : {}),
     };

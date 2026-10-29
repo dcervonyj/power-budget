@@ -12,6 +12,8 @@ export interface UserProfile {
   readonly baseCurrency: CurrencyCode | null;
   /** IANA time zone, e.g. `Europe/Warsaw`. */
   readonly timezone: string;
+  /** ISO 4217 codes tracked next to the base currency (display only), at most MAX_INTERESTING_CURRENCIES. */
+  readonly interestingCurrencies: readonly string[];
   /** False until onboarding is completed (CLN-073). */
   readonly onboardingCompleted: boolean;
   readonly householdId: HouseholdId | null;
@@ -24,7 +26,10 @@ export interface UserProfilePatch {
   readonly baseCurrency?: CurrencyCode;
   readonly timezone?: string;
   readonly onboardingCompleted?: boolean;
+  readonly interestingCurrencies?: readonly string[];
 }
+
+export const MAX_INTERESTING_CURRENCIES = 5;
 
 export interface UserProfileRepository {
   findById(id: UserId): Promise<UserProfile | null>;

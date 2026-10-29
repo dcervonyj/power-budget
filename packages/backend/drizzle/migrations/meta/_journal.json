@@ -169,6 +169,13 @@
       "when": 1793236885604,
       "tag": "0023_cln-073_onboarding_completed",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793237787488,
+      "tag": "0024_cln-073_interesting_currencies",
+      "breakpoints": true
     }
   ]
 }

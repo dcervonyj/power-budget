@@ -650,6 +650,7 @@ describe('Plans, categories and preferences API (real app)', () => {
         email: 'anna-u@example.com',
         locale: 'en',
         timezone: 'UTC',
+        interestingCurrencies: [],
         onboardingCompleted: false,
         householdId: anna.householdId,
       });
@@ -675,6 +676,7 @@ describe('Plans, categories and preferences API (real app)', () => {
         defaultLocale: 'en',
         baseCurrency: 'EUR',
         timezone: 'Europe/Warsaw',
+        interestingCurrencies: [],
         onboardingCompleted: false,
         householdId: anna.householdId,
       });
@@ -683,12 +685,27 @@ describe('Plans, categories and preferences API (real app)', () => {
         method: 'PATCH',
         url: '/users/me',
         headers: anna.auth,
-        payload: { onboardingCompleted: true },
+        payload: { onboardingCompleted: true, interestingCurrencies: ['USD', 'GBP'] },
       });
       expect(completed.statusCode).toBe(200);
-      expect(completed.json()).toMatchObject({ onboardingCompleted: true, baseCurrency: 'EUR' });
+      expect(completed.json()).toMatchObject({
+        onboardingCompleted: true,
+        baseCurrency: 'EUR',
+        interestingCurrencies: ['USD', 'GBP'],
+      });
       const reread = await app.inject({ method: 'GET', url: '/users/me', headers: anna.auth });
-      expect(reread.json()).toMatchObject({ onboardingCompleted: true });
+      expect(reread.json()).toMatchObject({
+        onboardingCompleted: true,
+        interestingCurrencies: ['USD', 'GBP'],
+      });
+
+      const tooMany = await app.inject({
+        method: 'PATCH',
+        url: '/users/me',
+        headers: anna.auth,
+        payload: { interestingCurrencies: ['USD', 'GBP', 'CHF', 'CZK', 'SEK', 'NOK'] },
+      });
+      expect(tooMany.statusCode).toBe(400);
 
       const badZone = await app.inject({
         method: 'PATCH',

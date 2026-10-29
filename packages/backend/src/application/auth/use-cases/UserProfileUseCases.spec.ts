@@ -15,6 +15,7 @@ const PROFILE: UserProfile = {
   defaultLocale: 'en',
   baseCurrency: null,
   timezone: 'UTC',
+  interestingCurrencies: [],
   onboardingCompleted: false,
   householdId: HouseholdId.of('01900000-0000-7000-8000-0000000000a1'),
   householdBaseCurrency: 'PLN',
