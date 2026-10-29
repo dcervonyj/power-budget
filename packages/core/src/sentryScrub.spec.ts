@@ -24,7 +24,7 @@ describe('Sentry scrubbing', () => {
               stacktrace: {
                 frames: [
                   {
-                    filename: 'app.js',
+                    filename: 'app.js?code=secret',
                     abs_path: '/app.js?token=secret#fragment',
                     function: 'run',
                     module: 'app',
@@ -45,7 +45,14 @@ describe('Sentry scrubbing', () => {
         release: 'v1',
         environment: 'production',
         extra: { amount: 100 },
-        contexts: { os: { name: 'Linux' }, trace: { trace_id: 'abc' }, account: { amount: 100 } },
+        contexts: {
+          os: { name: 'Linux' },
+          trace: {
+            trace_id: 'abc',
+            data: { 'url.full': '/?code=secret', 'http.query': 'state=secret' },
+          },
+          account: { amount: 100 },
+        },
       }),
     ).toEqual({
       request: { url: '/callback?code=[Filtered]&state=[Filtered]' },
@@ -59,7 +66,7 @@ describe('Sentry scrubbing', () => {
             stacktrace: {
               frames: [
                 {
-                  filename: 'app.js',
+                  filename: 'app.js?code=[Filtered]',
                   abs_path: '/app.js?token=[Filtered]#[Filtered]',
                   function: 'run',
                   module: 'app',
@@ -72,11 +79,13 @@ describe('Sentry scrubbing', () => {
           },
         ],
       },
-      tags: { release: 'v1' },
       release: 'v1',
       environment: 'production',
       contexts: { os: { name: 'Linux' }, trace: { trace_id: 'abc' } },
     });
+  });
+  it('preserves issue references in text', () => {
+    expect(scrubSentryEvent({ message: 'issue #123' })).toEqual({ message: 'issue #123' });
   });
   it('filters breadcrumb messages and data', () => {
     expect(
