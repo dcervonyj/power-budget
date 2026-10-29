@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import type { PlanDto, PlannedItemVersionDto } from '@power-budget/shared-app/contract';
 import { computePlanTotals } from '../../../application/plans/PlanTotals.js';
+import type { NewPlanDraft } from '../../../application/plans/NewPlanDraft.js';
 import { ClonePlanForm } from '../../components/ClonePlanForm.js';
+import { CreatePlanForm, type CreatePlanFormProps } from '../../components/CreatePlanForm.js';
 import { Drawer } from '../../components/Drawer.js';
 import { Modal } from '../../components/Modal.js';
 import { PlannedItemHistoryView } from '../../components/PlannedItemHistoryView.js';
@@ -288,6 +290,80 @@ export function ClonePlanDialogError(): React.JSX.Element {
       </Modal>
     </Stage>
   );
+}
+
+const NEW_PLAN: NewPlanDraft = {
+  name: 'November',
+  type: 'household',
+  periodKind: 'weekly',
+  startDate: '2026-11-02',
+  endDate: '',
+  baseCurrency: 'PLN',
+};
+
+function createFormProps(overrides: Partial<CreatePlanFormProps> = {}): CreatePlanFormProps {
+  return {
+    draft: NEW_PLAN,
+    errors: {},
+    typeOptions: ['personal', 'household'],
+    derivedEndDate: '2026-11-08',
+    submitError: null,
+    onNameChange: noop,
+    onTypeChange: noop,
+    onPeriodKindChange: noop,
+    onStartDateChange: noop,
+    onEndDateChange: noop,
+    onBaseCurrencyChange: noop,
+    ...overrides,
+  };
+}
+
+function CreatePlanDialogStage(props: CreatePlanFormProps): React.JSX.Element {
+  return (
+    <Stage>
+      <Modal
+        isOpen
+        title="Create plan"
+        onClose={noop}
+        footerButtons={[
+          { label: 'Cancel', variant: 'secondary', onClick: noop },
+          { label: 'Create', variant: 'primary', onClick: noop },
+        ]}
+      >
+        <CreatePlanForm {...props} />
+      </Modal>
+    </Stage>
+  );
+}
+
+/** Create dialog: a household member, weekly period with the derived end date. */
+export function CreatePlanDialog(): React.JSX.Element {
+  return <CreatePlanDialogStage {...createFormProps()} />;
+}
+
+/** Create dialog: custom period with field errors. */
+export function CreatePlanDialogFieldErrors(): React.JSX.Element {
+  return (
+    <CreatePlanDialogStage
+      {...createFormProps({
+        draft: {
+          ...NEW_PLAN,
+          name: '',
+          type: 'personal',
+          periodKind: 'custom',
+          startDate: '2026-11-10',
+          endDate: '2026-11-01',
+        },
+        errors: { name: 'required', endDate: 'not_after_start' },
+        typeOptions: ['personal'],
+      })}
+    />
+  );
+}
+
+/** Create dialog: the 409 answer with its own message. */
+export function CreatePlanDialogDuplicate(): React.JSX.Element {
+  return <CreatePlanDialogStage {...createFormProps({ submitError: 'duplicate' })} />;
 }
 
 const VERSIONS: readonly PlannedItemVersionDto[] = [

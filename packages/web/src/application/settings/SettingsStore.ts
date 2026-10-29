@@ -66,6 +66,8 @@ export class SettingsStore {
   deletionScheduledFor: string | null = null;
 
   profileLoaded: boolean = false;
+  /** The last profile request failed; screens that need the profile offer a retry. */
+  profileLoadFailed: boolean = false;
 
   /** Bumped when the session ends, so a late profile of the previous user is dropped. */
   private session = 0;
@@ -113,8 +115,11 @@ export class SettingsStore {
     try {
       const res = await this.http.get<UserProfileDto>('/users/me');
       this.applyProfile(session, res.data);
+      // Cleared only by a successful answer, so a retry in flight is still a failed profile.
+      this.clearProfileLoadFailed(session);
     } catch {
       // The screens keep their defaults when the profile is not available.
+      this.markProfileLoadFailed(session);
     } finally {
       this.markProfileLoaded(session);
     }
@@ -236,6 +241,7 @@ export class SettingsStore {
     this.deleteError = null;
     this.deletionScheduledFor = null;
     this.profileLoaded = false;
+    this.profileLoadFailed = false;
   }
 
   private async patchProfile(body: UpdateUserProfileDto): Promise<void> {
@@ -272,6 +278,18 @@ export class SettingsStore {
   private applyExportDone(session: number): void {
     if (session === this.session) {
       this.isExporting = false;
+    }
+  }
+
+  private clearProfileLoadFailed(session: number): void {
+    if (session === this.session) {
+      this.profileLoadFailed = false;
+    }
+  }
+
+  private markProfileLoadFailed(session: number): void {
+    if (session === this.session) {
+      this.profileLoadFailed = true;
     }
   }
 
