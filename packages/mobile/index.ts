@@ -1,8 +1,10 @@
 import * as Sentry from '@sentry/react-native';
+import { sentryScrubOptions } from './src/infrastructure/errorReporting/scrubSentry.js';
 import { registerRootComponent } from 'expo';
 
 Sentry.init({
   dsn: process.env['EXPO_PUBLIC_SENTRY_DSN'],
+  ...sentryScrubOptions,
   enableAutoSessionTracking: true,
   tracesSampleRate: 0.1,
 });

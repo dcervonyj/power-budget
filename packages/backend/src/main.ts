@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import * as Sentry from '@sentry/node';
+import { sentryScrubOptions } from './infrastructure/sentry/scrubSentry.js';
 import { NestFactory } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -16,20 +17,7 @@ function initSentry(config: AppConfig): void {
     dsn: config.sentryDsn ?? undefined,
     environment: config.nodeEnv,
     release: config.sentryRelease ?? undefined,
-    beforeSend(event) {
-      // Strip PII from breadcrumbs
-      if (event.breadcrumbs) {
-        for (const crumb of event.breadcrumbs) {
-          if (crumb.data) {
-            delete crumb.data['email'];
-            delete crumb.data['householdId'];
-            delete crumb.data['userId'];
-          }
-        }
-      }
-
-      return event;
-    },
+    ...sentryScrubOptions,
   });
 }
 
