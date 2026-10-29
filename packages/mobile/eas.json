@@ -16,7 +16,9 @@
         "buildConfiguration": "Release"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://power-budget-api-eu.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://power-budget-api-eu.onrender.com",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://8191a8a7055f82d65768b1ca1ff7a993@o4512342049554432.ingest.de.sentry.io/4512342063382608",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     },
     "production": {
@@ -29,7 +31,9 @@
       },
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://power-budget-api-eu.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://power-budget-api-eu.onrender.com",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://8191a8a7055f82d65768b1ca1ff7a993@o4512342049554432.ingest.de.sentry.io/4512342063382608",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       }
     }
   },
