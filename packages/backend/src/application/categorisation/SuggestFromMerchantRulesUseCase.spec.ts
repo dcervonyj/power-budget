@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, PlannedItemId, UserId, MerchantRuleId } from '@power-budget/core';
 import { IsoDate, Money } from '@power-budget/core';
 import { SuggestFromMerchantRulesUseCase } from './SuggestFromMerchantRulesUseCase.js';
@@ -26,7 +26,7 @@ const WEAK_HINT: TransactionSuggestionFields = {
 };
 
 function row(): NewTransaction {
-  return mock<NewTransaction>({
+  return createMock<NewTransaction>({
     ignored: false,
     merchant: 'Biedronka',
     description: 'Card payment',
@@ -41,16 +41,16 @@ function useCaseWith(
   hits: number,
   resolved: PlannedItemId | null,
 ): SuggestFromMerchantRulesUseCase {
-  const rules = mock<MerchantRuleRepository>();
+  const rules = createMock<MerchantRuleRepository>();
   rules.findMatching.mockResolvedValue([
-    mock<MerchantRule>({
+    createMock<MerchantRule>({
       id: MerchantRuleId.of('01900000-5573-7e39-8b66-00496d40f493'),
       alwaysAsk: false,
       hits,
       planKindPref: null,
     }),
   ]);
-  const items = mock<PlannedItemResolver>();
+  const items = createMock<PlannedItemResolver>();
   items.resolveActive.mockResolvedValue(resolved === null ? null : { plannedItemId: resolved });
 
   return new SuggestFromMerchantRulesUseCase(rules, items);

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { BankConnectionId, HouseholdId, UserId, EncryptedString } from '@power-budget/core';
 import type { BankConnectionRepository, BankSyncQueuePort } from '../../../../domain/bank/ports.js';
 import type { BankConnection } from '../../../../domain/bank/entities.js';
@@ -39,13 +39,13 @@ function makeConnection(userId: UserId, overrides: Partial<BankConnection> = {})
 }
 
 describe('RefreshConnectionUseCase', () => {
-  let connectionRepo: ReturnType<typeof mock<BankConnectionRepository>>;
-  let syncQueue: ReturnType<typeof mock<BankSyncQueuePort>>;
+  let connectionRepo: ReturnType<typeof createMock<BankConnectionRepository>>;
+  let syncQueue: ReturnType<typeof createMock<BankSyncQueuePort>>;
   let useCase: RefreshConnectionUseCase;
 
   beforeEach(() => {
-    connectionRepo = mock<BankConnectionRepository>();
-    syncQueue = mock<BankSyncQueuePort>();
+    connectionRepo = createMock<BankConnectionRepository>();
+    syncQueue = createMock<BankSyncQueuePort>();
     useCase = new RefreshConnectionUseCase(connectionRepo, syncQueue);
   });
 

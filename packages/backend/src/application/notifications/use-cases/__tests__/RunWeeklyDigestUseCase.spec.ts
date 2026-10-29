@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { formatMoney } from '@power-budget/core';
 import { HouseholdId, IsoDate, UserId } from '@power-budget/core';
 import type { CurrencyCode } from '@power-budget/core';
@@ -54,10 +54,10 @@ describe('RunWeeklyDigestUseCase', () => {
     summaries = new Map([[USER_ID, SUMMARY]]);
     failures = new Map();
     enqueued = [];
-    const repo = mock<NotificationRepository>({
+    const repo = createMock<NotificationRepository>({
       listAllHouseholdMembers: vi.fn(async () => members),
     });
-    const enqueue = mock<EnqueueNotificationUseCase>({
+    const enqueue = createMock<EnqueueNotificationUseCase>({
       execute: vi.fn(async (input: EnqueueNotificationInput) => {
         enqueued.push(input);
       }),
@@ -198,10 +198,10 @@ describe('RunWeeklyDigestUseCase', () => {
 
   it('counts a failing enqueue as a skipped member too', async () => {
     members = [MEMBER];
-    const repo = mock<NotificationRepository>({
+    const repo = createMock<NotificationRepository>({
       listAllHouseholdMembers: vi.fn(async () => members),
     });
-    const enqueue = mock<EnqueueNotificationUseCase>({
+    const enqueue = createMock<EnqueueNotificationUseCase>({
       execute: vi.fn(async () => {
         throw new Error('outbox down');
       }),

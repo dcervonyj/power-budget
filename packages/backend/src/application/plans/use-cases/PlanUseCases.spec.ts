@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { IsoDate, IsoDateTime, PlanId } from '@power-budget/core';
 import type {
   AuditLogPort,
@@ -27,14 +27,14 @@ const OCT = { start: IsoDate.of('2026-10-01'), end: IsoDate.of('2026-10-31') };
 const NOV = { start: IsoDate.of('2026-11-01'), end: IsoDate.of('2026-11-30') };
 const NEW_PLAN_ID = PlanId.of(NEW_ID);
 
-let planRepo: MockProxy<PlanRepository>;
-let itemRepo: MockProxy<PlannedItemRepository>;
-let auditLog: MockProxy<AuditLogPort>;
+let planRepo: DeepMocked<PlanRepository>;
+let itemRepo: DeepMocked<PlannedItemRepository>;
+let auditLog: DeepMocked<AuditLogPort>;
 
 beforeEach(() => {
-  planRepo = mock<PlanRepository>();
-  itemRepo = mock<PlannedItemRepository>();
-  auditLog = mock<AuditLogPort>();
+  planRepo = createMock<PlanRepository>();
+  itemRepo = createMock<PlannedItemRepository>();
+  auditLog = createMock<AuditLogPort>();
 });
 
 const HINT = {

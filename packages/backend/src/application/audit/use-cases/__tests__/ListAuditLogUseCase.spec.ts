@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { AuditEventId, HouseholdId, IsoDateTime, UserId } from '@power-budget/core';
 import type { AuditEventRepository, AuditPage } from '../../../../domain/audit/ports.js';
 import { ListAuditLogUseCase } from '../ListAuditLogUseCase.js';
@@ -27,7 +27,7 @@ describe('ListAuditLogUseCase', () => {
       nextCursor: null,
       hasMore: false,
     };
-    const repo = mock<AuditEventRepository>();
+    const repo = createMock<AuditEventRepository>();
     repo.listByHousehold.mockResolvedValue(page);
     const filter = { subjectType: 'Plan', cursor: CURSOR, limit: 20 };
 

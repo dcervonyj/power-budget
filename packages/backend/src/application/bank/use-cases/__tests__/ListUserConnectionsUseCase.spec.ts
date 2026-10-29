@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
 import type { BankConnectionRepository } from '../../../../domain/bank/ports.js';
 import type { BankConnection } from '../../../../domain/bank/entities.js';
@@ -30,7 +30,7 @@ describe('ListUserConnectionsUseCase', () => {
     const active = makeConnection('01900000-0000-7000-8000-000000000003', 'active');
     const disconnected = makeConnection('01900000-0000-7000-8000-000000000004', 'disconnected');
     const pending = makeConnection('01900000-0000-7000-8000-000000000005', 'pending');
-    const connectionRepo = mock<BankConnectionRepository>();
+    const connectionRepo = createMock<BankConnectionRepository>();
     connectionRepo.listByUser.mockResolvedValue([active, pending, disconnected]);
 
     const result = await new ListUserConnectionsUseCase(connectionRepo).execute({
