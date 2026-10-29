@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Node 25+ hides jsdom's localStorage; the session data and the settings storage read it.
@@ -19,9 +20,10 @@ const storage = vi.hoisted(() => {
 
 import type { HttpClient, SecureTokenStore } from '@power-budget/shared-app';
 import type { PlanDto, UserProfileDto } from '@power-budget/shared-app/contract';
-import { DashboardStore } from '../dashboard/DashboardStore.js';
-import { PlanDashboardStore } from '../dashboard/PlanDashboardStore.js';
-import { SettingsStore } from '../settings/SettingsStore.js';
+import type { CatalogueCategories } from '../catalogue/ReferenceCatalogue.js';
+import { DashboardStore, type DashboardPlans } from '../dashboard/DashboardStore.js';
+import { PlanDashboardStore, type PlanDashboardPlans } from '../dashboard/PlanDashboardStore.js';
+import { SettingsStore, type SettingsHttp } from '../settings/SettingsStore.js';
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { LocalStorageKeyValueStore } from '../../infrastructure/storage/LocalStorageKeyValueStore.js';
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
@@ -57,23 +59,23 @@ const ANNA: UserProfileDto = {
 };
 
 function tokenStore(): SecureTokenStore {
-  return {
+  return createMock<SecureTokenStore>({
     getAccessToken: vi.fn().mockReturnValue('access'),
     getRefreshToken: vi.fn().mockReturnValue('refresh'),
     setTokens: vi.fn().mockResolvedValue(undefined),
     clearTokens: vi.fn().mockResolvedValue(undefined),
-  };
+  });
 }
 
 function httpClient(): HttpClient {
-  return {
+  return createMock<HttpClient>({
     request: vi.fn(),
     get: vi.fn(),
     post: vi.fn().mockResolvedValue({ status: 204, data: undefined, headers: {} }),
     put: vi.fn(),
     patch: vi.fn(),
     delete: vi.fn(),
-  };
+  });
 }
 
 describe('sign-out, then another user in the same tab (FE-BUGS-01)', () => {
@@ -87,12 +89,15 @@ describe('sign-out, then another user in the same tab (FE-BUGS-01)', () => {
     storage.clear();
     mockGet.mockReset();
     list = vi.fn<() => Promise<PlanDto[]>>();
-    const api = { get: vi.fn(), dashboard: vi.fn(), listItems: vi.fn(), unplanned: vi.fn() };
-    planDashboard = new PlanDashboardStore(api, catalogueFor(api, { list: vi.fn() }));
+    const api = createMock<PlanDashboardPlans>();
+    planDashboard = new PlanDashboardStore(
+      api,
+      catalogueFor(api, createMock<CatalogueCategories>({ list: vi.fn() })),
+    );
     vi.spyOn(planDashboard, 'load').mockResolvedValue(undefined);
-    dashboard = new DashboardStore({ list }, planDashboard);
+    dashboard = new DashboardStore(createMock<DashboardPlans>({ list }), planDashboard);
     settings = new SettingsStore(
-      { get: mockGet, post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+      createMock<SettingsHttp>({ get: mockGet }),
       new LocalStorageKeyValueStore(),
     );
     const session = new ClientSession();
