@@ -4,51 +4,32 @@ Platform-agnostic frontend application layer shared by `packages/web` and `packa
 
 ## Role
 
-This package holds all frontend application logic that has **zero platform dependency**:
+This package is the **client SDK** shared by `packages/web` and `packages/mobile`. It holds only code with zero platform dependency:
 
-- **MobX ReactiveViews** — observable state containers (`MobXReactiveView<S>`)
-- **Feature contexts** — `createFeatureContext<C>()` factory for typed React contexts
-- **MobX `observer` connector** — `connect()` HOC wrapping components in `observer()`
-- **NavigationPort** — platform-agnostic navigation interface; adapted by web (React Router) and mobile (React Navigation) in their own packages
-- **AppRoute** — typed discriminated union of every route in the app
-- **ApiClient** — fetch-based `HttpClient` implementation with token header and refresh on 401
-- **SecureTokenStore** — port interface for token persistence (implemented per-platform)
-- **Feature scaffolds** — empty `application/`, `api/`, `config/`, `ui/connect/` barrels for each of the 8 feature modules
+- **Generated API contract** (`contract/`) — OpenAPI types and `AppRoute`; the single source of truth for request and response shapes
+- **ApiClient / HttpClient** (`infrastructure/api-client`) — fetch-based `HttpClient` with token header and refresh on 401; `readApiError` / `ApiError` / `HttpError`
+- **Typed API clients** — `PlansApi` (`plans/api`), `CategoriesApi` (`categories/api`), `HouseholdsApi` (`households/api`)
+- **Ports** — `SecureTokenStore` (token persistence) and `Navigator` (navigation); each platform implements them in its own package
+- **Design contract** (`design/`) — DSN tokens and money-part formatting used by the restyled screens
 
-## Feature modules
-
-`auth` · `bank` · `transactions` · `plans` · `categories` · `currency` · `notifications` · `dashboard`
-
-Each feature exposes four sub-directories:
-
-| Sub-dir        | Purpose                                          |
-| -------------- | ------------------------------------------------ |
-| `application/` | Use cases, selectors, MobX stores                |
-| `api/`         | HTTP adapter implementations (`Http*Repo`)       |
-| `config/`      | Feature-level configuration constants            |
-| `ui/connect/`  | Connected (observer-wrapped) component factories |
+MobX stores stay in `packages/web/src/application` for now; moving them here is tracked separately (CLN-070).
 
 ## What belongs here vs. platform packages
 
-| Belongs in `shared-app`      | Stays in `web` or `mobile`                    |
-| ---------------------------- | --------------------------------------------- |
-| `NavigationPort` interface   | React Router / React Navigation adapter       |
-| `SecureTokenStore` interface | `localStorage` / `SecureStore` implementation |
-| `AppRoute` union             | Route component mapping                       |
-| MobX stores and use cases    | Platform-specific providers and layouts       |
-| `ApiClient`                  | Token storage implementations                 |
+| Belongs in `shared-app`       | Stays in `web` or `mobile`                    |
+| ----------------------------- | --------------------------------------------- |
+| `Navigator` interface         | React Router / React Navigation adapter       |
+| `SecureTokenStore` interface  | `localStorage` / `SecureStore` implementation |
+| Generated contract and routes | Route component mapping                       |
+| `ApiClient`, `*Api` clients   | Token storage implementations                 |
 
 ## Consumption
 
 ```ts
 // web / mobile
-import { ApiClient, NavigationPort, AppRoute } from '@power-budget/shared-app';
-import {
-  MobXReactiveView,
-  connect,
-  createFeatureContext,
-} from '@power-budget/shared-app/infrastructure';
-import type { AppRoute } from '@power-budget/shared-app/contract';
+import { ApiClient, PlansApi } from '@power-budget/shared-app';
+import type { HttpClient, Navigator } from '@power-budget/shared-app/infrastructure';
+import type { components } from '@power-budget/shared-app/contract';
 ```
 
 ## Build
