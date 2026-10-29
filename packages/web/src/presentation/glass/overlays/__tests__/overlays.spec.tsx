@@ -59,7 +59,11 @@ describe('Sheet', () => {
     expect(screen.getByRole('dialog', { name: 'Edit' })).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
     fireEvent.click(screen.getByLabelText('Close'));
-    fireEvent.click(screen.getByRole('dialog').parentElement as HTMLElement);
+    const backdrop = screen.getByRole('dialog').parentElement;
+    if (backdrop === null) {
+      throw new Error('expected a backdrop');
+    }
+    fireEvent.click(backdrop);
 
     expect(onClose).toHaveBeenCalledTimes(3);
   });

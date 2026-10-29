@@ -1,8 +1,13 @@
+import { createMock } from '@golevelup/ts-vitest';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { PlanDashboardResponseDto } from '@power-budget/shared-app/contract';
-import { PlanDashboardStore } from '../../../../application/dashboard/PlanDashboardStore.js';
+import {
+  PlanDashboardStore,
+  type PlanDashboardPlans,
+} from '../../../../application/dashboard/PlanDashboardStore.js';
+import type { CatalogueCategories } from '../../../../application/catalogue/ReferenceCatalogue.js';
 import { catalogueFor } from '../../../../test/referenceCatalogue.js';
 import { PlanDashboardView } from '../PlanDashboardView.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
@@ -35,15 +40,18 @@ function makeStore(): { store: PlanDashboardStore; dashboard: ReturnType<typeof 
             : UNPLANNED_LAST_PAGE,
       ),
     );
-  const api = {
+  const api = createMock<PlanDashboardPlans>({
     get: vi.fn().mockResolvedValue(PLAN),
     dashboard,
     listItems: vi.fn().mockResolvedValue(ITEMS),
     unplanned,
-  };
+  });
   const store = new PlanDashboardStore(
     api,
-    catalogueFor(api, { list: vi.fn().mockResolvedValue(CATEGORIES) }),
+    catalogueFor(
+      { get: api.get, listItems: api.listItems },
+      createMock<CatalogueCategories>({ list: vi.fn().mockResolvedValue(CATEGORIES) }),
+    ),
   );
 
   return { store, dashboard };
@@ -53,7 +61,7 @@ function makeStore(): { store: PlanDashboardStore; dashboard: ReturnType<typeof 
 async function loadD7(
   overrides: Partial<PlanDashboardResponseDto> = {},
 ): Promise<PlanDashboardStore> {
-  const api = {
+  const api = createMock<PlanDashboardPlans>({
     get: vi.fn().mockResolvedValue(D7_PLAN),
     dashboard: vi.fn().mockResolvedValue({ ...D7_DASHBOARD, ...overrides }),
     listItems: vi.fn().mockResolvedValue([]),
@@ -62,10 +70,13 @@ async function loadD7(
       .mockImplementation((_planId: string, direction: string) =>
         Promise.resolve(direction === 'expense' ? D7_UNPLANNED_PAGE : EMPTY_PAGE),
       ),
-  };
+  });
   const store = new PlanDashboardStore(
     api,
-    catalogueFor(api, { list: vi.fn().mockResolvedValue(D7_CATEGORIES) }),
+    catalogueFor(
+      { get: api.get, listItems: api.listItems },
+      createMock<CatalogueCategories>({ list: vi.fn().mockResolvedValue(D7_CATEGORIES) }),
+    ),
   );
   await store.load('plan-d7');
 

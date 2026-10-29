@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-vitest';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
@@ -5,7 +6,11 @@ import type {
   HouseholdDashboardCategoryDto,
   HouseholdMemberResponseDto,
 } from '@power-budget/shared-app/contract';
-import { HouseholdStore } from '../../../../application/household/HouseholdStore.js';
+import {
+  HouseholdStore,
+  type HouseholdMembersApi,
+  type HouseholdPlansApi,
+} from '../../../../application/household/HouseholdStore.js';
 import { HouseholdMembersCard } from '../HouseholdMembersCard.js';
 import { HouseholdAggregatesCard } from '../HouseholdAggregatesCard.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
@@ -43,7 +48,7 @@ function aggregate(
 }
 
 function makeApi() {
-  return {
+  return createMock<HouseholdMembersApi>({
     members: vi.fn().mockResolvedValue([OWNER]),
     invites: vi.fn().mockResolvedValue([]),
     invite: vi.fn().mockResolvedValue(undefined),
@@ -57,7 +62,7 @@ function makeApi() {
         aggregate('Kids', 'full_detail', '9900', 1),
       ],
     }),
-  };
+  });
 }
 
 describe('household cards', () => {
@@ -66,7 +71,10 @@ describe('household cards', () => {
 
   beforeEach(() => {
     api = makeApi();
-    store = new HouseholdStore(api, { list: vi.fn().mockResolvedValue([PLAN]) });
+    store = new HouseholdStore(
+      api,
+      createMock<HouseholdPlansApi>({ list: vi.fn().mockResolvedValue([PLAN]) }),
+    );
   });
 
   it('lets the owner invite the partner by email', async () => {
@@ -195,7 +203,10 @@ describe('household cards', () => {
   });
 
   it('points to the plans screen without a household plan', async () => {
-    store = new HouseholdStore(api, { list: vi.fn().mockResolvedValue([]) });
+    store = new HouseholdStore(
+      api,
+      createMock<HouseholdPlansApi>({ list: vi.fn().mockResolvedValue([]) }),
+    );
     await store.load('user-ann', 'hh-1');
     renderWithProviders(<HouseholdAggregatesCard store={store} />);
 
