@@ -17,5 +17,6 @@
   "onboarding.step.createPlan.title": "Создайте первый план",
   "onboarding.step.createPlan.description": "План позволяет задать цели по доходам и расходам на период (неделя, месяц или свой). Сопоставляйте транзакции с запланированными пунктами, чтобы видеть фактические суммы.",
   "onboarding.step.createPlan.createNow": "Создать план",
-  "onboarding.saveError": "Не удалось сохранить ваш выбор. Попробуйте ещё раз."
+  "onboarding.saveError": "Не удалось сохранить ваш выбор. Попробуйте ещё раз.",
+  "onboarding.profileError": "Не удалось загрузить ваш профиль"
 }
