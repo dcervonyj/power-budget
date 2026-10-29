@@ -1,6 +1,6 @@
 import React from 'react';
 import { IntlProvider } from 'react-intl';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { ThemeProvider } from '../../../theme/index.js';
 import onboardingEn from '../../../../../assets/locales/en/onboarding.json';
 import overlaysEn from '../../../../../assets/locales/en/glass-overlays.json';
@@ -22,11 +22,16 @@ jest.mock('../../../LocaleProvider.js', () => ({
 function renderScreen(
   complete: jest.Mock<Promise<void>, [{ language: string; baseCurrency: string }]>,
   onCompleted: () => void,
+  getSessionId: () => number = () => 7,
 ): ReturnType<typeof render> {
   return render(
     <ThemeProvider>
       <IntlProvider locale="en" messages={{ ...onboardingEn, ...overlaysEn }}>
-        <OnboardingScreen api={{ complete }} getSessionId={() => 7} onCompleted={onCompleted} />
+        <OnboardingScreen
+          api={{ complete }}
+          getSessionId={getSessionId}
+          onCompleted={onCompleted}
+        />
       </IntlProvider>
     </ThemeProvider>,
   );
@@ -68,6 +73,27 @@ describe('OnboardingScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
 
     await screen.findByText('We could not save your choices. Try again.');
+    expect(mockSetLocale).not.toHaveBeenCalled();
+  });
+
+  it('does not open the gate or change the language when the session changed during the save', async () => {
+    let finishSave: () => void = () => undefined;
+    const complete = jest.fn().mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishSave = resolve;
+      }),
+    );
+    const onCompleted = jest.fn();
+    let sessionId = 7;
+    await renderScreen(complete, onCompleted, () => sessionId);
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+    sessionId = 8;
+    await act(async () => {
+      finishSave();
+    });
+
+    expect(onCompleted).not.toHaveBeenCalled();
     expect(mockSetLocale).not.toHaveBeenCalled();
   });
 

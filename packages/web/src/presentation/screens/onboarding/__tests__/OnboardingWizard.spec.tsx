@@ -133,6 +133,30 @@ describe('OnboardingWizard', () => {
     expect(localStorage.getItem('pb_interesting_currencies')).toBe('["EUR"]');
   });
 
+  it('still saves to the profile when the device storage refuses the cache write', async () => {
+    vi.stubGlobal('localStorage', {
+      getItem: (): null => null,
+      setItem: (): never => {
+        throw new Error('quota');
+      },
+      removeItem: (): void => undefined,
+    });
+    const onComplete = vi.fn();
+    renderWithProviders(<OnboardingWizard onComplete={onComplete} />);
+    for (let step = 0; step < 3; step += 1) {
+      clickNext();
+    }
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+    vi.unstubAllGlobals();
+    expect(mockPatch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('stays on the last step and says so when saving to the profile fails', async () => {
     mockPatch.mockRejectedValue(new Error('offline'));
     const onComplete = vi.fn();

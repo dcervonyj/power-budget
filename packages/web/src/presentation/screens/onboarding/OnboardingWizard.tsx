@@ -18,12 +18,21 @@ export const OnboardingWizard = observer(function OnboardingWizard({
   const [store] = useState(() => onboardingProgress.resume());
   const [saveFailed, setSaveFailed] = useState(false);
 
+  /** Only a cache for this device: a storage failure must not stop the save to the profile. */
+  function cacheChoicesOnDevice(): void {
+    try {
+      persistOnboardingPrefs(localStorage, {
+        baseCurrency: store.baseCurrency,
+        interestingCurrencies: store.interestingCurrencies,
+        language: store.selectedLanguage,
+      });
+    } catch {
+      // The profile is the source of truth; the device cache is rebuilt from it on the next read.
+    }
+  }
+
   async function save(): Promise<void> {
-    persistOnboardingPrefs(localStorage, {
-      baseCurrency: store.baseCurrency,
-      interestingCurrencies: store.interestingCurrencies,
-      language: store.selectedLanguage,
-    });
+    cacheChoicesOnDevice();
     setSaveFailed(false);
     try {
       await onboardingService.complete({

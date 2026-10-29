@@ -6,9 +6,11 @@ import { IntlProvider } from 'react-intl';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import type { UserProfileDto } from '@power-budget/shared-app/contract';
 import { ThemeProvider } from '../../components/ThemeContext.js';
+import { LocaleContext } from '../../../AppProviders.js';
 import { RequireOnboarding } from '../RequireOnboarding.js';
 import { onboardingProgress, onboardingService, settingsStore } from '../../../composition.js';
 
+const setLocale = vi.fn();
 const readProfile = vi.spyOn(onboardingService, 'readProfile');
 
 function profile(overrides: Partial<UserProfileDto>): UserProfileDto {
@@ -36,16 +38,18 @@ function renderAt(path: string): void {
   render(
     <IntlProvider locale="en" messages={{}} onError={vi.fn()}>
       <ThemeProvider>
-        <MemoryRouter initialEntries={[path]}>
-          <Routes>
-            <Route path="/onboarding" element={<p>onboarding screen</p>} />
-            <Route element={<RequireOnboarding />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/bank-connections" element={<p>bank screen</p>} />
-              <Route path="/plans/new" element={<p>plan screen</p>} />
-            </Route>
-          </Routes>
-        </MemoryRouter>
+        <LocaleContext.Provider value={{ locale: 'en', setLocale }}>
+          <MemoryRouter initialEntries={[path]}>
+            <Routes>
+              <Route path="/onboarding" element={<p>onboarding screen</p>} />
+              <Route element={<RequireOnboarding />}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/bank-connections" element={<p>bank screen</p>} />
+                <Route path="/plans/new" element={<p>plan screen</p>} />
+              </Route>
+            </Routes>
+          </MemoryRouter>
+        </LocaleContext.Provider>
       </ThemeProvider>
     </IntlProvider>,
   );
@@ -54,6 +58,7 @@ function renderAt(path: string): void {
 describe('RequireOnboarding', () => {
   beforeEach(() => {
     readProfile.mockReset();
+    setLocale.mockReset();
     onboardingProgress.clear();
     settingsStore.resetSession();
   });
@@ -82,6 +87,24 @@ describe('RequireOnboarding', () => {
     renderAt('/dashboard');
 
     expect(await screen.findByText('dashboard tracks USD,GBP')).toBeVisible();
+  });
+
+  it('applies the language saved on the profile, also on a browser that never saw this user', async () => {
+    readProfile.mockResolvedValue(profile({ locale: 'pl', localePreference: 'pl' }));
+
+    renderAt('/dashboard');
+
+    await screen.findByText(/dashboard tracks/);
+    expect(setLocale).toHaveBeenCalledWith('pl');
+  });
+
+  it('leaves the language alone when the profile has no saved preference', async () => {
+    readProfile.mockResolvedValue(profile({ locale: 'en', localePreference: null }));
+
+    renderAt('/dashboard');
+
+    await screen.findByText(/dashboard tracks/);
+    expect(setLocale).not.toHaveBeenCalled();
   });
 
   it('renders nothing while the profile is being read', () => {
