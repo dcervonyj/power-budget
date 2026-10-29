@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-jest';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import React from 'react';
 import { LoginScreen } from '../LoginScreen.js';
@@ -14,8 +15,13 @@ jest.mock('../../../../infrastructure/index.js', () => ({
 }));
 
 function renderLogin(navigate = jest.fn()): ReturnType<typeof renderAuth> {
-  const navigation = { navigate } as never;
-  const route = { key: 'Login', name: 'Login' } as never;
+  const navigation = createMock<React.ComponentProps<typeof LoginScreen>['navigation']>({
+    navigate,
+  });
+  const route = createMock<React.ComponentProps<typeof LoginScreen>['route']>({
+    key: 'Login',
+    name: 'Login',
+  });
 
   return renderAuth(<LoginScreen navigation={navigation} route={route} />);
 }

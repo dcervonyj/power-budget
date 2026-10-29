@@ -1,3 +1,5 @@
+import { createMock } from '@golevelup/ts-jest';
+import type { PlanDto, PlanDashboardResponseDto } from '@power-budget/shared-app/contract';
 import React from 'react';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
@@ -31,7 +33,7 @@ jest.mock('../../../../infrastructure/index.js', () => ({
 }));
 
 function unsorted(id: string): TransactionListItemDto {
-  const row = {
+  return {
     id,
     status: 'booked',
     occurredOn: '2026-10-27',
@@ -39,12 +41,10 @@ function unsorted(id: string): TransactionListItemDto {
     merchant: null,
     amount: { amountMinor: '-1000', currency: 'PLN' },
     mapping: null,
-    mappingSource: null,
+    mappingSource: 'none',
     transfer: null,
     suggestedPlannedItemId: null,
   };
-
-  return row as unknown as TransactionListItemDto;
 }
 
 describe('TransactionListScreen', () => {
@@ -56,26 +56,30 @@ describe('TransactionListScreen', () => {
       hasMore: false,
     };
     jest.mocked(transactionsGateway.page).mockResolvedValue(page);
-    jest
-      .mocked(plansApi.list)
-      .mockResolvedValue([
-        { id: 'now', name: 'October', period: { start: '2000-01-01', end: '2999-12-31' } },
-      ] as never);
-    jest.mocked(plansApi.dashboard).mockResolvedValue({
-      planId: 'now',
-      period: { start: '2000-01-01', end: '2999-12-31' },
-      baseCurrency: 'PLN',
-      incomeLines: [],
-      expenseLines: [],
-      totalPlannedExpenses: { amountMinor: '100000', currency: 'PLN' },
-      totalActualExpenses: { amountMinor: '20000', currency: 'PLN' },
-      unplannedExpenses: { amountMinor: '0', currency: 'PLN' },
-    } as never);
+    jest.mocked(plansApi.list).mockResolvedValue([
+      createMock<PlanDto>({
+        id: 'now',
+        name: 'October',
+        period: { start: '2000-01-01', end: '2999-12-31' },
+      }),
+    ]);
+    jest.mocked(plansApi.dashboard).mockResolvedValue(
+      createMock<PlanDashboardResponseDto>({
+        planId: 'now',
+        period: { start: '2000-01-01', end: '2999-12-31' },
+        baseCurrency: 'PLN',
+        incomeLines: [],
+        expenseLines: [],
+        totalPlannedExpenses: { amountMinor: '100000', currency: 'PLN' },
+        totalActualExpenses: { amountMinor: '20000', currency: 'PLN' },
+        unplannedExpenses: { amountMinor: '0', currency: 'PLN' },
+      }),
+    );
     // The screen reads only `navigate` and `addListener` of the react-navigation prop.
     const navigation = { navigate, addListener: jest.fn(() => jest.fn()) };
     await renderTx(
       <TransactionListScreen
-        {...({ navigation } as unknown as ComponentProps<typeof TransactionListScreen>)}
+        {...createMock<ComponentProps<typeof TransactionListScreen>>({ navigation })}
       />,
     );
     await waitFor(() => expect(screen.getByText('Sort all 2')).toBeOnTheScreen());
