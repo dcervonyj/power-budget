@@ -23,21 +23,6 @@
       "import": "./dist/infrastructure/index.mjs",
       "require": "./dist/infrastructure/index.cjs"
     },
-    "./auth": {
-      "types": "./dist/auth/index.d.ts",
-      "import": "./dist/auth/index.mjs",
-      "require": "./dist/auth/index.cjs"
-    },
-    "./bank": {
-      "types": "./dist/bank/index.d.ts",
-      "import": "./dist/bank/index.mjs",
-      "require": "./dist/bank/index.cjs"
-    },
-    "./transactions": {
-      "types": "./dist/transactions/index.d.ts",
-      "import": "./dist/transactions/index.mjs",
-      "require": "./dist/transactions/index.cjs"
-    },
     "./plans": {
       "types": "./dist/plans/index.d.ts",
       "import": "./dist/plans/index.mjs",
@@ -47,21 +32,6 @@
       "types": "./dist/categories/index.d.ts",
       "import": "./dist/categories/index.mjs",
       "require": "./dist/categories/index.cjs"
-    },
-    "./currency": {
-      "types": "./dist/currency/index.d.ts",
-      "import": "./dist/currency/index.mjs",
-      "require": "./dist/currency/index.cjs"
-    },
-    "./notifications": {
-      "types": "./dist/notifications/index.d.ts",
-      "import": "./dist/notifications/index.mjs",
-      "require": "./dist/notifications/index.cjs"
-    },
-    "./dashboard": {
-      "types": "./dist/dashboard/index.d.ts",
-      "import": "./dist/dashboard/index.mjs",
-      "require": "./dist/dashboard/index.cjs"
     }
   },
   "files": [
@@ -78,14 +48,9 @@
     "test": "vitest run"
   },
   "peerDependencies": {
-    "mobx": "^6",
-    "mobx-react-lite": "^4.0.7",
     "react": "^18.2.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
-    "mobx-react-lite": {
-      "optional": true
-    },
     "react": {
       "optional": true
     }
@@ -93,8 +58,6 @@
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^18",
-    "mobx": "^6.16.1",
-    "mobx-react-lite": "^4.0.7",
     "openapi-typescript": "^7.13.0",
     "react": "^18",
     "tsup": "^8.0.0",

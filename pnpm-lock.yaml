@@ -375,12 +375,6 @@ importers:
       '@types/react':
         specifier: ^18
         version: 18.3.28
-      mobx:
-        specifier: ^6.16.1
-        version: 6.16.1
-      mobx-react-lite:
-        specifier: ^4.0.7
-        version: 4.1.1(mobx@6.16.1)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@5.9.3)

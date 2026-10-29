@@ -17,23 +17,23 @@ The architecture is shaped by four constraints from the PRD:
 
 ### Stack at a glance
 
-| Concern         | Choice                                                  | Why                                                                                                                                                         |
-| --------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Backend         | NestJS + TypeScript                                     | First-class module/DI system maps cleanly to clean-architecture layers; broad ecosystem.                                                                    |
-| Web             | React + Vite + TypeScript                               | Vite for fast dev; React because it shares mental model with mobile.                                                                                        |
-| Mobile          | React Native + Expo + TypeScript                        | Single codebase with web for shared hooks; EAS Build/Submit handles iOS pipeline.                                                                           |
-| Shared (domain) | `@power-budget/core` (workspace package)                | One source of truth for domain types and pure logic. No I/O, no React, no Nest.                                                                             |
-| Shared (app)    | `@power-budget/shared-app` (workspace package)          | All platform-agnostic frontend application logic: MobX ReactiveViews, use cases, selectors, API adapters, context factories. Shared between web and mobile. |
-| Database        | PostgreSQL 16                                           | Relational data, strong constraints, JSONB where needed, mature multi-tenancy patterns.                                                                     |
-| ORM             | Drizzle ORM                                             | TypeScript-native, SQL-first, zero runtime overhead. Justified in §5.1.                                                                                     |
-| Jobs            | Redis + BullMQ                                          | Per-connection queues, retries, scheduling — fits sync model exactly.                                                                                       |
-| State (FE)      | MobX + `clean-architecture-reactive`                    | Reactive feature-module state; `ReactiveView<State<S,C>>` with explicit use-case mutations. Justified in §5.1.                                              |
-| Bank — PKO      | GoCardless Bank Account Data API                        | Free PSD2 AISP licence; PKO BP supported; sandbox available.                                                                                                |
-| Bank — Wise     | Wise Personal API (direct)                              | Free, account-holder API; no aggregator needed.                                                                                                             |
-| FX              | ECB daily reference rates                               | Free, authoritative, daily; cached locally.                                                                                                                 |
-| Email           | Resend (or SES)                                         | Transactional only; locale-aware templating.                                                                                                                |
-| Auth            | Email + password / magic link / Google OAuth + TOTP 2FA | PRD §4.1. Argon2id hashes, JWT access + opaque refresh.                                                                                                     |
-| Observability   | pino + Prometheus + OpenTelemetry                       | Cheap, standard, container-native.                                                                                                                          |
+| Concern         | Choice                                                  | Why                                                                                                                                                                                                 |
+| --------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Backend         | NestJS + TypeScript                                     | First-class module/DI system maps cleanly to clean-architecture layers; broad ecosystem.                                                                                                            |
+| Web             | React + Vite + TypeScript                               | Vite for fast dev; React because it shares mental model with mobile.                                                                                                                                |
+| Mobile          | React Native + Expo + TypeScript                        | Single codebase with web for shared hooks; EAS Build/Submit handles iOS pipeline.                                                                                                                   |
+| Shared (domain) | `@power-budget/core` (workspace package)                | One source of truth for domain types and pure logic. No I/O, no React, no Nest.                                                                                                                     |
+| Shared (app)    | `@power-budget/shared-app` (workspace package)          | Client SDK shared by web and mobile: generated API contract, `ApiClient` / `HttpClient`, typed `*Api` clients, `SecureTokenStore` and `Navigator` ports, DSN design contract. No UI, no stores yet. |
+| Database        | PostgreSQL 16                                           | Relational data, strong constraints, JSONB where needed, mature multi-tenancy patterns.                                                                                                             |
+| ORM             | Drizzle ORM                                             | TypeScript-native, SQL-first, zero runtime overhead. Justified in §5.1.                                                                                                                             |
+| Jobs            | Redis + BullMQ                                          | Per-connection queues, retries, scheduling — fits sync model exactly.                                                                                                                               |
+| State (FE)      | MobX + `clean-architecture-reactive`                    | Reactive feature-module state; `ReactiveView<State<S,C>>` with explicit use-case mutations. Justified in §5.1.                                                                                      |
+| Bank — PKO      | GoCardless Bank Account Data API                        | Free PSD2 AISP licence; PKO BP supported; sandbox available.                                                                                                                                        |
+| Bank — Wise     | Wise Personal API (direct)                              | Free, account-holder API; no aggregator needed.                                                                                                                                                     |
+| FX              | ECB daily reference rates                               | Free, authoritative, daily; cached locally.                                                                                                                                                         |
+| Email           | Resend (or SES)                                         | Transactional only; locale-aware templating.                                                                                                                                                        |
+| Auth            | Email + password / magic link / Google OAuth + TOTP 2FA | PRD §4.1. Argon2id hashes, JWT access + opaque refresh.                                                                                                                                             |
+| Observability   | pino + Prometheus + OpenTelemetry                       | Cheap, standard, container-native.                                                                                                                                                                  |
 
 ### Top-level system diagram
 
@@ -163,51 +163,36 @@ class GetPlansUseCase {
 
 MobX + `clean-architecture-reactive` was chosen over Redux Toolkit + RTK Query because: (a) `ReactiveView` gives fine-grained, transparent reactivity — components re-render only on the exact fields they read; (b) source and computed state are type-level distinct, eliminating a class of "you mutated derived state" bugs; (c) mutations are always explicit — every `view.update()` originates from a use case, never from a component or a hook; (d) the `ReactiveView` interface is framework-agnostic — the MobX backend can be swapped by implementing the interface.
 
-### Frontend feature-module layout
+### Frontend client SDK layout
 
-Each feature (`auth`, `bankConnections`, `transactions`, `plans`, `categories`, `fx`, `dashboard`) follows the same layout inside `packages/shared-app/src/`. `packages/web` and `packages/mobile` contain only the `ui/content/` layer (React DOM or React Native components) and platform-specific infrastructure adapters. This structure eliminates the need to write application logic twice.
+`packages/shared-app` is the **client SDK** shared by web and mobile (PO decision D2, 29 Oct 2026). It holds only platform-neutral code that both apps already use; the empty per-feature scaffolding (`application/`, `config/`, `ui/connect/`) and the `MobXReactiveView` / `connect()` / `createFeatureContext` helpers were deleted in CLN-068 because nothing imported them.
+
+Today the application state lives in the apps: web keeps its MobX stores in `packages/web/src/application`, and mobile fetches with `useState` in its screens. The `ReactiveView<State<Source, Computed>>` pattern above is the target for new stores, but there is no `ReactiveView` implementation in shared-app yet. Platform-free stores (`PlanDashboardStore`, the transaction mappers and queries) move into shared-app only when a DSN mobile ticket needs them (CLN-070); do not add empty feature folders ahead of that.
+
+What shared-app contains:
 
 ```
-<feature>/
-  application/
-    models/        # Plain TS types, enums, discriminated unions
-    ports/         # Interfaces — *Repository, *Presenter, *Publisher, *Subscriber
-    state/         # <Feature>SourceState.ts, <Feature>ComputedState.ts, <Feature>State.ts
-    selectors/     # <Subject>Selector.ts — implements Selector<State, T>
-    reactions/     # <Cause>Reaction.ts — implements Reaction<State, T>
-    use-cases/     # Flat — one <Verb><Noun>UseCase.ts per operation
-  api/
-    models/        # Server DTOs
-    mapper/        # <Subject>Mapper.ts
-    repository/    # Http<Subject>Repository.ts adapters
-  repository/      # LocalStorage*, InMemory*, MobX* adapters
-  config/
-    <Feature>.tsx              # React provider component (composition root host)
-    <Feature>Context.ts        # create<Feature>Context() function + <Feature>Context type
-    <Feature>ContextConfig.ts  # External config interface
-  presentation/
-    presenters/    # <Subject>Presenter.ts — pure formatting
-  ui/
-    connect/
-      connector.ts             # Connector<FeatureContext> instance
-      <Feature>Context.ts      # Type the connector uses (matches config/)
-    content/                   # Top-level feature components (<Feature>Content.tsx, etc.)
-  index.ts                     # Public barrel re-exports
+packages/shared-app/src/
+  contract/          # generated OpenAPI types (api-types.ts), DTO aliases, AppRoute union
+  infrastructure/
+    api-client/      # ApiClient (HttpClient implementation), ApiError, HttpError, readApiError
+    navigation/      # Navigator port
+    tokens/          # SecureTokenStore port
+  plans/api/         # PlansApi
+  categories/api/    # CategoriesApi
+  households/api/    # HouseholdsApi
+  design/            # DSN design contract (glass tokens, money parts, ProgressBand)
+  test/              # RecordingHttpClient test double
 ```
-
-The package-level `infrastructure/` folder holds cross-feature singletons: `ApiClient` (the `HttpClient` implementation), `SecureTokenStore`, and the i18n loader. Cross-feature event types live in `src/contract/events/` (types only, zero logic).
 
 **What lives where:**
 
-| Sub-directory                                                  | Package                                                                          |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `application/` (state, selectors, reactions, use cases, ports) | `@power-budget/shared-app`                                                       |
-| `api/` (mapper, Http\*Repo adapters)                           | `@power-budget/shared-app`                                                       |
-| `config/` (`create*Context()`, `*Context.ts`)                  | `@power-budget/shared-app`                                                       |
-| `ui/connect/connector.ts`                                      | `@power-budget/shared-app`                                                       |
-| `ui/content/` (React DOM components)                           | `packages/web` only                                                              |
-| `ui/content/` (React Native components)                        | `packages/mobile` only                                                           |
-| `infrastructure/` (ApiClient, token store)                     | `@power-budget/shared-app` for ApiClient; per-platform for token storage adapter |
+| Code                                                                    | Package                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Generated contract, `AppRoute`, `ApiClient`, `*Api` clients, ports      | `@power-budget/shared-app`                                                |
+| MobX stores, mappers, use cases (for now)                               | `packages/web/src/application`; mobile screens hold their own state       |
+| React components and screens                                            | `packages/web` (DOM) or `packages/mobile` (React Native)                  |
+| Token storage and navigation adapters (`SecureTokenStore`, `Navigator`) | per platform: `LocalStorageTokenStore` / `ExpoSecureStoreTokenStore` etc. |
 
 ### `Navigator` — decoupled navigation
 
@@ -221,7 +206,7 @@ export interface Navigator {
 }
 ```
 
-`AppRoute` is a discriminated union of all typed routes (feature-module folder defines its routes; `shared-app/src/contract/routes.ts` aggregates them).
+`AppRoute` is a discriminated union of all typed routes (`shared-app/src/contract/routes.ts`).
 
 All naming follows `docs/code-style.md` and `docs/README.md §5` in the reference repo:
 
@@ -304,21 +289,17 @@ power-budget/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   ├── shared-app/                # @power-budget/shared-app — platform-agnostic FE logic
+│   ├── shared-app/                # @power-budget/shared-app — client SDK (contract, ApiClient, *Api clients, ports)
 │   │   ├── src/
-│   │   │   ├── contract/          # cross-feature event types + AppRoute union (zero logic)
+│   │   │   ├── contract/          # generated OpenAPI types, DTO aliases, AppRoute union
 │   │   │   ├── infrastructure/
-│   │   │   │   ├── mobx/          # MobXReactiveView, connect() HOC, createContext helper
-│   │   │   │   ├── api-client/    # ApiClient (HttpClient impl) + auth interceptor
-│   │   │   │   └── navigation/    # Navigator interface
-│   │   │   ├── auth/              # application/ + api/ + config/ + ui/connect/
-│   │   │   ├── bankConnections/   # application/ + api/ + config/ + ui/connect/
-│   │   │   ├── transactions/      # application/ + api/ + config/ + ui/connect/
-│   │   │   ├── plans/             # application/ + api/ + config/ + ui/connect/
-│   │   │   ├── categories/        # application/ + api/ + config/ + ui/connect/
-│   │   │   ├── fx/                # application/ + api/ + config/ + ui/connect/
-│   │   │   ├── dashboard/         # application/ + api/ + config/ + ui/connect/
-│   │   │   └── notifications/     # application/ + api/ + config/ + ui/connect/
+│   │   │   │   ├── api-client/    # ApiClient (HttpClient impl) + ApiError / readApiError
+│   │   │   │   ├── navigation/    # Navigator interface
+│   │   │   │   └── tokens/        # SecureTokenStore interface
+│   │   │   ├── plans/api/         # PlansApi
+│   │   │   ├── categories/api/    # CategoriesApi
+│   │   │   ├── households/api/    # HouseholdsApi
+│   │   │   └── design/            # DSN design contract
 │   │   └── package.json
 │   │
 │   ├── backend/                   # NestJS API + worker
@@ -390,33 +371,25 @@ Contents:
 
 **`packages/backend`** — NestJS. Hosts the API and the worker. Imports `@power-budget/core`. Banned: importing from `web/` or `mobile/`.
 
-**`@power-budget/shared-app`** — all platform-agnostic frontend application logic, shared by web and mobile. Imports `@power-budget/core` and `mobx`. Banned: importing from `backend/` (talks over HTTP), importing any React Native or DOM-specific modules directly (those live in the `ui/content/` layer of each consumer package). Depends on React (for `createContext` and the `connect()` HOC) but **not** on `react-dom` or `react-native` — these are peer dependencies resolved differently per platform.
+**`@power-budget/shared-app`** — the client SDK shared by web and mobile (PO decision D2). Contains the generated API contract, `ApiClient` / `HttpClient`, the typed `PlansApi` / `CategoriesApi` / `HouseholdsApi` clients, the `SecureTokenStore` and `Navigator` ports and the DSN design contract. Banned: importing from `backend/` (talks over HTTP), importing any React Native or DOM-specific modules. It has no stores or UI yet; stores move here only through CLN-070.
 
-Contents per feature:
+**`packages/web`** — Imports `@power-budget/shared-app`. Contains:
 
-- `application/` — `State<Source, Computed>`, selectors, reactions, use-case classes (all pure TS)
-- `api/` — `Http*Repo` adapters, mappers (use injected `HttpClient`, no direct `fetch`/`axios`)
-- `config/` — `create*Context()` factories, `*Context` types (use React `createContext`)
-- `ui/connect/` — `Connector<FeatureContext>` (uses MobX `observer()` via `connect()`)
-- `infrastructure/` — `MobXReactiveView`, `connect()` HOC, `ApiClient`, `Navigator` interface
-
-**`packages/web`** — thin UI layer. Imports `@power-budget/shared-app`. Contains only:
-
-- `ui/content/` components for each feature (React DOM: `div`, `input`, etc.)
+- Screens and components (React DOM) and the MobX stores in `application/`
 - `infrastructure/LocalStorageTokenStore implements SecureTokenStore`
 - `infrastructure/ReactRouterNavigationAdapter implements Navigator`
 - React Router 6 route definitions
 - Vite config, `main.tsx`, SPA shell
 
-**`packages/mobile`** — thin UI layer. Imports `@power-budget/shared-app`. Contains only:
+**`packages/mobile`** — Imports `@power-budget/shared-app`. Contains:
 
-- `ui/content/` components for each feature (React Native: `View`, `Text`, etc.)
+- Screens and components (React Native: `View`, `Text`, etc.)
 - `infrastructure/ExpoSecureStoreTokenStore implements SecureTokenStore`
 - `infrastructure/ReactNavigationAdapter implements Navigator`
 - React Navigation setup
 - Biometrics, deep linking, Expo config, `App.tsx`
 
-Non-UI code is already extracted to `@power-budget/shared-app`; a `packages/ui-kit` for shared design-system components may be added in v2.
+Only the client SDK is extracted to `@power-budget/shared-app` so far; a `packages/ui-kit` for shared design-system components may be added in v2.
 
 ### Why a separate `core` package, not just a `shared/` folder
 
