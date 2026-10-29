@@ -73,7 +73,7 @@ We do not sell your personal data. We share data only with:
 | GoCardless Ltd (UK/EU) | PSD2 bank data aggregation | Account consent tokens, transaction queries |
 | Wise Payments Ltd | Wise account data (if you connect) | Wise API token (encrypted at rest) |
 | Resend Inc (USA) | Transactional email delivery | Email address + notification content |
-| Sentry (USA) | Error monitoring | Anonymised crash data (no email, no IP) |
+| Sentry (Functional Software, Inc.; data stored in the EU, Germany) | Error monitoring | Anonymised crash data (no email, no IP) |
 | PostgreSQL hosting (EU region) | Data storage | All household data |
 
 All processors are bound by Data Processing Agreements. US transfers rely on Standard Contractual Clauses (SCCs).
