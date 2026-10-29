@@ -269,8 +269,8 @@ Everything else is independent of M1.
 8. **D8.** Route every new user through onboarding and persist to the profile? Recommended: yes. **Decision (PO, 29 Oct 2026): accepted.** CLN-073, queued after CLN-044.
 9. **D9.** Register 409 reveals which emails exist: neutralise or accept? Recommended: accept with a throttle; the magic-link request already hides existence. **Decision (PO, 29 Oct 2026): accepted.** Register keeps 409 behind a throttle (CLN-085, in progress).
 10. **D10.** Weekly and custom periods in the web create form? Recommended: yes, the API supports them. **Decision (PO, 29 Oct 2026): accepted.** Part of CLN-044.
-11. **D11.** Is production monitoring expected? The deployed web bundle has no Sentry DSN. Recommended: set it in the Pages build before launch. **Decision (PO, 29 Oct 2026): accepted, pending the choice of a free monitoring service (research running).**
-12. **D12.** Test style: ts-auto-mock `createMock&lt;T&gt;` or typed builders? The repo has no ts-auto-mock. Recommended: builders now, and update the rule text. **Decision (PO, 29 Oct 2026): add ts-auto-mock** (not typed builders). Adoption is CLN-086 (spike running); the `createMock<T>` rule stays.
+11. **D11.** Is production monitoring expected? The deployed web bundle has no Sentry DSN. Recommended: set it in the Pages build before launch. **Decision (PO, 29 Oct 2026): accepted.** Sentry free Developer plan, EU data region, with backend, web and mobile projects; Better Stack free uptime monitors for `/health` and the web. The PO is creating accounts; HOST-004 follows.
+12. **D12.** Test style: **Decision (PO, 29 Oct 2026): golevelup `createMock`**, using `@golevelup/ts-vitest` and `@golevelup/ts-jest`, not ts-auto-mock. All specs converted; CLN-086 is done.
 13. **D13.** Fold CLN-039/054 into SYNC-001 or run them after? Recommended: fold CLN-039 in (same upsert and key); run CLN-054 right after unless SYNC-001 already rewrites the batch path; everything else touching the transactions repo runs after SYNC-001 merges. **Decision (PO, earlier): CLN-039 and CLN-054 run after SYNC-001.**
 
 ## 5. Not checked (union)
