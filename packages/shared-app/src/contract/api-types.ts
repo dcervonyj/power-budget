@@ -977,6 +977,8 @@ export interface components {
        * @example Europe/Warsaw
        */
       timezone: string;
+      /** @description Currencies the user tracks next to the base currency */
+      interestingCurrencies: string[];
       /** @description Whether the user has completed onboarding */
       onboardingCompleted: boolean;
       /** Format: uuid */
@@ -1001,6 +1003,8 @@ export interface components {
        * @example Europe/Warsaw
        */
       timezone?: string;
+      /** @description Currencies tracked next to the base currency; replaces the stored list */
+      interestingCurrencies?: string[];
       /** @description Set true when the user finishes onboarding; false resets it */
       onboardingCompleted?: boolean;
     };

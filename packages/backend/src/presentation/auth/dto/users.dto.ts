@@ -1,10 +1,21 @@
-import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayUnique,
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CURRENCIES, SUPPORTED_LOCALES } from '@power-budget/core';
 import type { CurrencyCode } from '@power-budget/core';
 import type { LocaleCode } from '../../../domain/auth/entities.js';
 import type { UserProfile } from '../../../domain/auth/profile.js';
-import { UserPreferences } from '../../../domain/auth/profile.js';
+import { MAX_INTERESTING_CURRENCIES, UserPreferences } from '../../../domain/auth/profile.js';
 
 const LOCALES: readonly LocaleCode[] = SUPPORTED_LOCALES;
 const CURRENCY_CODES = Object.keys(CURRENCIES);
@@ -44,6 +55,18 @@ export class UpdateUserProfileDto {
   @IsString()
   @MaxLength(64)
   timezone?: string;
+
+  @ApiPropertyOptional({
+    type: [String],
+    maxItems: MAX_INTERESTING_CURRENCIES,
+    description: 'Currencies tracked next to the base currency; replaces the stored list',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_INTERESTING_CURRENCIES)
+  @ArrayUnique()
+  @Matches(/^[A-Z]{3}$/, { each: true })
+  interestingCurrencies?: string[];
 
   @ApiPropertyOptional({
     type: Boolean,
@@ -88,6 +111,12 @@ export class UserProfileDto {
   @ApiProperty({ type: String, example: 'Europe/Warsaw', description: 'IANA time zone name' })
   timezone!: string;
 
+  @ApiProperty({
+    type: [String],
+    description: 'Currencies the user tracks next to the base currency',
+  })
+  interestingCurrencies!: string[];
+
   @ApiProperty({ type: Boolean, description: 'Whether the user has completed onboarding' })
   onboardingCompleted!: boolean;
 
@@ -105,6 +134,7 @@ export function toUserProfileDto(profile: UserProfile): UserProfileDto {
     defaultLocale: profile.defaultLocale,
     baseCurrency: UserPreferences.effectiveBaseCurrency(profile),
     timezone: profile.timezone,
+    interestingCurrencies: [...profile.interestingCurrencies],
     onboardingCompleted: profile.onboardingCompleted,
     householdId: profile.householdId,
   };

@@ -84,6 +84,7 @@ describe('OnboardingWizard', () => {
     });
     expect(mockPatch).toHaveBeenCalledWith('/users/me', {
       onboardingCompleted: true,
+      interestingCurrencies: ['EUR'],
       locale: 'en',
       baseCurrency: 'PLN',
     });

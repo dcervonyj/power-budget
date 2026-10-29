@@ -139,7 +139,10 @@ export class SettingsStore {
 
       return;
     }
-    await this.patchProfile({ baseCurrency: this.baseCurrency });
+    await this.patchProfile({
+      baseCurrency: this.baseCurrency,
+      interestingCurrencies: this.interestingCurrencies,
+    });
   }
 
   async exportData(): Promise<void> {
@@ -312,6 +315,9 @@ export class SettingsStore {
       this.baseCurrency = profile.baseCurrency;
       this.storage.setItem(BASE_CURRENCY_KEY, profile.baseCurrency);
     }
+    // The profile is the source of truth: a new device or a signed-out browser gets the list back.
+    this.interestingCurrencies = [...profile.interestingCurrencies];
+    this.storage.setItem(INTERESTING_CURRENCIES_KEY, JSON.stringify(profile.interestingCurrencies));
   }
 }
 

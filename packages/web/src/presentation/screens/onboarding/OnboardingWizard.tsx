@@ -29,6 +29,7 @@ export const OnboardingWizard = observer(function OnboardingWizard({
       await onboardingService.complete({
         language: store.selectedLanguage,
         baseCurrency: store.baseCurrency,
+        interestingCurrencies: store.interestingCurrencies,
       });
     } catch {
       setSaveFailed(true);

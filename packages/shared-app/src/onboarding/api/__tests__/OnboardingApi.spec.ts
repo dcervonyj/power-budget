@@ -23,22 +23,35 @@ describe('OnboardingApi', () => {
   });
 
   it('saves the language, base currency and completion in one PATCH /users/me', async () => {
-    await api.complete({ language: 'pl', baseCurrency: 'EUR' });
+    await api.complete({
+      language: 'pl',
+      baseCurrency: 'EUR',
+      interestingCurrencies: ['USD', 'GBP'],
+    });
 
     expect(http.calls).toEqual([
       {
         method: 'PATCH',
         url: '/users/me',
-        body: { onboardingCompleted: true, locale: 'pl', baseCurrency: 'EUR' },
+        body: {
+          onboardingCompleted: true,
+          interestingCurrencies: ['USD', 'GBP'],
+          locale: 'pl',
+          baseCurrency: 'EUR',
+        },
       },
     ]);
   });
 
-  it('still completes when a choice is not one the profile accepts', async () => {
+  it('still completes when the language or base currency is not one the profile accepts', async () => {
     await api.complete({ language: 'de', baseCurrency: 'JPY' });
 
     expect(http.calls).toEqual([
-      { method: 'PATCH', url: '/users/me', body: { onboardingCompleted: true } },
+      {
+        method: 'PATCH',
+        url: '/users/me',
+        body: { onboardingCompleted: true },
+      },
     ]);
   });
 });
