@@ -32,7 +32,6 @@
   "biometric.promptMessage": "Odblokuj Power Budget",
   "biometric.retry": "Użyj biometrii / kodu dostępu",
   "biometric.title": "Odblokuj aplikację",
-  "common.amountWithCurrency": "{amount} {currency}",
   "common.checkmark": "✓",
   "common.closeButton": "✕",
   "input.password.hide": "Ukryj",

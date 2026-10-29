@@ -1,7 +1,7 @@
 import React from 'react';
 import { useIntl } from 'react-intl';
 import type { MinorUnitAmount, SupportedLocale } from '@power-budget/core';
-import { formatMoneyParts, type MoneyPart } from '@power-budget/shared-app';
+import { formatMoneyParts, type MoneyPart } from '@power-budget/core';
 import { toSupportedLocale } from '../../i18n/supportedLocale.js';
 
 export type AmountTextSize = 'inline' | 'amount' | 'figure' | 'hero' | 'display';

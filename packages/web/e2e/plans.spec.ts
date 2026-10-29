@@ -24,6 +24,9 @@ test.describe('plan journey', () => {
     await page.goto('/plans');
     await expect(page.getByText('No plans yet')).toBeVisible();
     await page.getByRole('button', { name: 'Create new plan' }).click();
+    // CLN-044: the button opens the create-plan dialog; a personal monthly plan is the default.
+    await page.getByLabel('Plan name').fill('New Plan');
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
     await expect(page).toHaveURL(/\/plans\/[0-9a-f-]{36}$/);
     const planId = page.url().split('/').pop() ?? '';
     // Item in the plan currency: a fresh stack has no FX rates to convert with.

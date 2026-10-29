@@ -169,6 +169,26 @@ describe('SettingsStore profile (UserProfileDto)', () => {
     expect(store.householdId).toBeNull();
   });
 
+  it('flags a failed profile request and clears the flag when a retry succeeds', async () => {
+    mockGet.mockRejectedValueOnce(new Error('offline'));
+
+    await store.loadProfile();
+
+    expect(store.profileLoadFailed).toBe(true);
+
+    const retry = deferred<ReturnType<typeof ok<typeof profile>>>();
+    mockGet.mockReturnValueOnce(retry.promise);
+    const pending = store.loadProfile();
+
+    expect(store.profileLoadFailed).toBe(true);
+
+    retry.resolve(ok(profile));
+    await pending;
+
+    expect(store.profileLoadFailed).toBe(false);
+    expect(store.householdId).toBe(profile.householdId);
+  });
+
   it('saves the display name and time zone with PATCH /users/me and applies the answer', async () => {
     mockPatch.mockResolvedValueOnce(ok({ ...profile, displayName: 'Ana K.', timezone: 'UTC' }));
     store.setDisplayName('  Ana K. ');

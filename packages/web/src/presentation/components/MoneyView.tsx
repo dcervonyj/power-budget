@@ -1,8 +1,7 @@
 import { apiClient } from '../../composition.js';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useIntl } from 'react-intl';
-import type { MinorUnitAmount } from '@power-budget/core';
-import { formatMoneyParts } from '@power-budget/shared-app';
+import { formatMoney, type MinorUnitAmount } from '@power-budget/core';
 import { fetchAndCacheRates, getCachedRates } from '../../infrastructure/fx/FxRateCache.js';
 import type { FxRateTable } from '../../infrastructure/fx/FxRateCache.js';
 import { toSupportedLocale } from '../i18n/supportedLocale.js';
@@ -92,12 +91,7 @@ export function MoneyView({ amount, showTooltip = true }: MoneyViewProps): React
           );
   }
 
-  const label =
-    shown === null
-      ? `≈ ${targetCurrency} –`
-      : formatMoneyParts(shown, locale)
-          .map((part) => part.value)
-          .join('');
+  const label = shown === null ? `≈ ${targetCurrency} –` : formatMoney(shown, locale);
   const content = shown === null ? label : <AmountText amount={shown} locale={locale} />;
 
   return (
