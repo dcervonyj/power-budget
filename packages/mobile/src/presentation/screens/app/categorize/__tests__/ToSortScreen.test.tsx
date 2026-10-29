@@ -1,3 +1,10 @@
+import { createMock } from '@golevelup/ts-jest';
+import type {
+  PlanDto,
+  CategoryDto,
+  PlanDashboardResponseDto,
+  PlannedItemActualsDto,
+} from '@power-budget/shared-app/contract';
 import React from 'react';
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react-native';
 import type { ComponentProps } from 'react';
@@ -30,7 +37,8 @@ const page = jest.mocked(transactionsGateway.page);
 const setMapping = jest.mocked(transactionsGateway.setMapping);
 
 function item(id: string, merchant: string, mapped: boolean): TransactionListItemDto {
-  const row = {
+  return {
+    ...createMock<TransactionListItemDto>(),
     id,
     status: 'booked',
     occurredOn: '2026-10-27',
@@ -38,14 +46,16 @@ function item(id: string, merchant: string, mapped: boolean): TransactionListIte
     merchant: null,
     amount: { amountMinor: '-1000', currency: 'PLN' },
     mapping: mapped
-      ? { plannedItemId: 'item-food', planName: 'October', categoryName: 'Food' }
+      ? createMock<NonNullable<TransactionListItemDto['mapping']>>({
+          plannedItemId: 'item-food',
+          planName: 'October',
+          categoryName: 'Food',
+        })
       : null,
-    mappingSource: null,
+    mappingSource: 'none',
     transfer: null,
     suggestedPlannedItemId: 'item-food',
   };
-
-  return row as unknown as TransactionListItemDto;
 }
 
 function onePage(...items: TransactionListItemDto[]): TransactionPageDto {
@@ -61,15 +71,20 @@ function deferred() {
   return { promise, resolve: holder.resolve };
 }
 
-function line(plannedItemId: string, categoryId: string, planned: string, actual: string) {
-  return {
+function line(
+  plannedItemId: string,
+  categoryId: string,
+  planned: string,
+  actual: string,
+): PlannedItemActualsDto {
+  return createMock<PlannedItemActualsDto>({
     plannedItemId,
     categoryId,
     direction: 'expense',
     planned: { amountMinor: planned, currency: 'PLN' },
     actual: { amountMinor: actual, currency: 'PLN' },
     remaining: { amountMinor: '0', currency: 'PLN' },
-  };
+  });
 }
 
 const navigate = jest.fn();
@@ -81,7 +96,7 @@ function screenProps(): ComponentProps<typeof ToSortScreen> {
   };
 
   // The screen reads only `navigate` and `addListener` of the react-navigation prop.
-  return { navigation } as unknown as ComponentProps<typeof ToSortScreen>;
+  return createMock<ComponentProps<typeof ToSortScreen>>({ navigation });
 }
 
 async function renderScreen() {
@@ -96,22 +111,26 @@ beforeEach(() => {
   jest
     .mocked(plansApi.list)
     .mockResolvedValue([
-      { id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } },
-    ] as never);
-  jest.mocked(plansApi.dashboard).mockResolvedValue({
-    planId: 'now',
-    period: { start: '2000-01-01', end: '2999-12-31' },
-    baseCurrency: 'PLN',
-    incomeLines: [],
-    expenseLines: [
-      line('item-food', 'cat-food', '50000', '10000'),
-      line('item-fun', 'cat-fun', '20000', '0'),
-    ],
-  } as never);
-  jest.mocked(categoriesApi.list).mockResolvedValue([
-    { id: 'cat-food', name: 'Food' },
-    { id: 'cat-fun', name: 'Fun' },
-  ] as never);
+      createMock<PlanDto>({ id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } }),
+    ]);
+  jest.mocked(plansApi.dashboard).mockResolvedValue(
+    createMock<PlanDashboardResponseDto>({
+      planId: 'now',
+      period: { start: '2000-01-01', end: '2999-12-31' },
+      baseCurrency: 'PLN',
+      incomeLines: [],
+      expenseLines: [
+        line('item-food', 'cat-food', '50000', '10000'),
+        line('item-fun', 'cat-fun', '20000', '0'),
+      ],
+    }),
+  );
+  jest
+    .mocked(categoriesApi.list)
+    .mockResolvedValue([
+      createMock<CategoryDto>({ id: 'cat-food', name: 'Food' }),
+      createMock<CategoryDto>({ id: 'cat-fun', name: 'Fun' }),
+    ]);
 });
 
 describe('ToSortScreen', () => {

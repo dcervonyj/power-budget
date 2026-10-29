@@ -1,3 +1,5 @@
+import { createMock } from '@golevelup/ts-jest';
+import type { PlanDto, CategoryDto, PlannedItemDto } from '@power-budget/shared-app/contract';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { TransactionDetailDto } from '@power-budget/shared-app/contract';
 import { categoriesApi, plansApi } from '../../../../../infrastructure/index.js';
@@ -37,7 +39,7 @@ const setMapping = jest.mocked(transactionsGateway.setMapping);
 const setNotes = jest.mocked(transactionsGateway.setNotes);
 
 function detailDto(mapped = false): TransactionDetailDto {
-  const dto = {
+  return createMock<TransactionDetailDto>({
     transaction: {
       id: 't1',
       occurredOn: '2026-10-27',
@@ -51,9 +53,7 @@ function detailDto(mapped = false): TransactionDetailDto {
     },
     transfer: null,
     mapping: mapped ? { plannedItemId: 'item-9' } : null,
-  };
-
-  return dto as unknown as TransactionDetailDto;
+  });
 }
 
 function deferred(): {
@@ -81,7 +81,7 @@ beforeEach(() => {
 describe('useTransactionDetail category changes', () => {
   it('waits for a pending write before reading the mapping', async () => {
     const pending = deferred();
-    setMapping.mockReturnValueOnce(pending.promise as never);
+    setMapping.mockReturnValueOnce(pending.promise);
     void writeQueue.run(() => transactionsGateway.setMapping('t1', 'item-1'));
     detail.mockResolvedValue(detailDto());
     const { result } = await renderHook(() => useTransactionDetail('t1'));
@@ -97,9 +97,7 @@ describe('useTransactionDetail category changes', () => {
     detail.mockResolvedValue(detailDto());
     const first = deferred();
     const second = deferred();
-    setMapping
-      .mockReturnValueOnce(first.promise as never)
-      .mockReturnValueOnce(second.promise as never);
+    setMapping.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
     const { result } = await renderHook(() => useTransactionDetail('t1'));
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
@@ -128,7 +126,7 @@ describe('useTransactionDetail notes and category lookup', () => {
 
   it('saves the note as entered, without trimming', async () => {
     detail.mockResolvedValue(detailDto());
-    setNotes.mockResolvedValue(undefined as never);
+    setNotes.mockResolvedValue(undefined);
     const { result } = await renderHook(() => useTransactionDetail('t1'));
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
@@ -144,11 +142,13 @@ describe('useTransactionDetail notes and category lookup', () => {
     const { result } = await renderHook(() => useTransactionDetail('t1'));
     await waitFor(() => expect(result.current.categoryFailed).toBe(true));
 
-    jest.mocked(plansApi.list).mockResolvedValue([{ id: 'plan-1' }] as never);
+    jest.mocked(plansApi.list).mockResolvedValue([createMock<PlanDto>({ id: 'plan-1' })]);
     jest
       .mocked(plansApi.listItems)
-      .mockResolvedValue([{ id: 'item-9', categoryId: 'cat-1' }] as never);
-    jest.mocked(categoriesApi.list).mockResolvedValue([{ id: 'cat-1', name: 'Fuel' }] as never);
+      .mockResolvedValue([createMock<PlannedItemDto>({ id: 'item-9', categoryId: 'cat-1' })]);
+    jest
+      .mocked(categoriesApi.list)
+      .mockResolvedValue([createMock<CategoryDto>({ id: 'cat-1', name: 'Fuel' })]);
     await act(async () => result.current.retryCategory());
 
     await waitFor(() => expect(result.current.categoryFailed).toBe(false));
@@ -172,8 +172,8 @@ describe('useTransactionDetail transfer switch', () => {
     jest.mocked(transactionsGateway.setTransfer).mockReset();
     jest
       .mocked(transactionsGateway.setTransfer)
-      .mockReturnValueOnce(first.promise as never)
-      .mockResolvedValue(undefined as never);
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue(undefined);
     const { result } = await renderHook(() => useTransactionDetail('t1'));
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
@@ -209,8 +209,8 @@ describe('useTransactionDetail transfer switch', () => {
     jest.mocked(transactionsGateway.setTransfer).mockReset();
     jest
       .mocked(transactionsGateway.setTransfer)
-      .mockReturnValueOnce(first.promise as never)
-      .mockResolvedValue(undefined as never);
+      .mockReturnValueOnce(first.promise)
+      .mockResolvedValue(undefined);
     const { result } = await renderHook(() => useTransactionDetail('t1'));
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
@@ -231,7 +231,7 @@ describe('useTransactionDetail transfer switch', () => {
     jest
       .mocked(transactionsGateway.setTransfer)
       .mockRejectedValueOnce(new Error('offline'))
-      .mockResolvedValue(undefined as never);
+      .mockResolvedValue(undefined);
     const { result } = await renderHook(() => useTransactionDetail('t1'));
     await waitFor(() => expect(result.current.status).toBe('ready'));
 

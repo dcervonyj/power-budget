@@ -1,3 +1,10 @@
+import { createMock } from '@golevelup/ts-jest';
+import type {
+  PlanDto,
+  CategoryDto,
+  PlanDashboardResponseDto,
+  PlannedItemActualsDto,
+} from '@power-budget/shared-app/contract';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { TransactionListItemDto, TransactionPageDto } from '@power-budget/shared-app/contract';
 import { categoriesApi, plansApi } from '../../../../../infrastructure/index.js';
@@ -29,20 +36,25 @@ const setMapping = jest.mocked(transactionsGateway.setMapping);
 const plans = jest.mocked(plansApi.list);
 
 function item(id: string, mapped: boolean): TransactionListItemDto {
-  const row = {
+  return {
+    ...createMock<TransactionListItemDto>(),
     id,
     status: 'booked',
     occurredOn: '2026-10-27',
     description: `Shop ${id}`,
     merchant: null,
     amount: { amountMinor: '-1000', currency: 'PLN' },
-    mapping: mapped ? { plannedItemId: 'item-1', planName: 'October', categoryName: 'Food' } : null,
-    mappingSource: null,
+    mapping: mapped
+      ? createMock<NonNullable<TransactionListItemDto['mapping']>>({
+          plannedItemId: 'item-1',
+          planName: 'October',
+          categoryName: 'Food',
+        })
+      : null,
+    mappingSource: 'none',
     transfer: null,
     suggestedPlannedItemId: null,
   };
-
-  return row as unknown as TransactionListItemDto;
 }
 
 function onePage(...items: TransactionListItemDto[]): TransactionPageDto {
@@ -58,23 +70,25 @@ function deferred<T>() {
   return { promise, resolve: holder.resolve };
 }
 
-const NOW_PLAN = [{ id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } }] as never;
+const NOW_PLAN = [
+  createMock<PlanDto>({ id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } }),
+];
 const dashboard = jest.mocked(plansApi.dashboard);
 
-function dashboardOf(plannedItemId: string, planned: string): never {
-  const line = {
+function dashboardOf(plannedItemId: string, planned: string): PlanDashboardResponseDto {
+  const line = createMock<PlannedItemActualsDto>({
     plannedItemId,
     categoryId: 'cat',
     planned: { amountMinor: planned, currency: 'PLN' },
     actual: { amountMinor: '0', currency: 'PLN' },
-  };
+  });
 
-  return {
+  return createMock<PlanDashboardResponseDto>({
     period: { start: '2000-01-01', end: '2999-12-31' },
     baseCurrency: 'PLN',
     expenseLines: [line],
     incomeLines: [],
-  } as never;
+  });
 }
 
 function paid(id: string): Payment {
@@ -94,7 +108,9 @@ beforeEach(() => {
   setMapping.mockReset();
   plans.mockReset();
   plans.mockResolvedValue([]);
-  jest.mocked(categoriesApi.list).mockResolvedValue([{ id: 'cat', name: 'Cat' } as never]);
+  jest
+    .mocked(categoriesApi.list)
+    .mockResolvedValue([createMock<CategoryDto>({ id: 'cat', name: 'Cat' })]);
 });
 
 describe('useToSort', () => {
@@ -184,9 +200,17 @@ describe('useToSort', () => {
   it('loads the choices of every active plan, not only the one covering today', async () => {
     page.mockResolvedValue(onePage(item('a', false)));
     plans.mockResolvedValue([
-      { id: 'now', name: 'October', period: { start: '2000-01-01', end: '2999-12-31' } },
-      { id: 'next', name: 'November', period: { start: '2998-01-01', end: '2998-12-31' } },
-    ] as never);
+      createMock<PlanDto>({
+        id: 'now',
+        name: 'October',
+        period: { start: '2000-01-01', end: '2999-12-31' },
+      }),
+      createMock<PlanDto>({
+        id: 'next',
+        name: 'November',
+        period: { start: '2998-01-01', end: '2998-12-31' },
+      }),
+    ]);
     dashboard.mockImplementation(async (id: string) =>
       dashboardOf(id === 'now' ? 'item-now' : 'item-next', '100'),
     );
@@ -203,8 +227,12 @@ describe('useToSort', () => {
   it('offers choices when no plan covers today', async () => {
     page.mockResolvedValue(onePage(item('a', false)));
     plans.mockResolvedValue([
-      { id: 'next', name: 'November', period: { start: '2998-01-01', end: '2998-12-31' } },
-    ] as never);
+      createMock<PlanDto>({
+        id: 'next',
+        name: 'November',
+        period: { start: '2998-01-01', end: '2998-12-31' },
+      }),
+    ]);
     dashboard.mockResolvedValue(dashboardOf('item-next', '100'));
     const { result } = await renderHook(() => useToSort());
 
@@ -216,7 +244,7 @@ describe('useToSort', () => {
     const { result } = await renderHook(() => useToSort());
     await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
 
-    const stale = deferred<never[]>();
+    const stale = deferred<PlanDto[]>();
     plans.mockReturnValueOnce(stale.promise);
     plans.mockResolvedValueOnce(NOW_PLAN);
     dashboard.mockResolvedValue(dashboardOf('item-new', '900'));
@@ -226,7 +254,7 @@ describe('useToSort', () => {
     });
     await waitFor(() => expect(result.current.choices[0]?.plannedItemId).toBe('item-new'));
     dashboard.mockResolvedValue(dashboardOf('item-old', '100'));
-    await act(async () => stale.resolve(NOW_PLAN as never[]));
+    await act(async () => stale.resolve(NOW_PLAN));
 
     expect(result.current.choices.map((choice) => choice.plannedItemId)).toEqual(['item-new']);
   });
@@ -310,14 +338,14 @@ describe('useToSort', () => {
     it('keeps the entries across a close and a reopen, even while the refresh is pending', async () => {
       const { result } = await confirmed();
       await act(async () => result.current.open());
-      const slow = deferred<never>();
+      const slow = deferred<PlanDto[]>();
       plans.mockReturnValueOnce(slow.promise);
       await act(async () => result.current.close());
       await act(async () => result.current.open());
 
       expect(entryOf(result.current.ledger, 'a')).toMatchObject({ covered: false });
       expect(result.current.sheet?.isOpen).toBe(true);
-      await act(async () => slow.resolve([] as never));
+      await act(async () => slow.resolve([]));
       await waitFor(() => expect(entryOf(result.current.ledger, 'a')?.covered).toBe(true));
     });
 
@@ -387,7 +415,7 @@ describe('useToSort', () => {
 
   it('drops a balance load that was in flight while a payment was confirmed, and reads again', async () => {
     page.mockResolvedValue(onePage(item('a', false)));
-    const first = deferred<never>();
+    const first = deferred<PlanDto[]>();
     plans.mockReturnValueOnce(first.promise);
     const { result } = await renderHook(() => useToSort());
     await waitFor(() => expect(plans).toHaveBeenCalledTimes(1));
@@ -395,7 +423,7 @@ describe('useToSort', () => {
     await act(async () => result.current.onConfirmed(paid('a'), 'item-1'));
     plans.mockResolvedValue(NOW_PLAN);
     dashboard.mockResolvedValue(dashboardOf('item-1', '50000'));
-    await act(async () => first.resolve([] as never));
+    await act(async () => first.resolve([]));
 
     await waitFor(() => expect(plans).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(result.current.choicesStatus).toBe('ready'));
@@ -411,11 +439,11 @@ describe('useToSort', () => {
     await act(async () => result.current.retryChoices());
     await waitFor(() => expect(result.current.ledger.get('a')?.covered).toBe(true));
 
-    const slow = deferred<never>();
+    const slow = deferred<PlanDto[]>();
     plans.mockReturnValueOnce(slow.promise);
     await act(async () => result.current.reload());
     await act(async () => result.current.onUndone('a'));
-    await act(async () => slow.resolve([] as never));
+    await act(async () => slow.resolve([]));
 
     await waitFor(() => expect(result.current.ledger.size).toBe(0));
     expect(result.current.choicesStatus).toBe('ready');
