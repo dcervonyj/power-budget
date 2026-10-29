@@ -32,7 +32,7 @@ export function planPeriodToDateRange(period: PlanPeriod): DateRange {
 }
 
 /** Ids of both legs of every active transfer: money moved between own accounts. */
-export function transferredTransactionIds(transfers: readonly Transfer[]): Set<TransactionId> {
+function transferredTransactionIds(transfers: readonly Transfer[]): Set<TransactionId> {
   const ids = new Set<TransactionId>();
   for (const transfer of transfers) {
     if (transfer.status !== 'active') {
