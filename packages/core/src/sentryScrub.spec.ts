@@ -1,7 +1,24 @@
 import { describe, expect, it } from 'vitest';
-import { scrubSentryBreadcrumb, scrubSentryEvent, scrubSentryTransaction } from './sentryScrub.js';
+import {
+  scrubSentryBreadcrumb,
+  scrubSentryEvent,
+  scrubSentryText,
+  scrubSentryTransaction,
+  scrubSentryUrl,
+} from './sentryScrub.js';
 
 describe('Sentry scrubbing', () => {
+  it('handles adversarial URL and text inputs promptly', () => {
+    for (const [scrub, input] of [
+      [scrubSentryUrl, '&' + '?'.repeat(50000)],
+      [scrubSentryText, 'a@'.repeat(25000)],
+      [scrubSentryText, '1 '.repeat(25000)],
+    ] satisfies [typeof scrubSentryUrl, string][]) {
+      const start = performance.now();
+      scrub(input);
+      expect(performance.now() - start).toBeLessThan(100);
+    }
+  });
   it('keeps diagnostics and filters event data', () => {
     expect(
       scrubSentryEvent({
