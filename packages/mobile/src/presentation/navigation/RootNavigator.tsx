@@ -6,10 +6,15 @@ import { AuthStackNavigator } from './AuthStackNavigator.js';
 import { AppStackNavigator } from './AppStackNavigator.js';
 import { useIsAuthenticated } from './useIsAuthenticated.js';
 import { useOnboardingGate } from './useOnboardingGate.js';
+import { OnboardingProfileError } from '../screens/onboarding/OnboardingProfileError.js';
 import { OnboardingScreen } from '../screens/onboarding/OnboardingScreen.js';
-import { onboardingApi, tokenStore } from '../../infrastructure/index.js';
+import { apiClient, onboardingApi, tokenStore } from '../../infrastructure/index.js';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+function getSessionId(): number {
+  return apiClient.sessionId;
+}
 
 export function RootNavigator(): React.JSX.Element {
   const isAuthenticated = useIsAuthenticated(tokenStore);
@@ -19,13 +24,21 @@ export function RootNavigator(): React.JSX.Element {
     return <View testID="onboarding-gate-loading" style={{ flex: 1 }} />;
   }
 
+  if (isAuthenticated && gate.status === 'failed') {
+    return <OnboardingProfileError onRetry={gate.retry} />;
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isAuthenticated && <Stack.Screen name="Auth" component={AuthStackNavigator} />}
       {isAuthenticated && gate.status === 'needed' && (
         <Stack.Screen name="Onboarding">
           {(): React.JSX.Element => (
-            <OnboardingScreen api={onboardingApi} onCompleted={gate.markCompleted} />
+            <OnboardingScreen
+              api={onboardingApi}
+              getSessionId={getSessionId}
+              onCompleted={gate.markCompleted}
+            />
           )}
         </Stack.Screen>
       )}
