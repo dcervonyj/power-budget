@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdPurgeRepository } from '../../../domain/auth/ports.js';
 import { PurgeDeletedHouseholdsUseCase } from './PurgeDeletedHouseholdsUseCase.js';
@@ -11,11 +11,11 @@ const USER = UserId.of('01900000-0000-7000-8000-0000000000a1');
 const NOW = new Date('2026-12-01T03:30:00Z');
 
 describe('PurgeDeletedHouseholdsUseCase', () => {
-  let repo: ReturnType<typeof mock<HouseholdPurgeRepository>>;
+  let repo: ReturnType<typeof createMock<HouseholdPurgeRepository>>;
   let useCase: PurgeDeletedHouseholdsUseCase;
 
   beforeEach(() => {
-    repo = mock<HouseholdPurgeRepository>();
+    repo = createMock<HouseholdPurgeRepository>();
     useCase = new PurgeDeletedHouseholdsUseCase(repo);
   });
 

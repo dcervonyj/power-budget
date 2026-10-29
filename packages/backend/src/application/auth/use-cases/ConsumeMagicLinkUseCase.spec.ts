@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 // eslint-disable-next-line no-restricted-imports -- CLN-061 allow-list (temporary, see eslint.layers.js)
 import { createHash } from 'node:crypto';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId } from '@power-budget/core';
 import type { FailedAttemptCounter, MagicLinkTokenRepository } from '../../../domain/auth/ports.js';
 import { ConsumeMagicLinkUseCase } from './ConsumeMagicLinkUseCase.js';
@@ -23,16 +23,16 @@ const SESSION = {
 };
 
 describe('ConsumeMagicLinkUseCase', () => {
-  let magicLinkTokenRepo: ReturnType<typeof mock<MagicLinkTokenRepository>>;
-  let loginPolicy: ReturnType<typeof mock<LoginPolicy>>;
-  let attemptCounter: ReturnType<typeof mock<FailedAttemptCounter>>;
+  let magicLinkTokenRepo: ReturnType<typeof createMock<MagicLinkTokenRepository>>;
+  let loginPolicy: ReturnType<typeof createMock<LoginPolicy>>;
+  let attemptCounter: ReturnType<typeof createMock<FailedAttemptCounter>>;
   let useCase: ConsumeMagicLinkUseCase;
 
   beforeEach(() => {
-    magicLinkTokenRepo = mock<MagicLinkTokenRepository>();
-    loginPolicy = mock<LoginPolicy>();
+    magicLinkTokenRepo = createMock<MagicLinkTokenRepository>();
+    loginPolicy = createMock<LoginPolicy>();
     loginPolicy.issueSession.mockResolvedValue(SESSION);
-    attemptCounter = mock<FailedAttemptCounter>();
+    attemptCounter = createMock<FailedAttemptCounter>();
     useCase = new ConsumeMagicLinkUseCase(magicLinkTokenRepo, loginPolicy, attemptCounter);
   });
 

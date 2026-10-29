@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId } from '@power-budget/core';
 import type { UserRepository, PasswordHashing } from '../../../domain/auth/ports.js';
 import { LoginWithPasswordUseCase } from './LoginWithPasswordUseCase.js';
@@ -30,15 +30,15 @@ function makeUser(overrides: Partial<User> = {}): User {
 }
 
 describe('LoginWithPasswordUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let passwordHashing: ReturnType<typeof mock<PasswordHashing>>;
-  let loginPolicy: ReturnType<typeof mock<LoginPolicy>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let passwordHashing: ReturnType<typeof createMock<PasswordHashing>>;
+  let loginPolicy: ReturnType<typeof createMock<LoginPolicy>>;
   let useCase: LoginWithPasswordUseCase;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    passwordHashing = mock<PasswordHashing>();
-    loginPolicy = mock<LoginPolicy>();
+    userRepo = createMock<UserRepository>();
+    passwordHashing = createMock<PasswordHashing>();
+    loginPolicy = createMock<LoginPolicy>();
     loginPolicy.issueSession.mockResolvedValue(SESSION);
     useCase = new LoginWithPasswordUseCase(userRepo, passwordHashing, loginPolicy);
   });

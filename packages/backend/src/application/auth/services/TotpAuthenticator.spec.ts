@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { EncryptedString, UserId } from '@power-budget/core';
 import type {
   Encryption,
@@ -48,18 +48,18 @@ function makeSecret(overrides: Partial<TotpSecret> = {}): TotpSecret {
 }
 
 describe('TotpAuthenticator', () => {
-  let totpSecretRepo: ReturnType<typeof mock<TotpSecretRepository>>;
-  let totpVerifier: ReturnType<typeof mock<TotpVerifier>>;
-  let encryption: ReturnType<typeof mock<Encryption>>;
-  let stepUpStore: ReturnType<typeof mock<TotpStepUpStore>>;
+  let totpSecretRepo: ReturnType<typeof createMock<TotpSecretRepository>>;
+  let totpVerifier: ReturnType<typeof createMock<TotpVerifier>>;
+  let encryption: ReturnType<typeof createMock<Encryption>>;
+  let stepUpStore: ReturnType<typeof createMock<TotpStepUpStore>>;
   let totp: TotpAuthenticator;
 
   beforeEach(() => {
     vi.useFakeTimers({ now: NOW, toFake: ['Date'] });
-    totpSecretRepo = mock<TotpSecretRepository>();
-    totpVerifier = mock<TotpVerifier>();
-    encryption = mock<Encryption>();
-    stepUpStore = mock<TotpStepUpStore>();
+    totpSecretRepo = createMock<TotpSecretRepository>();
+    totpVerifier = createMock<TotpVerifier>();
+    encryption = createMock<Encryption>();
+    stepUpStore = createMock<TotpStepUpStore>();
     totp = new TotpAuthenticator(totpSecretRepo, totpVerifier, encryption, stepUpStore);
   });
 

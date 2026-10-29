@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId } from '@power-budget/core';
 import type { UserRepository } from '../../../domain/auth/ports.js';
 import { UpdateLocalePreferenceUseCase } from './UpdateLocalePreferenceUseCase.js';
@@ -7,11 +7,11 @@ import { UpdateLocalePreferenceUseCase } from './UpdateLocalePreferenceUseCase.j
 const TEST_USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 
 describe('UpdateLocalePreferenceUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
   let useCase: UpdateLocalePreferenceUseCase;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
+    userRepo = createMock<UserRepository>();
     useCase = new UpdateLocalePreferenceUseCase(userRepo);
   });
 

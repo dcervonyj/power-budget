@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Redis } from 'ioredis';
 import { RedisThrottlerStorage } from './RedisThrottlerStorage.js';
 
 describe('RedisThrottlerStorage', () => {
-  let redis: ReturnType<typeof mock<Redis>>;
+  let redis: ReturnType<typeof createMock<Redis>>;
   let storage: RedisThrottlerStorage;
 
   beforeEach(() => {
-    redis = mock<Redis>();
+    redis = createMock<Redis>();
     storage = new RedisThrottlerStorage(redis);
   });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type {
   AppConfigPort,
   HouseholdRepository,
@@ -23,17 +23,17 @@ const LINK = 'https://app.example.com/invite/accept?token=raw%2Btoken';
 const PAYLOAD = { link: LINK, inviterName: 'Ann', householdName: "Ann's household" };
 
 describe('HouseholdInviteMailer', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let outbox: ReturnType<typeof mock<NotificationOutbox>>;
-  let config: ReturnType<typeof mock<AppConfigPort>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let outbox: ReturnType<typeof createMock<NotificationOutbox>>;
+  let config: ReturnType<typeof createMock<AppConfigPort>>;
   let mailer: HouseholdInviteMailer;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    householdRepo = mock<HouseholdRepository>();
-    outbox = mock<NotificationOutbox>();
-    config = mock<AppConfigPort>();
+    userRepo = createMock<UserRepository>();
+    householdRepo = createMock<HouseholdRepository>();
+    outbox = createMock<NotificationOutbox>();
+    config = createMock<AppConfigPort>();
     config.get.mockReturnValue('https://app.example.com/');
     householdRepo.findById.mockResolvedValue(makeHousehold());
     mailer = new HouseholdInviteMailer(userRepo, householdRepo, outbox, config);

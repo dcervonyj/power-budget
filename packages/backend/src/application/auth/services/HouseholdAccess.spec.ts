@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { HouseholdRepository } from '../../../domain/auth/ports.js';
 import {
   HouseholdNotFoundError,
@@ -14,7 +14,7 @@ import {
 
 describe('HouseholdAccess.assertOwner', () => {
   it('passes for the owner', async () => {
-    const repo = mock<HouseholdRepository>();
+    const repo = createMock<HouseholdRepository>();
     repo.findMembership.mockResolvedValue(makeMembership('owner'));
 
     await expect(
@@ -27,7 +27,7 @@ describe('HouseholdAccess.assertOwner', () => {
     ['a member', makeMembership('member')],
     ['a non-member', null],
   ])('refuses %s', async (_label, membership) => {
-    const repo = mock<HouseholdRepository>();
+    const repo = createMock<HouseholdRepository>();
     repo.findMembership.mockResolvedValue(membership);
 
     await expect(new HouseholdAccess(repo).assertOwner(HOUSEHOLD_ID, OWNER_ID)).rejects.toThrow(
@@ -41,7 +41,7 @@ describe('HouseholdAccess.assertMember', () => {
     ['the owner', makeMembership('owner')],
     ['a member', makeMembership('member')],
   ])('passes for %s', async (_label, membership) => {
-    const repo = mock<HouseholdRepository>();
+    const repo = createMock<HouseholdRepository>();
     repo.findMembership.mockResolvedValue(membership);
 
     await expect(
@@ -51,7 +51,7 @@ describe('HouseholdAccess.assertMember', () => {
   });
 
   it('answers household not found for a non-member', async () => {
-    const repo = mock<HouseholdRepository>();
+    const repo = createMock<HouseholdRepository>();
     repo.findMembership.mockResolvedValue(null);
 
     await expect(new HouseholdAccess(repo).assertMember(HOUSEHOLD_ID, OWNER_ID)).rejects.toThrow(
