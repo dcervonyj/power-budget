@@ -4,5 +4,7 @@
   "onboarding.language": "Language",
   "onboarding.baseCurrency": "Base currency",
   "onboarding.error.saveFailed": "We could not save your choices. Try again.",
-  "onboarding.submit": "Continue"
+  "onboarding.submit": "Continue",
+  "onboarding.profileError": "Failed to load your profile",
+  "onboarding.retry": "Retry"
 }

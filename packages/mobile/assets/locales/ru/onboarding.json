@@ -4,5 +4,7 @@
   "onboarding.language": "Язык",
   "onboarding.baseCurrency": "Базовая валюта",
   "onboarding.error.saveFailed": "Не удалось сохранить ваш выбор. Попробуйте ещё раз.",
-  "onboarding.submit": "Далее"
+  "onboarding.submit": "Далее",
+  "onboarding.profileError": "Не удалось загрузить ваш профиль",
+  "onboarding.retry": "Повторить"
 }

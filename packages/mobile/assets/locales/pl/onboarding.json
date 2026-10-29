@@ -4,5 +4,7 @@
   "onboarding.language": "Język",
   "onboarding.baseCurrency": "Waluta bazowa",
   "onboarding.error.saveFailed": "Nie udało się zapisać wyborów. Spróbuj ponownie.",
-  "onboarding.submit": "Dalej"
+  "onboarding.submit": "Dalej",
+  "onboarding.profileError": "Nie udało się wczytać Twojego profilu",
+  "onboarding.retry": "Spróbuj ponownie"
 }

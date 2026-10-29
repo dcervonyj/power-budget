@@ -10,6 +10,15 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+const mockSetLocale = jest.fn();
+
+jest.mock('../../../LocaleProvider.js', () => ({
+  useAppLocale: (): { locale: string; setLocale: jest.Mock } => ({
+    locale: 'en',
+    setLocale: mockSetLocale,
+  }),
+}));
+
 function renderScreen(
   complete: jest.Mock<Promise<void>, [{ language: string; baseCurrency: string }]>,
   onCompleted: () => void,
@@ -17,13 +26,17 @@ function renderScreen(
   return render(
     <ThemeProvider>
       <IntlProvider locale="en" messages={{ ...onboardingEn, ...overlaysEn }}>
-        <OnboardingScreen api={{ complete }} onCompleted={onCompleted} />
+        <OnboardingScreen api={{ complete }} getSessionId={() => 7} onCompleted={onCompleted} />
       </IntlProvider>
     </ThemeProvider>,
   );
 }
 
 describe('OnboardingScreen', () => {
+  beforeEach(() => {
+    mockSetLocale.mockReset();
+  });
+
   it('saves the choices to the profile and then opens the app', async () => {
     const complete = jest.fn().mockResolvedValue(undefined);
     const onCompleted = jest.fn();
@@ -35,6 +48,27 @@ describe('OnboardingScreen', () => {
       expect(onCompleted).toHaveBeenCalledTimes(1);
     });
     expect(complete).toHaveBeenCalledWith({ language: 'en', baseCurrency: 'PLN' });
+  });
+
+  it('applies the chosen language right after saving, under the session it was chosen in', async () => {
+    const complete = jest.fn().mockResolvedValue(undefined);
+    await renderScreen(complete, jest.fn());
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(mockSetLocale).toHaveBeenCalledWith('en', 'user', 7);
+    });
+  });
+
+  it('does not change the language when saving fails', async () => {
+    const complete = jest.fn().mockRejectedValue(new Error('offline'));
+    await renderScreen(complete, jest.fn());
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Continue' }));
+
+    await screen.findByText('We could not save your choices. Try again.');
+    expect(mockSetLocale).not.toHaveBeenCalled();
   });
 
   it('stays on the screen and says so when saving fails', async () => {

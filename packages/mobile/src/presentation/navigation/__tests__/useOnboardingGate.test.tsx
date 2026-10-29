@@ -34,13 +34,35 @@ describe('useOnboardingGate', () => {
     expect(source.isCompleted).not.toHaveBeenCalled();
   });
 
-  it('does not lock the user out when the profile cannot be read', async () => {
+  it('keeps the gate closed when the profile cannot be read', async () => {
     const source = sourceAnswering(Promise.reject(new Error('offline')));
     const { result } = await renderHook(() => useOnboardingGate(true, source));
 
     await waitFor(() => {
-      expect(result.current.status).toBe('completed');
+      expect(result.current.status).toBe('failed');
     });
+  });
+
+  it('reads the profile again on retry', async () => {
+    const source = {
+      isCompleted: jest
+        .fn<Promise<boolean>, []>()
+        .mockRejectedValueOnce(new Error('offline'))
+        .mockResolvedValueOnce(false),
+    };
+    const { result } = await renderHook(() => useOnboardingGate(true, source));
+    await waitFor(() => {
+      expect(result.current.status).toBe('failed');
+    });
+
+    await act(async () => {
+      result.current.retry();
+    });
+
+    await waitFor(() => {
+      expect(result.current.status).toBe('needed');
+    });
+    expect(source.isCompleted).toHaveBeenCalledTimes(2);
   });
 
   it('opens the gate once onboarding is completed', async () => {
