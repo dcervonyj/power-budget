@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import React from 'react';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { IntlProvider } from 'react-intl';
@@ -10,7 +9,7 @@ import type { AccountMenuProps } from '../AccountMenu.js';
 import { AppShellView, SHELL_COMPACT_QUERY, type AppShellViewProps } from '../AppShellView.js';
 
 function account(overrides: Partial<AccountMenuProps> = {}): AccountMenuProps {
-  return createMock<AccountMenuProps>({
+  return {
     me: { userId: 'user-anna', name: 'Anna Kowalska' },
     partner: { userId: 'user-marek', name: 'Marek Nowak' },
     themePreference: 'system',
@@ -20,7 +19,7 @@ function account(overrides: Partial<AccountMenuProps> = {}): AccountMenuProps {
     onSignOut: vi.fn(),
     signingOut: false,
     ...overrides,
-  });
+  };
 }
 
 function props(overrides: Partial<AppShellViewProps> = {}): AppShellViewProps {

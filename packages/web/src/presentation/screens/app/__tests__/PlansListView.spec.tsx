@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
@@ -8,7 +7,7 @@ import { PLAN } from '../../../../test/dashboardFixtures.js';
 import { PlansListView, type PlansListViewProps } from '../PlansListView.js';
 
 function props(overrides: Partial<PlansListViewProps> = {}): PlansListViewProps {
-  return createMock<PlansListViewProps>({
+  return {
     plans: [PLAN],
     loading: false,
     error: null,
@@ -19,7 +18,7 @@ function props(overrides: Partial<PlansListViewProps> = {}): PlansListViewProps 
     onDelete: vi.fn(),
     onRetry: vi.fn(),
     ...overrides,
-  });
+  };
 }
 
 const ARCHIVED: PlanDto = {

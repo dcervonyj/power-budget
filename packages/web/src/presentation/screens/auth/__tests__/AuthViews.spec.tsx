@@ -1,4 +1,3 @@
-import { createMock } from '@golevelup/ts-vitest';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
@@ -17,7 +16,7 @@ function renderView(view: React.JSX.Element): void {
   );
 }
 
-const LOGIN = createMock<LoginViewProps>({
+const LOGIN: LoginViewProps = {
   email: 'anna@example.com',
   password: 'secret',
   totp: '',
@@ -28,9 +27,9 @@ const LOGIN = createMock<LoginViewProps>({
   onPasswordChange: vi.fn(),
   onTotpChange: vi.fn(),
   onSubmit: vi.fn(),
-});
+};
 
-const MAGIC = createMock<MagicLinkViewProps>({
+const MAGIC: MagicLinkViewProps = {
   stage: 'request',
   email: '',
   totp: '',
@@ -41,9 +40,9 @@ const MAGIC = createMock<MagicLinkViewProps>({
   onTotpChange: vi.fn(),
   onRequestSubmit: vi.fn(),
   onTotpSubmit: vi.fn(),
-});
+};
 
-const TOTP = createMock<TotpEnrollmentViewProps>({
+const TOTP: TotpEnrollmentViewProps = {
   enrollment: { qrCodeUri: 'otpauth://totp/PB:a@b.c?secret=ABC', secret: 'ABCD EFGH' },
   loadError: null,
   code: '',
@@ -51,7 +50,7 @@ const TOTP = createMock<TotpEnrollmentViewProps>({
   verifying: false,
   onCodeChange: vi.fn(),
   onSubmit: vi.fn(),
-});
+};
 
 describe('LoginView', () => {
   it('names the page with a heading and offers the magic link and register routes', () => {

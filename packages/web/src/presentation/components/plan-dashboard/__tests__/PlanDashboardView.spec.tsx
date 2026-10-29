@@ -49,7 +49,7 @@ function makeStore(): { store: PlanDashboardStore; dashboard: ReturnType<typeof 
   const store = new PlanDashboardStore(
     api,
     catalogueFor(
-      api,
+      { get: api.get, listItems: api.listItems },
       createMock<CatalogueCategories>({ list: vi.fn().mockResolvedValue(CATEGORIES) }),
     ),
   );
@@ -74,7 +74,7 @@ async function loadD7(
   const store = new PlanDashboardStore(
     api,
     catalogueFor(
-      api,
+      { get: api.get, listItems: api.listItems },
       createMock<CatalogueCategories>({ list: vi.fn().mockResolvedValue(D7_CATEGORIES) }),
     ),
   );
