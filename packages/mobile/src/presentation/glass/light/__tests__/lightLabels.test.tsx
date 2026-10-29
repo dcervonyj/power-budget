@@ -22,7 +22,6 @@ function Labels({ days }: { readonly days: number }): React.JSX.Element {
       <Text testID="over">{labels.rodAria('Eating out', 'over', PER_DAY, PLAN)}</Text>
       <Text testID="paid">{labels.rodAria('Rent', 'paid', PER_DAY, PLAN)}</Text>
       <Text testID="empty">{labels.rodAria('Home', 'empty', PER_DAY, PLAN)}</Text>
-      <Text testID="tube">{labels.tubeAria('Lisbon', PER_DAY, PLAN)}</Text>
       <Text testID="tag-over">{labels.rodTag('over')}</Text>
       <Text testID="tag-paid">{labels.rodTag('paid')}</Text>
     </>
@@ -44,7 +43,6 @@ describe('light labels', () => {
     expect(text('over')).toBe(`Eating out: over by ${perDay}`);
     expect(text('paid')).toBe('Rent: paid');
     expect(text('empty')).toBe(`Home: nothing left of ${plan}`);
-    expect(text('tube')).toBe(`Lisbon: ${perDay} of ${plan}`);
     expect(text('tag-over')).toBe('Over budget');
     expect(text('tag-paid')).toBe('Paid');
   });
