@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { rnDarkTheme } from '@power-budget/design-tokens/rn';
 import { useIntl } from 'react-intl';
-import { formatMoneyInput, parseMinorUnits } from '@power-budget/core';
+import { formatMoney, parseMinorUnits } from '@power-budget/core';
 import type { PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
 import { plansApi } from '../../infrastructure/index.js';
+import { toSupportedLocale } from '../glass/atoms/supportedLocale.js';
 
 const t = rnDarkTheme;
 
@@ -111,9 +112,12 @@ export function MappingPickerModal({
             renderItem={({ item: { plan, item } }) => {
               const isCurrent = item.id === currentPlannedItemId;
               const dirLabel = item.direction === 'income' ? '↑' : '↓';
-              const amount = formatMoneyInput(
-                parseMinorUnits(item.amount.amountMinor),
-                item.amount.currency,
+              const amount = formatMoney(
+                {
+                  amountMinor: parseMinorUnits(item.amount.amountMinor),
+                  currency: item.amount.currency,
+                },
+                toSupportedLocale(intl.locale),
               );
 
               return (
@@ -129,15 +133,7 @@ export function MappingPickerModal({
                     <Text style={styles.dirLabel}>{dirLabel}</Text>
                     <View>
                       <Text style={styles.planName}>{plan.name}</Text>
-                      <Text style={styles.amount}>
-                        {intl.formatMessage(
-                          {
-                            id: 'common.amountWithCurrency',
-                            defaultMessage: '{amount} {currency}',
-                          },
-                          { amount, currency: item.amount.currency },
-                        )}
-                      </Text>
+                      <Text style={styles.amount}>{amount}</Text>
                     </View>
                   </View>
                   {isCurrent && (

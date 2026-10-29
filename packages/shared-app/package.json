@@ -47,6 +47,9 @@
     "clean": "rm -rf dist .turbo",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@power-budget/core": "workspace:*"
+  },
   "peerDependencies": {
     "react": "^18.2.0 || ^19.0.0"
   },

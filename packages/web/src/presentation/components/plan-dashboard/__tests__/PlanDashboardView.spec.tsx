@@ -72,7 +72,7 @@ async function loadD7(
   return store;
 }
 
-/** Accessible names keep Intl's no-break spaces ("PLN 477.00"); compare them as plain spaces. */
+/** Accessible names keep Intl's no-break spaces ("zł 477.00"); compare them as plain spaces. */
 function named(expected: string): (name: string) => boolean {
   return (name) => name.replace(/\s/g, ' ') === expected;
 }
@@ -102,12 +102,12 @@ describe('PlanDashboardView', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Data as of 21 Oct 2026');
     expect(screen.getByText('Amounts in PLN', { exact: false })).toBeInTheDocument();
     expect(tile('Income received')).toHaveTextContent('zł 10,000.00');
-    expect(tile('Income received')).toHaveTextContent('of PLN 10,000.00 planned');
+    expect(tile('Income received')).toHaveTextContent('of zł 10,000.00 planned');
     expect(tile('Spent so far')).toHaveTextContent('zł 4,725.50');
-    expect(tile('Spent so far')).toHaveTextContent('of PLN 4,930.00 planned');
-    expect(screen.getByText('+PLN 5,274.50')).toBeInTheDocument();
+    expect(tile('Spent so far')).toHaveTextContent('of zł 4,930.00 planned');
+    expect(screen.getByText('+zł 5,274.50')).toBeInTheDocument();
     expect(
-      screen.getByText('Includes unplanned: PLN 125.50 spent, PLN 0.00 received'),
+      screen.getByText('Includes unplanned: zł 125.50 spent, zł 0.00 received'),
     ).toBeInTheDocument();
   });
 
@@ -118,21 +118,21 @@ describe('PlanDashboardView', () => {
     // Style update (DSN-020): the band words became the D7 CategoryRow tags and the bar a rod.
     const groceries = screen.getByRole('article', { name: 'Groceries' });
     expect(within(groceries).getByText('Under plan')).toBeInTheDocument();
-    expect(within(groceries).getByText('PLN 1,400.00 of PLN 1,930.00')).toBeInTheDocument();
-    expect(within(groceries).getByText('PLN 530.00 left')).toBeInTheDocument();
+    expect(within(groceries).getByText('zł 1,400.00 of zł 1,930.00')).toBeInTheDocument();
+    expect(within(groceries).getByText('zł 530.00 left')).toBeInTheDocument();
     expect(within(groceries).getByText('Weekly shop')).toBeInTheDocument();
     expect(within(groceries).getByText('planned as €100.00', { exact: false })).toBeInTheDocument();
     expect(
       within(groceries).getByRole('img', {
-        name: named('Groceries: PLN 530.00 left of PLN 1,930.00'),
+        name: named('Groceries: zł 530.00 left of zł 1,930.00'),
       }),
     ).toBeInTheDocument();
     expect(within(groceries).getByText('· 73% spent')).toBeInTheDocument();
 
     const rent = screen.getByRole('article', { name: 'Rent' });
-    expect(within(rent).getByText('Over by PLN 200.00')).toBeInTheDocument();
+    expect(within(rent).getByText('Over by zł 200.00')).toBeInTheDocument();
     expect(
-      within(rent).getByRole('img', { name: named('Rent: over by PLN 200.00') }),
+      within(rent).getByRole('img', { name: named('Rent: over by zł 200.00') }),
     ).toBeInTheDocument();
 
     const salary = screen.getByRole('article', { name: 'Salary' });
@@ -207,7 +207,7 @@ describe('PlanDashboardView', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/^\+5274,50\szł$/)).toBeInTheDocument();
+      expect(screen.getByText(/^\+5\s274,50\szł$/)).toBeInTheDocument();
     });
   });
 });
@@ -218,17 +218,17 @@ describe('PlanDashboardView with the D7 sample month', () => {
     renderWithProviders(<PlanDashboardView store={store} onRetry={vi.fn()} toSortCount={null} />);
 
     expect(screen.getByRole('heading', { name: 'Safe to spend today' })).toBeInTheDocument();
-    const lens = screen.getByRole('img', { name: named('PLN 477.00 a day, 10 days left') });
+    const lens = screen.getByRole('img', { name: named('zł 477.00 a day, 10 days left') });
     expect(within(lens).getByText('477')).toBeInTheDocument();
     expect(within(lens).getByText('zł a day')).toBeInTheDocument();
     expect(lens).not.toContainElement(screen.getByText('10 days left'));
     expect(screen.getByText(/day 22 of 31/)).toHaveTextContent('Thursday, October 22');
     expect(screen.getByTestId('overview-left')).toHaveTextContent('zł 4,770.00');
     expect(
-      screen.getByText(/^Spread over the 10 days to October 31, that is PLN 477\.00 a day\./),
+      screen.getByText(/^Spread over the 10 days to October 31, that is zł 477\.00 a day\./),
     ).toBeInTheDocument();
     expect(tile('Spent so far')).toHaveTextContent('zł 7,030.00');
-    expect(tile('Spent so far')).toHaveTextContent('of PLN 11,800.00 planned');
+    expect(tile('Spent so far')).toHaveTextContent('of zł 11,800.00 planned');
   });
 
   it('shows the pace: plan left against month left, under pace in words', async () => {
@@ -246,12 +246,12 @@ describe('PlanDashboardView with the D7 sample month', () => {
         ),
       }),
     ).toBeInTheDocument();
-    expect(within(pace).getByText('Light = money left, PLN 4,770.00')).toBeInTheDocument();
-    expect(within(pace).getByText('Empty glass = spent, PLN 7,030.00')).toBeInTheDocument();
+    expect(within(pace).getByText('Light = money left, zł 4,770.00')).toBeInTheDocument();
+    expect(within(pace).getByText('Empty glass = spent, zł 7,030.00')).toBeInTheDocument();
     expect(within(pace).getByText('Mark = month left (29%)')).toBeInTheDocument();
     expect(
       within(pace).getByText(
-        'Spending is 11 points behind the calendar. Keep it near PLN 477.00 a day and October closes about zł 1,894 under plan.',
+        'Spending is 11 points behind the calendar. Keep it near zł 477.00 a day and October closes about zł 1,894 under plan.',
       ),
     ).toBeInTheDocument();
   });
@@ -264,8 +264,8 @@ describe('PlanDashboardView with the D7 sample month', () => {
     expect(forecast).toHaveTextContent('≈ zł 9,906');
     expect(forecast).toHaveTextContent('≈ zł 1,894 under plan, at this pace');
     const eatingOut = screen.getByRole('article', { name: 'Eating out' });
-    expect(within(eatingOut).getByText('≈ PLN 793.00 at this pace')).toBeInTheDocument();
-    expect(within(eatingOut).getByText('Over by PLN 62.50')).toBeInTheDocument();
+    expect(within(eatingOut).getByText('≈ zł 793.00 at this pace')).toBeInTheDocument();
+    expect(within(eatingOut).getByText('Over by zł 62.50')).toBeInTheDocument();
     const groceries = screen.getByRole('article', { name: 'Groceries' });
     expect(within(groceries).queryByText(/at this pace/)).toBeNull();
     const rent = screen.getByRole('article', { name: 'Rent' });
@@ -280,12 +280,12 @@ describe('PlanDashboardView with the D7 sample month', () => {
     });
     renderWithProviders(<PlanDashboardView store={store} onRetry={vi.fn()} toSortCount={null} />);
 
-    const lens = screen.getByRole('img', { name: named('PLN 0.00 a day, 10 days left') });
+    const lens = screen.getByRole('img', { name: named('zł 0.00 a day, 10 days left') });
     expect(within(lens).getByText('0')).toBeInTheDocument();
     expect(screen.getByText('Over plan')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Spending is past the plan by PLN 200.00, so nothing is left to spend a day until October 31.',
+        'Spending is past the plan by zł 200.00, so nothing is left to spend a day until October 31.',
       ),
     ).toBeInTheDocument();
     const pace = screen.getByRole('region', { name: 'Pace' });

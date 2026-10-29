@@ -14,13 +14,13 @@ exports[`formatMoney > EUR en snapshot 1`] = `"€10.99"`;
 
 exports[`formatMoney > UAH uk snapshot 1`] = `"9 999,00 ₴"`;
 
-exports[`formatMoney > en snapshot 1`] = `"PLN 1,000.00"`;
+exports[`formatMoney > en snapshot 1`] = `"zł 1,000.00"`;
 
-exports[`formatMoney > pl snapshot 1`] = `"1000,00 zł"`;
+exports[`formatMoney > pl snapshot 1`] = `"1 000,00 zł"`;
 
-exports[`formatMoney > ru snapshot 1`] = `"1 000,00 PLN"`;
+exports[`formatMoney > ru snapshot 1`] = `"1 000,00 zł"`;
 
-exports[`formatMoney > uk snapshot 1`] = `"1 000,00 PLN"`;
+exports[`formatMoney > uk snapshot 1`] = `"1 000,00 zł"`;
 
 exports[`formatNumber > en snapshot — integer 1`] = `"1,234,567"`;
 

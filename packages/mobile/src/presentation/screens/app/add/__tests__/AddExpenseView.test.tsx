@@ -74,7 +74,7 @@ describe('AddExpenseView keypad maths', () => {
   it('shows the category line before and after in English', async () => {
     await renderAdd(<AddExpenseView {...props({ typed: '84.00' })} />);
 
-    expect(text('add-category-line')).toBe('PLN 1,051.36 → PLN 967.36 left');
+    expect(text('add-category-line')).toBe('zł 1,051.36 → zł 967.36 left');
   });
 
   it('empties the lens and flags the plan when the amount passes what the month has left', async () => {
@@ -94,7 +94,7 @@ describe('AddExpenseView keypad maths', () => {
     await renderAdd(<AddExpenseView {...props({ plan: null, typed: '10' })} />);
 
     expect(screen.queryByTestId('add-safe-after')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Add PLN 10.00 to Groceries' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add zł 10.00 to Groceries' })).toBeTruthy();
   });
 });
 

@@ -104,17 +104,17 @@ describe('formatMoneyInput', () => {
 
 describe('formatMoney with the currency exponent', () => {
   it('formats PLN and EUR with two decimals', () => {
-    expect(formatMoney({ amountMinor: 123456n, currency: 'PLN' }, 'en')).toBe('PLN\u00a01,234.56');
+    expect(formatMoney({ amountMinor: 123456n, currency: 'PLN' }, 'en')).toBe('zł\u00a01,234.56');
     expect(formatMoney({ amountMinor: 1099n, currency: 'EUR' }, 'en')).toBe('€10.99');
   });
 
   it('formats JPY without decimals', () => {
-    expect(formatMoney({ amountMinor: 1500n, currency: 'JPY' }, 'en')).toBe('JP¥1,500');
+    expect(formatMoney({ amountMinor: 1500n, currency: 'JPY' }, 'en')).toBe('¥1,500');
   });
 
   it('formats negative amounts', () => {
-    expect(formatMoney({ amountMinor: -1234n, currency: 'EUR' }, 'en')).toBe('-€12.34');
-    expect(formatMoney({ amountMinor: -5n, currency: 'EUR' }, 'en')).toBe('-€0.05');
-    expect(formatMoney({ amountMinor: -1500n, currency: 'JPY' }, 'en')).toBe('-JP¥1,500');
+    expect(formatMoney({ amountMinor: -1234n, currency: 'EUR' }, 'en')).toBe('\u2212€12.34');
+    expect(formatMoney({ amountMinor: -5n, currency: 'EUR' }, 'en')).toBe('\u2212€0.05');
+    expect(formatMoney({ amountMinor: -1500n, currency: 'JPY' }, 'en')).toBe('\u2212¥1,500');
   });
 });
