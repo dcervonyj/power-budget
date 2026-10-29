@@ -51,7 +51,9 @@ Notes:
 
 1. Open the Render dashboard → `power-budget-api-eu` → Events and Logs. Look for a failed deploy,
    an out-of-memory restart or a boot error (the API refuses to boot without a valid `JWT_SECRET`).
-2. Check the database (Neon) and Redis (Upstash) status pages; `/health` fails when either is down.
+2. `/health` is a liveness check only: it answers 200 while the process runs, even when the database
+   or Redis is down. If it fails, the process is down or not reachable (crash loop, failed boot,
+   Render outage).
 3. If the last deploy broke it, roll back in Render (Deploys → previous deploy → Rollback).
 
 ### Uptime: web down
@@ -72,4 +74,6 @@ Notes:
 
 - Bank sync alerts (consent expiry, sync failures, webhook errors) are part of SYNC-009 and will be
   documented in `docs/mvp/runbooks/bank-sync.md` once live bank sync (SYNC-005) exists.
+- A database (Neon) or Redis outage does not fail `/health`; it shows up as Sentry errors from the
+  API and worker. A readiness check that probes both is not built yet.
 - The webhook route has no uptime check until the custom domain (HOST-003) and live sync exist.

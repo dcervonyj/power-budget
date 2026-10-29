@@ -1,7 +1,8 @@
 import { initSentry } from './src/infrastructure/errorReporting/initSentry';
 import { registerRootComponent } from 'expo';
 
-initSentry(process.env['EXPO_PUBLIC_SENTRY_DSN']);
+// Expo only inlines the literal `process.env.EXPO_PUBLIC_*` form.
+initSentry(process.env.EXPO_PUBLIC_SENTRY_DSN);
 
 // DSN-031: `EXPO_PUBLIC_GALLERY=1` swaps the app for the component gallery. Expo inlines the
 // literal at bundle time and Metro drops the dead branch, so a production export (variable
