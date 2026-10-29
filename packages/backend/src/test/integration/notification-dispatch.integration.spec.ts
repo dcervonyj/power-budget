@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { Queue, Worker, type Job } from 'bullmq';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { HouseholdId, UserId } from '@power-budget/core';
@@ -297,7 +297,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
       email,
       new MjmlTemplateRenderer(TEMPLATE_DIR),
     );
-    const job = mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
+    const job = createMock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
 
     const run = processor.process(job);
     await email.entered;
@@ -321,7 +321,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
       new MjmlTemplateRenderer(TEMPLATE_DIR),
     );
     const runs = ids.map((outboxId) =>
-      processor.process(mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId } })),
+      processor.process(createMock<Job<DispatchNotificationJobPayload>>({ data: { outboxId } })),
     );
 
     await email.entering(5);
@@ -343,7 +343,7 @@ describe('notification dispatch against real Postgres + Redis', () => {
       email,
       new MjmlTemplateRenderer(TEMPLATE_DIR),
     );
-    const job = mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
+    const job = createMock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } });
 
     await processor.process(job);
     await processor.process(job);
@@ -407,7 +407,9 @@ describe('notification dispatch against real Postgres + Redis', () => {
 
     try {
       await expect(
-        processor.process(mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } })),
+        processor.process(
+          createMock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: id } }),
+        ),
       ).rejects.toBeInstanceOf(NotificationBusyError);
     } finally {
       await holder.query('ROLLBACK');

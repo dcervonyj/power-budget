@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { INestApplicationContext } from '@nestjs/common';
 import { startEmbeddedWorker } from '../embedded-worker.js';
 
@@ -16,7 +16,7 @@ describe('startEmbeddedWorker', () => {
   });
 
   it('boots the worker once and enables shutdown hooks when START_WORKER=true', async () => {
-    const context = mock<INestApplicationContext>();
+    const context = createMock<INestApplicationContext>();
     const boot = vi.fn().mockResolvedValue(context);
     const log = vi.fn();
 

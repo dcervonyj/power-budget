@@ -1,6 +1,6 @@
 import { NotificationEventId } from '@power-budget/core';
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Job, Queue } from 'bullmq';
 import {
   BullMQNotificationDispatchQueue,
@@ -10,8 +10,8 @@ import { testUuid } from '../../../test/doubles/testUuid.js';
 
 describe('BullMQNotificationDispatchQueue', () => {
   it('adds one retrying job per outbox row under a BullMQ-valid id', async () => {
-    const queue = mock<Queue<DispatchNotificationJobPayload>>();
-    queue.add.mockResolvedValue(mock<Job<DispatchNotificationJobPayload>>());
+    const queue = createMock<Queue<DispatchNotificationJobPayload>>();
+    queue.add.mockResolvedValue(createMock<Job<DispatchNotificationJobPayload>>());
 
     await new BullMQNotificationDispatchQueue(queue).schedule(
       NotificationEventId.of('01900000-81f9-798c-8571-3fded10a77db'),

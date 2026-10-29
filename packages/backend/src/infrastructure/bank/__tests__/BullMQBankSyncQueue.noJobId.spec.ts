@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Job, Queue } from 'bullmq';
 import { BankConnectionId, HouseholdId } from '@power-budget/core';
 import { BullMQBankSyncQueue } from '../BullMQBankSyncQueue.js';
 
 describe('BullMQBankSyncQueue without a job id', () => {
   it('rejects instead of returning an empty job id', async () => {
-    const queue = mock<Queue>();
-    queue.add.mockResolvedValue(mock<Job>({ id: undefined }));
+    const queue = createMock<Queue>();
+    queue.add.mockResolvedValue(createMock<Job>({ id: undefined }));
 
     await expect(
       new BullMQBankSyncQueue(queue).enqueue({

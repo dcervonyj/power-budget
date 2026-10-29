@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { AuditLogger } from '../../../domain/audit/ports.js';
 import type { NewAuditEvent } from '../../../domain/audit/entities.js';
 import { REDACTED, RedactingAuditLogger } from '../RedactingAuditLogger.js';
@@ -21,7 +21,7 @@ function makeEvent(meta: Record<string, unknown>): NewAuditEvent {
 
 describe('RedactingAuditLogger', () => {
   it('redacts Polish IBAN in meta', async () => {
-    const inner = mock<AuditLogger>();
+    const inner = createMock<AuditLogger>();
     const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
 
     const event = makeEvent({ iban: 'PL61109010140000071219812874' });
@@ -34,7 +34,7 @@ describe('RedactingAuditLogger', () => {
   });
 
   it('redacts GB IBAN in meta', async () => {
-    const inner = mock<AuditLogger>();
+    const inner = createMock<AuditLogger>();
     const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
 
     const event = makeEvent({ account: 'GB29NWBK60161331926819' });
@@ -45,7 +45,7 @@ describe('RedactingAuditLogger', () => {
   });
 
   it('redacts amountMinor above threshold', async () => {
-    const inner = mock<AuditLogger>();
+    const inner = createMock<AuditLogger>();
     const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
 
     const event = makeEvent({ amountMinor: 2_000_000 });
@@ -56,7 +56,7 @@ describe('RedactingAuditLogger', () => {
   });
 
   it('passes through amountMinor below threshold', async () => {
-    const inner = mock<AuditLogger>();
+    const inner = createMock<AuditLogger>();
     const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
 
     const event = makeEvent({ amountMinor: 500 });
@@ -67,7 +67,7 @@ describe('RedactingAuditLogger', () => {
   });
 
   it('passes through non-sensitive meta unchanged', async () => {
-    const inner = mock<AuditLogger>();
+    const inner = createMock<AuditLogger>();
     const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
 
     const event = makeEvent({ action: 'login', userId: 'abc123' });
@@ -79,7 +79,7 @@ describe('RedactingAuditLogger', () => {
   });
 
   it('handles nested meta objects', async () => {
-    const inner = mock<AuditLogger>();
+    const inner = createMock<AuditLogger>();
     const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
 
     const event = makeEvent({ payment: { iban: 'PL61109010140000071219812874', amount: 100 } });
@@ -96,7 +96,7 @@ describe('RedactingAuditLogger', () => {
 
   describe('by key, bigint-safe (audit M17)', () => {
     async function logged(meta: Record<string, unknown>): Promise<Record<string, unknown>> {
-      const inner = mock<AuditLogger>();
+      const inner = createMock<AuditLogger>();
       const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
       await logger.log(makeEvent(meta));
 
@@ -161,7 +161,7 @@ describe('RedactingAuditLogger', () => {
   });
 
   it('serves the plans AuditLogPort through the same redacting path', async () => {
-    const inner = mock<AuditLogger>();
+    const inner = createMock<AuditLogger>();
     const logger = new RedactingAuditLogger(inner, { thresholdMinor: 1_000_000n });
 
     await logger.record({

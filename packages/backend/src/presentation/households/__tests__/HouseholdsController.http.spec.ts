@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { CategoryId, HouseholdId, PlanId, UserId } from '@power-budget/core';
 import type { CategoryAggregate } from '@power-budget/core';
 import { HouseholdsController } from '../HouseholdsController.js';
@@ -18,10 +18,10 @@ const CATEGORY = CategoryId.of('01900000-0000-7000-8000-0000000000f1');
 
 describe('GET /households/:id/dashboard (HTTP)', () => {
   let app: HttpTestApp;
-  let dashboard: ReturnType<typeof mock<GetHouseholdDashboardUseCase>>;
+  let dashboard: ReturnType<typeof createMock<GetHouseholdDashboardUseCase>>;
 
   beforeEach(async () => {
-    dashboard = mock<GetHouseholdDashboardUseCase>();
+    dashboard = createMock<GetHouseholdDashboardUseCase>();
     dashboard.execute.mockResolvedValue({ categories: [] });
     app = await createHttpTestApp({
       controllers: [HouseholdsController],
@@ -90,7 +90,7 @@ describe('GET /households/:id/dashboard (HTTP)', () => {
   it('returns money as string minor units, even beyond Number.MAX_SAFE_INTEGER', async () => {
     const groceries: CategoryAggregate = {
       categoryId: CATEGORY,
-      category: mock<CategoryAggregate['category']>({ name: 'Groceries' }),
+      category: createMock<CategoryAggregate['category']>({ name: 'Groceries' }),
       totalAmount: { amountMinor: 9007199254740993n, currency: 'PLN' },
       transactionCount: 3,
       privacyLevel: 'total_with_counts',

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import type { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { HouseholdId, UserId } from '@power-budget/core';
@@ -11,10 +11,10 @@ const USER = UserId.of('01900000-0000-7000-8000-000000000001');
 const HOUSEHOLD = HouseholdId.of('01900000-0000-7000-8000-0000000000a1');
 
 function httpContext(user: unknown): ExecutionContext {
-  return mock<ExecutionContext>({
+  return createMock<ExecutionContext>({
     getType: vi.fn().mockReturnValue('http'),
     switchToHttp: vi.fn().mockReturnValue(
-      mock<HttpArgumentsHost>({
+      createMock<HttpArgumentsHost>({
         getRequest: vi.fn().mockReturnValue({ user }),
       }),
     ),
@@ -28,7 +28,7 @@ function scopeProbe(): { handler: CallHandler; seen: () => DbScope | undefined }
     handle: () => {
       seen = currentDbScope();
 
-      return mock<ReturnType<CallHandler['handle']>>();
+      return createMock<ReturnType<CallHandler['handle']>>();
     },
   };
 

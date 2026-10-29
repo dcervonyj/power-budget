@@ -1,6 +1,6 @@
 import { NotificationEventId } from '@power-budget/core';
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type {
   NotificationDispatchQueue,
   NotificationRepository,
@@ -15,17 +15,17 @@ import { NotificationCronService } from './NotificationCronService.js';
 
 function makeService(pendingIds: NotificationEventId[]): {
   service: NotificationCronService;
-  digest: ReturnType<typeof mock<RunWeeklyDigestUseCase>>;
-  queue: ReturnType<typeof mock<NotificationDispatchQueue>>;
+  digest: ReturnType<typeof createMock<RunWeeklyDigestUseCase>>;
+  queue: ReturnType<typeof createMock<NotificationDispatchQueue>>;
 } {
-  const digest = mock<RunWeeklyDigestUseCase>();
+  const digest = createMock<RunWeeklyDigestUseCase>();
   digest.execute.mockResolvedValue({ skipped: [] });
-  const reminders = mock<RunReconnectRemindersUseCase>();
-  const repo = mock<NotificationRepository>();
+  const reminders = createMock<RunReconnectRemindersUseCase>();
+  const repo = createMock<NotificationRepository>();
   repo.findPendingBatch.mockResolvedValue(
-    pendingIds.map((id) => mock<NotificationOutboxRow>({ id })),
+    pendingIds.map((id) => createMock<NotificationOutboxRow>({ id })),
   );
-  const queue = mock<NotificationDispatchQueue>();
+  const queue = createMock<NotificationDispatchQueue>();
   queue.schedule.mockResolvedValue(undefined);
 
   return { service: new NotificationCronService(digest, reminders, repo, queue), digest, queue };

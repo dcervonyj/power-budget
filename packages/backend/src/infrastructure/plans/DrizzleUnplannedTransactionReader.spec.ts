@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { HouseholdId, IsoDate, UserId } from '@power-budget/core';
 import { DrizzleUnplannedTransactionReader } from './DrizzleUnplannedTransactionReader.js';
@@ -14,7 +14,7 @@ describe('DrizzleUnplannedTransactionReader', () => {
     '',
     Buffer.from(`2026-02-30|0197c0de-0000-7000-8000-000000000001`).toString('base64url'),
   ])('rejects the forged cursor %s with InvalidCursorError before querying', async (cursor) => {
-    const db = mock<NodePgDatabase<typeof schema>>();
+    const db = createMock<NodePgDatabase<typeof schema>>();
     const reader = new DrizzleUnplannedTransactionReader(db);
 
     await expect(

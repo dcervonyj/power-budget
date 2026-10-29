@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { Logger } from '@nestjs/common';
 import { DiscoveryService, ModuleRef } from '@nestjs/core';
 import { WorkerHost } from '@nestjs/bullmq';
@@ -35,7 +35,7 @@ class FakeProcessor extends WorkerHost {
 }
 
 function fakeWorker(name: string, close: () => Promise<void>): Worker {
-  const worker = mock<Worker>();
+  const worker = createMock<Worker>();
   Object.defineProperty(worker, 'name', { value: name });
   worker.close.mockImplementation(close);
 
@@ -43,16 +43,16 @@ function fakeWorker(name: string, close: () => Promise<void>): Worker {
 }
 
 function buildModule(worker: Worker): QueueModule {
-  const moduleRef = mock<ModuleRef>();
+  const moduleRef = createMock<ModuleRef>();
   moduleRef.get.mockImplementation(() => {
-    const queue = mock<Queue>();
+    const queue = createMock<Queue>();
     queue.close.mockResolvedValue(undefined);
 
     return queue;
   });
-  const discovery = mock<DiscoveryService>();
+  const discovery = createMock<DiscoveryService>();
   discovery.getProviders.mockReturnValue([
-    mock<ReturnType<DiscoveryService['getProviders']>[number]>({
+    createMock<ReturnType<DiscoveryService['getProviders']>[number]>({
       instance: new FakeProcessor(worker),
     }),
   ]);
