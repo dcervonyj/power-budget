@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, PlanId, PlannedItemId, TransactionId, UserId } from '@power-budget/core';
 import type {
   MappingRepository,
@@ -22,8 +22,8 @@ const scope = { householdId: HOUSEHOLD };
 
 describe('UnmarkTransferUseCase', () => {
   it("unmarks the caller's own transaction", async () => {
-    const txRepo = mock<TransactionRepository>();
-    const transferRepo = mock<TransferRepository>();
+    const txRepo = createMock<TransactionRepository>();
+    const transferRepo = createMock<TransferRepository>();
     txRepo.findOwnedById.mockResolvedValue(makeTransaction({ id: TX_1 }));
 
     await new UnmarkTransferUseCase(txRepo, transferRepo).execute({
@@ -37,8 +37,8 @@ describe('UnmarkTransferUseCase', () => {
   });
 
   it("rejects a transaction that is not the caller's own", async () => {
-    const txRepo = mock<TransactionRepository>();
-    const transferRepo = mock<TransferRepository>();
+    const txRepo = createMock<TransactionRepository>();
+    const transferRepo = createMock<TransferRepository>();
     txRepo.findOwnedById.mockResolvedValue(null);
 
     await expect(
@@ -65,14 +65,14 @@ describe('BulkMapTransactionsUseCase', () => {
   };
 
   it('maps the batch when every transaction is the caller’s own', async () => {
-    const txRepo = mock<TransactionRepository>();
-    const mappingRepo = mock<MappingRepository>();
+    const txRepo = createMock<TransactionRepository>();
+    const mappingRepo = createMock<MappingRepository>();
     txRepo.findOwnedIds.mockResolvedValue([TX_1, TX_2]);
 
     await new BulkMapTransactionsUseCase(
       txRepo,
       mappingRepo,
-      mock<LearnMerchantRuleUseCase>(),
+      createMock<LearnMerchantRuleUseCase>(),
     ).execute(input);
 
     expect(txRepo.findOwnedIds).toHaveBeenCalledWith([TX_1, TX_2], USER, scope);
@@ -80,9 +80,9 @@ describe('BulkMapTransactionsUseCase', () => {
   });
 
   it('teaches merchant memory for each mapped transaction', async () => {
-    const txRepo = mock<TransactionRepository>();
-    const mappingRepo = mock<MappingRepository>();
-    const memory = mock<LearnMerchantRuleUseCase>();
+    const txRepo = createMock<TransactionRepository>();
+    const mappingRepo = createMock<MappingRepository>();
+    const memory = createMock<LearnMerchantRuleUseCase>();
     const tx1 = makeTransaction({ id: TX_1 });
     const tx2 = makeTransaction({ id: TX_2 });
     txRepo.findOwnedIds.mockResolvedValue([TX_1, TX_2]);
@@ -109,9 +109,9 @@ describe('BulkMapTransactionsUseCase', () => {
   });
 
   it('keeps the saved mappings when loading a transaction for learning fails', async () => {
-    const txRepo = mock<TransactionRepository>();
-    const mappingRepo = mock<MappingRepository>();
-    const memory = mock<LearnMerchantRuleUseCase>();
+    const txRepo = createMock<TransactionRepository>();
+    const mappingRepo = createMock<MappingRepository>();
+    const memory = createMock<LearnMerchantRuleUseCase>();
     txRepo.findOwnedIds.mockResolvedValue([TX_1, TX_2]);
     txRepo.findById.mockRejectedValue(new Error('boom'));
 
@@ -122,26 +122,28 @@ describe('BulkMapTransactionsUseCase', () => {
   });
 
   it('rejects the whole batch when one transaction is not the caller’s own', async () => {
-    const txRepo = mock<TransactionRepository>();
-    const mappingRepo = mock<MappingRepository>();
+    const txRepo = createMock<TransactionRepository>();
+    const mappingRepo = createMock<MappingRepository>();
     txRepo.findOwnedIds.mockResolvedValue([TX_1]);
 
     await expect(
-      new BulkMapTransactionsUseCase(txRepo, mappingRepo, mock<LearnMerchantRuleUseCase>()).execute(
-        input,
-      ),
+      new BulkMapTransactionsUseCase(
+        txRepo,
+        mappingRepo,
+        createMock<LearnMerchantRuleUseCase>(),
+      ).execute(input),
     ).rejects.toThrow(TransactionNotFoundError);
     expect(mappingRepo.bulkSet).not.toHaveBeenCalled();
   });
 
   it('does nothing for an empty batch', async () => {
-    const txRepo = mock<TransactionRepository>();
-    const mappingRepo = mock<MappingRepository>();
+    const txRepo = createMock<TransactionRepository>();
+    const mappingRepo = createMock<MappingRepository>();
 
     await new BulkMapTransactionsUseCase(
       txRepo,
       mappingRepo,
-      mock<LearnMerchantRuleUseCase>(),
+      createMock<LearnMerchantRuleUseCase>(),
     ).execute({ ...input, mappings: [] });
 
     expect(txRepo.findOwnedIds).not.toHaveBeenCalled();

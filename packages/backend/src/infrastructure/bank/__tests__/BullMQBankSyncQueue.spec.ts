@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import type { Job, Queue } from 'bullmq';
 import { BankConnectionId, HouseholdId } from '@power-budget/core';
 import { BullMQBankSyncQueue } from '../BullMQBankSyncQueue.js';
@@ -9,12 +9,12 @@ const CONNECTION_ID = BankConnectionId.of('0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
 const HOUSEHOLD_ID = HouseholdId.of('01900000-b56d-7643-8d0f-31b1680a84b6');
 
 describe('BullMQBankSyncQueue', () => {
-  let queue: MockProxy<Queue>;
+  let queue: DeepMocked<Queue>;
   let syncQueue: BullMQBankSyncQueue;
 
   beforeEach(() => {
-    queue = mock<Queue>();
-    queue.add.mockResolvedValue(mock<Job>({ id: 'job-1' }));
+    queue = createMock<Queue>();
+    queue.add.mockResolvedValue(createMock<Job>({ id: 'job-1' }));
     syncQueue = new BullMQBankSyncQueue(queue);
   });
 

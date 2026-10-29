@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId } from '@power-budget/core';
 import { TransactionsController } from '../TransactionsController.js';
 import type { ListTransactionsUseCase } from '../../../application/transactions/use-cases/ListTransactionsUseCase.js';
@@ -22,18 +22,18 @@ const user: AuthenticatedUser = {
 
 describe('TransactionsController.patch', () => {
   it('passes notes: null through so the note is cleared', async () => {
-    const patchTransaction = mock<PatchTransactionUseCase>();
-    const getTransaction = mock<GetTransactionUseCase>();
+    const patchTransaction = createMock<PatchTransactionUseCase>();
+    const getTransaction = createMock<GetTransactionUseCase>();
     getTransaction.execute.mockRejectedValue(new Error('stop after patch'));
     const controller = new TransactionsController(
-      mock<ListTransactionsUseCase>(),
+      createMock<ListTransactionsUseCase>(),
       getTransaction,
-      mock<AddManualTransactionUseCase>(),
-      mock<MapTransactionUseCase>(),
-      mock<BulkMapTransactionsUseCase>(),
-      mock<BulkActOnTransactionsUseCase>(),
-      mock<MarkAsTransferUseCase>(),
-      mock<UnmarkTransferUseCase>(),
+      createMock<AddManualTransactionUseCase>(),
+      createMock<MapTransactionUseCase>(),
+      createMock<BulkMapTransactionsUseCase>(),
+      createMock<BulkActOnTransactionsUseCase>(),
+      createMock<MarkAsTransferUseCase>(),
+      createMock<UnmarkTransferUseCase>(),
       patchTransaction,
     );
     const dto = Object.assign(new PatchTransactionDto(), { notes: null });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { BankConnectionId, HouseholdId } from '@power-budget/core';
 import type { BankSyncSchedulerUseCase } from '../../../application/bank/use-cases/BankSyncSchedulerUseCase.js';
 import type { BankSyncQueuePort } from '../../../domain/bank/ports.js';
@@ -11,12 +11,12 @@ const CONN_B = BankConnectionId.of('01900000-dcc1-70bf-8cb6-85cec8cdd223');
 
 describe('BankSyncSchedulerService', () => {
   it('enqueues every active connection with the 4-hour UTC slot as scheduledAt', async () => {
-    const useCase = mock<BankSyncSchedulerUseCase>();
+    const useCase = createMock<BankSyncSchedulerUseCase>();
     useCase.execute.mockResolvedValue([
       { connectionId: CONN_A, householdId: HOUSEHOLD_ID },
       { connectionId: CONN_B, householdId: HOUSEHOLD_ID },
     ]);
-    const queue = mock<BankSyncQueuePort>();
+    const queue = createMock<BankSyncQueuePort>();
     queue.enqueue.mockResolvedValue({ jobId: 'j' });
     const service = new BankSyncSchedulerService(useCase, queue);
 
@@ -47,12 +47,12 @@ describe('BankSyncSchedulerService', () => {
   });
 
   it('keeps enqueuing the remaining connections when one enqueue fails, then reports the failure', async () => {
-    const useCase = mock<BankSyncSchedulerUseCase>();
+    const useCase = createMock<BankSyncSchedulerUseCase>();
     useCase.execute.mockResolvedValue([
       { connectionId: CONN_A, householdId: HOUSEHOLD_ID },
       { connectionId: CONN_B, householdId: HOUSEHOLD_ID },
     ]);
-    const queue = mock<BankSyncQueuePort>();
+    const queue = createMock<BankSyncQueuePort>();
     queue.enqueue.mockRejectedValueOnce(new Error('Queue unavailable'));
     queue.enqueue.mockResolvedValueOnce({ jobId: 'j' });
     const service = new BankSyncSchedulerService(useCase, queue);

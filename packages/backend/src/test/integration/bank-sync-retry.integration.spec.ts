@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { makeBankSyncJob } from '../doubles/bankSyncJob.js';
 import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 import { Queue, Worker, type Job } from 'bullmq';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { uuidv7 } from 'uuidv7';
 import {
   BankAccountId,
@@ -49,7 +49,7 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
   let redisUrl: string;
   let connectionId: BankConnectionId;
   let householdId: HouseholdId;
-  let connector: ReturnType<typeof mock<BankConnector>>;
+  let connector: ReturnType<typeof createMock<BankConnector>>;
   let processor: BankSyncProcessor;
   let syncRunRepo: DrizzleSyncRunRepository;
 
@@ -77,7 +77,7 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
       status: 'active',
     });
 
-    const connectionRepo = mock<BankConnectionRepository>();
+    const connectionRepo = createMock<BankConnectionRepository>();
     const connection = makeBankConnection({
       id: connectionId,
       householdId,
@@ -86,16 +86,16 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
       encryptedConsent: EncryptedString.of('enc-token'),
     });
     connectionRepo.findById.mockResolvedValue(connection);
-    const bankAccountRepo = mock<BankAccountRepository>();
+    const bankAccountRepo = createMock<BankAccountRepository>();
     bankAccountRepo.listByConnection.mockResolvedValue([
       makeBankAccount({ id: BankAccountId.of(testUuid('acc-1')), externalId: 'ext-1' }),
     ]);
-    connector = mock<BankConnector>();
+    connector = createMock<BankConnector>();
     connector.listAccounts.mockResolvedValue([
       { externalId: 'ext-1', name: 'Main', iban: null, currency: 'PLN', balanceMinor: 0n },
     ]);
     connector.fetchTransactions.mockResolvedValue([]);
-    const registry = mock<BankConnectorRegistry>();
+    const registry = createMock<BankConnectorRegistry>();
     registry.resolve.mockReturnValue(connector);
     syncRunRepo = new DrizzleSyncRunRepository(getDb());
     processor = new BankSyncProcessor(
@@ -103,7 +103,7 @@ describe('bank sync watermark and retry against real Postgres + Redis (CLN-037)'
       bankAccountRepo,
       syncRunRepo,
       registry,
-      mock<IngestBankTransactionsUseCase>(),
+      createMock<IngestBankTransactionsUseCase>(),
     );
   });
 

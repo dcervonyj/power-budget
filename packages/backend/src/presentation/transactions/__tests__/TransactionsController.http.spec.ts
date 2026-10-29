@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, TransactionId, UserId } from '@power-budget/core';
 import { TransactionsController } from '../TransactionsController.js';
 import { AddManualTransactionUseCase } from '../../../application/transactions/use-cases/AddManualTransactionUseCase.js';
@@ -31,25 +31,25 @@ const V4_ID = '3b241101-e2bb-4255-8caf-4136c566a962';
 
 describe('TransactionsController ids (HTTP)', () => {
   let app: HttpTestApp;
-  let list: ReturnType<typeof mock<ListTransactionsUseCase>>;
-  let get: ReturnType<typeof mock<GetTransactionUseCase>>;
+  let list: ReturnType<typeof createMock<ListTransactionsUseCase>>;
+  let get: ReturnType<typeof createMock<GetTransactionUseCase>>;
   let owned: TransactionId[];
-  let mappingRepo: ReturnType<typeof mock<MappingRepository>>;
-  let unmark: ReturnType<typeof mock<UnmarkTransferUseCase>>;
+  let mappingRepo: ReturnType<typeof createMock<MappingRepository>>;
+  let unmark: ReturnType<typeof createMock<UnmarkTransferUseCase>>;
 
   beforeEach(async () => {
-    list = mock<ListTransactionsUseCase>();
-    get = mock<GetTransactionUseCase>();
+    list = createMock<ListTransactionsUseCase>();
+    get = createMock<GetTransactionUseCase>();
     owned = [];
-    mappingRepo = mock<MappingRepository>();
-    const txRepo = mock<TransactionRepository>();
+    mappingRepo = createMock<MappingRepository>();
+    const txRepo = createMock<TransactionRepository>();
     txRepo.findOwnedIds.mockImplementation(async () => owned);
     const bulkMap = new BulkMapTransactionsUseCase(
       txRepo,
       mappingRepo,
-      mock<LearnMerchantRuleUseCase>(),
+      createMock<LearnMerchantRuleUseCase>(),
     );
-    unmark = mock<UnmarkTransferUseCase>();
+    unmark = createMock<UnmarkTransferUseCase>();
     get.execute.mockRejectedValue(new TransactionNotFoundError());
     unmark.execute.mockRejectedValue(new TransactionNotFoundError());
     app = await createHttpTestApp({
@@ -57,13 +57,19 @@ describe('TransactionsController ids (HTTP)', () => {
       providers: [
         { provide: ListTransactionsUseCase, useValue: list },
         { provide: GetTransactionUseCase, useValue: get },
-        { provide: AddManualTransactionUseCase, useValue: mock<AddManualTransactionUseCase>() },
-        { provide: MapTransactionUseCase, useValue: mock<MapTransactionUseCase>() },
+        {
+          provide: AddManualTransactionUseCase,
+          useValue: createMock<AddManualTransactionUseCase>(),
+        },
+        { provide: MapTransactionUseCase, useValue: createMock<MapTransactionUseCase>() },
         { provide: BulkMapTransactionsUseCase, useValue: bulkMap },
-        { provide: BulkActOnTransactionsUseCase, useValue: mock<BulkActOnTransactionsUseCase>() },
-        { provide: MarkAsTransferUseCase, useValue: mock<MarkAsTransferUseCase>() },
+        {
+          provide: BulkActOnTransactionsUseCase,
+          useValue: createMock<BulkActOnTransactionsUseCase>(),
+        },
+        { provide: MarkAsTransferUseCase, useValue: createMock<MarkAsTransferUseCase>() },
         { provide: UnmarkTransferUseCase, useValue: unmark },
-        { provide: PatchTransactionUseCase, useValue: mock<PatchTransactionUseCase>() },
+        { provide: PatchTransactionUseCase, useValue: createMock<PatchTransactionUseCase>() },
       ],
     });
   });

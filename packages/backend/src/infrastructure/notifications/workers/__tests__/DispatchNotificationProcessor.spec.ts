@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Job } from 'bullmq';
 import { NotificationEventId, UserId } from '@power-budget/core';
 import type { TemplateRenderer } from '../../../../domain/notifications/ports.js';
@@ -20,7 +20,7 @@ class KindRenderer implements TemplateRenderer {
 }
 
 function jobFor(outboxId: NotificationEventId): Job<DispatchNotificationJobPayload> {
-  return mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId } });
+  return createMock<Job<DispatchNotificationJobPayload>>({ data: { outboxId } });
 }
 
 describe('DispatchNotificationProcessor', () => {
