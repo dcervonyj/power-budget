@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { describe, it, expect, vi } from 'vitest';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId } from '@power-budget/core';
 import type { UserRepository } from '../../../domain/auth/ports.js';
 import { GetCurrentUserUseCase } from './GetCurrentUserUseCase.js';
@@ -23,16 +23,11 @@ function makeUser(): User {
 }
 
 describe('GetCurrentUserUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let useCase: GetCurrentUserUseCase;
-
-  beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    useCase = new GetCurrentUserUseCase(userRepo);
-  });
-
   it('returns the user when found', async () => {
-    userRepo.findById.mockResolvedValue(makeUser());
+    const userRepo = createMock<UserRepository>({
+      findById: vi.fn().mockResolvedValue(makeUser()),
+    });
+    const useCase = new GetCurrentUserUseCase(userRepo);
 
     const result = await useCase.execute({ userId: TEST_USER_ID });
 
@@ -41,7 +36,8 @@ describe('GetCurrentUserUseCase', () => {
   });
 
   it('throws UserNotFoundError when user does not exist', async () => {
-    userRepo.findById.mockResolvedValue(null);
+    const userRepo = createMock<UserRepository>({ findById: vi.fn().mockResolvedValue(null) });
+    const useCase = new GetCurrentUserUseCase(userRepo);
 
     await expect(useCase.execute({ userId: TEST_USER_ID })).rejects.toThrow(UserNotFoundError);
   });
