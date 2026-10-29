@@ -1,19 +1,38 @@
 /** Remove query values, including unknown provider-specific callback parameters. */
 export function scrubSentryUrl(url: string): string {
-  return url
-    .replace(/([?&][^=&#\s]+)=([^&#\s]*)/g, '$1=[Filtered]')
-    .replace(/#[^\s]*/g, '#[Filtered]');
+  const fragmentIndex = url.indexOf('#');
+  const withoutFragment = fragmentIndex < 0 ? url : url.slice(0, fragmentIndex);
+  const fragment = fragmentIndex < 0 ? '' : '#[Filtered]';
+  const queryIndex = withoutFragment.indexOf('?');
+  if (queryIndex < 0) {
+    return withoutFragment + fragment;
+  }
+  const path = withoutFragment.slice(0, queryIndex);
+  const pairs = withoutFragment.slice(queryIndex + 1).split('&');
+  const filtered = pairs.map((pair) => {
+    const equals = pair.indexOf('=');
+    if (equals < 1) {
+      return pair;
+    }
+
+    return `${pair.slice(0, equals)}=[Filtered]`;
+  });
+
+  return `${path}?${filtered.join('&')}${fragment}`;
 }
 
 export function scrubSentryText(text: string): string {
   const filtered = text.includes('://') || text.includes('?') ? scrubSentryUrl(text) : text;
 
   return filtered
-    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[Filtered]')
+    .replace(/\b[A-Z0-9._%+-]{1,64}@[A-Z0-9.-]{1,253}\.[A-Z]{2,63}\b/gi, '[Filtered]')
     .replace(/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,30}\b/gi, '[Filtered]')
-    .replace(/\b(?:\d[ -]?){8,}\b/g, '[Filtered]')
-    .replace(/\bBearer\s+[^\s,;]+/gi, '[Filtered]')
-    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, '[Filtered]');
+    .replace(/\b(?:\d[ -]?){8,64}\b/g, '[Filtered]')
+    .replace(/\bBearer\s{1,64}[^\s,;]{1,4096}/gi, '[Filtered]')
+    .replace(
+      /\beyJ[A-Za-z0-9_-]{1,4096}\.[A-Za-z0-9_-]{1,4096}\.[A-Za-z0-9_-]{1,4096}\b/g,
+      '[Filtered]',
+    );
 }
 
 interface ScrubBreadcrumb {
