@@ -479,5 +479,6 @@
   "modal.createPlan.title": "Create plan",
   "modal.createPlan.typeHousehold": "Household",
   "modal.createPlan.typeLabel": "Type",
-  "modal.createPlan.typePersonal": "Personal"
+  "modal.createPlan.typePersonal": "Personal",
+  "screen.plansList.profileError": "Failed to load your profile"
 }

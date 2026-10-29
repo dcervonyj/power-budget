@@ -63,6 +63,16 @@ describe('CreatePlanStore', () => {
     });
   });
 
+  it('derives the monthly end from the start and leaves the custom end empty', () => {
+    const { store } = setup(false);
+
+    expect(store.derivedEndDate).toBe('2026-10-31');
+
+    store.setPeriodKind('custom');
+
+    expect(store.derivedEndDate).toBe('');
+  });
+
   it('creates a custom plan with both dates', async () => {
     const { store, create } = setup(false, vi.fn().mockResolvedValue(PLAN));
     store.setPeriodKind('custom');

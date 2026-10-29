@@ -479,5 +479,6 @@
   "modal.createPlan.title": "Создать план",
   "modal.createPlan.typeHousehold": "Семейный",
   "modal.createPlan.typeLabel": "Тип",
-  "modal.createPlan.typePersonal": "Личный"
+  "modal.createPlan.typePersonal": "Личный",
+  "screen.plansList.profileError": "Не удалось загрузить ваш профиль"
 }

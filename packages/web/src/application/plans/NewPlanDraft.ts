@@ -61,6 +61,21 @@ export function weeklyEndDate(startDate: string): string {
   );
 }
 
+/**
+ * The last day of a monthly plan: one month after the start, minus a day, with the day
+ * clamped to the length of that month (the API derives the same).
+ */
+export function monthlyEndDate(startDate: string): string {
+  if (!ISO_DATE.test(startDate)) {
+    return '';
+  }
+  const start = parseLocalIsoDate(startDate);
+  const lastDayOfNextMonth = new Date(start.getFullYear(), start.getMonth() + 2, 0).getDate();
+  const day = Math.min(start.getDate(), lastDayOfNextMonth);
+
+  return toLocalIsoDate(new Date(start.getFullYear(), start.getMonth() + 1, day - 1));
+}
+
 export function validateNewPlanDraft(draft: NewPlanDraft): NewPlanErrors {
   const name = draft.name.trim();
   const nameError: NewPlanErrors = name === '' ? { name: 'required' } : {};
