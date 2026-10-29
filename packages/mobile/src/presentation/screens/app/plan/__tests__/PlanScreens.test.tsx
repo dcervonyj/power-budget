@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-jest';
 import React from 'react';
 import { act, fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
 import type { CategoryDto, PlanDto, PlannedItemDto } from '@power-budget/shared-app/contract';
@@ -115,10 +116,10 @@ const FOOD: CategoryDto = {
 };
 
 function editorProps(): React.ComponentProps<typeof PlanEditorScreen> {
-  return {
+  return createMock<React.ComponentProps<typeof PlanEditorScreen>>({
     route: { key: 'k', name: 'PlanEditor', params: { planId: 'plan-1' } },
     navigation: { goBack: jest.fn(), replace: jest.fn() },
-  } as unknown as React.ComponentProps<typeof PlanEditorScreen>;
+  });
 }
 
 describe('PlanEditorScreen', () => {
@@ -391,9 +392,9 @@ describe('PlanEditorScreen', () => {
 
 describe('PlansListScreen', () => {
   function listProps(navigate: jest.Mock): React.ComponentProps<typeof PlansListScreen> {
-    return {
+    return createMock<React.ComponentProps<typeof PlansListScreen>>({
       navigation: { navigate, addListener: jest.fn().mockReturnValue(jest.fn()) },
-    } as unknown as React.ComponentProps<typeof PlansListScreen>;
+    });
   }
 
   beforeEach(() => {
