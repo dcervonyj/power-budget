@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Redis } from 'ioredis';
 import type { BankCatalogEntry } from '../../domain/bank/entities.js';
 import { RedisBankCatalogCache } from './RedisBankCatalogCache.js';
@@ -10,11 +10,11 @@ const ENTRIES: BankCatalogEntry[] = [
 ];
 
 describe('RedisBankCatalogCache', () => {
-  let redis: ReturnType<typeof mock<Redis>>;
+  let redis: ReturnType<typeof createMock<Redis>>;
   let cache: RedisBankCatalogCache;
 
   beforeEach(() => {
-    redis = mock<Redis>();
+    redis = createMock<Redis>();
     cache = new RedisBankCatalogCache(redis);
   });
 

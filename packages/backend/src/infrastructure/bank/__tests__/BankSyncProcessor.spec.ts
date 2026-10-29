@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { makeBankSyncJob } from '../../../test/doubles/bankSyncJob.js';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UnrecoverableError, type Job } from 'bullmq';
 import type {
   BankConnectionRepository,
@@ -53,21 +53,21 @@ function makeConnection(overrides: Partial<BankConnection> = {}): BankConnection
 }
 
 describe('BankSyncProcessor', () => {
-  let connectionRepo: ReturnType<typeof mock<BankConnectionRepository>>;
-  let bankAccountRepo: ReturnType<typeof mock<BankAccountRepository>>;
-  let syncRunRepo: ReturnType<typeof mock<SyncRunRepository>>;
-  let connectorRegistry: ReturnType<typeof mock<BankConnectorRegistry>>;
-  let connector: ReturnType<typeof mock<BankConnector>>;
-  let ingestUseCase: ReturnType<typeof mock<IngestBankTransactionsUseCase>>;
+  let connectionRepo: ReturnType<typeof createMock<BankConnectionRepository>>;
+  let bankAccountRepo: ReturnType<typeof createMock<BankAccountRepository>>;
+  let syncRunRepo: ReturnType<typeof createMock<SyncRunRepository>>;
+  let connectorRegistry: ReturnType<typeof createMock<BankConnectorRegistry>>;
+  let connector: ReturnType<typeof createMock<BankConnector>>;
+  let ingestUseCase: ReturnType<typeof createMock<IngestBankTransactionsUseCase>>;
   let processor: BankSyncProcessor;
 
   beforeEach(() => {
-    connectionRepo = mock<BankConnectionRepository>();
-    bankAccountRepo = mock<BankAccountRepository>();
-    syncRunRepo = mock<SyncRunRepository>();
-    connectorRegistry = mock<BankConnectorRegistry>();
-    connector = mock<BankConnector>();
-    ingestUseCase = mock<IngestBankTransactionsUseCase>();
+    connectionRepo = createMock<BankConnectionRepository>();
+    bankAccountRepo = createMock<BankAccountRepository>();
+    syncRunRepo = createMock<SyncRunRepository>();
+    connectorRegistry = createMock<BankConnectorRegistry>();
+    connector = createMock<BankConnector>();
+    ingestUseCase = createMock<IngestBankTransactionsUseCase>();
 
     syncRunRepo.start.mockResolvedValue(SYNC_RUN_ID);
     syncRunRepo.lastSuccessfulAt.mockResolvedValue(null);

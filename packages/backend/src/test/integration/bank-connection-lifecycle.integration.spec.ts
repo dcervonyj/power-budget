@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import { makeBankSyncJob } from '../doubles/bankSyncJob.js';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { uuidv7 } from 'uuidv7';
 import { BankConnectionId } from '@power-budget/core';
 import type { HouseholdId } from '@power-budget/core';
@@ -262,16 +262,16 @@ describe('bank connection lifecycle (CLN-038, real app)', () => {
     });
 
     it('the processor skips a connection that is not active, even with a consent left over', async () => {
-      const connector = mock<BankConnector>();
-      const registry = mock<BankConnectorRegistry>();
+      const connector = createMock<BankConnector>();
+      const registry = createMock<BankConnectorRegistry>();
       registry.resolve.mockReturnValue(connector);
-      const syncRunRepo = mock<SyncRunRepository>();
+      const syncRunRepo = createMock<SyncRunRepository>();
       const processor = new BankSyncProcessor(
         repo,
-        mock<BankAccountRepository>(),
+        createMock<BankAccountRepository>(),
         syncRunRepo,
         registry,
-        mock<IngestBankTransactionsUseCase>(),
+        createMock<IngestBankTransactionsUseCase>(),
       );
 
       for (const status of ['disconnected', 'pending', 'expired']) {

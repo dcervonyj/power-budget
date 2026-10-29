@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { BankAccountId, HouseholdId, IsoDate, TransactionId, UserId } from '@power-budget/core';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { DrizzleTransactionRepository } from '../DrizzleTransactionRepository.js';
 import { NO_BANK_DETAILS, type NewTransaction } from '../../../domain/transactions/entities.js';
 import { testUuid } from '../../../test/doubles/testUuid.js';
@@ -42,7 +42,7 @@ describe('DrizzleTransactionRepository', () => {
       orderBy: vi.fn().mockReturnThis(),
     };
 
-    const repo = new DrizzleTransactionRepository(mock<Db>(mockDb));
+    const repo = new DrizzleTransactionRepository(createMock<Db>(mockDb));
     const result = await repo.findById(TransactionId.of('01900000-2321-7f77-806b-ac43756e0a3f'), {
       householdId: HouseholdId.of('01900000-3a12-768a-84e1-7ff1aae8835b'),
     });
@@ -65,7 +65,7 @@ describe('DrizzleTransactionRepository', () => {
     };
     mockDb.transaction.mockImplementation((work: (tx: unknown) => unknown) => work(mockDb));
 
-    const repo = new DrizzleTransactionRepository(mock<Db>(mockDb));
+    const repo = new DrizzleTransactionRepository(createMock<Db>(mockDb));
     const created = await repo.insertBankBatch([bankRow('a', 'e1'), bankRow('b', 'e2')], OWNER);
 
     expect(created).toBe(1);
@@ -75,7 +75,7 @@ describe('DrizzleTransactionRepository', () => {
   it('insertBankBatch runs no statement for an empty batch', async () => {
     const mockDb = { execute: vi.fn() };
 
-    const created = await new DrizzleTransactionRepository(mock<Db>(mockDb)).insertBankBatch(
+    const created = await new DrizzleTransactionRepository(createMock<Db>(mockDb)).insertBankBatch(
       [],
       OWNER,
     );
