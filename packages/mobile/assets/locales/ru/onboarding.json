@@ -1,0 +1,8 @@
+{
+  "onboarding.title": "Добро пожаловать в Power Budget",
+  "onboarding.subtitle": "Выберите язык и базовую валюту. Их можно изменить позже.",
+  "onboarding.language": "Язык",
+  "onboarding.baseCurrency": "Базовая валюта",
+  "onboarding.error.saveFailed": "Не удалось сохранить ваш выбор. Попробуйте ещё раз.",
+  "onboarding.submit": "Далее"
+}

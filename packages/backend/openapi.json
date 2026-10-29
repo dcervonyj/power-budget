@@ -2865,6 +2865,10 @@
             "example": "Europe/Warsaw",
             "description": "IANA time zone name"
           },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Whether the user has completed onboarding"
+          },
           "householdId": {
             "type": "string",
             "format": "uuid",
@@ -2880,6 +2884,7 @@
           "defaultLocale",
           "baseCurrency",
           "timezone",
+          "onboardingCompleted",
           "householdId"
         ]
       },
@@ -2906,6 +2911,10 @@
             "maxLength": 64,
             "description": "IANA time zone name",
             "example": "Europe/Warsaw"
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Set true when the user finishes onboarding; false resets it"
           }
         }
       },

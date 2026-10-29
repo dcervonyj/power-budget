@@ -1,7 +1,8 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { observer, useLocalObservable } from 'mobx-react-lite';
 import { OnboardingStore } from '../../../application/onboarding/OnboardingStore.js';
 import { persistOnboardingPrefs } from '../../../application/onboarding/OnboardingPrefs.js';
+import { onboardingService } from '../../../composition.js';
 import { LocaleContext } from '../../../AppProviders.js';
 import { OnboardingView } from './OnboardingView.js';
 
@@ -15,14 +16,30 @@ export const OnboardingWizard = observer(function OnboardingWizard({
 }: OnboardingWizardProps): React.JSX.Element {
   const { setLocale } = useContext(LocaleContext);
   const store = useLocalObservable(() => new OnboardingStore());
+  const [saveFailed, setSaveFailed] = useState(false);
 
-  function finish(): void {
+  async function save(): Promise<void> {
     persistOnboardingPrefs(localStorage, {
       baseCurrency: store.baseCurrency,
       interestingCurrencies: store.interestingCurrencies,
       language: store.selectedLanguage,
     });
+    setSaveFailed(false);
+    try {
+      await onboardingService.complete({
+        language: store.selectedLanguage,
+        baseCurrency: store.baseCurrency,
+      });
+    } catch {
+      setSaveFailed(true);
+
+      return;
+    }
     onComplete();
+  }
+
+  function finish(): void {
+    void save();
   }
 
   function handleNext(): void {
@@ -48,6 +65,7 @@ export const OnboardingWizard = observer(function OnboardingWizard({
       onBack={store.back.bind(store)}
       onNext={handleNext}
       onSkip={handleSkip}
+      saveFailed={saveFailed}
     />
   );
 });

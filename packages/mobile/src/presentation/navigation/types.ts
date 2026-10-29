@@ -37,6 +37,7 @@ export type AppStackParamList = {
 // Root navigator
 export type RootStackParamList = {
   Auth: undefined;
+  Onboarding: undefined;
   App: undefined;
 };
 

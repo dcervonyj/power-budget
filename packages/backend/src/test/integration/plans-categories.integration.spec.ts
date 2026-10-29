@@ -650,6 +650,7 @@ describe('Plans, categories and preferences API (real app)', () => {
         email: 'anna-u@example.com',
         locale: 'en',
         timezone: 'UTC',
+        onboardingCompleted: false,
         householdId: anna.householdId,
       });
 
@@ -674,8 +675,20 @@ describe('Plans, categories and preferences API (real app)', () => {
         defaultLocale: 'en',
         baseCurrency: 'EUR',
         timezone: 'Europe/Warsaw',
+        onboardingCompleted: false,
         householdId: anna.householdId,
       });
+
+      const completed = await app.inject({
+        method: 'PATCH',
+        url: '/users/me',
+        headers: anna.auth,
+        payload: { onboardingCompleted: true },
+      });
+      expect(completed.statusCode).toBe(200);
+      expect(completed.json()).toMatchObject({ onboardingCompleted: true, baseCurrency: 'EUR' });
+      const reread = await app.inject({ method: 'GET', url: '/users/me', headers: anna.auth });
+      expect(reread.json()).toMatchObject({ onboardingCompleted: true });
 
       const badZone = await app.inject({
         method: 'PATCH',
