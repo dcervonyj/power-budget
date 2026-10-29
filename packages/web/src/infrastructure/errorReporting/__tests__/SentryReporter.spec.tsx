@@ -2,7 +2,12 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SentryReporter, type ErrorTarget, type SentryModule } from '../SentryReporter.js';
-import { loadSentry, scrubUser } from '../loadSentry.js';
+import { loadSentry } from '../loadSentry.js';
+import {
+  scrubSentryEvent,
+  scrubSentryBreadcrumb,
+  scrubSentryTransaction,
+} from '@power-budget/core';
 
 const sdk = vi.hoisted(() => ({
   init: vi.fn(),
@@ -105,9 +110,9 @@ describe('SentryReporter', () => {
   });
 
   it('removes email and ip address from events', () => {
-    expect(scrubUser({ user: { id: '1', email: 'a@b.c', ip_address: '1.1.1.1' } })).toEqual({
-      user: { id: '1' },
-    });
+    expect(scrubSentryEvent({ user: { id: '1', email: 'a@b.c', ip_address: '1.1.1.1' } })).toEqual(
+      {},
+    );
   });
 });
 
@@ -120,7 +125,10 @@ describe('loadSentry', () => {
         dsn: 'https://key@o1.ingest.sentry.io/42',
         integrations: ['tracing'],
         tracesSampleRate: 0.1,
-        beforeSend: scrubUser,
+        sendDefaultPii: false,
+        beforeSend: scrubSentryEvent,
+        beforeBreadcrumb: scrubSentryBreadcrumb,
+        beforeSendTransaction: scrubSentryTransaction,
       }),
     );
   });
