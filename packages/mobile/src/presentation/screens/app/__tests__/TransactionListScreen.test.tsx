@@ -34,7 +34,6 @@ jest.mock('../../../../infrastructure/index.js', () => ({
 
 function unsorted(id: string): TransactionListItemDto {
   return {
-    ...createMock<TransactionListItemDto>(),
     id,
     status: 'booked',
     occurredOn: '2026-10-27',
