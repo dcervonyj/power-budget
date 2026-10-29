@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-vitest';
 import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, within } from '@testing-library/react';
@@ -20,7 +21,7 @@ function connection(overrides: Partial<BankConnection>): BankConnection {
 }
 
 function props(overrides: Partial<BankConnectionsViewProps> = {}): BankConnectionsViewProps {
-  return {
+  return createMock<BankConnectionsViewProps>({
     connections: [connection({})],
     loading: false,
     error: false,
@@ -32,7 +33,7 @@ function props(overrides: Partial<BankConnectionsViewProps> = {}): BankConnectio
     onRefresh: vi.fn(),
     onRetry: vi.fn(),
     ...overrides,
-  };
+  });
 }
 
 function card(bankId: string): HTMLElement {
