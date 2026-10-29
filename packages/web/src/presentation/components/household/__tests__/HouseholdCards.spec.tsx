@@ -158,7 +158,7 @@ describe('household cards', () => {
     }
     // total_only: the shared glass CategoryRow, which shows the sum and nothing else.
     expect(within(groceries).getByRole('group')).toHaveAccessibleName(
-      /^Groceries: PLN\s1,500\.00 spent, totals only$/,
+      /^Groceries: zł\s1,500\.00 spent, totals only$/,
     );
     expect(within(groceries).getByText('Totals only')).toBeInTheDocument();
     expect(within(groceries).queryByText(/transaction/)).toBeNull();
@@ -167,7 +167,7 @@ describe('household cards', () => {
     expect(within(fuel).getByText('Total + count')).toBeInTheDocument();
     expect(within(fuel).getByText('3 transactions')).toBeInTheDocument();
     expect(within(fuel).getByRole('group')).toHaveAccessibleName(
-      /^Fuel: PLN\s420\.00, Total \+ count$/,
+      /^Fuel: zł\s420\.00, Total \+ count$/,
     );
     expect(within(fuel).queryByRole('link')).toBeNull();
 

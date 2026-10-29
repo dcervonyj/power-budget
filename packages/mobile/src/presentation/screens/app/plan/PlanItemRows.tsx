@@ -2,8 +2,12 @@ import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { useIntl } from 'react-intl';
 import type { IntlShape } from 'react-intl';
-import { matchHintToFormValues, parseMatchHintForm, type MatchHintField } from '@power-budget/core';
-import { formatMoneyParts } from '@power-budget/shared-app';
+import {
+  formatMoney,
+  matchHintToFormValues,
+  parseMatchHintForm,
+  type MatchHintField,
+} from '@power-budget/core';
 import type { CategoryRowData } from '@power-budget/shared-app';
 import { Button } from '../../../components/Button.js';
 import { Icon } from '../../../glass/atoms/Icon.js';
@@ -200,12 +204,10 @@ function ItemControls({ row, onAmountChange, onRemove }: RowProps): React.JSX.El
 }
 
 function formatLimit(intl: IntlShape, amountMinor: number, currency: string): string {
-  return formatMoneyParts(
+  return formatMoney(
     { amountMinor: BigInt(amountMinor), currency },
     toSupportedLocale(intl.locale),
-  )
-    .map((part) => part.value)
-    .join('');
+  );
 }
 
 function toCategoryRowData(row: PlanItemRowModel): CategoryRowData | null {

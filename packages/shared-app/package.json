@@ -77,6 +77,9 @@
     "clean": "rm -rf dist .turbo",
     "test": "vitest run"
   },
+  "dependencies": {
+    "@power-budget/core": "workspace:*"
+  },
   "peerDependencies": {
     "mobx": "^6",
     "mobx-react-lite": "^4.0.7",

@@ -1,8 +1,10 @@
 // Shared prop types for web and mobile components
 
+import type { SupportedLocale } from '@power-budget/core';
+
 export type ButtonVariant = 'primary' | 'secondary' | 'danger';
 
-export type DesignLocale = 'en' | 'pl' | 'uk' | 'ru';
+export type DesignLocale = SupportedLocale;
 
 export type InputState = 'default' | 'error' | 'disabled';
 
