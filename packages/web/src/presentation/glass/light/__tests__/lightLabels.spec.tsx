@@ -17,7 +17,6 @@ function Labels({ days }: { days: number }): React.JSX.Element {
       <li data-testid="over">{labels.rodAria('Eating out', 'over', PER_DAY, PLAN)}</li>
       <li data-testid="paid">{labels.rodAria('Rent', 'paid', PER_DAY, PLAN)}</li>
       <li data-testid="empty">{labels.rodAria('Home', 'empty', PER_DAY, PLAN)}</li>
-      <li data-testid="tube">{labels.tubeAria('Lisbon', PER_DAY, PLAN)}</li>
       <li data-testid="tag-over">{labels.rodTag('over')}</li>
       <li data-testid="tag-paid">{labels.rodTag('paid')}</li>
     </ul>

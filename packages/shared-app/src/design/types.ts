@@ -75,15 +75,6 @@ export interface RodProps {
   readonly rod: RodData;
 }
 
-export interface TubeData {
-  readonly fraction: number;
-  readonly ariaLabel: string;
-}
-
-export interface TubeProps {
-  readonly tube: TubeData;
-}
-
 export interface IconProps {
   readonly name: IconName;
   readonly label?: string;
