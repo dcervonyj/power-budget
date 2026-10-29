@@ -112,7 +112,7 @@ Never name a class, function, variable, parameter, type or property `*Helper` / 
 
 Lint-enforced style (errors, `eslint.ratchet.js`): `curly` (always braces), a blank line before `return`, `@typescript-eslint/switch-exhaustiveness-check` (list every union member as a `case`; a `default` alone does not count; for a closed union end with `default: return assertNever(x)`), `@typescript-eslint/member-ordering` (fields, constructor, public, protected, private methods), the `*Helper` / `I`-prefix naming ban, and no `lodash` import (use `lodash-es`). A package opts in with `"eslintRatchet": true` in its package.json once it is green; every package is expected to opt in. Backend `src/infrastructure/**` (non-test) also bans type assertions (`@typescript-eslint/consistent-type-assertions`, `assertionStyle: 'never'`, via `DIRECTORY_RATCHETS` in `eslint.ratchet.js`, CLN-074a): Drizzle id columns carry core brands via `.$type<XId>()` in `drizzle/schema.ts`, so rows map without `as`; mint ids with `XId.of(uuidv7())`, dates with `isoDateTimeOf`. A cast that has no other way needs a one-line `eslint-disable-next-line` with the reason.
 
-Tests build typed mocks with `createMock<T>(overrides)` from `@golevelup/ts-vitest` (backend, web) or `@golevelup/ts-jest` (mobile); no `as` casts, no `any()` matchers, assert exact values. Auto-stubbed members return mocks, so stub every value the code under test reads.
+Tests build typed mocks with `createMock<T>(overrides)` from `@golevelup/ts-vitest` (backend, web) or `@golevelup/ts-jest` (mobile); no `as` casts, no `any()` matchers or `expect.anything()`, assert exact values. Auto-stubbed members return mocks, so stub every value the code under test reads.
 
 ## Branded ID types
 
