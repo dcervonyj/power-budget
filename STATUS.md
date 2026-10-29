@@ -1,6 +1,6 @@
 # Power Budget — Status
 
-> Updated: 2026-10-29. Baseline: `master` @ `46294e7`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
+> Updated: 2026-10-29. Baseline: `master` @ `38f8703`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
 > Task list and real per-task status: [`docs/mvp/BACKLOG.md`](docs/mvp/BACKLOG.md) (§0 reality check, §7 v1.1 plan).
 > Interactive plan (Russian): https://claude.ai/artifact/FzFRqju9yeb3b72LANBawa
 > Bank-feed design: [`docs/mvp/plan-banking.md`](docs/mvp/plan-banking.md).
@@ -19,6 +19,7 @@ The product moved from pre-alpha scaffold to a working, deployed, restyled web a
 - Bank v2 foundation: `BankConnector` v2 port and schema (BNK-002, BNK-003, SYNC-001), batched ingest and watermark fixes (CLN-054, CLN-037, CLN-038).
 - AI categorisation, local part only: transaction normalisation (AI-001), merchant memory rules (AI-003), planned item match hints (AI-004).
 - Polish, Ukrainian and Russian translations (UI-I18N).
+- Done 29 Oct: CLN-084 (#328), CLN-085 (#329), CLN-068 (#330), CLN-044 (#331), CLN-063 (#332), CLN-086 (#333, #336–#342), CLN-073 (#334), CLN-087 (#335).
 - Done 28 Oct: CLN-079 (#323), CLN-081 (#324), CLN-083 (#325), CLN-082 (#326), CLN-080 (#327, mobile `Input` error read as the field's accessibility hint).
 
 ## What does not work / gaps
@@ -36,25 +37,25 @@ Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), G
 
 ## Where we are
 
-| Series                                                           | State                                                                                                                                                                               |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups    | Done, except CLN-044, CLN-063, CLN-068, CLN-085 (in progress), CLN-073 (queued after CLN-044), CLN-070 (only when a DSN mobile ticket needs the stores) and CLN-086 (spike running) |
-| D7 Glass DSN-010 to DSN-050 (web and mobile)                     | Done, except DSN-047 and DSN-048; DSN-051 last                                                                                                                                      |
-| CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done                                                                                                                                                                                |
-| CLN-077 Dependabot alerts, CLN-028 dependency batch              | Done                                                                                                                                                                                |
-| CLN-079 to CLN-083 (28 Oct)                                      | Done                                                                                                                                                                                |
-| BNK-002, BNK-003, SYNC-001 (bank v2 foundation)                  | Done                                                                                                                                                                                |
-| AI-001, AI-003, AI-004                                           | Done; AI-005+ blocked                                                                                                                                                               |
-| SYNC-005 live sync, SPK-001/002/003, HOST-003                    | Blocked on PO                                                                                                                                                                       |
+| Series                                                           | State                                                                              |
+| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups    | Done, except CLN-070 (deferred under D2)                                           |
+| D7 Glass DSN-010 to DSN-050 (web and mobile)                     | Done, except DSN-047 and DSN-048 (phone checks); DSN-051 in progress (separate PR) |
+| CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done                                                                               |
+| CLN-077 Dependabot alerts, CLN-028 dependency batch              | Done                                                                               |
+| CLN-079 to CLN-083 (28 Oct)                                      | Done                                                                               |
+| BNK-002, BNK-003, SYNC-001 (bank v2 foundation)                  | Done                                                                               |
+| AI-001, AI-003, AI-004                                           | Done; AI-005+ blocked                                                              |
+| SYNC-005 live sync, SPK-001/002/003, HOST-003                    | Blocked on PO                                                                      |
 
 ## Blocked on PO
 
-Domain (HOST-003, Resend domain, SPK-004, PKO inbound email); Enable Banking account (SPK-001, then M1 and SYNC-005); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); a phone for UI-016; 32 open questions on the PO guide; CLN-015 C14; the choice of a free monitoring service (D11, research running).
+Domain (HOST-003, Resend domain, SPK-004); Enable Banking account (SPK-001); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); phone for UI-016 and DSN-047/048 checks; Sentry and uptime accounts (D11); SPK-005 history export and 150 labels; 32 PO guide questions; CLN-015 C14.
 
 ## PO decisions of 29 Oct
 
-Recorded in [`docs/handoff/audit-2610/SUMMARY.md`](docs/handoff/audit-2610/SUMMARY.md) §4. D1 and D10: the web create form gets a Personal/Household selector (any member) and weekly and custom periods (CLN-044, in progress). D2: shared-app stays as the client SDK; scaffolding deleted now (CLN-068, in progress), stores move later (CLN-070). D3: the `*UseCase` suffix stays; the naming rule in CLAUDE.md, AGENTS.md and copilot-instructions is amended. D4: DSN money format in core (CLN-063, in progress). D5, D6, D13 (earlier): `booked` inside SYNC-001; export not enqueued until the GDPR processor ships (#287); CLN-039 and CLN-054 after SYNC-001. D7: unsupported-currency rows stored as `ignored` with a visible count. D8: every new user goes through onboarding, saved to the profile (CLN-073, queued after CLN-044). D9: register keeps 409 behind a throttle (CLN-085, in progress). D11: monitoring accepted, free service not chosen yet. D12: add ts-auto-mock and keep the `createMock<T>` rule (CLN-086, spike running). The AI-003 review follow-ups F6 and F7 are dropped.
+Recorded in [`docs/handoff/audit-2610/SUMMARY.md`](docs/handoff/audit-2610/SUMMARY.md) §4. D1 and D10: plan type selector and weekly/custom periods done (CLN-044). D2: shared-app scaffolding removed (CLN-068); CLN-070 deferred. D3: `*UseCase` suffix stays. D4: money format in core (CLN-063). D5, D6 and D13: `booked` in SYNC-001; export waits for the GDPR processor; CLN-039 and CLN-054 follow SYNC-001. D7: unsupported currencies stored as `ignored` with a visible count. D8: onboarding for every new user (CLN-073). D9: register keeps 409 behind a throttle (CLN-085). D11: Sentry free Developer plan in the EU, with backend, web and mobile projects, plus Better Stack free uptime monitors for `/health` and the web. PO is creating accounts; HOST-004 follows. D12: golevelup `createMock` selected; all specs converted (CLN-086). AI-003 follow-ups F6 and F7 dropped.
 
 ## Task counts
 
-Not derived here. `docs/mvp/BACKLOG.md` §0 still shows the 21 Oct counts (29 Done of 122) and is stale; see §7 and each task's `Status` line.
+The v1.0 catalogue counts in `docs/mvp/BACKLOG.md` §0 are derived from its status lines as of 29 Oct; see §7 for the v1.1 plan.
