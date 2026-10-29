@@ -32,7 +32,6 @@
   "biometric.promptMessage": "Розблокувати Power Budget",
   "biometric.retry": "Використати біометрію / код доступу",
   "biometric.title": "Розблокувати застосунок",
-  "common.amountWithCurrency": "{amount} {currency}",
   "common.checkmark": "✓",
   "common.closeButton": "✕",
   "input.password.hide": "Сховати",

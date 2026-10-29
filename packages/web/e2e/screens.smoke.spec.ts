@@ -323,17 +323,17 @@ test.describe('UI-013 screens', () => {
     await expect(page.getByText('Data as of 21 Oct 2026')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Planned vs spent' })).toBeVisible();
     const groceries = page.getByRole('article', { name: 'Groceries' });
-    await expect(groceries.getByText('PLN 1,400.00 of PLN 1,930.00')).toBeVisible();
+    await expect(groceries.getByText('zł 1,400.00 of zł 1,930.00')).toBeVisible();
     await expect(groceries.getByText('planned as €100.00')).toBeVisible();
     // DSN-020: the D7 category row names the overspend ("Over by …") instead of "Over budget".
     await expect(
-      page.getByRole('article', { name: 'Rent' }).getByText('Over by PLN 200.00'),
+      page.getByRole('article', { name: 'Rent' }).getByText('Over by zł 200.00'),
     ).toBeVisible();
     await expect(page.getByText('Allegro')).toBeVisible();
     await expect(
       page.getByText('Wise card · Lidl Berlin').locator('xpath=ancestor::li[1]'),
     ).toContainText(/−€\s?12\.40/);
-    await expect(page.getByText('+PLN 5,221.76')).toBeVisible();
+    await expect(page.getByText('+zł 5,221.76')).toBeVisible();
     await shot(page, 'plan-dashboard');
     await attachThemeShots(page, testInfo, 'plan-dashboard');
   });

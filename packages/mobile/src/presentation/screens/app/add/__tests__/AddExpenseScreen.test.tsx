@@ -125,7 +125,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
 
     await userEvent.setup().press(screen.getByRole('button', { name: 'Undo' }));
@@ -140,12 +140,12 @@ describe('AddExpenseScreen', () => {
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
 
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
 
     await waitFor(() =>
       expect(screen.getByText('Could not save the expense. Try again.')).toBeTruthy(),
     );
-    expect(screen.getByRole('button', { name: /^Add PLN 5\.00/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Add zł 5\.00/ })).toBeTruthy();
   });
 
   it('shows an empty state when there is no active plan', async () => {
@@ -160,7 +160,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
 
     await userEvent.setup().press(screen.getByRole('button', { name: 'Back to Today' }));
@@ -174,13 +174,13 @@ describe('AddExpenseScreen', () => {
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
 
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
 
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     expect(screen.getByText('Saved, but not added to Groceries yet.')).toBeTruthy();
     expect(screen.queryByText('Could not save the expense. Try again.')).toBeNull();
     expect(mockPost).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('button', { name: /^Add PLN 5\.00/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Add zł 5\.00/ })).toBeNull();
   });
 
   it('R1-F1: two quick Save presses before a rerender post only one transaction', async () => {
@@ -190,7 +190,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    const save = screen.getByRole('button', { name: /^Add PLN 5\.00/ });
+    const save = screen.getByRole('button', { name: /^Add zł 5\.00/ });
 
     await act(async () => {
       fireEvent.press(save);
@@ -205,7 +205,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     expect(mockDashboard).toHaveBeenCalledTimes(1);
 
@@ -234,7 +234,7 @@ describe('AddExpenseScreen', () => {
     });
     await waitFor(() => expect(mockDashboard).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.getByText('Oct 23')).toBeTruthy());
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
 
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     expect(mockPost).toHaveBeenCalledWith(
@@ -248,7 +248,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     mockDashboard.mockRejectedValueOnce(new Error('offline'));
 
@@ -301,7 +301,7 @@ describe('AddExpenseScreen', () => {
       });
     });
     await typeAmount(['8', '4']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 84\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 84\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     const before = screen.getByText(/Safe to spend today is now/).props.children;
 
@@ -316,7 +316,7 @@ describe('AddExpenseScreen', () => {
     });
 
     expect(screen.getByText(/Safe to spend today is now/).props.children).toEqual(before);
-    expect(screen.getByTestId('add-category-line')).toHaveTextContent(/1,051\.36 → PLN 967\.36/);
+    expect(screen.getByTestId('add-category-line')).toHaveTextContent(/1,051\.36 → zł 967\.36/);
   });
 
   it('R2-F2: Undo locks Add another until it completes, then refreshes the totals', async () => {
@@ -324,7 +324,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     mockPatch.mockImplementationOnce(
       () =>
@@ -369,7 +369,7 @@ describe('AddExpenseScreen', () => {
       });
     });
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     await userEvent.setup().press(screen.getByRole('button', { name: 'Undo' }));
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
@@ -386,7 +386,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     mockDashboard.mockRejectedValueOnce(new Error('offline'));
 
@@ -407,7 +407,7 @@ describe('AddExpenseScreen', () => {
     const rendered = await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
 
     return rendered;
@@ -517,7 +517,7 @@ describe('AddExpenseScreen', () => {
     await waitFor(() => expect(screen.queryByRole('radio', { name: 'Dining' })).toBeNull());
     expect(screen.getByRole('radio', { name: 'Groceries' })).toBeChecked();
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     expect(mockPost).toHaveBeenCalledWith(
       '/transactions',
@@ -529,7 +529,7 @@ describe('AddExpenseScreen', () => {
     await renderAdd(<AddExpenseScreen />);
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
     await typeAmount(['5']);
-    await userEvent.setup().press(screen.getByRole('button', { name: /^Add PLN 5\.00/ }));
+    await userEvent.setup().press(screen.getByRole('button', { name: /^Add zł 5\.00/ }));
     await waitFor(() => expect(screen.getByText('Added')).toBeTruthy());
     mockDashboard.mockRejectedValueOnce(new Error('offline'));
     await userEvent.setup().press(screen.getByRole('button', { name: 'Undo' }));
@@ -540,6 +540,6 @@ describe('AddExpenseScreen', () => {
     await userEvent.setup().press(screen.getByRole('button', { name: 'Retry' }));
 
     await waitFor(() => expect(screen.getByRole('radio', { name: 'Groceries' })).toBeTruthy());
-    expect(screen.getByRole('button', { name: /^Add PLN 5\.00/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /^Add zł 5\.00/ })).toBeTruthy();
   });
 });

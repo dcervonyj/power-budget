@@ -1,5 +1,4 @@
-import { formatMoneyParts, type MoneyPart } from '@power-budget/shared-app';
-import type { SupportedLocale } from '@power-budget/core';
+import { formatMoneyParts, type MoneyPart, type SupportedLocale } from '@power-budget/core';
 import type { MoneyAmount } from '../../../domain/dashboard/PlanDashboard.js';
 
 const FRACTION_PARTS: ReadonlySet<string> = new Set(['decimal', 'fraction']);

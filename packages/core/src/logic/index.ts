@@ -1,5 +1,5 @@
-export { formatMoney, formatDate, formatNumber } from './format.js';
-export type { SupportedLocale, MinorUnitAmount } from './format.js';
+export { formatMoney, formatMoneyParts, formatDate, formatNumber } from './format.js';
+export type { SupportedLocale, MinorUnitAmount, MoneyPart } from './format.js';
 export {
   getMinorUnitExponent,
   parseMoney,

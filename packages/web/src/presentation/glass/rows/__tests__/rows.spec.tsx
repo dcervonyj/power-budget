@@ -58,7 +58,7 @@ describe('TxRow accessible names', () => {
   it('names a booked row by title, amount and subtitle', () => {
     renderEn(<TxRow transaction={BASE} />);
 
-    expect(groupName()).toBe('Lidl, -PLN 87.40, 18 Oct');
+    expect(groupName()).toBe('Lidl, −zł 87.40, 18 Oct');
   });
 
   it('adds "just synced" for a live row and shows the Just in tag', () => {
@@ -172,7 +172,7 @@ describe('CategoryRow', () => {
   it('shows the rod, the amount left and the status tag', () => {
     renderEn(<CategoryRow category={CATEGORY} />);
 
-    expect(groupName()).toBe('Groceries: PLN 1,148.64 spent');
+    expect(groupName()).toBe('Groceries: zł 1,148.64 spent');
     expect(screen.getByRole('img').getAttribute('aria-label')).toContain('left of');
     expect(screen.getByTestId('category-left').textContent).toContain('left');
     expect(screen.getByText('Under plan')).toBeInTheDocument();
@@ -202,7 +202,7 @@ describe('CategoryRow', () => {
   it('privacy variant shows only the total: no rod, no plan, no amount left', () => {
     renderEn(<CategoryRow category={{ ...CATEGORY, totalOnly: true }} />);
 
-    expect(groupName()).toBe('Groceries: PLN 1,148.64 spent, totals only');
+    expect(groupName()).toBe('Groceries: zł 1,148.64 spent, totals only');
     expect(screen.queryByRole('img')).toBeNull();
     expect(screen.queryByTestId('category-left')).toBeNull();
     expect(screen.queryByText(/of /)).toBeNull();
