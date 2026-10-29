@@ -13,7 +13,6 @@ export interface LightLabels {
     plan: MoneyAmount,
   ): string;
   rodTag(state: 'over' | 'paid'): string;
-  tubeAria(name: string, saved: MoneyAmount, goal: MoneyAmount): string;
 }
 
 /** i18n strings for the light primitives (glass-light.* messages); amounts go through formatAmount. */
@@ -88,16 +87,6 @@ export function useLightLabels(): LightLabels {
         id: 'glass-light.rod.tag.over',
         defaultMessage: 'Over budget',
       });
-    },
-    tubeAria(name, saved, goal) {
-      return intl.formatMessage(
-        { id: 'glass-light.tube.aria', defaultMessage: '{name}: {saved} of {goal}' },
-        {
-          name,
-          saved: formatAmount(saved, intl.locale),
-          goal: formatAmount(goal, intl.locale),
-        },
-      );
     },
   };
 }

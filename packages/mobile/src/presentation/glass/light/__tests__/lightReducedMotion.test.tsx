@@ -5,7 +5,6 @@ import { screen } from '@testing-library/react-native';
 import type { LensData } from '@power-budget/shared-app';
 import { Lens } from '../Lens.js';
 import { RodLight } from '../Rod.js';
-import { TubeBeam } from '../Tube.js';
 import { glassLightRn, lightProviders, renderLight } from './lightTestUtils.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -73,7 +72,6 @@ describe('reduced motion and settle', () => {
             width={300}
             height={10}
           />
-          <TubeBeam glass={glassLightRn} fraction={0.5} index={0} width={18} height={160} />
         </Canvas>
       </>,
     );

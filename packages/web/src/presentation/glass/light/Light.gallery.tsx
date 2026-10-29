@@ -2,7 +2,6 @@ import React from 'react';
 import type { LensData, RodData } from '@power-budget/shared-app';
 import { Lens } from './Lens.js';
 import { Rod } from './Rod.js';
-import { Tube } from './Tube.js';
 import { useLightLabels } from './useLightLabels.js';
 
 const PLAN = { amountMinor: 1180000n, currency: 'PLN' };
@@ -104,19 +103,4 @@ export function RodPace(): React.JSX.Element {
 /** Category rod (10 high), same states. */
 export function RodCategory(): React.JSX.Element {
   return <RodRows size="category" />;
-}
-
-/** Vertical tube: savings goal at 70 %, a nearly empty one and an empty one. */
-export function TubeLevels(): React.JSX.Element {
-  const labels = useLightLabels();
-  const saved = { amountMinor: 634000n, currency: 'PLN' };
-  const goal = { amountMinor: 900000n, currency: 'PLN' };
-
-  return (
-    <div style={WRAP_STYLE}>
-      <Tube tube={{ fraction: 0.7, ariaLabel: labels.tubeAria('Lisbon in May', saved, goal) }} />
-      <Tube tube={{ fraction: 0.1, ariaLabel: labels.tubeAria('Lisbon in May', saved, goal) }} />
-      <Tube tube={{ fraction: 0, ariaLabel: labels.tubeAria('Lisbon in May', saved, goal) }} />
-    </div>
-  );
 }
