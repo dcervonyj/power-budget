@@ -1,7 +1,6 @@
 import React from 'react';
 import { Text, View } from 'react-native';
 import { makeStyles } from '../../theme/index.js';
-import { Modal } from '../../components/Modal.js';
 import { Button } from '../../components/Button.js';
 import { AmbientField } from '../material/AmbientField.js';
 import { BODY_FONT } from '../controls/fonts.js';
@@ -14,7 +13,6 @@ import { Toast } from './Toast.js';
 
 const SAVE_LABEL = 'Save';
 const SHEET_TEXT = 'Name, icon and monthly amount.';
-const MODAL_TEXT = 'The plan and its mappings are removed. Transactions stay in place.';
 
 const useStyles = makeStyles((glass) => ({
   stage: { minHeight: 600, gap: glass.space.lg },
@@ -34,28 +32,6 @@ export function Sheets(): React.JSX.Element {
       <Sheet isOpen onClose={noop} title="Edit category" footer={<Button>{SAVE_LABEL}</Button>}>
         <Text style={styles.body}>{SHEET_TEXT}</Text>
       </Sheet>
-    </View>
-  );
-}
-
-/** The pre-glass Modal props, restyled as a sheet with footer buttons. */
-export function Modals(): React.JSX.Element {
-  const styles = useStyles();
-
-  return (
-    <View style={styles.stage}>
-      <AmbientField />
-      <Modal
-        isOpen
-        title="Delete this plan?"
-        onClose={noop}
-        footerButtons={[
-          { label: 'Cancel', variant: 'secondary', onPress: noop },
-          { label: 'Delete', variant: 'danger', onPress: noop },
-        ]}
-      >
-        <Text style={styles.body}>{MODAL_TEXT}</Text>
-      </Modal>
     </View>
   );
 }

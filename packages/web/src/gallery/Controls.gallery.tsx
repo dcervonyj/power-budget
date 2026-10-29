@@ -7,7 +7,6 @@ import { FilterChips } from '../presentation/glass/controls/FilterChips.js';
 import { IconButton } from '../presentation/glass/controls/IconButton.js';
 import { SegmentedControl } from '../presentation/glass/controls/SegmentedControl.js';
 import { Stepper } from '../presentation/glass/controls/Stepper.js';
-import { Switch } from '../presentation/glass/controls/Switch.js';
 import '../presentation/glass/controls/controls.css';
 
 const ROW: React.CSSProperties = {
@@ -114,23 +113,12 @@ export function Fields(): React.JSX.Element {
 }
 
 export function Toggles(): React.JSX.Element {
-  const [on, setOn] = useState(true);
-  const [off, setOff] = useState(false);
   const [qty, setQty] = useState(3);
   const [category, setCategory] = useState('food');
   const [period, setPeriod] = useState('month');
 
   return (
     <section aria-label="Toggles">
-      <div style={ROW}>
-        <Switch label="On" checked={on} onChange={setOn} />
-        <Switch label="Off" checked={off} onChange={setOff} />
-        <Switch label="On disabled" checked disabled onChange={setOn} />
-        <Switch label="Off disabled" checked={false} disabled onChange={setOff} />
-        <span className="pbg-ctl-focus" style={{ borderRadius: 16 }}>
-          <Switch label="Focus" checked={on} onChange={setOn} />
-        </span>
-      </div>
       <div style={ROW}>
         <Stepper
           label="Quantity"
