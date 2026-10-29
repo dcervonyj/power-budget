@@ -3223,7 +3223,7 @@ Consent lifecycle, alerts, uptime, the GDPR decision.
 - **Area**: Hosting
 - **Phase**: M4
 - **Effort**: S (~1d)
-- **Status**: Planned
+- **Status**: Partly done (CLN-089, 2026-10-30): Better Stack free monitors on `/health` and the web (3-minute checks, email), Sentry EU projects `backend`, `web`, `mobile` with default high-priority email alerts; see `docs/runbooks/monitoring.md`. Left: webhook-route check and the SYNC-009 alert rules, after SYNC-005 and HOST-003.
 - **Description**: An external uptime check (a free monitor) on `/health` and on the webhook route. Sentry alerts for the conditions in SYNC-009.
 - **Blocked by**: HOST-002
 - **Blocks**: none
