@@ -1,15 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createMock } from '@golevelup/ts-vitest';
 import type { HttpClient, SecureTokenStore } from '@power-budget/shared-app';
 import { ClientSession } from './ClientSession.js';
 import { SignOut } from './SignOut.js';
 
 function tokenStore(refreshToken: string | null): SecureTokenStore {
-  return {
+  return createMock<SecureTokenStore>({
     getAccessToken: vi.fn().mockReturnValue('access'),
     getRefreshToken: vi.fn().mockReturnValue(refreshToken),
-    setTokens: vi.fn().mockResolvedValue(undefined),
-    clearTokens: vi.fn().mockResolvedValue(undefined),
-  };
+  });
 }
 
 function clientSession(): ClientSession {
@@ -20,14 +19,7 @@ function clientSession(): ClientSession {
 }
 
 function httpClient(post: HttpClient['post']): HttpClient {
-  return {
-    request: vi.fn(),
-    get: vi.fn(),
-    post,
-    put: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  };
+  return createMock<HttpClient>({ post });
 }
 
 describe('SignOut', () => {
