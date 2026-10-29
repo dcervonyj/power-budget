@@ -39,7 +39,6 @@ function item(
   suggested: string | null = null,
 ): TransactionListItemDto {
   return {
-    ...createMock<TransactionListItemDto>(),
     id,
     status: 'booked',
     occurredOn: '2026-10-27',

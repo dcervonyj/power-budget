@@ -38,7 +38,6 @@ const setMapping = jest.mocked(transactionsGateway.setMapping);
 
 function item(id: string, merchant: string, mapped: boolean): TransactionListItemDto {
   return {
-    ...createMock<TransactionListItemDto>(),
     id,
     status: 'booked',
     occurredOn: '2026-10-27',
@@ -111,7 +110,11 @@ beforeEach(() => {
   jest
     .mocked(plansApi.list)
     .mockResolvedValue([
-      createMock<PlanDto>({ id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } }),
+      createMock<PlanDto>({
+        id: 'now',
+        name: 'October',
+        period: { start: '2000-01-01', end: '2999-12-31' },
+      }),
     ]);
   jest.mocked(plansApi.dashboard).mockResolvedValue(
     createMock<PlanDashboardResponseDto>({

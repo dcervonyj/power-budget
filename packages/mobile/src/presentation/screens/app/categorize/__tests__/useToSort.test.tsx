@@ -37,7 +37,6 @@ const plans = jest.mocked(plansApi.list);
 
 function item(id: string, mapped: boolean): TransactionListItemDto {
   return {
-    ...createMock<TransactionListItemDto>(),
     id,
     status: 'booked',
     occurredOn: '2026-10-27',
