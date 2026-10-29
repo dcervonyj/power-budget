@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import {
   BankAccountId,
   CategoryId,
@@ -82,8 +82,8 @@ function newTx(occurredOn: string, overrides: Partial<NewTransaction> = {}): New
 }
 
 describe('LearnMerchantRuleUseCase', () => {
-  let rules: ReturnType<typeof mock<MerchantRuleRepository>>;
-  let items: ReturnType<typeof mock<PlannedItemResolver>>;
+  let rules: ReturnType<typeof createMock<MerchantRuleRepository>>;
+  let items: ReturnType<typeof createMock<PlannedItemResolver>>;
   let useCase: LearnMerchantRuleUseCase;
   const warn = vi.fn();
   const transaction = makeTransaction({
@@ -94,8 +94,8 @@ describe('LearnMerchantRuleUseCase', () => {
   });
 
   beforeEach(() => {
-    rules = mock<MerchantRuleRepository>();
-    items = mock<PlannedItemResolver>();
+    rules = createMock<MerchantRuleRepository>();
+    items = createMock<PlannedItemResolver>();
     useCase = new LearnMerchantRuleUseCase(rules, items, () => now, warn);
   });
 
@@ -152,13 +152,13 @@ describe('LearnMerchantRuleUseCase', () => {
 });
 
 describe('SuggestFromMerchantRulesUseCase', () => {
-  let rules: ReturnType<typeof mock<MerchantRuleRepository>>;
-  let items: ReturnType<typeof mock<PlannedItemResolver>>;
+  let rules: ReturnType<typeof createMock<MerchantRuleRepository>>;
+  let items: ReturnType<typeof createMock<PlannedItemResolver>>;
   let useCase: SuggestFromMerchantRulesUseCase;
 
   beforeEach(() => {
-    rules = mock<MerchantRuleRepository>();
-    items = mock<PlannedItemResolver>();
+    rules = createMock<MerchantRuleRepository>();
+    items = createMock<PlannedItemResolver>();
     useCase = new SuggestFromMerchantRulesUseCase(rules, items);
   });
 

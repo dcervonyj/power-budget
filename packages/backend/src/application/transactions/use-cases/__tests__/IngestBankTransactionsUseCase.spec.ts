@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { IngestBankTransactionsUseCase } from '../IngestBankTransactionsUseCase.js';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import type { NewTransaction } from '../../../../domain/transactions/entities.js';
@@ -41,22 +41,24 @@ function makeRawTx(overrides: Partial<RawTransaction> = {}): RawTransaction {
 const rawTx = makeRawTx();
 
 /** The rows handed to the repository, flattened over every insertBankBatch call. */
-function insertedRows(repo: ReturnType<typeof mock<TransactionRepository>>): NewTransaction[] {
+function insertedRows(
+  repo: ReturnType<typeof createMock<TransactionRepository>>,
+): NewTransaction[] {
   return vi.mocked(repo.insertBankBatch).mock.calls.flatMap((call) => [...call[0]]);
 }
 
 describe('IngestBankTransactionsUseCase', () => {
-  let txRepo: ReturnType<typeof mock<TransactionRepository>>;
-  let merchantRules: ReturnType<typeof mock<SuggestFromMerchantRulesUseCase>>;
-  let plannedHints: ReturnType<typeof mock<SuggestFromPlannedHintsUseCase>>;
+  let txRepo: ReturnType<typeof createMock<TransactionRepository>>;
+  let merchantRules: ReturnType<typeof createMock<SuggestFromMerchantRulesUseCase>>;
+  let plannedHints: ReturnType<typeof createMock<SuggestFromPlannedHintsUseCase>>;
   let useCase: IngestBankTransactionsUseCase;
 
   beforeEach(() => {
-    txRepo = mock<TransactionRepository>();
+    txRepo = createMock<TransactionRepository>();
     txRepo.insertBankBatch.mockResolvedValue(0);
-    merchantRules = mock<SuggestFromMerchantRulesUseCase>();
+    merchantRules = createMock<SuggestFromMerchantRulesUseCase>();
     merchantRules.suggest.mockImplementation((rows) => Promise.resolve([...rows]));
-    plannedHints = mock<SuggestFromPlannedHintsUseCase>();
+    plannedHints = createMock<SuggestFromPlannedHintsUseCase>();
     plannedHints.suggest.mockImplementation((rows) => Promise.resolve([...rows]));
     useCase = new IngestBankTransactionsUseCase(txRepo, makeId, merchantRules, plannedHints);
   });

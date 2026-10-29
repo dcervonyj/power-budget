@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, IsoDate, IsoDateTime, PlanId, UserId } from '@power-budget/core';
 import type { Plan } from '../../../domain/plans/entities.js';
 import type { PlanRepository, UnplannedTransactionReader } from '../../../domain/plans/ports.js';
@@ -29,11 +29,11 @@ const PLAN_ROW: Plan = {
 
 function setup(): {
   useCase: GetUnplannedTransactionsUseCase;
-  reader: ReturnType<typeof mock<UnplannedTransactionReader>>;
+  reader: ReturnType<typeof createMock<UnplannedTransactionReader>>;
 } {
-  const plans = mock<PlanRepository>();
+  const plans = createMock<PlanRepository>();
   plans.findById.mockResolvedValue(PLAN_ROW);
-  const reader = mock<UnplannedTransactionReader>();
+  const reader = createMock<UnplannedTransactionReader>();
   reader.list.mockResolvedValue({ items: [], nextCursor: null });
 
   return { useCase: new GetUnplannedTransactionsUseCase(plans, reader), reader };

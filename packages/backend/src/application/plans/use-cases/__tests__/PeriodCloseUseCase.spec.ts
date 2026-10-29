@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { PlanId, HouseholdId, IsoDate, IsoDateTime, UserId } from '@power-budget/core';
 import type { Plan } from '../../../../domain/plans/entities.js';
 import type { PlanRepository } from '../../../../domain/plans/ports.js';
@@ -40,7 +40,7 @@ describe('PeriodCloseUseCase', () => {
       archive: vi.fn(),
       findDueForClose: vi.fn(),
     };
-    closePeriodSnapshot = mock<ClosePeriodSnapshotUseCase>({ execute: vi.fn() });
+    closePeriodSnapshot = createMock<ClosePeriodSnapshotUseCase>({ execute: vi.fn() });
     useCase = new PeriodCloseUseCase(planRepo, closePeriodSnapshot);
   });
 

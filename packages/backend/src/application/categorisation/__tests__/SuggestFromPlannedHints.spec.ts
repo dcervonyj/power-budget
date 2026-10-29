@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import {
   BankAccountId,
   CategoryId,
@@ -56,7 +56,7 @@ function row(overrides: Partial<NewTransaction> = {}): NewTransaction {
 }
 
 function useCase(items: readonly HintedPlannedItem[]): SuggestFromPlannedHintsUseCase {
-  const reader = mock<PlannedHintReader>();
+  const reader = createMock<PlannedHintReader>();
   reader.listHinted.mockResolvedValue([...items]);
 
   return new SuggestFromPlannedHintsUseCase(reader);
@@ -118,7 +118,7 @@ describe('SuggestFromPlannedHintsUseCase', () => {
   });
 
   it('leaves ignored rows and rows with a suggestion untouched, and queries once per batch', async () => {
-    const reader = mock<PlannedHintReader>();
+    const reader = createMock<PlannedHintReader>();
     reader.listHinted.mockResolvedValue([item('rent')]);
     const suggested = row({
       suggestion: {
@@ -142,7 +142,7 @@ describe('SuggestFromPlannedHintsUseCase', () => {
   });
 
   it('skips the lookup when every row is ignored', async () => {
-    const reader = mock<PlannedHintReader>();
+    const reader = createMock<PlannedHintReader>();
 
     await new SuggestFromPlannedHintsUseCase(reader).suggest(
       [row({ ignored: true })],

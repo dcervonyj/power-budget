@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { NotificationRepository } from '../../../../domain/notifications/ports.js';
 import { RecordEmailBounceUseCase } from '../RecordEmailBounceUseCase.js';
 
 describe('RecordEmailBounceUseCase', () => {
-  let repo: ReturnType<typeof mock<NotificationRepository>>;
+  let repo: ReturnType<typeof createMock<NotificationRepository>>;
   let useCase: RecordEmailBounceUseCase;
 
   beforeEach(() => {
-    repo = mock<NotificationRepository>();
+    repo = createMock<NotificationRepository>();
     useCase = new RecordEmailBounceUseCase(repo);
   });
 

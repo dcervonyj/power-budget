@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { CategoryId, IsoDateTime } from '@power-budget/core';
 import type {
   CategoryPrivacyRepository,
@@ -20,14 +20,14 @@ const SYSTEM = makeCategory({
 });
 const ARCHIVED_AT = IsoDateTime.of('2026-10-02T00:00:00.000Z');
 
-let categoryRepo: MockProxy<CategoryRepository>;
-let privacyRepo: MockProxy<CategoryPrivacyRepository>;
-let auditLogger: MockProxy<AuditLogger>;
+let categoryRepo: DeepMocked<CategoryRepository>;
+let privacyRepo: DeepMocked<CategoryPrivacyRepository>;
+let auditLogger: DeepMocked<AuditLogger>;
 
 beforeEach(() => {
-  categoryRepo = mock<CategoryRepository>();
-  privacyRepo = mock<CategoryPrivacyRepository>();
-  auditLogger = mock<AuditLogger>();
+  categoryRepo = createMock<CategoryRepository>();
+  privacyRepo = createMock<CategoryPrivacyRepository>();
+  auditLogger = createMock<AuditLogger>();
 });
 
 describe('ListCategoriesUseCase', () => {

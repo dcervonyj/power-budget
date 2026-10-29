@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, TransactionId, UserId } from '@power-budget/core';
 import type {
   TransactionRepository,
@@ -18,12 +18,12 @@ const TX_2 = TransactionId.of('01900000-0000-7000-8000-0000000000c4');
 const scope = { householdId: HOUSEHOLD };
 
 function setup(owned: TransactionId[]): {
-  txRepo: ReturnType<typeof mock<TransactionRepository>>;
-  transferRepo: ReturnType<typeof mock<TransferRepository>>;
+  txRepo: ReturnType<typeof createMock<TransactionRepository>>;
+  transferRepo: ReturnType<typeof createMock<TransferRepository>>;
   useCase: BulkActOnTransactionsUseCase;
 } {
-  const txRepo = mock<TransactionRepository>();
-  const transferRepo = mock<TransferRepository>();
+  const txRepo = createMock<TransactionRepository>();
+  const transferRepo = createMock<TransferRepository>();
   txRepo.findOwnedIds.mockResolvedValue(owned);
 
   return { txRepo, transferRepo, useCase: new BulkActOnTransactionsUseCase(txRepo, transferRepo) };
