@@ -1,17 +1,24 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react-native';
+import { createMock } from '@golevelup/ts-jest';
+import type { ApiClient } from '@power-budget/shared-app';
+import type { LocaleContextValue } from '../LocaleProvider.js';
 import { ServerLocaleSync } from '../ServerLocaleSync.js';
 
 const mockSetLocale = jest.fn();
 const mockGet = jest.fn();
+const mockApiClient = createMock<ApiClient>({ get: mockGet, sessionId: 4 });
+const mockLocaleContext = createMock<LocaleContextValue>({
+  locale: 'en',
+  setLocale: mockSetLocale,
+});
 
 jest.mock('../LocaleProvider.js', () => ({
-  useAppLocale: (): object => ({ locale: 'en', setLocale: mockSetLocale }),
+  useAppLocale: (): LocaleContextValue => mockLocaleContext,
 }));
 jest.mock('../../infrastructure/index.js', () => ({
-  apiClient: {
-    get: (url: string): Promise<unknown> => mockGet(url),
-    sessionId: 4,
+  get apiClient(): ApiClient {
+    return mockApiClient;
   },
 }));
 
