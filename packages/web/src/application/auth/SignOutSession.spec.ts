@@ -51,6 +51,8 @@ const ANNA: UserProfileDto = {
   defaultLocale: 'en',
   baseCurrency: 'PLN',
   timezone: 'Europe/Warsaw',
+  interestingCurrencies: [],
+  onboardingCompleted: true,
   householdId: 'hh-anna',
 };
 

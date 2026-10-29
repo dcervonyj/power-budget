@@ -1,4 +1,6 @@
-import { CategoriesApi, HouseholdsApi, PlansApi } from '@power-budget/shared-app';
+import { SessionStorageProgressStorage } from './infrastructure/storage/SessionStorageProgressStorage.js';
+import { OnboardingProgress } from './application/onboarding/OnboardingProgress.js';
+import { CategoriesApi, HouseholdsApi, OnboardingApi, PlansApi } from '@power-budget/shared-app';
 import { ClientSession } from './application/auth/ClientSession.js';
 import { AcceptInvite } from './application/household/AcceptInvite.js';
 import { SignOut } from './application/auth/SignOut.js';
@@ -46,6 +48,9 @@ export const bulkTransactionActions = new BulkTransactionActions(apiClient);
 export const plansApi = new PlansApi(apiClient);
 export const categoriesApi = new CategoriesApi(apiClient);
 export const householdsApi = new HouseholdsApi(apiClient);
+export const onboardingService = new OnboardingApi(apiClient);
+export const onboardingProgress = new OnboardingProgress(new SessionStorageProgressStorage());
+clientSession.register(onboardingProgress);
 export const acceptInvite = new AcceptInvite(householdsApi, tokenStore);
 
 /** The app's catalogue; sign-out clears it with the other session stores. */

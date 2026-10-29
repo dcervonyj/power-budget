@@ -1,12 +1,16 @@
 import React from 'react';
-import { Text as MockText } from 'react-native';
+import { Pressable as MockPressable, Text as MockText } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { RootNavigator } from '../RootNavigator.js';
 import { ExpoSecureStoreTokenStore } from '../../../infrastructure/tokens/ExpoSecureStoreTokenStore.js';
 
 const mockStorage = new Map<string, string>();
+const mockIsCompleted = jest.fn<Promise<boolean>, []>();
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 jest.mock('expo-secure-store', () => ({
   getItemAsync: (key: string): Promise<string | null> =>
     Promise.resolve(mockStorage.get(key) ?? null),
@@ -26,10 +30,24 @@ jest.mock('../../../infrastructure/index.js', () => {
     '../../../infrastructure/tokens/ExpoSecureStoreTokenStore',
   );
 
-  return { tokenStore: new Store() };
+  return {
+    tokenStore: new Store(),
+    apiClient: { sessionId: 1 },
+    onboardingApi: { isCompleted: (): Promise<boolean> => mockIsCompleted(), complete: jest.fn() },
+  };
 });
 jest.mock('../AuthStackNavigator.js', () => ({
   AuthStackNavigator: (): React.JSX.Element => <MockText>auth stack</MockText>,
+}));
+jest.mock('../../screens/onboarding/OnboardingScreen.js', () => ({
+  OnboardingScreen: (): React.JSX.Element => <MockText>onboarding screen</MockText>,
+}));
+jest.mock('../../screens/onboarding/OnboardingProfileError.js', () => ({
+  OnboardingProfileError: ({ onRetry }: { onRetry: () => void }): React.JSX.Element => (
+    <MockPressable accessibilityRole="button" onPress={onRetry}>
+      <MockText>profile error</MockText>
+    </MockPressable>
+  ),
 }));
 jest.mock('../AppStackNavigator.js', () => ({
   AppStackNavigator: (): React.JSX.Element => <MockText>app stack</MockText>,
@@ -51,6 +69,8 @@ async function renderNavigator(): Promise<void> {
 describe('RootNavigator', () => {
   beforeEach(async () => {
     mockStorage.clear();
+    mockIsCompleted.mockReset();
+    mockIsCompleted.mockResolvedValue(true);
     await tokenStore.clearTokens();
   });
 
@@ -67,7 +87,31 @@ describe('RootNavigator', () => {
     await tokenStore.load();
     await renderNavigator();
 
-    expect(screen.getByText('app stack')).toBeTruthy();
+    expect(await screen.findByText('app stack')).toBeTruthy();
+  });
+
+  it('sends a user who has not completed onboarding to onboarding, not the app', async () => {
+    mockIsCompleted.mockResolvedValue(false);
+    mockStorage.set('pb_access_token', 'a');
+    mockStorage.set('pb_refresh_token', 'r');
+    await tokenStore.load();
+    await renderNavigator();
+
+    expect(await screen.findByText('onboarding screen')).toBeTruthy();
+    expect(screen.queryByText('app stack')).toBeNull();
+  });
+
+  it('keeps a signed-in user out of the app when the profile cannot be read, until retry works', async () => {
+    mockIsCompleted.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(false);
+    mockStorage.set('pb_access_token', 'a');
+    mockStorage.set('pb_refresh_token', 'r');
+    await tokenStore.load();
+    await renderNavigator();
+
+    await fireEvent.press(await screen.findByText('profile error'));
+
+    expect(await screen.findByText('onboarding screen')).toBeTruthy();
+    expect(screen.queryByText('app stack')).toBeNull();
   });
 
   it('switches to the app stack on login and back to auth on logout or refresh failure', async () => {
@@ -76,7 +120,7 @@ describe('RootNavigator', () => {
     await act(async () => {
       await tokenStore.setTokens('a', 'r');
     });
-    expect(screen.getByText('app stack')).toBeTruthy();
+    expect(await screen.findByText('app stack')).toBeTruthy();
 
     await act(async () => {
       await tokenStore.clearTokens();

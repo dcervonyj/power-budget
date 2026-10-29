@@ -41,6 +41,8 @@ const profile: UserProfileDto = {
   defaultLocale: 'en',
   baseCurrency: 'PLN',
   timezone: 'Europe/Warsaw',
+  interestingCurrencies: [],
+  onboardingCompleted: true,
   householdId: 'hh-1',
 };
 
@@ -53,6 +55,39 @@ function apiError(status: number, code: string): Error & { response: unknown } {
     response: { status, data: { statusCode: status, code } },
   });
 }
+
+describe('SettingsStore.hydrateFromProfile', () => {
+  it('restores the tracked currencies and base currency from a profile read elsewhere', () => {
+    const storage = new MemoryKeyValueStore();
+    const store = new SettingsStore(http, storage);
+
+    store.hydrateFromProfile({ ...profile, baseCurrency: 'EUR', interestingCurrencies: ['USD'] });
+
+    expect(store.interestingCurrencies).toEqual(['USD']);
+    expect(store.baseCurrency).toBe('EUR');
+    expect(store.profileLoaded).toBe(true);
+    expect(storage.getItem('pb_interesting_currencies')).toBe('["USD"]');
+  });
+});
+
+describe('SettingsStore when the device storage refuses writes', () => {
+  const refusing: KeyValueStore = {
+    getItem: (): null => null,
+    setItem: (): never => {
+      throw new Error('quota');
+    },
+  };
+
+  it('still takes over the profile read by the guard', () => {
+    const store = new SettingsStore(http, refusing);
+
+    expect(() =>
+      store.hydrateFromProfile({ ...profile, interestingCurrencies: ['USD'] }),
+    ).not.toThrow();
+    expect(store.interestingCurrencies).toEqual(['USD']);
+    expect(store.profileLoaded).toBe(true);
+  });
+});
 
 describe('SettingsStore.deleteAccount', () => {
   let store: SettingsStore;
@@ -213,13 +248,33 @@ describe('SettingsStore profile (UserProfileDto)', () => {
     expect(store.isSaving).toBe(false);
   });
 
+  it('restores the tracked currencies from the profile and saves them with the base currency', async () => {
+    mockGet.mockResolvedValueOnce(ok({ ...profile, interestingCurrencies: ['USD', 'GBP'] }));
+
+    await store.loadProfile();
+
+    expect(store.interestingCurrencies).toEqual(['USD', 'GBP']);
+
+    mockPatch.mockResolvedValueOnce(ok(profile));
+    store.toggleInterestingCurrency('CHF');
+    await store.saveCurrency();
+
+    expect(mockPatch).toHaveBeenCalledWith('/users/me', {
+      baseCurrency: 'PLN',
+      interestingCurrencies: ['USD', 'GBP', 'CHF'],
+    });
+  });
+
   it('saves a supported base currency and refuses one the API rejects', async () => {
     mockPatch.mockResolvedValueOnce(ok({ ...profile, baseCurrency: 'EUR' }));
     store.setBaseCurrency('EUR');
 
     await store.saveCurrency();
 
-    expect(mockPatch).toHaveBeenCalledWith('/users/me', { baseCurrency: 'EUR' });
+    expect(mockPatch).toHaveBeenCalledWith('/users/me', {
+      baseCurrency: 'EUR',
+      interestingCurrencies: [],
+    });
     expect(store.baseCurrency).toBe('EUR');
 
     store.setBaseCurrency('JPY');

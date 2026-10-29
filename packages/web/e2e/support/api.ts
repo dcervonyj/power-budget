@@ -19,13 +19,29 @@ export function uniqueEmail(prefix: string): string {
 export class BackendApi {
   constructor(private readonly request: APIRequestContext) {}
 
-  async register(email: string): Promise<AuthTokens> {
+  /**
+   * Registers a user. A new user is sent to onboarding after sign-in (CLN-073), so by default the
+   * fixture marks onboarding completed and the journey under test starts on the dashboard;
+   * pass `{ onboarded: false }` to test the onboarding entry itself.
+   */
+  async register(
+    email: string,
+    options: { onboarded: boolean } = { onboarded: true },
+  ): Promise<AuthTokens> {
     const res = await this.request.post(`${STACK.apiUrl}/auth/register`, {
       data: { email, password: PASSWORD },
       headers: this.clientIpHeader(),
     });
+    const tokens = await this.json<AuthTokens>(res, 201);
+    if (options.onboarded) {
+      const patched = await this.request.patch(`${STACK.apiUrl}/users/me`, {
+        headers: this.auth(tokens.accessToken),
+        data: { onboardingCompleted: true },
+      });
+      expect(patched.status()).toBe(200);
+    }
 
-    return this.json<AuthTokens>(res, 201);
+    return tokens;
   }
 
   async login(email: string): Promise<AuthTokens> {

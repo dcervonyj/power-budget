@@ -16,5 +16,7 @@
   "onboarding.step.bankConnect.connectNow": "Підключити",
   "onboarding.step.createPlan.title": "Створіть перший план",
   "onboarding.step.createPlan.description": "План дає змогу задати цілі за доходами та витратами на період (тиждень, місяць або власний). Зіставляйте транзакції із запланованими пунктами, щоб бачити фактичні суми.",
-  "onboarding.step.createPlan.createNow": "Створити план"
+  "onboarding.step.createPlan.createNow": "Створити план",
+  "onboarding.saveError": "Не вдалося зберегти ваш вибір. Спробуйте ще раз.",
+  "onboarding.profileError": "Не вдалося завантажити ваш профіль"
 }

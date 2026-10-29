@@ -15,6 +15,8 @@ const PROFILE: UserProfile = {
   defaultLocale: 'en',
   baseCurrency: null,
   timezone: 'UTC',
+  interestingCurrencies: [],
+  onboardingCompleted: false,
   householdId: HouseholdId.of('01900000-0000-7000-8000-0000000000a1'),
   householdBaseCurrency: 'PLN',
 };
@@ -63,6 +65,19 @@ describe('UpdateUserProfileUseCase', () => {
       baseCurrency: 'EUR',
       timezone: 'Europe/Warsaw',
     });
+  });
+
+  it('stores onboarding completion', async () => {
+    const updated = { ...PROFILE, onboardingCompleted: true };
+    repo.findById.mockResolvedValue(updated);
+
+    const result = await new UpdateUserProfileUseCase(repo).execute({
+      userId: USER,
+      patch: { onboardingCompleted: true },
+    });
+
+    expect(result).toBe(updated);
+    expect(repo.update).toHaveBeenCalledWith(USER, { onboardingCompleted: true });
   });
 
   it('rejects an unknown time zone', async () => {
