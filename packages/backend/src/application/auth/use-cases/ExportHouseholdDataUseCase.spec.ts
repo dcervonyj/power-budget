@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
 import type {
   HouseholdExportRepository,
@@ -12,13 +12,13 @@ const USER_ID = UserId.of('01900000-0000-7000-8000-000000000002');
 const EXPORT_ID = HouseholdExportId.of('01900000-0000-7000-8000-000000000010');
 
 describe('ExportHouseholdDataUseCase', () => {
-  let exportRepo: ReturnType<typeof mock<HouseholdExportRepository>>;
-  let exportQueue: ReturnType<typeof mock<HouseholdExportQueuePort>>;
+  let exportRepo: ReturnType<typeof createMock<HouseholdExportRepository>>;
+  let exportQueue: ReturnType<typeof createMock<HouseholdExportQueuePort>>;
   let useCase: ExportHouseholdDataUseCase;
 
   beforeEach(() => {
-    exportRepo = mock<HouseholdExportRepository>();
-    exportQueue = mock<HouseholdExportQueuePort>();
+    exportRepo = createMock<HouseholdExportRepository>();
+    exportQueue = createMock<HouseholdExportQueuePort>();
     useCase = new ExportHouseholdDataUseCase(exportRepo, exportQueue);
   });
 

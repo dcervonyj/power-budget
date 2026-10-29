@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId } from '@power-budget/core';
 import type { HouseholdRepository } from '../../../domain/auth/ports.js';
 import type { Household, HouseholdMembership } from '../../../domain/auth/entities.js';
@@ -24,11 +24,11 @@ function makeMembership(role: 'owner' | 'member'): HouseholdMembership {
 }
 
 describe('DeleteHouseholdUseCase', () => {
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
   let useCase: DeleteHouseholdUseCase;
 
   beforeEach(() => {
-    householdRepo = mock<HouseholdRepository>();
+    householdRepo = createMock<HouseholdRepository>();
     useCase = new DeleteHouseholdUseCase(householdRepo);
   });
 

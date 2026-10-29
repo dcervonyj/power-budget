@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { RefreshTokenStore } from '../../../domain/auth/ports.js';
 import { LogoutUseCase } from './LogoutUseCase.js';
 
 describe('LogoutUseCase', () => {
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
+  let refreshTokenStore: ReturnType<typeof createMock<RefreshTokenStore>>;
   let useCase: LogoutUseCase;
 
   beforeEach(() => {
-    refreshTokenStore = mock<RefreshTokenStore>();
+    refreshTokenStore = createMock<RefreshTokenStore>();
     useCase = new LogoutUseCase(refreshTokenStore);
   });
 

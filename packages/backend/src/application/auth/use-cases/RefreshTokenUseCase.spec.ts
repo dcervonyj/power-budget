@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId, HouseholdId } from '@power-budget/core';
 import type {
   HouseholdRepository,
@@ -23,15 +23,15 @@ function makeHousehold(): Household {
 }
 
 describe('RefreshTokenUseCase', () => {
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let jwtIssuer: ReturnType<typeof createMock<JwtAccessTokenIssuer>>;
+  let refreshTokenStore: ReturnType<typeof createMock<RefreshTokenStore>>;
   let useCase: RefreshTokenUseCase;
 
   beforeEach(() => {
-    householdRepo = mock<HouseholdRepository>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
-    refreshTokenStore = mock<RefreshTokenStore>();
+    householdRepo = createMock<HouseholdRepository>();
+    jwtIssuer = createMock<JwtAccessTokenIssuer>();
+    refreshTokenStore = createMock<RefreshTokenStore>();
     useCase = new RefreshTokenUseCase(householdRepo, jwtIssuer, refreshTokenStore);
   });
 

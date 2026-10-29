@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId, HouseholdExportId } from '@power-budget/core';
 import type { HouseholdExport, HouseholdExportRepository } from '../../../domain/auth/ports.js';
 import { GetHouseholdExportStatusUseCase } from './GetHouseholdExportStatusUseCase.js';
@@ -21,11 +21,11 @@ function makeExport(overrides: Partial<HouseholdExport>): HouseholdExport {
 }
 
 describe('GetHouseholdExportStatusUseCase', () => {
-  let exportRepo: ReturnType<typeof mock<HouseholdExportRepository>>;
+  let exportRepo: ReturnType<typeof createMock<HouseholdExportRepository>>;
   let useCase: GetHouseholdExportStatusUseCase;
 
   beforeEach(() => {
-    exportRepo = mock<HouseholdExportRepository>();
+    exportRepo = createMock<HouseholdExportRepository>();
     useCase = new GetHouseholdExportStatusUseCase(exportRepo);
   });
 

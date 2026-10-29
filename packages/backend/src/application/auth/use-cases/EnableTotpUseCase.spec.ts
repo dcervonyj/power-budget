@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId } from '@power-budget/core';
 import type { UserRepository } from '../../../domain/auth/ports.js';
 import { EnableTotpUseCase } from './EnableTotpUseCase.js';
@@ -24,13 +24,13 @@ function makeUser(): User {
 }
 
 describe('EnableTotpUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let totp: ReturnType<typeof mock<TotpAuthenticator>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let totp: ReturnType<typeof createMock<TotpAuthenticator>>;
   let useCase: EnableTotpUseCase;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    totp = mock<TotpAuthenticator>();
+    userRepo = createMock<UserRepository>();
+    totp = createMock<TotpAuthenticator>();
     useCase = new EnableTotpUseCase(userRepo, totp);
   });
 
