@@ -12,6 +12,8 @@ export interface UserProfile {
   readonly baseCurrency: CurrencyCode | null;
   /** IANA time zone, e.g. `Europe/Warsaw`. */
   readonly timezone: string;
+  /** False until onboarding is completed (CLN-073). */
+  readonly onboardingCompleted: boolean;
   readonly householdId: HouseholdId | null;
   readonly householdBaseCurrency: CurrencyCode | null;
 }
@@ -21,6 +23,7 @@ export interface UserProfilePatch {
   readonly locale?: LocaleCode;
   readonly baseCurrency?: CurrencyCode;
   readonly timezone?: string;
+  readonly onboardingCompleted?: boolean;
 }
 
 export interface UserProfileRepository {

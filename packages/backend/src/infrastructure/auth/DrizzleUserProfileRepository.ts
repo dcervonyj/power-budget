@@ -47,6 +47,7 @@ export class DrizzleUserProfileRepository implements UserProfileRepository {
       defaultLocale: oneOf(LOCALES, row.user.defaultLocale, 'locale'),
       baseCurrency: row.user.baseCurrency === null ? null : currencyOf(row.user.baseCurrency),
       timezone: row.user.timezone,
+      onboardingCompleted: row.user.onboardingCompletedAt !== null,
       householdId: row.householdId === null ? null : HouseholdId.of(row.householdId),
       householdBaseCurrency:
         row.householdBaseCurrency === null ? null : currencyOf(row.householdBaseCurrency),
@@ -61,6 +62,9 @@ export class DrizzleUserProfileRepository implements UserProfileRepository {
         ...(patch.locale !== undefined ? { localePreference: patch.locale } : {}),
         ...(patch.baseCurrency !== undefined ? { baseCurrency: patch.baseCurrency } : {}),
         ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}),
+        ...(patch.onboardingCompleted !== undefined
+          ? { onboardingCompletedAt: patch.onboardingCompleted ? new Date() : null }
+          : {}),
         updatedAt: new Date(),
       })
       .where(eq(schema.users.id, id));

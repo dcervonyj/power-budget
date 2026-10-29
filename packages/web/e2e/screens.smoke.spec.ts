@@ -161,6 +161,7 @@ function profile(userId: string, email: string): Record<string, unknown> {
     defaultLocale: 'en',
     baseCurrency: 'PLN',
     timezone: 'Europe/Warsaw',
+    onboardingCompleted: true,
     householdId: 'hh-1',
   };
 }

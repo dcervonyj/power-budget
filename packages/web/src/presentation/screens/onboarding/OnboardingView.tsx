@@ -18,6 +18,8 @@ export interface OnboardingViewProps {
   readonly onBack: () => void;
   readonly onNext: () => void;
   readonly onSkip: () => void;
+  /** Saving the choices to the profile failed; the wizard stays open to try again. */
+  readonly saveFailed?: boolean;
 }
 
 const FRAME_STYLE: React.CSSProperties = {
@@ -32,6 +34,7 @@ export const OnboardingView = observer(function OnboardingView({
   onBack,
   onNext,
   onSkip,
+  saveFailed = false,
 }: OnboardingViewProps): React.JSX.Element {
   const isSkippableStep =
     store.currentStep === 'bank-connect' || store.currentStep === 'create-plan';
@@ -40,6 +43,14 @@ export const OnboardingView = observer(function OnboardingView({
     <div style={FRAME_STYLE}>
       <StepIndicator index={store.currentStepIndex} total={store.steps.length} />
       {renderStep(store, onLocaleChange, onSkip)}
+      {saveFailed && (
+        <p role="alert">
+          <FormattedMessage
+            id="onboarding.saveError"
+            defaultMessage="We could not save your choices. Try again."
+          />
+        </p>
+      )}
       <div style={ACTIONS_STYLE}>
         <Button variant="secondary" disabled={store.isFirstStep} onClick={onBack}>
           <FormattedMessage id="onboarding.button.back" defaultMessage="Back" />

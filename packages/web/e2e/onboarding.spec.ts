@@ -11,14 +11,13 @@ test.describe('auth to onboarding journey', () => {
     request,
   }) => {
     const email = uniqueEmail('onboarding');
-    await new BackendApi(request).register(email);
+    await new BackendApi(request).register(email, { onboarded: false });
     await page.goto('/login');
     await page.getByLabel('Email').fill(email);
     await page.getByLabel('Password').fill(PASSWORD);
     await page.getByRole('button', { name: 'Log in' }).click();
-    await expect(page).toHaveURL(/\/dashboard$/);
-
-    await page.goto('/onboarding');
+    // A new user is routed to onboarding straight after sign-in.
+    await expect(page).toHaveURL(/\/onboarding$/);
     await expect(page.getByRole('heading', { name: 'Choose your language' })).toBeVisible();
     await expect(page.getByRole('img', { name: 'Step 1 of 5' })).toBeVisible();
     await page.getByRole('radio', { name: 'English' }).click();
@@ -39,6 +38,9 @@ test.describe('auth to onboarding journey', () => {
     await expect(page.getByRole('img', { name: 'Step 5 of 5' })).toBeVisible();
     await page.getByRole('button', { name: 'Skip for now' }).click();
 
+    await expect(page).toHaveURL(/\/dashboard$/);
+    // Completion is stored on the profile: a reload stays on the dashboard.
+    await page.reload();
     await expect(page).toHaveURL(/\/dashboard$/);
     expect(await page.evaluate(() => localStorage.getItem('pb_base_currency'))).toBe('PLN');
     expect(await page.evaluate(() => localStorage.getItem('pb_interesting_currencies'))).toBe(

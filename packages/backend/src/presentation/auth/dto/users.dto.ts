@@ -1,4 +1,4 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CURRENCIES, SUPPORTED_LOCALES } from '@power-budget/core';
 import type { CurrencyCode } from '@power-budget/core';
@@ -44,6 +44,14 @@ export class UpdateUserProfileDto {
   @IsString()
   @MaxLength(64)
   timezone?: string;
+
+  @ApiPropertyOptional({
+    type: Boolean,
+    description: 'Set true when the user finishes onboarding; false resets it',
+  })
+  @IsOptional()
+  @IsBoolean()
+  onboardingCompleted?: boolean;
 }
 
 export class UserProfileDto {
@@ -80,6 +88,9 @@ export class UserProfileDto {
   @ApiProperty({ type: String, example: 'Europe/Warsaw', description: 'IANA time zone name' })
   timezone!: string;
 
+  @ApiProperty({ type: Boolean, description: 'Whether the user has completed onboarding' })
+  onboardingCompleted!: boolean;
+
   @ApiProperty({ type: String, format: 'uuid', nullable: true })
   householdId!: string | null;
 }
@@ -94,6 +105,7 @@ export function toUserProfileDto(profile: UserProfile): UserProfileDto {
     defaultLocale: profile.defaultLocale,
     baseCurrency: UserPreferences.effectiveBaseCurrency(profile),
     timezone: profile.timezone,
+    onboardingCompleted: profile.onboardingCompleted,
     householdId: profile.householdId,
   };
 }

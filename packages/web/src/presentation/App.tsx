@@ -3,6 +3,7 @@ import { lazyChunk } from '../infrastructure/lazyChunk.js';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { FormattedMessage } from 'react-intl';
 import { RequireAuth } from './guards/RequireAuth.js';
+import { RequireOnboarding } from './guards/RequireOnboarding.js';
 import { ROUTE_PATHS } from '../infrastructure/navigation/routePaths.js';
 import { SettingsProfileTab } from './screens/settings/SettingsProfileTab.js';
 import { SettingsLocaleTab } from './screens/settings/SettingsLocaleTab.js';
@@ -118,29 +119,31 @@ export function App() {
           </Route>
         </Route>
 
-        {/* Protected app routes */}
+        {/* Protected app routes: a user who has not finished onboarding is sent there first */}
         <Route element={<RequireAuth />}>
-          <Route element={<AppShell />}>
-            <Route path={ROUTE_PATHS.dashboard} element={<DashboardScreen />} />
-            {/* One route, so opening or closing a detail keeps the list (rows, toast). */}
-            <Route path={ROUTE_PATHS.transactionDetail} element={<TransactionDetailScreen />} />
-            <Route path={ROUTE_PATHS.plans} element={<PlansListScreen />} />
-            <Route path={ROUTE_PATHS.planEditor} element={<PlanEditorScreen />} />
-            <Route path={ROUTE_PATHS.planDashboard} element={<PlanDashboardScreen />} />
-            <Route path={ROUTE_PATHS.bankConnections} element={<BankConnectionsScreen />} />
-            <Route path={ROUTE_PATHS.addBankConnection} element={<AddBankConnectionScreen />} />
-            <Route path={ROUTE_PATHS.categories} element={<CategoriesScreen />} />
-            <Route path={ROUTE_PATHS.household} element={<HouseholdScreen />} />
-            <Route path={ROUTE_PATHS.settings} element={<SettingsScreen />}>
-              <Route index element={<Navigate to={ROUTE_PATHS.settingsProfile} replace />} />
-              <Route path={ROUTE_PATHS.settingsProfile} element={<SettingsProfileTab />} />
-              {/* Appearance (System / Night / Day): the settings tab itself comes with DSN-028. */}
-              <Route path={ROUTE_PATHS.settingsAppearance} element={<AppearanceSettings />} />
-              <Route path={ROUTE_PATHS.settingsLocale} element={<SettingsLocaleTab />} />
-              <Route path={ROUTE_PATHS.settingsCurrency} element={<SettingsCurrencyTab />} />
-              <Route path={ROUTE_PATHS.settingsData} element={<SettingsDataTab />} />
+          <Route element={<RequireOnboarding />}>
+            <Route element={<AppShell />}>
+              <Route path={ROUTE_PATHS.dashboard} element={<DashboardScreen />} />
+              {/* One route, so opening or closing a detail keeps the list (rows, toast). */}
+              <Route path={ROUTE_PATHS.transactionDetail} element={<TransactionDetailScreen />} />
+              <Route path={ROUTE_PATHS.plans} element={<PlansListScreen />} />
+              <Route path={ROUTE_PATHS.planEditor} element={<PlanEditorScreen />} />
+              <Route path={ROUTE_PATHS.planDashboard} element={<PlanDashboardScreen />} />
+              <Route path={ROUTE_PATHS.bankConnections} element={<BankConnectionsScreen />} />
+              <Route path={ROUTE_PATHS.addBankConnection} element={<AddBankConnectionScreen />} />
+              <Route path={ROUTE_PATHS.categories} element={<CategoriesScreen />} />
+              <Route path={ROUTE_PATHS.household} element={<HouseholdScreen />} />
+              <Route path={ROUTE_PATHS.settings} element={<SettingsScreen />}>
+                <Route index element={<Navigate to={ROUTE_PATHS.settingsProfile} replace />} />
+                <Route path={ROUTE_PATHS.settingsProfile} element={<SettingsProfileTab />} />
+                {/* Appearance (System / Night / Day): the settings tab itself comes with DSN-028. */}
+                <Route path={ROUTE_PATHS.settingsAppearance} element={<AppearanceSettings />} />
+                <Route path={ROUTE_PATHS.settingsLocale} element={<SettingsLocaleTab />} />
+                <Route path={ROUTE_PATHS.settingsCurrency} element={<SettingsCurrencyTab />} />
+                <Route path={ROUTE_PATHS.settingsData} element={<SettingsDataTab />} />
+              </Route>
+              <Route path={ROUTE_PATHS.audit} element={<AuditLogScreen />} />
             </Route>
-            <Route path={ROUTE_PATHS.audit} element={<AuditLogScreen />} />
           </Route>
         </Route>
 

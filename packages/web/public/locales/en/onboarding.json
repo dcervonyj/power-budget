@@ -16,5 +16,6 @@
   "onboarding.step.bankConnect.connectNow": "Connect now",
   "onboarding.step.createPlan.title": "Create your first plan",
   "onboarding.step.createPlan.description": "A plan lets you set income and expense targets for a period (weekly, monthly, or custom). Map your transactions to planned items to track your actuals.",
-  "onboarding.step.createPlan.createNow": "Create plan"
+  "onboarding.step.createPlan.createNow": "Create plan",
+  "onboarding.saveError": "We could not save your choices. Try again."
 }

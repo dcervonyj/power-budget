@@ -977,6 +977,8 @@ export interface components {
        * @example Europe/Warsaw
        */
       timezone: string;
+      /** @description Whether the user has completed onboarding */
+      onboardingCompleted: boolean;
       /** Format: uuid */
       householdId: string | null;
     };
@@ -999,6 +1001,8 @@ export interface components {
        * @example Europe/Warsaw
        */
       timezone?: string;
+      /** @description Set true when the user finishes onboarding; false resets it */
+      onboardingCompleted?: boolean;
     };
     UpdateLocaleDto: {
       /**

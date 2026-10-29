@@ -1,8 +1,11 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
 import { OnboardingWizard } from '../OnboardingWizard.js';
+
+const mockPatch = spyOnApiClient().patch;
 
 function clickNext(): void {
   fireEvent.click(screen.getByRole('button', { name: 'Next' }));
@@ -11,6 +14,8 @@ function clickNext(): void {
 describe('OnboardingWizard', () => {
   beforeEach(() => {
     localStorage.clear();
+    mockPatch.mockReset();
+    mockPatch.mockResolvedValue({ status: 200, data: undefined, headers: {} });
   });
 
   it('starts on the language step with the step rod at 1 of 5 and Back disabled', () => {
@@ -62,7 +67,7 @@ describe('OnboardingWizard', () => {
     expect(screen.getByRole('link', { name: 'Create plan' })).toHaveAttribute('href', '/plans');
   });
 
-  it('saves the choices and completes when the last step is skipped', () => {
+  it('saves the choices and completes when the last step is skipped', async () => {
     const onComplete = vi.fn();
     renderWithProviders(<OnboardingWizard onComplete={onComplete} />);
 
@@ -74,8 +79,32 @@ describe('OnboardingWizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
     fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
 
-    expect(onComplete).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+    expect(mockPatch).toHaveBeenCalledWith('/users/me', {
+      onboardingCompleted: true,
+      locale: 'en',
+      baseCurrency: 'PLN',
+    });
     expect(localStorage.getItem('pb_base_currency')).toBe('PLN');
     expect(localStorage.getItem('pb_interesting_currencies')).toBe('["EUR"]');
+  });
+
+  it('stays on the last step and says so when saving to the profile fails', async () => {
+    mockPatch.mockRejectedValue(new Error('offline'));
+    const onComplete = vi.fn();
+    renderWithProviders(<OnboardingWizard onComplete={onComplete} />);
+
+    clickNext();
+    clickNext();
+    clickNext();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Skip for now' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'We could not save your choices. Try again.',
+    );
+    expect(onComplete).not.toHaveBeenCalled();
   });
 });
