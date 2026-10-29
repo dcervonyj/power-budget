@@ -46,6 +46,17 @@ export const PlansListScreen = observer(function PlansListScreen(): React.JSX.El
     }
   }, []);
 
+  const retryProfile = (): void => {
+    void settingsStore.loadProfile();
+  };
+
+  const profileError = settingsStore.profileLoadFailed
+    ? intl.formatMessage({
+        id: 'screen.plansList.profileError',
+        defaultMessage: 'Failed to load your profile',
+      })
+    : null;
+
   const handleCreated = (created: PlanDto): void => {
     referenceCatalogue.invalidate();
     setCreateOpen(false);
@@ -74,10 +85,15 @@ export const PlansListScreen = observer(function PlansListScreen(): React.JSX.El
     <PlansListView
       plans={plans}
       loading={loading}
-      error={error}
+      error={error ?? profileError}
       creating={!settingsStore.profileLoaded}
       onCreate={() => {
-        setCreateOpen(true);
+        // Without the profile the household type and the currency default would be wrong.
+        if (settingsStore.profileLoadFailed) {
+          retryProfile();
+        } else {
+          setCreateOpen(true);
+        }
       }}
       onOpen={(planId) => {
         void navigate(`/plans/${planId}`);
@@ -87,7 +103,12 @@ export const PlansListScreen = observer(function PlansListScreen(): React.JSX.El
         void handleDelete(planId);
       }}
       onRetry={() => {
-        void fetchPlans();
+        if (settingsStore.profileLoadFailed) {
+          retryProfile();
+        }
+        if (error !== null) {
+          void fetchPlans();
+        }
       }}
     >
       {createOpen && (

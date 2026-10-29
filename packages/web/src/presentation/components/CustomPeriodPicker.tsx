@@ -13,10 +13,8 @@ export interface CustomPeriodPickerProps {
   /** Field errors (already translated), shown under the matching date. */
   readonly startError?: string;
   readonly endError?: string;
-  /** The end is derived (weekly): shown, not editable. */
+  /** The end is derived (weekly, monthly): shown, not editable. */
   readonly endDisabled?: boolean;
-  /** The end is derived by the API and not shown (monthly). */
-  readonly hideEnd?: boolean;
 }
 
 const ERROR_STYLE: React.CSSProperties = {
@@ -62,7 +60,6 @@ export function CustomPeriodPicker({
   startError,
   endError,
   endDisabled = false,
-  hideEnd = false,
 }: CustomPeriodPickerProps): React.JSX.Element {
   const intl = useIntl();
   const startId = useId();
@@ -102,31 +99,29 @@ export function CustomPeriodPicker({
           </span>
         )}
       </div>
-      {!hideEnd && (
-        <div style={FIELD_STYLE}>
-          <label htmlFor={endId} style={LABEL_STYLE}>
-            {endLabel}
-          </label>
-          <input
-            id={endId}
-            type="date"
-            value={value.endDate}
-            onChange={(e) => {
-              onChange({ ...value, endDate: e.target.value });
-            }}
-            disabled={endDisabled}
-            aria-invalid={endError !== undefined}
-            aria-describedby={endError === undefined ? undefined : endErrorId}
-            className="pbg-ctl pbg-ctl-field"
-            style={INPUT_STYLE}
-          />
-          {endError !== undefined && (
-            <span id={endErrorId} style={ERROR_STYLE}>
-              {endError}
-            </span>
-          )}
-        </div>
-      )}
+      <div style={FIELD_STYLE}>
+        <label htmlFor={endId} style={LABEL_STYLE}>
+          {endLabel}
+        </label>
+        <input
+          id={endId}
+          type="date"
+          value={value.endDate}
+          onChange={(e) => {
+            onChange({ ...value, endDate: e.target.value });
+          }}
+          disabled={endDisabled}
+          aria-invalid={endError !== undefined}
+          aria-describedby={endError === undefined ? undefined : endErrorId}
+          className="pbg-ctl pbg-ctl-field"
+          style={INPUT_STYLE}
+        />
+        {endError !== undefined && (
+          <span id={endErrorId} style={ERROR_STYLE}>
+            {endError}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

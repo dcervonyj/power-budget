@@ -479,5 +479,6 @@
   "modal.createPlan.title": "Utwórz plan",
   "modal.createPlan.typeHousehold": "Domowy",
   "modal.createPlan.typeLabel": "Typ",
-  "modal.createPlan.typePersonal": "Osobisty"
+  "modal.createPlan.typePersonal": "Osobisty",
+  "screen.plansList.profileError": "Nie udało się wczytać Twojego profilu"
 }

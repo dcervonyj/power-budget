@@ -61,6 +61,16 @@ describe('CreatePlanModal', () => {
     expect(screen.getByLabelText<HTMLSelectElement>('Base currency').value).toBe('PLN');
   });
 
+  it('shows the derived, read-only end date for the default monthly plan', () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 29) });
+    open(false);
+    vi.useRealTimers();
+
+    const end = screen.getByLabelText<HTMLInputElement>('End date');
+    expect(end.value).toBe('2026-10-31');
+    expect(end.disabled).toBe(true);
+  });
+
   it('shows the derived, read-only end date for a weekly plan', () => {
     open(false);
 

@@ -6,6 +6,7 @@ import {
   hasNewPlanErrors,
   toCreatePlanDto,
   validateNewPlanDraft,
+  monthlyEndDate,
   weeklyEndDate,
   type NewPlanDraft,
   type NewPlanErrors,
@@ -43,9 +44,16 @@ export class CreatePlanStore {
     return this.hasHousehold ? ['personal', 'household'] : ['personal'];
   }
 
-  /** The end date shown for the weekly period; empty for the other periods. */
+  /** The end date shown for a weekly or monthly period; empty for a custom one. */
   get derivedEndDate(): string {
-    return this.draft.periodKind === 'weekly' ? weeklyEndDate(this.draft.startDate) : '';
+    switch (this.draft.periodKind) {
+      case 'weekly':
+        return weeklyEndDate(this.draft.startDate);
+      case 'monthly':
+        return monthlyEndDate(this.draft.startDate);
+      case 'custom':
+        return '';
+    }
   }
 
   setName(name: string): void {

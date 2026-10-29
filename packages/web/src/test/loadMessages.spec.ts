@@ -40,7 +40,7 @@ describe('loadMessages', () => {
       expect(Object.keys(messages)).toEqual(expect.arrayContaining(Object.keys(legacy)));
       expect(Object.keys(messages)).toHaveLength(Object.keys(legacy).length + featureKeyCount);
     }
-    expect(Object.keys(en)).toHaveLength(481);
+    expect(Object.keys(en)).toHaveLength(482);
     expect((await loadMessages('en'))['screen.login.title']).toBe(en['screen.login.title']);
   });
 

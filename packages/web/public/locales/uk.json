@@ -479,5 +479,6 @@
   "modal.createPlan.title": "Створити план",
   "modal.createPlan.typeHousehold": "Сімейний",
   "modal.createPlan.typeLabel": "Тип",
-  "modal.createPlan.typePersonal": "Особистий"
+  "modal.createPlan.typePersonal": "Особистий",
+  "screen.plansList.profileError": "Не вдалося завантажити ваш профіль"
 }

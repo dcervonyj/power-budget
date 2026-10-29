@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   defaultNewPlanDraft,
   hasNewPlanErrors,
+  monthlyEndDate,
   toCreatePlanDto,
   validateNewPlanDraft,
   weeklyEndDate,
@@ -41,6 +42,21 @@ describe('weeklyEndDate', () => {
 
   it('is empty without a valid start', () => {
     expect(weeklyEndDate('')).toBe('');
+  });
+});
+
+describe('monthlyEndDate', () => {
+  it('is the day before the same day next month', () => {
+    expect(monthlyEndDate('2026-10-01')).toBe('2026-10-31');
+    expect(monthlyEndDate('2026-10-15')).toBe('2026-11-14');
+  });
+
+  it('clamps to the length of the next month, as the API does', () => {
+    expect(monthlyEndDate('2026-01-31')).toBe('2026-02-27');
+  });
+
+  it('is empty without a valid start', () => {
+    expect(monthlyEndDate('')).toBe('');
   });
 });
 

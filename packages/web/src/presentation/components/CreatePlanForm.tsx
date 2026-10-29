@@ -14,7 +14,7 @@ export interface CreatePlanFormProps {
   readonly draft: NewPlanDraft;
   readonly errors: NewPlanErrors;
   readonly typeOptions: readonly PlanTypeDto[];
-  /** The weekly end date, derived from the start. */
+  /** The weekly or monthly end date, derived from the start. */
   readonly derivedEndDate: string;
   readonly submitError: CreatePlanError | null;
   readonly onNameChange: (name: string) => void;
@@ -42,7 +42,7 @@ export function CreatePlanForm({
   onBaseCurrencyChange,
 }: CreatePlanFormProps): React.JSX.Element {
   const intl = useIntl();
-  const weekly = draft.periodKind === 'weekly';
+  const derived = draft.periodKind !== 'custom';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--pb-glass-space-md)' }}>
@@ -74,17 +74,16 @@ export function CreatePlanForm({
         onChange={onPeriodKindChange}
       />
       <CustomPeriodPicker
-        value={{ startDate: draft.startDate, endDate: weekly ? derivedEndDate : draft.endDate }}
+        value={{ startDate: draft.startDate, endDate: derived ? derivedEndDate : draft.endDate }}
         onChange={(value) => {
           onStartDateChange(value.startDate);
-          if (!weekly) {
+          if (!derived) {
             onEndDateChange(value.endDate);
           }
         }}
         startError={startMessage(intl, errors)}
         endError={endMessage(intl, errors)}
-        endDisabled={weekly}
-        hideEnd={draft.periodKind === 'monthly'}
+        endDisabled={derived}
       />
       <Select
         id="create-plan-currency"
