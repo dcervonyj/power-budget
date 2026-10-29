@@ -52,6 +52,12 @@ export class UsersController {
         ...(dto.locale !== undefined ? { locale: dto.locale } : {}),
         ...(dto.baseCurrency !== undefined ? { baseCurrency: dto.baseCurrency } : {}),
         ...(dto.timezone !== undefined ? { timezone: dto.timezone } : {}),
+        ...(dto.interestingCurrencies !== undefined
+          ? { interestingCurrencies: dto.interestingCurrencies }
+          : {}),
+        ...(dto.onboardingCompleted !== undefined
+          ? { onboardingCompleted: dto.onboardingCompleted }
+          : {}),
       },
     });
 

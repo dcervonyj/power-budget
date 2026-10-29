@@ -16,5 +16,7 @@
   "onboarding.step.bankConnect.connectNow": "Połącz teraz",
   "onboarding.step.createPlan.title": "Utwórz pierwszy plan",
   "onboarding.step.createPlan.description": "Plan pozwala ustawić cele przychodów i wydatków na okres (tydzień, miesiąc lub własny). Przypisuj transakcje do zaplanowanych pozycji, aby śledzić faktyczne kwoty.",
-  "onboarding.step.createPlan.createNow": "Utwórz plan"
+  "onboarding.step.createPlan.createNow": "Utwórz plan",
+  "onboarding.saveError": "Nie udało się zapisać wyborów. Spróbuj ponownie.",
+  "onboarding.profileError": "Nie udało się wczytać Twojego profilu"
 }

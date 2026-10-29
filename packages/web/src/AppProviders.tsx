@@ -102,13 +102,26 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
 
   const [loadError, setLoadError] = useState<unknown>(undefined);
 
-  function onMessagesLoaded(loaded: Messages): void {
-    staleChunkRecovery.chunkLoaded('locale');
-    setMessages(loaded);
-  }
-
   useEffect(() => {
-    loadMessages(locale).then(onMessagesLoaded, setLoadError);
+    // A slower load of a locale that is no longer current must not replace the current messages.
+    let stale = false;
+    loadMessages(locale).then(
+      (loaded) => {
+        if (!stale) {
+          staleChunkRecovery.chunkLoaded('locale');
+          setMessages(loaded);
+        }
+      },
+      (error: unknown) => {
+        if (!stale) {
+          setLoadError(error);
+        }
+      },
+    );
+
+    return () => {
+      stale = true;
+    };
   }, [locale]);
 
   // Screen readers pick the voice from <html lang>, which index.html fixes to "en".

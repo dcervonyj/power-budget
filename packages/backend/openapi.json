@@ -2865,6 +2865,17 @@
             "example": "Europe/Warsaw",
             "description": "IANA time zone name"
           },
+          "interestingCurrencies": {
+            "description": "Currencies the user tracks next to the base currency",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Whether the user has completed onboarding"
+          },
           "householdId": {
             "type": "string",
             "format": "uuid",
@@ -2880,6 +2891,8 @@
           "defaultLocale",
           "baseCurrency",
           "timezone",
+          "interestingCurrencies",
+          "onboardingCompleted",
           "householdId"
         ]
       },
@@ -2906,6 +2919,18 @@
             "maxLength": 64,
             "description": "IANA time zone name",
             "example": "Europe/Warsaw"
+          },
+          "interestingCurrencies": {
+            "maxItems": 5,
+            "description": "Currencies tracked next to the base currency; replaces the stored list",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Set true when the user finishes onboarding; false resets it"
           }
         }
       },

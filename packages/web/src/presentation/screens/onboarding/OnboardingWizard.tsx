@@ -1,7 +1,7 @@
-import React, { useContext } from 'react';
-import { observer, useLocalObservable } from 'mobx-react-lite';
-import { OnboardingStore } from '../../../application/onboarding/OnboardingStore.js';
+import React, { useContext, useState } from 'react';
+import { observer } from 'mobx-react-lite';
 import { persistOnboardingPrefs } from '../../../application/onboarding/OnboardingPrefs.js';
+import { onboardingProgress, onboardingService } from '../../../composition.js';
 import { LocaleContext } from '../../../AppProviders.js';
 import { OnboardingView } from './OnboardingView.js';
 
@@ -14,15 +14,43 @@ export const OnboardingWizard = observer(function OnboardingWizard({
   onComplete,
 }: OnboardingWizardProps): React.JSX.Element {
   const { setLocale } = useContext(LocaleContext);
-  const store = useLocalObservable(() => new OnboardingStore());
+  // Kept outside the component: the bank and plan links leave the wizard and come back to it.
+  const [store] = useState(() => onboardingProgress.resume());
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  /** Only a cache for this device: a storage failure must not stop the save to the profile. */
+  function cacheChoicesOnDevice(): void {
+    try {
+      persistOnboardingPrefs(localStorage, {
+        baseCurrency: store.baseCurrency,
+        interestingCurrencies: store.interestingCurrencies,
+        language: store.selectedLanguage,
+      });
+    } catch {
+      // The profile is the source of truth; the device cache is rebuilt from it on the next read.
+    }
+  }
+
+  async function save(): Promise<void> {
+    cacheChoicesOnDevice();
+    setSaveFailed(false);
+    try {
+      await onboardingService.complete({
+        language: store.selectedLanguage,
+        baseCurrency: store.baseCurrency,
+        interestingCurrencies: store.interestingCurrencies,
+      });
+    } catch {
+      setSaveFailed(true);
+
+      return;
+    }
+    onboardingProgress.clear();
+    onComplete();
+  }
 
   function finish(): void {
-    persistOnboardingPrefs(localStorage, {
-      baseCurrency: store.baseCurrency,
-      interestingCurrencies: store.interestingCurrencies,
-      language: store.selectedLanguage,
-    });
-    onComplete();
+    void save();
   }
 
   function handleNext(): void {
@@ -48,6 +76,8 @@ export const OnboardingWizard = observer(function OnboardingWizard({
       onBack={store.back.bind(store)}
       onNext={handleNext}
       onSkip={handleSkip}
+      onLeave={onboardingProgress.leaveForLink.bind(onboardingProgress)}
+      saveFailed={saveFailed}
     />
   );
 });

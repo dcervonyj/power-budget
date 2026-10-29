@@ -10,7 +10,7 @@ export {
   BIOMETRIC_PREF_KEY,
 } from './biometrics/index.js';
 
-import { ApiClient, CategoriesApi, PlansApi } from '@power-budget/shared-app';
+import { ApiClient, CategoriesApi, OnboardingApi, PlansApi } from '@power-budget/shared-app';
 import { ExpoSecureStoreTokenStore } from './tokens/ExpoSecureStoreTokenStore.js';
 import { resolveApiBaseUrl } from './config/ApiBaseUrl.js';
 import { AuthService } from './auth/AuthService.js';
@@ -29,3 +29,6 @@ export const plansApi = new PlansApi(apiClient);
 
 /** The category endpoints, typed with the generated API contract (shared with web). */
 export const categoriesApi = new CategoriesApi(apiClient);
+
+/** Onboarding completion on the profile (shared with web). */
+export const onboardingApi = new OnboardingApi(apiClient);

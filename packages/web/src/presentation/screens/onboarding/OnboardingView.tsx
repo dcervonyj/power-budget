@@ -18,7 +18,13 @@ export interface OnboardingViewProps {
   readonly onBack: () => void;
   readonly onNext: () => void;
   readonly onSkip: () => void;
+  /** The bank or plan link was followed: the wizard is left open behind it. */
+  readonly onLeave?: () => void;
+  /** Saving the choices to the profile failed; the wizard stays open to try again. */
+  readonly saveFailed?: boolean;
 }
+
+function noop(): void {}
 
 const FRAME_STYLE: React.CSSProperties = {
   ...STEP_STYLE,
@@ -32,6 +38,8 @@ export const OnboardingView = observer(function OnboardingView({
   onBack,
   onNext,
   onSkip,
+  onLeave = noop,
+  saveFailed = false,
 }: OnboardingViewProps): React.JSX.Element {
   const isSkippableStep =
     store.currentStep === 'bank-connect' || store.currentStep === 'create-plan';
@@ -39,7 +47,15 @@ export const OnboardingView = observer(function OnboardingView({
   return (
     <div style={FRAME_STYLE}>
       <StepIndicator index={store.currentStepIndex} total={store.steps.length} />
-      {renderStep(store, onLocaleChange, onSkip)}
+      {renderStep(store, onLocaleChange, onSkip, onLeave)}
+      {saveFailed && (
+        <p role="alert">
+          <FormattedMessage
+            id="onboarding.saveError"
+            defaultMessage="We could not save your choices. Try again."
+          />
+        </p>
+      )}
       <div style={ACTIONS_STYLE}>
         <Button variant="secondary" disabled={store.isFirstStep} onClick={onBack}>
           <FormattedMessage id="onboarding.button.back" defaultMessage="Back" />
@@ -62,6 +78,7 @@ function renderStep(
   store: OnboardingStore,
   onLocaleChange: (locale: SupportedLocale) => void,
   onSkip: () => void,
+  onLeave: () => void,
 ): React.JSX.Element {
   switch (store.currentStep) {
     case 'language':
@@ -71,8 +88,8 @@ function renderStep(
     case 'interesting-currencies':
       return <StepInterestingCurrencies store={store} />;
     case 'bank-connect':
-      return <StepBankConnect onSkip={onSkip} />;
+      return <StepBankConnect onSkip={onSkip} onLeave={onLeave} />;
     case 'create-plan':
-      return <StepCreatePlan onSkip={onSkip} />;
+      return <StepCreatePlan onSkip={onSkip} onLeave={onLeave} />;
   }
 }

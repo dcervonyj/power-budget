@@ -1,0 +1,1 @@
+ALTER TABLE "users" ADD COLUMN "interesting_currencies" jsonb DEFAULT '[]'::jsonb NOT NULL;

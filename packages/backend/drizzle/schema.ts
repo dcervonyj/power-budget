@@ -65,6 +65,10 @@ export const users = pgTable(
     // Preferences (CLN-011): NULL base currency means "use the household's".
     baseCurrency: char('base_currency', { length: 3 }),
     timezone: varchar('timezone', { length: 64 }).notNull().default('UTC'),
+    // CLN-073: the up to five currencies the user tracks next to the base currency.
+    interestingCurrencies: jsonb('interesting_currencies').$type<string[]>().notNull().default([]),
+    // CLN-073: NULL until the user finishes (or skips through) onboarding.
+    onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
     passwordHash: text('password_hash'),
     emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
     emailBouncing: boolean('email_bouncing').notNull().default(false),
