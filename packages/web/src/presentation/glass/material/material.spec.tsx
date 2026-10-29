@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-vitest';
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -6,12 +7,14 @@ import { DepthPanes } from './DepthPanes.js';
 import { GlassPanel } from './GlassPanel.js';
 
 function allowMotion(): void {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query === '(prefers-color-scheme: dark)',
-    media: query,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-  }));
+  vi.stubGlobal('matchMedia', (query: string) =>
+    createMock<MediaQueryList>({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }),
+  );
 }
 
 function rootOf(container: HTMLElement): HTMLElement {

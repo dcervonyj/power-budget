@@ -32,7 +32,10 @@ describe('Button', () => {
 
   it('is disabled when disabled prop is true', () => {
     render(<Button disabled>Click me</Button>, { wrapper });
-    const btn = screen.getByRole('button') as HTMLButtonElement;
+    const btn = screen.getByRole('button');
+    if (!(btn instanceof HTMLButtonElement)) {
+      throw new Error('expected a button');
+    }
     expect(btn.disabled).toBe(true);
   });
 });
