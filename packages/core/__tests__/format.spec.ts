@@ -32,8 +32,10 @@ describe('formatMoney', () => {
   });
 
   it('formats negative amounts, including below one unit', () => {
-    expect(formatMoney({ amountMinor: -1099n, currency: 'EUR' as const }, 'en')).toBe('-€10.99');
-    expect(formatMoney({ amountMinor: -5n, currency: 'EUR' as const }, 'en')).toBe('-€0.05');
+    expect(formatMoney({ amountMinor: -1099n, currency: 'EUR' as const }, 'en')).toBe(
+      '\u2212€10.99',
+    );
+    expect(formatMoney({ amountMinor: -5n, currency: 'EUR' as const }, 'en')).toBe('\u2212€0.05');
     expect(formatMoney({ amountMinor: 0n, currency: 'EUR' as const }, 'en')).toBe('€0.00');
   });
 

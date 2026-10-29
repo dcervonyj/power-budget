@@ -17,6 +17,7 @@ import { Keypad } from '../../../glass/controls/Keypad.js';
 import { BODY_FONT, LABEL_FONT } from '../../../glass/controls/fonts.js';
 import { ErrorBanner } from '../../../glass/overlays/ErrorBanner.js';
 import { Button } from '../../../components/Button.js';
+import { currencySymbol } from '../overview/overviewFormat.js';
 import { computeImpact, typedAmountMinor, wholeUnits } from './addExpenseImpact.js';
 import type {
   AccountOption,
@@ -162,7 +163,7 @@ function selectedCategory(props: AddExpenseViewProps): CategoryOption | null {
 function AmountBlock(props: AddExpenseViewProps & { readonly intl: IntlShape }): React.JSX.Element {
   const styles = useStyles();
   const { intl } = props;
-  const symbol = currencySymbol(props.currency, intl.locale);
+  const symbol = currencySymbol(props.currency, toSupportedLocale(intl.locale));
   const shown = props.typed === '' ? '0' : groupTyped(props.typed, intl.locale);
   const hint =
     props.status === 'saved' && props.plan !== null
@@ -207,7 +208,7 @@ function ImpactPanel({ plan, impact, category }: ImpactPanelProps): React.JSX.El
   const styles = useStyles();
   const intl = useIntl();
   const labels = useLightLabels();
-  const symbol = currencySymbol(plan.currency, intl.locale);
+  const symbol = currencySymbol(plan.currency, toSupportedLocale(intl.locale));
   const whole = wholeUnits(impact.safeAfter);
   const days = intl.formatMessage(
     {
@@ -531,14 +532,4 @@ function groupTyped(typed: string, locale: string): string {
   );
 
   return fraction === undefined ? grouped : `${grouped}${decimalSeparator(locale)}${fraction}`;
-}
-
-function currencySymbol(currency: string, locale: string): string {
-  const parts = new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency,
-    currencyDisplay: 'narrowSymbol',
-  }).formatToParts(0);
-
-  return parts.find((part) => part.type === 'currency')?.value ?? currency;
 }
