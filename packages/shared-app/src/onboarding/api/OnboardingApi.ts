@@ -35,9 +35,14 @@ export class OnboardingApi {
   constructor(private readonly http: Pick<HttpClient, 'get' | 'patch'>) {}
 
   async isCompleted(): Promise<boolean> {
+    return (await this.readProfile()).onboardingCompleted;
+  }
+
+  /** The whole profile, for a client that wants more than the completion flag from the one read. */
+  async readProfile(): Promise<UserProfileDto> {
     const res = await this.http.get<UserProfileDto>('/users/me');
 
-    return res.data.onboardingCompleted;
+    return res.data;
   }
 
   /** Saves the chosen language and base currency and marks onboarding completed in one request. */

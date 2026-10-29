@@ -22,6 +22,16 @@ describe('OnboardingApi', () => {
     ]);
   });
 
+  it('reads the whole profile from the same GET /users/me', async () => {
+    http.respondWith({ onboardingCompleted: false, interestingCurrencies: ['USD'] });
+
+    expect(await api.readProfile()).toEqual({
+      onboardingCompleted: false,
+      interestingCurrencies: ['USD'],
+    });
+    expect(http.calls).toEqual([{ method: 'GET', url: '/users/me' }]);
+  });
+
   it('saves the language, base currency and completion in one PATCH /users/me', async () => {
     await api.complete({
       language: 'pl',

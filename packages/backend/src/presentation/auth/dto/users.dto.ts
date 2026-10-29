@@ -9,6 +9,7 @@ import {
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CURRENCIES, SUPPORTED_LOCALES } from '@power-budget/core';
@@ -16,6 +17,11 @@ import type { CurrencyCode } from '@power-budget/core';
 import type { LocaleCode } from '../../../domain/auth/entities.js';
 import type { UserProfile } from '../../../domain/auth/profile.js';
 import { MAX_INTERESTING_CURRENCIES, UserPreferences } from '../../../domain/auth/profile.js';
+
+/** The field was sent: only an absent field is skipped, null is validated (and refused). */
+function isPresent(_object: object, value: unknown): boolean {
+  return value !== undefined;
+}
 
 const LOCALES: readonly LocaleCode[] = SUPPORTED_LOCALES;
 const CURRENCY_CODES = Object.keys(CURRENCIES);
@@ -61,7 +67,8 @@ export class UpdateUserProfileDto {
     maxItems: MAX_INTERESTING_CURRENCIES,
     description: 'Currencies tracked next to the base currency; replaces the stored list',
   })
-  @IsOptional()
+  // Not @IsOptional: it also lets null through, and null would wipe or crash the stored list.
+  @ValidateIf(isPresent)
   @IsArray()
   @ArrayMaxSize(MAX_INTERESTING_CURRENCIES)
   @ArrayUnique()
@@ -72,7 +79,7 @@ export class UpdateUserProfileDto {
     type: Boolean,
     description: 'Set true when the user finishes onboarding; false resets it',
   })
-  @IsOptional()
+  @ValidateIf(isPresent)
   @IsBoolean()
   onboardingCompleted?: boolean;
 }

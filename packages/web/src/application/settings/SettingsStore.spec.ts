@@ -56,6 +56,20 @@ function apiError(status: number, code: string): Error & { response: unknown } {
   });
 }
 
+describe('SettingsStore.hydrateFromProfile', () => {
+  it('restores the tracked currencies and base currency from a profile read elsewhere', () => {
+    const storage = new MemoryKeyValueStore();
+    const store = new SettingsStore(http, storage);
+
+    store.hydrateFromProfile({ ...profile, baseCurrency: 'EUR', interestingCurrencies: ['USD'] });
+
+    expect(store.interestingCurrencies).toEqual(['USD']);
+    expect(store.baseCurrency).toBe('EUR');
+    expect(store.profileLoaded).toBe(true);
+    expect(storage.getItem('pb_interesting_currencies')).toBe('["USD"]');
+  });
+});
+
 describe('SettingsStore.deleteAccount', () => {
   let store: SettingsStore;
 

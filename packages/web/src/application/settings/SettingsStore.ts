@@ -125,6 +125,17 @@ export class SettingsStore {
     }
   }
 
+  /**
+   * Takes over a profile somebody else already read (the onboarding guard, before the app
+   * renders), so the tracked currencies and base currency are there from the first screen.
+   */
+  hydrateFromProfile(profile: UserProfileDto): void {
+    const session = this.session;
+    this.applyProfile(session, profile);
+    this.clearProfileLoadFailed(session);
+    this.markProfileLoaded(session);
+  }
+
   async saveProfile(): Promise<void> {
     const body: UpdateUserProfileDto = this.timezone.trim()
       ? { displayName: this.displayName.trim(), timezone: this.timezone.trim() }

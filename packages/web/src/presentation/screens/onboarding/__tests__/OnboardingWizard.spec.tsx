@@ -79,6 +79,35 @@ describe('OnboardingWizard', () => {
     expect(screen.getByRole('link', { name: 'Create plan' })).toHaveAttribute('href', '/plans');
   });
 
+  it('marks the wizard as left only when the bank or plan link is followed', () => {
+    renderWithProviders(<OnboardingWizard onComplete={vi.fn()} />);
+    for (let step = 0; step < 3; step += 1) {
+      clickNext();
+    }
+    expect(onboardingProgress.isLeftForLink).toBe(false);
+
+    fireEvent.click(screen.getByRole('link', { name: 'Connect now' }));
+
+    expect(onboardingProgress.isLeftForLink).toBe(true);
+  });
+
+  it('comes back to the bank step with the tracked currencies chosen before the link', () => {
+    const first = renderWithProviders(<OnboardingWizard onComplete={vi.fn()} />);
+    clickNext();
+    clickNext();
+    fireEvent.click(screen.getByRole('button', { name: 'EUR' }));
+    clickNext();
+    fireEvent.click(screen.getByRole('link', { name: 'Connect now' }));
+    first.unmount();
+
+    renderWithProviders(<OnboardingWizard onComplete={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: 'Connect now' })).toBeVisible();
+    expect(onboardingProgress.isLeftForLink).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('button', { name: 'EUR' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('saves the choices and completes when the last step is skipped', async () => {
     const onComplete = vi.fn();
     renderWithProviders(<OnboardingWizard onComplete={onComplete} />);
