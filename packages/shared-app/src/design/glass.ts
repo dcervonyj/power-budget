@@ -1,11 +1,9 @@
 export type ProgressBand = 'ok' | 'warning' | 'over';
-import type { DesignLocale, StatusKind } from './types.js';
+import type { MinorUnitAmount } from '@power-budget/core';
+import type { StatusKind } from './types.js';
 export type { DesignLocale } from './types.js';
 
-export interface MoneyValue {
-  readonly amountMinor: bigint;
-  readonly currency: string;
-}
+export type MoneyValue = MinorUnitAmount;
 
 export interface LensGeometry {
   readonly size: string;
@@ -24,24 +22,6 @@ export interface Stagger {
   readonly flickerDelay: string;
   readonly sparkDelay: string;
 }
-
-export interface MoneyPart {
-  readonly type: string;
-  readonly value: string;
-}
-
-export type MoneyFormatterFactory = (
-  locale: DesignLocale,
-  currency: string,
-  digits: number,
-) => Intl.NumberFormat;
-
-const LOCALES: Record<DesignLocale, string> = {
-  en: 'en-GB',
-  pl: 'pl-PL',
-  uk: 'uk-UA',
-  ru: 'ru-RU',
-};
 
 /** Remaining/planned fraction, constrained for light rendering. */
 export function lightFraction(left: MoneyValue, plan: MoneyValue): number {
@@ -105,124 +85,10 @@ export function statusKind(progressBand: ProgressBand, paid: boolean): StatusKin
   return 'ok';
 }
 
-/** Exact minor-unit formatter parts for AmountText. */
-export function formatMoneyParts(
-  money: MoneyValue,
-  locale: DesignLocale,
-  formatterFactory: MoneyFormatterFactory = currencyFormatter,
-): readonly MoneyPart[] {
-  const negative = money.amountMinor < 0n;
-  const absolute = negative ? -money.amountMinor : money.amountMinor;
-  const digits = currencyDigits(locale, money.currency);
-  const divisor = 10n ** BigInt(digits);
-  const whole = absolute / divisor;
-  const fraction = (absolute % divisor).toString().padStart(digits, '0');
-  const sample = negative ? -(whole === 0n ? 1n : whole) : whole;
-  const formatter = formatterFactory(locale, money.currency, digits);
-  const integerParts = groupedIntegerParts(whole, groupSeparator(formatter));
-  const parts: MoneyPart[] = [];
-  let includedInteger = false;
-
-  for (const part of formatter.formatToParts(sample)) {
-    if (part.type === 'integer') {
-      if (!includedInteger) {
-        parts.push(...integerParts);
-        includedInteger = true;
-      }
-
-      continue;
-    }
-    if (part.type === 'group') {
-      continue;
-    }
-
-    parts.push({
-      type: part.type,
-      value: moneyPartValue(part.type, part.value, fraction, whole === 0n, money.currency),
-    });
-  }
-
-  return parts;
-}
-
 function clamp(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
   }
 
   return Math.max(0, Math.min(1, value));
-}
-
-function currencyDigits(locale: DesignLocale, currency: string): number {
-  const formatter = new Intl.NumberFormat(LOCALES[locale], {
-    style: 'currency',
-    currency,
-  });
-
-  const digits = formatter.resolvedOptions().maximumFractionDigits;
-  if (digits === undefined) {
-    throw new Error('Currency formatter did not provide fractional digits');
-  }
-
-  return digits;
-}
-
-function currencyFormatter(
-  locale: DesignLocale,
-  currency: string,
-  digits: number,
-): Intl.NumberFormat {
-  return new Intl.NumberFormat(LOCALES[locale], {
-    style: 'currency',
-    currency,
-    currencyDisplay: 'narrowSymbol',
-    minimumFractionDigits: digits,
-    maximumFractionDigits: digits,
-  });
-}
-
-function groupSeparator(formatter: Intl.NumberFormat): string {
-  for (const part of formatter.formatToParts(1234567n)) {
-    if (part.type === 'group') {
-      return part.value;
-    }
-  }
-
-  throw new Error('Currency formatter did not provide a group separator');
-}
-
-function groupedIntegerParts(whole: bigint, separator: string): MoneyPart[] {
-  const digits = whole.toString();
-  const firstGroupLength = digits.length % 3 || 3;
-  const parts: MoneyPart[] = [{ type: 'integer', value: digits.slice(0, firstGroupLength) }];
-
-  for (let index = firstGroupLength; index < digits.length; index += 3) {
-    parts.push({ type: 'group', value: separator });
-    parts.push({ type: 'integer', value: digits.slice(index, index + 3) });
-  }
-
-  return parts;
-}
-
-function moneyPartValue(
-  type: string,
-  value: string,
-  fraction: string,
-  zeroWhole: boolean,
-  currency: string,
-): string {
-  if (type === 'fraction') {
-    return fraction;
-  }
-  if (type === 'integer' && zeroWhole) {
-    return '0';
-  }
-  if (type === 'minusSign') {
-    return '−';
-  }
-  if (type === 'currency' && currency === 'PLN') {
-    return 'zł';
-  }
-
-  return value;
 }

@@ -1,5 +1,9 @@
-import type { MinorUnitAmount, SupportedLocale } from '@power-budget/core';
-import { formatMoneyParts, type MoneyPart } from '@power-budget/shared-app';
+import {
+  formatMoneyParts,
+  type MinorUnitAmount,
+  type MoneyPart,
+  type SupportedLocale,
+} from '@power-budget/core';
 
 /** Same regional formats as core `formatMoney` (English is en-GB: "22 Oct"). */
 const LOCALE_BCP47: Readonly<Record<SupportedLocale, string>> = {

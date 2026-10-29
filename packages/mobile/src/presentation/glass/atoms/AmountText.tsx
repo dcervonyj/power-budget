@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, type StyleProp, type TextStyle } from 'react-native';
 import { useIntl } from 'react-intl';
 import type { MinorUnitAmount, SupportedLocale } from '@power-budget/core';
-import { formatMoneyParts, type MoneyPart } from '@power-budget/shared-app';
+import { formatMoneyParts, type MoneyPart } from '@power-budget/core';
 import { makeStyles, useGlass } from '../../theme/index.js';
 import { toSupportedLocale } from './supportedLocale.js';
 

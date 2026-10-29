@@ -32,7 +32,6 @@
   "biometric.promptMessage": "Unlock Power Budget",
   "biometric.retry": "Use Biometrics / Passcode",
   "biometric.title": "Unlock App",
-  "common.amountWithCurrency": "{amount} {currency}",
   "common.checkmark": "✓",
   "common.closeButton": "✕",
   "input.password.hide": "Hide",
