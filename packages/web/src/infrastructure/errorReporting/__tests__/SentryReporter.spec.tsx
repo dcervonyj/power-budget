@@ -1,4 +1,5 @@
 import React from 'react';
+import { createMock } from '@golevelup/ts-vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SentryReporter, type ErrorTarget, type SentryModule } from '../SentryReporter.js';
@@ -19,26 +20,27 @@ vi.mock('@sentry/react', () => sdk);
 import { ReportingErrorBoundary } from '../ReportingErrorBoundary.js';
 
 function fakeSentry(): SentryModule {
-  return {
-    init: vi.fn(),
-    captureException: vi.fn(),
-  };
+  return createMock<SentryModule>();
 }
 
 function fakeTarget(): ErrorTarget & { fire(type: string, event: object): void } {
   const listeners = new Map<string, Set<(event: Event) => void>>();
 
-  return {
-    addEventListener: (type, listener) => {
-      listeners.set(type, (listeners.get(type) ?? new Set()).add(listener));
+  return Object.assign(
+    createMock<ErrorTarget>({
+      addEventListener: (type, listener) => {
+        listeners.set(type, (listeners.get(type) ?? new Set()).add(listener));
+      },
+      removeEventListener: (type, listener) => {
+        listeners.get(type)?.delete(listener);
+      },
+    }),
+    {
+      fire: (type: string, event: object) => {
+        listeners.get(type)?.forEach((listener) => listener(Object.assign(new Event(type), event)));
+      },
     },
-    removeEventListener: (type, listener) => {
-      listeners.get(type)?.delete(listener);
-    },
-    fire: (type, event) => {
-      listeners.get(type)?.forEach((listener) => listener(event as Event));
-    },
-  };
+  );
 }
 
 describe('SentryReporter', () => {

@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { UserProfileDto } from '@power-budget/shared-app/contract';
@@ -5,12 +6,12 @@ import { SettingsStore, type SettingsHttp } from './SettingsStore.js';
 import type { KeyValueStore } from '../ports/KeyValueStore.js';
 import { deferred } from '../../test/deferred.js';
 
-const http = {
+const http = createMock<SettingsHttp>({
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
   delete: vi.fn(),
-} satisfies SettingsHttp;
+});
 const mockGet = http.get;
 const mockPost = http.post;
 const mockPatch = http.patch;
@@ -71,12 +72,12 @@ describe('SettingsStore.hydrateFromProfile', () => {
 });
 
 describe('SettingsStore when the device storage refuses writes', () => {
-  const refusing: KeyValueStore = {
+  const refusing = createMock<KeyValueStore>({
     getItem: (): null => null,
     setItem: (): never => {
       throw new Error('quota');
     },
-  };
+  });
 
   it('still takes over the profile read by the guard', () => {
     const store = new SettingsStore(http, refusing);

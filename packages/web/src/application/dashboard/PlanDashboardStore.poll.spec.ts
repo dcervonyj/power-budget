@@ -1,3 +1,4 @@
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlanDashboardResponseDto as PlanDashboardDto } from '@power-budget/shared-app/contract';
 import { ClientSession } from '../auth/ClientSession.js';
@@ -16,8 +17,6 @@ import {
 } from '../../test/dashboardFixtures.js';
 import { deferred } from '../../test/deferred.js';
 
-type Mocked = { [K in keyof PlanDashboardPlans]: ReturnType<typeof vi.fn> } & PlanDashboardPlans;
-
 const NEWER: PlanDashboardDto = { ...DASHBOARD, asOf: '2026-10-22' };
 
 const REFRESH_DEBOUNCE = 250;
@@ -29,8 +28,8 @@ async function advance(ms: number): Promise<void> {
 }
 
 describe('PlanDashboardStore polling and reference data', () => {
-  let plans: Mocked;
-  let categories: { list: ReturnType<typeof vi.fn> } & CatalogueCategories;
+  let plans: DeepMocked<PlanDashboardPlans>;
+  let categories: DeepMocked<CatalogueCategories>;
   let catalogue: ReferenceCatalogue;
   let store: PlanDashboardStore;
 
@@ -50,7 +49,7 @@ describe('PlanDashboardStore polling and reference data', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    plans = {
+    plans = createMock<PlanDashboardPlans>({
       get: vi.fn().mockResolvedValue(PLAN),
       dashboard: vi.fn().mockResolvedValue(DASHBOARD),
       listItems: vi.fn().mockResolvedValue(ITEMS),
@@ -59,8 +58,8 @@ describe('PlanDashboardStore polling and reference data', () => {
         .mockImplementation((_planId: string, direction: string) =>
           Promise.resolve(direction === 'expense' ? UNPLANNED_PAGE : EMPTY_PAGE),
         ),
-    };
-    categories = { list: vi.fn().mockResolvedValue(CATEGORIES) };
+    });
+    categories = createMock<CatalogueCategories>({ list: vi.fn().mockResolvedValue(CATEGORIES) });
     catalogue = catalogueFor(plans, categories);
     store = new PlanDashboardStore(plans, catalogue);
   });
