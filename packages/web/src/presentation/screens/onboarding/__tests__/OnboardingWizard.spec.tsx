@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { spyOnApiClient } from '../../../../test/apiClientSpies.js';
 import { renderWithProviders } from '../../../../test/renderWithProviders.js';
+import { onboardingProgress } from '../../../../composition.js';
 import { OnboardingWizard } from '../OnboardingWizard.js';
 
 const mockPatch = spyOnApiClient().patch;
@@ -14,6 +15,7 @@ function clickNext(): void {
 describe('OnboardingWizard', () => {
   beforeEach(() => {
     localStorage.clear();
+    onboardingProgress.clear();
     mockPatch.mockReset();
     mockPatch.mockResolvedValue({ status: 200, data: undefined, headers: {} });
   });
@@ -25,6 +27,16 @@ describe('OnboardingWizard', () => {
     expect(screen.getByRole('img', { name: 'Step 1 of 5' })).toBeVisible();
     expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
     expect(screen.getByRole('radio', { name: 'English' })).toBeChecked();
+  });
+
+  it('resumes the same step and choices when the user comes back from the bank or plan links', () => {
+    const first = renderWithProviders(<OnboardingWizard onComplete={vi.fn()} />);
+    clickNext();
+    first.unmount();
+
+    renderWithProviders(<OnboardingWizard onComplete={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'Set your base currency' })).toBeVisible();
   });
 
   it('walks forward and back through the steps', () => {

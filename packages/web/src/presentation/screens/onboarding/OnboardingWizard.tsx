@@ -1,8 +1,7 @@
 import React, { useContext, useState } from 'react';
-import { observer, useLocalObservable } from 'mobx-react-lite';
-import { OnboardingStore } from '../../../application/onboarding/OnboardingStore.js';
+import { observer } from 'mobx-react-lite';
 import { persistOnboardingPrefs } from '../../../application/onboarding/OnboardingPrefs.js';
-import { onboardingService } from '../../../composition.js';
+import { onboardingProgress, onboardingService } from '../../../composition.js';
 import { LocaleContext } from '../../../AppProviders.js';
 import { OnboardingView } from './OnboardingView.js';
 
@@ -15,7 +14,8 @@ export const OnboardingWizard = observer(function OnboardingWizard({
   onComplete,
 }: OnboardingWizardProps): React.JSX.Element {
   const { setLocale } = useContext(LocaleContext);
-  const store = useLocalObservable(() => new OnboardingStore());
+  // Kept outside the component: the bank and plan links leave the wizard and come back to it.
+  const [store] = useState(() => onboardingProgress.resume());
   const [saveFailed, setSaveFailed] = useState(false);
 
   async function save(): Promise<void> {
@@ -36,6 +36,7 @@ export const OnboardingWizard = observer(function OnboardingWizard({
 
       return;
     }
+    onboardingProgress.clear();
     onComplete();
   }
 
