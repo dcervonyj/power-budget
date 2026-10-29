@@ -16,7 +16,7 @@
 
 ---
 
-## §0 — Reality check (21 Oct 2026)
+## §0 — Reality check (status counts: 2026-10-29)
 
 The v1.0 backlog marked Waves 1-16 as Done. An audit of `master` @ `fdb7b19` (`docs/handoff/audit-code.md`, `audit-ui.md`) showed that this is not true: lint, typecheck, 443 unit tests and CI are green, but almost no user journey works end to end, and the deployed API has exploitable security holes. This section records the real state of each v1.0 task. The plan that finishes the work is **§7 — v1.1 plan**.
 
@@ -37,7 +37,7 @@ The v1.0 backlog marked Waves 1-16 as Done. An audit of `master` @ `fdb7b19` (`d
 | Not started | 4       |
 | **Total**   | **122** |
 
-Tally by the audit (tasks marked Done, in its review scope): about 15% real, about 45% partial, about 40% stub, dead or broken.
+Counts reflect the v1.0 catalogue status lines as of 2026-10-29. The table below retains the 21 Oct audit findings, except for later updates noted in individual rows.
 
 | ID       | Real status | Reason                                                                                                                                             | Finished by                 |
 | -------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
@@ -2158,7 +2158,7 @@ Close the live API and patch the holes that let anyone forge tokens.
 - **Area**: Security
 - **Phase**: P0
 - **Effort**: M (~1.5d)
-- **Status**: In progress
+- **Status**: Done (#159, 2026-10-21)
 - **Description**: One PR that closes the exploitable holes: (1) fail at boot if `JWT_SECRET` is missing or under 32 bytes, pin HS256, set the env var in Render and rotate it (C1); (2) remove the public Google OAuth stub routes until a real client exists (C2); (3) household delete and household dashboard use `user.householdId`, check the owner role (C3, H1); (4) per-connection Wise consent ref, lookup scoped by `(connectionId, user, household)` (C4); (5) verify the Svix signature on the Resend bounce webhook (H2); (6) gate `/docs` and tighten CORS: no `localhost:5173`, no `credentials:true` (L1, L2).
 - **Blocked by**: NEW-001
 - **Blocks**: HOST-002
@@ -2196,7 +2196,7 @@ A clean checkout can log in and the tests check real behaviour.
 - **Area**: Backend
 - **Phase**: P1
 - **Effort**: M (~2.5d)
-- **Status**: Planned
+- **Status**: Done (#176, 2026-10-21)
 - **Description**: Add a global `ValidationPipe({whitelist, forbidNonWhitelisted, transform})`, DTO validators and `ParseUUIDPipe` (C5). Map domain errors to HTTP (401/403/4xx) and keep the error `code`, including `requires_totp` and `requires_totp_enrollment` (H3). Return money as a string of minor units in every response DTO so `bigint` never reaches `JSON.stringify` (C8, L6). Absorbs UI-003, UI-004 (error mapping part).
 - **Blocked by**: none
 - **Blocks**: CLN-014, CLN-004, CLN-011
@@ -2212,7 +2212,7 @@ A clean checkout can log in and the tests check real behaviour.
 - **Area**: Tests
 - **Phase**: P1
 - **Effort**: M (~2d)
-- **Status**: Planned
+- **Status**: Done (#157, 2026-10-21)
 - **Description**: Add `@testcontainers/postgresql` and a Redis container to the backend devDependencies, a CI job that runs `test:integration` (Docker on ubuntu runners), a Fastify `inject` HTTP e2e base class and the `@vitest/coverage-v8` provider (H28).
 - **Blocked by**: none
 - **Blocks**: CLN-019, CLN-004, CLN-005, CLN-008r, CLN-017
@@ -2227,7 +2227,7 @@ A clean checkout can log in and the tests check real behaviour.
 - **Area**: Backend
 - **Phase**: P1
 - **Effort**: XS (~0.5d)
-- **Status**: Planned
+- **Status**: Done (#160, 2026-10-21)
 - **Description**: Regenerate drizzle snapshots for 0004 and 0005 against a clean database without renaming applied tags, so the next `drizzle-kit generate` does not re-emit those tables (M12). Split the migrate role from the app role.
 - **Blocked by**: none
 - **Blocks**: CLN-005, BNK-003
@@ -2241,7 +2241,7 @@ A clean checkout can log in and the tests check real behaviour.
 - **Area**: Repo and docs
 - **Phase**: P1
 - **Effort**: M (~2d)
-- **Status**: Planned
+- **Status**: Done (#161, 2026-10-21)
 - **Description**: Merge the safe dependabot batch (Actions majors, backend patch/minor, axios 1.18, tooling, react-intl, vitest 3.2.6 PR #145), close the RN/react and react-router 7 PRs, align `@nestjs/common` and `@nestjs/testing` to 11 (H27), unify on one vitest major, bump vite to 6.4.4 (audit section 6).
 - **Blocked by**: CLN-003
 - **Blocks**: none
@@ -2256,7 +2256,7 @@ A clean checkout can log in and the tests check real behaviour.
 - **Area**: Backend
 - **Phase**: P1
 - **Effort**: M (~1.5d)
-- **Status**: Planned
+- **Status**: Done (#168, 2026-10-21)
 - **Description**: Register crons and processors only in a worker module, never in the API module, so nothing runs twice (C12). Use a `jobId` per connection for dedupe, pass the Redis URL with TLS intact (H13), make the weekly digest timezone-aware and fix its ISO week year and payload (M15). The always-on host question (M16) is closed by HOST-001.
 - **Blocked by**: HOST-001
 - **Blocks**: CLN-009, CLN-013, SYNC-003, CLN-022
@@ -2271,7 +2271,7 @@ A clean checkout can log in and the tests check real behaviour.
 - **Area**: Web
 - **Phase**: P1
 - **Effort**: M (~2.5d)
-- **Status**: Planned
+- **Status**: Done (#180, 2026-10-21)
 - **Description**: `RequireAuth` reads the token through `tokenStore` (C13, absorbs UI-001); dev CSP allows the API origin (UI-002); `/auth/*` skips the refresh interceptor so a 401 does not queue behind itself (H24); i18n JSON import uses `.default`; TOTP screen field names match the backend; bulk body is `{op, ids, payload}` (H25); money goes through core `parseMoney` (M19); production CSP via `_headers`, hidden source maps and a logout button (M20); deploy to Cloudflare Pages (INF-011).
 - **Blocked by**: CLN-002
 - **Blocks**: CLN-004, CLN-017, UI-009, CLN-016, CLN-015
@@ -2287,7 +2287,7 @@ A clean checkout can log in and the tests check real behaviour.
 - **Area**: Repo and docs
 - **Phase**: P1
 - **Effort**: XS (~0.5d)
-- **Status**: In progress (this PR)
+- **Status**: Done (#158, 2026-10-21)
 - **Description**: Set BACKLOG statuses to the audit results, rewrite STATUS.md, correct the false PASS lines in the pentest checklist, fix the agent instruction files (MobX, not RTK) and the key-rotation runbook (L8, L9). Copy plan-banking.md into `docs/mvp/`.
 - **Blocked by**: none
 - **Blocks**: none
@@ -2309,7 +2309,7 @@ Mostly owner and partner actions, in parallel with P1 and P2: Enable Banking, Wi
 - **Area**: Hosting
 - **Phase**: M0
 - **Effort**: XS (~0.5d)
-- **Status**: Planned
+- **Status**: Done (#206, 2026-10-23)
 - **Needs the owner or partner**: yes
 - **Description**: Write the ADR (§2): it supersedes ADR-002's runtime choice and keeps Neon and Cloudflare Pages. Update `docs/mvp/ARCHITECTURE.md` §9/§10 and `CLAUDE.md` (all three agent-instruction files must stay in sync).
 - **Blocked by**: none
@@ -2425,7 +2425,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Security
 - **Phase**: P2
 - **Effort**: L (~5d)
-- **Status**: Planned
+- **Status**: Done (#181, 2026-10-21)
 - **Description**: Remove the TOTP enrolment deadlock: first enrolment needs no step-up (C7, absorbs UI-005); add the 2FA step to web login (UI-004); the enrol screen must not rotate the secret on mount; encrypt the TOTP secret with the `Encryption` port (H5); apply one login policy so magic-link and Google login also require TOTP (H6); TOTP replay protection and atomic refresh-token rotation and magic-link consume (M9); `@nestjs/throttler` with Redis keyed per IP and per email plus `trustProxy` (H4, SEC-006); decide SEC-001 envelope/DEK and SEC-002 (descope or build).
 - **Blocked by**: CLN-002, CLN-003, CLN-014
 - **Blocks**: CLN-006, BNK-005
@@ -2441,7 +2441,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Security
 - **Phase**: P2
 - **Effort**: L (~5d)
-- **Status**: Planned
+- **Status**: Done (#179, 2026-10-21)
 - **Description**: App DB role without owner rights, FORCE RLS, per-transaction `set_config`, fix the `transaction_mappings` policy (no `household_id` column), put RLS into the drizzle journal, worker role with BYPASSRLS (C6); scope every repository write and id lookup (H10, L4); fix the `no-repo-without-scope` rule for member calls (H9); inject the redacting audit logger everywhere and REVOKE UPDATE/DELETE on `audit_log` (H8, M17).
 - **Blocked by**: CLN-003, CLN-018
 - **Blocks**: BNK-003, SYNC-001
@@ -2456,7 +2456,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Backend
 - **Phase**: P2
 - **Effort**: M (~2.5d)
-- **Status**: Planned
+- **Status**: Done (#178, 2026-10-21)
 - **Description**: Dispatch claims the specific notification atomically (C11); retry with backoff and an idempotency key so a crash after send does not double-send (H21); `RESEND_API_KEY` in the environment plus a boot check, `.mjml` assets copied to `dist` (H20); magic-link template and scrub the raw token after send (M10); period close injects `uuidv7`, rethrows so BullMQ retries, sets `period_end` from the plan and counts expense lines only (C10, M14); escape template values (L5); wire or delete the outbox relay.
 - **Blocked by**: CLN-010
 - **Blocks**: CLN-006, BNK-007
@@ -2471,7 +2471,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Backend
 - **Phase**: P2
 - **Effort**: M (~2d)
-- **Status**: Planned
+- **Status**: Done (#186, 2026-10-21)
 - **Needs the owner or partner**: yes
 - **Description**: Register, invite email through the outbox, accept, shared household. The invite URL is returned and emailed (H7); accept is allowed when the invitee's own household is empty.
 - **Blocked by**: CLN-004, CLN-009
@@ -2486,7 +2486,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Backend
 - **Phase**: P2
 - **Effort**: L (~5d)
-- **Status**: Planned
+- **Status**: Done (#182, 2026-10-21)
 - **Description**: Backend endpoints that web and mobile already call: plans CRUD, items, history, clone and archive; categories CRUD and aggregate; `PATCH /users/me` and preferences; export status. Typed `@ApiResponse` DTOs (91 of 92 currently have no `type`); controllers go through use cases (M21); scope `listActive` and `archive` by owner (M13); map rows through branded constructors (L7). Absorbs the plans and categories part of UI-006.
 - **Blocked by**: CLN-002
 - **Blocks**: UI-007, CLN-012
@@ -2501,7 +2501,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Web
 - **Phase**: P2
 - **Effort**: M (~3d)
-- **Status**: Planned
+- **Status**: Done (#188, 2026-10-21)
 - **Description**: Web, mobile and shared-app use the generated api-types instead of hand-written DTOs (WEB-004); one `Plan` type; dashboard and transaction shapes match the backend (nested `amount`, `{incomeLines, expenseLines, ...}`).
 - **Blocked by**: CLN-011
 - **Blocks**: UI-013, UI-014, UI-016
@@ -2515,7 +2515,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Backend
 - **Phase**: P2
 - **Effort**: L (~3.5d)
-- **Status**: Planned
+- **Status**: Done (#177, 2026-10-21)
 - **Description**: Repository, ECB daily cron, decimal-string rates, `convertMoney` with half-even rounding, inverse lookup and tests (M1), request the historical date and key idempotency by the returned date, add an NBU source for UAH (M18), `GET /fx-rates`, register the module in the worker (H23).
 - **Blocked by**: CLN-010
 - **Blocks**: CLN-012
@@ -2530,7 +2530,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Backend
 - **Phase**: P2
 - **Effort**: L (~5d)
-- **Status**: Planned
+- **Status**: Done (#187, 2026-10-21)
 - **Description**: One `computePlanActuals` from core with an FX table replaces `DrizzlePlanActualsReader` (H17); drop the materialised view or refresh it on mapping change (H22); privacy per owner, not per category (H18); unplanned list respects privacy and clamps `limit` (H19); signed sums so refunds reduce spend and period filters apply (M2). Absorbs UI-008.
 - **Blocked by**: CLN-011, CLN-013
 - **Blocks**: UI-013
@@ -2545,7 +2545,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Web
 - **Phase**: P2
 - **Effort**: M (~2.5d)
-- **Status**: Planned
+- **Status**: Done (#191, 2026-10-21)
 - **Description**: Replace the two stub screens with the designed ones; show amounts in normal units in the plan editor, not minor units.
 - **Blocked by**: UI-007, CLN-012
 - **Blocks**: none
@@ -2559,7 +2559,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Web
 - **Phase**: P2
 - **Effort**: XS (~0.5d)
-- **Status**: Planned
+- **Status**: Done (#190, 2026-10-21)
 - **Description**: Transaction detail and mapping are different modals; show the transaction status and the mapped item.
 - **Blocked by**: UI-007
 - **Blocks**: none
@@ -2573,7 +2573,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Backend
 - **Phase**: P2
 - **Effort**: XS (~0.5d)
-- **Status**: Planned
+- **Status**: Done (#185, 2026-10-21)
 - **Description**: Keyset pagination on `(occurredOn, id)` (H16) and escaped `ilike` patterns (L4). The rest of CLN-008 moved to BNK and SYNC tasks.
 - **Blocked by**: CLN-003
 - **Blocks**: none
@@ -2587,7 +2587,7 @@ Auth and 2FA, a two-person household, plans, FX, a correct dashboard, honest tes
 - **Area**: Tests
 - **Phase**: P2
 - **Effort**: L (~3.5d)
-- **Status**: Planned
+- **Status**: Done (#189, 2026-10-21)
 - **Description**: Delete fake tests (`app.spec`, tautological headers spec, 1x1 visual baselines, mock-only tenancy spec); Playwright against a real backend in CI with a two-user fixture; a web-backend contract test; make the k6 gate real or remove `perf.yml`.
 - **Blocked by**: CLN-003, CLN-014
 - **Blocks**: none
@@ -2608,7 +2608,7 @@ First real milestone: Enable Banking, sync, freshness. About 30 days of critical
 - **Area**: Banks
 - **Phase**: M1
 - **Effort**: M (~2d)
-- **Status**: Planned
+- **Status**: Done (#226, 2026-10-26)
 - **Description**: The §1.10 port changes:
   - `PsuContext`, rich `RawTransaction`, `fetchBalances`, `getConsentStatus`, the typed error classes;
   - `BankProvider = 'enable_banking'` in core;
@@ -2625,7 +2625,7 @@ First real milestone: Enable Banking, sync, freshness. About 30 days of critical
 - **Area**: Banks
 - **Phase**: M1
 - **Effort**: S (~1d)
-- **Status**: Planned
+- **Status**: Done (#222, 2026-10-26)
 - **Description**: The §1.10 columns and tables for connections, accounts, the ledger and sync_runs, plus the Drizzle schema and repositories. Register the migration in the drizzle journal (a past bug, fixed in #148).
 - **Blocked by**: CLN-005, CLN-018
 - **Blocks**: BNK-004, SYNC-002, BNK-007
@@ -2640,7 +2640,7 @@ First real milestone: Enable Banking, sync, freshness. About 30 days of critical
 - **Area**: Sync
 - **Phase**: M1
 - **Effort**: M (~2d)
-- **Status**: Planned
+- **Status**: Done (#237, 2026-10-26)
 - **Description**: The §1.10 `transactions` columns and `live_signals` table. `DrizzleTransactionRepository` reads and writes `status`, the suggestion fields and the booked fields. Fix `patch()` dropping `suggestedPlannedItemId`. Add `upgradeInPlace()` and `listProvisional(account, window)`.
 - **Blocked by**: CLN-005
 - **Blocks**: SYNC-006, SYNC-008, AI-003, AI-004
@@ -3042,7 +3042,7 @@ Rules first (transfers, planned items, merchant memory), Claude for the rest.
 - **Area**: AI
 - **Phase**: M3
 - **Effort**: M (~2d)
-- **Status**: Planned
+- **Status**: Done (#219, 2026-10-26)
 - **Description**: `normaliseTransaction()`:
   - merchant extraction from EB remittance strings, PKO email titles and Wise activity titles;
   - descriptor classes: `payu`, `przelewy24`, `allegro`, `blik_p2p`, `blik_merchant`, `atm`, `card`, `transfer`, `fee`;
@@ -3079,7 +3079,7 @@ Rules first (transfers, planned items, merchant memory), Claude for the rest.
 - **Area**: AI
 - **Phase**: M3
 - **Effort**: M (~2.5d)
-- **Status**: Planned
+- **Status**: Done (#308, 2026-10-28)
 - **Description**: `merchant_rules`. A user `MapTransaction` or a question answer upserts a rule (merchant key, or counterparty IBAN hash → category + plan-kind preference; or `always_ask`). On ingest, resolve the category to the active planned item for the transaction date and owner. Replaces `STUB_SUGGESTION` and the empty `fetchRecentMappings()`.
 - **Blocked by**: AI-001, SYNC-001
 - **Blocks**: AI-006
@@ -3093,7 +3093,7 @@ Rules first (transfers, planned items, merchant memory), Claude for the rest.
 - **Area**: AI
 - **Phase**: M3
 - **Effort**: M (~3d)
-- **Status**: Planned
+- **Status**: Done (#309, 2026-10-28)
 - **Description**: `planned_items.match_hint` (counterparty pattern, expected amount ± tolerance, day-of-month window). Editable in the planned item form on web and mobile. A matcher scores candidates, so rent, salary and subscriptions auto-map with confidence ≥ 0.95 when unique.
 - **Blocked by**: SYNC-001
 - **Blocks**: AI-006
@@ -3237,7 +3237,7 @@ Consent lifecycle, alerts, uptime, the GDPR decision.
 - **Area**: Backend
 - **Phase**: M4
 - **Effort**: M (~2d)
-- **Status**: Planned
+- **Status**: Done (#224, 2026-10-26)
 - **Needs the owner or partner**: yes
 - **Description**: Either build the export and purge processors (BE-034, SEC-005, M11) or state in the privacy docs that a two-person private app does not offer them.
 - **Blocked by**: CLN-010
@@ -3344,7 +3344,7 @@ After M1: one Expo SDK upgrade, then device verification and the mobile parts of
 - **Area**: Mobile
 - **Phase**: MOB
 - **Effort**: L (~5d)
-- **Status**: Planned
+- **Status**: Done (#198, 2026-10-22)
 - **Description**: One Expo SDK upgrade with `npx expo install --fix` (React 19, react-navigation 7), Metro resolver and babel fixes (absorbs UI-015), SecureStore token cache hydrated at boot, auth-driven `RootNavigator` (C14), API URL from env, real EAS ids (H26). Recommended: freeze mobile until the web journeys work.
 - **Blocked by**: CLN-014, CLN-016
 - **Blocks**: UI-016, PKOE-006, AI-009
