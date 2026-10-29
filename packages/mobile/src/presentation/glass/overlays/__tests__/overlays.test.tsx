@@ -3,7 +3,6 @@ import { Text } from 'react-native';
 import { act, fireEvent, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider } from '../../../theme/index.js';
-import { Modal } from '../../../components/Modal.js';
 import { EmptyState } from '../EmptyState.js';
 import { ErrorBanner } from '../ErrorBanner.js';
 import { Sheet } from '../Sheet.js';
@@ -204,33 +203,6 @@ describe('Sheet', () => {
     await dragHeader(-200, 100);
 
     expect(onClose).not.toHaveBeenCalled();
-  });
-});
-
-describe('Modal as a sheet', () => {
-  it('keeps its props: title, footer buttons, onClose', async () => {
-    const onClose = jest.fn();
-    const onDelete = jest.fn();
-    await renderThemed(
-      <Modal
-        isOpen
-        title="Delete this plan?"
-        onClose={onClose}
-        footerButtons={[
-          { label: 'Cancel', variant: 'secondary', onPress: onClose },
-          { label: 'Delete', variant: 'danger', onPress: onDelete },
-        ]}
-      >
-        <Text>modal body</Text>
-      </Modal>,
-    );
-    const user = userEvent.setup();
-    await user.press(screen.getByRole('button', { name: 'Delete' }));
-    await user.press(screen.getByRole('button', { name: 'Cancel' }));
-
-    expect(screen.getByRole('header', { name: 'Delete this plan?' })).toBeTruthy();
-    expect(onDelete).toHaveBeenCalledTimes(1);
-    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 

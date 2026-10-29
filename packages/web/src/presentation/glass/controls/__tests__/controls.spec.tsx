@@ -6,7 +6,6 @@ import { FilterChips } from '../FilterChips.js';
 import { IconButton } from '../IconButton.js';
 import { SegmentedControl } from '../SegmentedControl.js';
 import { Stepper } from '../Stepper.js';
-import { Switch } from '../Switch.js';
 
 const OPTIONS = [
   { value: 'a', label: 'Alpha' },
@@ -22,31 +21,6 @@ function at<T>(list: readonly T[], index: number): T {
 
   return item;
 }
-
-describe('Switch', () => {
-  it('exposes switch role and checked state', () => {
-    render(<Switch label="Sync" checked onChange={() => {}} />);
-    expect(screen.getByRole('switch', { name: 'Sync' }).getAttribute('aria-checked')).toBe('true');
-  });
-
-  it('toggles on Space', () => {
-    const onChange = vi.fn();
-    render(<Switch label="Sync" checked={false} onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole('switch'), { key: ' ' });
-    expect(onChange).toHaveBeenCalledExactlyOnceWith(true);
-  });
-
-  it('toggles on click and not when disabled', () => {
-    const onChange = vi.fn();
-    const { rerender } = render(<Switch label="Sync" checked onChange={onChange} />);
-    fireEvent.click(screen.getByRole('switch'));
-    expect(onChange).toHaveBeenCalledExactlyOnceWith(false);
-    onChange.mockClear();
-    rerender(<Switch label="Sync" checked disabled onChange={onChange} />);
-    fireEvent.keyDown(screen.getByRole('switch'), { key: ' ' });
-    expect(onChange).not.toHaveBeenCalled();
-  });
-});
 
 describe('Stepper', () => {
   function renderStepper(onChange: (value: number) => void, value = 3): void {

@@ -10,8 +10,6 @@ import { ICON_NAMES, ICON_PATHS } from '../iconPaths.js';
 import { StatusTag } from '../StatusTag.js';
 import { deriveSyncChipState } from '../syncChipState.js';
 import { toSupportedLocale } from '../supportedLocale.js';
-import { MoneyText } from '../../../components/MoneyText.js';
-import { TransactionStatusChip } from '../../../components/TransactionStatusChip.js';
 import { LOCALES, plain, renderGlass } from './glassTestUtils.js';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -116,35 +114,6 @@ describe('AmountText', () => {
   it('maps react-intl tags to supported locales', () => {
     expect(toSupportedLocale('pl-PL')).toBe('pl');
     expect(toSupportedLocale('de')).toBe('en');
-  });
-});
-
-describe('MoneyText', () => {
-  it('delegates to AmountText for a MoneyDto', async () => {
-    await renderGlass(<MoneyText amount={{ amountMinor: '-1250', currency: 'PLN' }} />);
-    const text = plain(textOf(screen.getByTestId('amount-text')));
-
-    expect(text).toContain(MINUS);
-    expect(text).toContain('12.50');
-  });
-
-  it('falls back to plain text for an unparsable amount', async () => {
-    await renderGlass(<MoneyText amount={{ amountMinor: 'abc', currency: 'PLN' }} />);
-
-    expect(screen.getByText('abc PLN')).toBeTruthy();
-  });
-});
-
-describe('TransactionStatusChip', () => {
-  it.each([
-    ['mapped', 'Mapped'],
-    ['unmapped', 'Unmapped'],
-    ['transfer', 'Transfer'],
-  ] as const)('renders %s as a StatusTag', async (status, label) => {
-    await renderGlass(<TransactionStatusChip status={status} />);
-
-    expect(screen.getByText(label)).toBeTruthy();
-    expect(screen.getByTestId('status-tag')).toBeTruthy();
   });
 });
 

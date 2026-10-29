@@ -13,17 +13,11 @@ export { CustomPeriodPicker } from './CustomPeriodPicker.js';
 export type { CustomPeriodPickerProps, CustomPeriodValue } from './CustomPeriodPicker.js';
 export { ClonePlanModal } from './ClonePlanModal.js';
 export type { ClonePlanModalProps } from './ClonePlanModal.js';
-export { CategoryPickerModal } from './CategoryPickerModal.js';
-export type { CategoryPickerModalProps } from './CategoryPickerModal.js';
 export { MoneyView } from './MoneyView.js';
 export type { MoneyViewProps } from './MoneyView.js';
-export { CurrencySwitcher } from './CurrencySwitcher.js';
 
 export { ManualTransactionForm } from './ManualTransactionForm.js';
 export type { ManualTransactionFormProps } from './ManualTransactionForm.js';
-
-export { AuditLogDrawer } from './AuditLogDrawer.js';
-export type { AuditLogDrawerProps } from './AuditLogDrawer.js';
 
 export { PlannedItemHistoryDrawer } from './PlannedItemHistoryDrawer.js';
 export type { PlannedItemHistoryDrawerProps } from './PlannedItemHistoryDrawer.js';
