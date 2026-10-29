@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import * as Sentry from '@sentry/node';
+import { initSentry } from './infrastructure/sentry/initSentry.js';
 import { NestFactory } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -7,31 +7,8 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
 import { configureHttpSecurity } from './bootstrap/http-security.js';
-import { type AppConfig } from './config/AppConfig.js';
 import { loadAppConfig } from './config/load-app-config.js';
 import { startEmbeddedWorker } from './bootstrap/embedded-worker.js';
-
-function initSentry(config: AppConfig): void {
-  Sentry.init({
-    dsn: config.sentryDsn ?? undefined,
-    environment: config.nodeEnv,
-    release: config.sentryRelease ?? undefined,
-    beforeSend(event) {
-      // Strip PII from breadcrumbs
-      if (event.breadcrumbs) {
-        for (const crumb of event.breadcrumbs) {
-          if (crumb.data) {
-            delete crumb.data['email'];
-            delete crumb.data['householdId'];
-            delete crumb.data['userId'];
-          }
-        }
-      }
-
-      return event;
-    },
-  });
-}
 
 async function bootstrap() {
   // Fails fast, listing every missing/invalid variable (weak JWT_SECRET, wildcard CORS, ...).
