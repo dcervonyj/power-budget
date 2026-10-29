@@ -1,6 +1,5 @@
 import 'reflect-metadata';
-import * as Sentry from '@sentry/node';
-import { sentryScrubOptions } from './infrastructure/sentry/scrubSentry.js';
+import { initSentry } from './infrastructure/sentry/initSentry.js';
 import { NestFactory } from '@nestjs/core';
 import type { INestApplication } from '@nestjs/common';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
@@ -8,18 +7,8 @@ import { FastifyAdapter } from '@nestjs/platform-fastify';
 import { AppModule } from './app.module.js';
 import { SentryExceptionFilter } from './infrastructure/sentry/SentryExceptionFilter.js';
 import { configureHttpSecurity } from './bootstrap/http-security.js';
-import { type AppConfig } from './config/AppConfig.js';
 import { loadAppConfig } from './config/load-app-config.js';
 import { startEmbeddedWorker } from './bootstrap/embedded-worker.js';
-
-function initSentry(config: AppConfig): void {
-  Sentry.init({
-    dsn: config.sentryDsn ?? undefined,
-    environment: config.nodeEnv,
-    release: config.sentryRelease ?? undefined,
-    ...sentryScrubOptions,
-  });
-}
 
 async function bootstrap() {
   // Fails fast, listing every missing/invalid variable (weak JWT_SECRET, wildcard CORS, ...).

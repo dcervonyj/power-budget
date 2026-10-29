@@ -1,14 +1,6 @@
-import {
+export {
   scrubSentryEvent,
   scrubSentryBreadcrumb,
   scrubSentryTransaction,
+  sentryScrubOptions,
 } from '@power-budget/core';
-
-export { scrubSentryEvent, scrubSentryBreadcrumb, scrubSentryTransaction };
-
-export const sentryScrubOptions = {
-  sendDefaultPii: false,
-  beforeSend: scrubSentryEvent,
-  beforeBreadcrumb: scrubSentryBreadcrumb,
-  beforeSendTransaction: scrubSentryTransaction,
-};

@@ -6,7 +6,9 @@ export function scrubSentryUrl(url: string): string {
 }
 
 export function scrubSentryText(text: string): string {
-  return scrubSentryUrl(text)
+  const filtered = text.includes('://') || text.includes('?') ? scrubSentryUrl(text) : text;
+
+  return filtered
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[Filtered]')
     .replace(/\b[A-Z]{2}\d{2}(?:[ ]?[A-Z0-9]){11,30}\b/gi, '[Filtered]')
     .replace(/\b(?:\d[ -]?){8,}\b/g, '[Filtered]')
@@ -44,6 +46,8 @@ interface ScrubFrame {
   post_context?: unknown;
 }
 interface ScrubEvent {
+  transaction?: string | undefined;
+  tags?: unknown;
   user?: unknown;
   request?: ScrubRequest | undefined;
   breadcrumbs?: ScrubBreadcrumb[] | undefined;
@@ -119,8 +123,22 @@ export function scrubSentryEvent<E extends ScrubEvent>(event: E): E {
   if (event.logentry?.message) {
     event.logentry.message = scrubSentryText(event.logentry.message);
   }
+  if (event.transaction) {
+    event.transaction = scrubSentryText(event.transaction);
+  }
+  delete event.tags;
   delete event.extra;
   if (event.contexts) {
+    const trace = event.contexts['trace'];
+    if (typeof trace === 'object' && trace !== null) {
+      const safeTrace: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(trace)) {
+        if (['trace_id', 'span_id', 'parent_span_id', 'op', 'status'].includes(key)) {
+          safeTrace[key] = value;
+        }
+      }
+      event.contexts['trace'] = safeTrace;
+    }
     for (const key of Object.keys(event.contexts)) {
       if (!['os', 'browser', 'runtime', 'app', 'device', 'trace'].includes(key)) {
         delete event.contexts[key];
@@ -134,6 +152,9 @@ export function scrubSentryEvent<E extends ScrubEvent>(event: E): E {
       }
       if (exception.stacktrace?.frames) {
         for (const frame of exception.stacktrace.frames) {
+          if (frame.filename) {
+            frame.filename = scrubSentryUrl(frame.filename);
+          }
           if (frame.abs_path) {
             frame.abs_path = scrubSentryUrl(frame.abs_path);
           }
@@ -183,3 +204,10 @@ export function scrubSentryTransaction<T extends ScrubTransaction>(event: T): T 
 
   return event;
 }
+
+export const sentryScrubOptions = {
+  sendDefaultPii: false,
+  beforeSend: scrubSentryEvent,
+  beforeBreadcrumb: scrubSentryBreadcrumb,
+  beforeSendTransaction: scrubSentryTransaction,
+};
