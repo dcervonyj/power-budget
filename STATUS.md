@@ -1,6 +1,6 @@
 # Power Budget — Status
 
-> Updated: 2026-10-28. Baseline: `master` @ `edd1b87`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
+> Updated: 2026-10-29. Baseline: `master` @ `46294e7`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
 > Task list and real per-task status: [`docs/mvp/BACKLOG.md`](docs/mvp/BACKLOG.md) (§0 reality check, §7 v1.1 plan).
 > Interactive plan (Russian): https://claude.ai/artifact/FzFRqju9yeb3b72LANBawa
 > Bank-feed design: [`docs/mvp/plan-banking.md`](docs/mvp/plan-banking.md).
@@ -19,13 +19,15 @@ The product moved from pre-alpha scaffold to a working, deployed, restyled web a
 - Bank v2 foundation: `BankConnector` v2 port and schema (BNK-002, BNK-003, SYNC-001), batched ingest and watermark fixes (CLN-054, CLN-037, CLN-038).
 - AI categorisation, local part only: transaction normalisation (AI-001), merchant memory rules (AI-003), planned item match hints (AI-004).
 - Polish, Ukrainian and Russian translations (UI-I18N).
+- Done 28 Oct: CLN-079 (#323), CLN-081 (#324), CLN-083 (#325), CLN-082 (#326), CLN-080 (#327, mobile `Input` error read as the field's accessibility hint).
 
 ## What does not work / gaps
 
 - No live bank feed: Enable Banking (SPK-001, SYNC-005), Wise (SPK-002) and PKO email parsing (SPK-003) are not done; real descriptors for AI-001 waived until samples arrive.
 - LLM categorisation (AI-005 onwards) not started: no Claude API key.
 - No custom domain, so no Resend sender domain and no PKO inbound email (HOST-003, SPK-004).
-- Mobile has no device check (UI-016 needs a phone); CLN-016 awaits a decision.
+- Mobile has no device check (UI-016 needs a phone; it now also covers the VoiceOver/TalkBack check of the `Input` error from CLN-080).
+- Unsupported-currency bank rows are stored as `ignored` with a visible count (D7, acceptance criterion of SYNC-006 and BNK-006).
 - Not verified here: end-to-end browser walkthrough of every journey after the restyle. Test counts have changed since the 443 figure; run CI for current numbers.
 
 ## Security
@@ -34,19 +36,24 @@ Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), G
 
 ## Where we are
 
-| Series | State |
-| --- | --- |
-| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups | Done, except CLN-044, CLN-063, CLN-068, CLN-070, CLN-073 (need PO decisions) |
-| D7 Glass DSN-010 to DSN-050 (web and mobile) | Done, except DSN-047 and DSN-048; DSN-051 last |
-| CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done |
-| CLN-077 Dependabot alerts, CLN-028 dependency batch | Done |
-| BNK-002, BNK-003, SYNC-001 (bank v2 foundation) | Done |
-| AI-001, AI-003, AI-004 | Done; AI-005+ blocked |
-| SYNC-005 live sync, SPK-001/002/003, HOST-003 | Blocked on PO |
+| Series                                                           | State                                                                                                                                                                               |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups    | Done, except CLN-044, CLN-063, CLN-068, CLN-085 (in progress), CLN-073 (queued after CLN-044), CLN-070 (only when a DSN mobile ticket needs the stores) and CLN-086 (spike running) |
+| D7 Glass DSN-010 to DSN-050 (web and mobile)                     | Done, except DSN-047 and DSN-048; DSN-051 last                                                                                                                                      |
+| CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done                                                                                                                                                                                |
+| CLN-077 Dependabot alerts, CLN-028 dependency batch              | Done                                                                                                                                                                                |
+| CLN-079 to CLN-083 (28 Oct)                                      | Done                                                                                                                                                                                |
+| BNK-002, BNK-003, SYNC-001 (bank v2 foundation)                  | Done                                                                                                                                                                                |
+| AI-001, AI-003, AI-004                                           | Done; AI-005+ blocked                                                                                                                                                               |
+| SYNC-005 live sync, SPK-001/002/003, HOST-003                    | Blocked on PO                                                                                                                                                                       |
 
 ## Blocked on PO
 
-Domain (HOST-003, Resend domain, SPK-004, PKO inbound email); Enable Banking account (SPK-001, then M1 and SYNC-005); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); a phone for UI-016; the CLN-016 decision; 32 open questions on the PO guide; design decisions D1, D2, D4, D10 and CLN-015 C14.
+Domain (HOST-003, Resend domain, SPK-004, PKO inbound email); Enable Banking account (SPK-001, then M1 and SYNC-005); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); a phone for UI-016; 32 open questions on the PO guide; CLN-015 C14; the choice of a free monitoring service (D11, research running).
+
+## PO decisions of 29 Oct
+
+Recorded in [`docs/handoff/audit-2610/SUMMARY.md`](docs/handoff/audit-2610/SUMMARY.md) §4. D1 and D10: the web create form gets a Personal/Household selector (any member) and weekly and custom periods (CLN-044, in progress). D2: shared-app stays as the client SDK; scaffolding deleted now (CLN-068, in progress), stores move later (CLN-070). D3: the `*UseCase` suffix stays; the naming rule in CLAUDE.md, AGENTS.md and copilot-instructions is amended. D4: DSN money format in core (CLN-063, in progress). D5, D6, D13 (earlier): `booked` inside SYNC-001; export not enqueued until the GDPR processor ships (#287); CLN-039 and CLN-054 after SYNC-001. D7: unsupported-currency rows stored as `ignored` with a visible count. D8: every new user goes through onboarding, saved to the profile (CLN-073, queued after CLN-044). D9: register keeps 409 behind a throttle (CLN-085, in progress). D11: monitoring accepted, free service not chosen yet. D12: add ts-auto-mock and keep the `createMock<T>` rule (CLN-086, spike running). The AI-003 review follow-ups F6 and F7 are dropped.
 
 ## Task counts
 
