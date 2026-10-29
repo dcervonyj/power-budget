@@ -2758,6 +2758,7 @@ First real milestone: Enable Banking, sync, freshness. About 30 days of critical
 - **Acceptance criteria**:
   - A re-run with identical input writes nothing (row count and `updated_at` unchanged).
   - The user mapping survives a pending→booked upgrade (test).
+  - A bank row in a currency FX does not support is stored with status `ignored`, not rejected, and the connections screen shows a visible count of ignored rows (PO decision D7, 29 Oct 2026).
 - **Source**: plan-banking.md
 
 #### BNK-006: Initial history import + gap fill
@@ -2775,6 +2776,7 @@ First real milestone: Enable Banking, sync, freshness. About 30 days of critical
 - **Acceptance criteria**:
   - After connecting, history covering at least 90 days appears.
   - A re-run produces no duplicates (idempotency test on real fixtures).
+  - Unsupported-currency rows in the imported history are stored as `ignored` with a visible count (D7, same rule as SYNC-006).
 - **Source**: plan-banking.md
 
 #### SYNC-004: Attended refresh endpoint + client wiring
@@ -3364,6 +3366,7 @@ After M1: one Expo SDK upgrade, then device verification and the mobile parts of
 - **Acceptance criteria**:
   - Each mobile screen is verified on a device with a screenshot.
   - Bank connect, attended refresh, freshness chips and the review inbox work on the phone.
+  - VoiceOver (iOS) and TalkBack (Android) read the mobile `Input` error (CLN-080, #327): the error is read as the field's `accessibilityHint`, and the error `Text` is not a separate focus stop.
 - **Source**: audit-code.md / audit-ui.md
 
 ### OPT — Options

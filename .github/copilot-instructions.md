@@ -106,7 +106,7 @@ export class GoCardlessBankConnector implements BankConnector { ... }
 export class EcbFxRateProvider implements FxRateProvider { ... }
 ```
 
-Use case classes are named `<VerbNoun>UseCase` (`RegisterUserUseCase`, `LoginWithPasswordUseCase`, `MapTransactionUseCase`, `GetPlanDashboardUseCase`); the file name equals the class name. The suffix is the convention because every existing use case already carries it; do not rename them.
+Use case classes are named `<VerbNoun>UseCase` (`RegisterUserUseCase`, `LoginWithPasswordUseCase`, `MapTransactionUseCase`, `GetPlanDashboardUseCase`); the file name equals the class name. The suffix is the convention (PO decision D3, 29 Oct 2026: keep `*UseCase`; do not drop it and do not rename existing classes).
 
 Never name a class, function, variable, parameter, type or property `*Helper` / `*Helpers`; name it by what it does. Interfaces carry no `I` prefix.
 

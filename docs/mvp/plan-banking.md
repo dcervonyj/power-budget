@@ -658,6 +658,7 @@ The effort scale follows BACKLOG §2: XS ≤ 0.5 d, S 0.5–1 d, M 1–3 d, L 3�
 - **Acceptance criteria**:
   - After connecting, history covering at least 90 days appears.
   - A re-run produces no duplicates (idempotency test on real fixtures).
+  - Unsupported-currency rows in the imported history are stored as `ignored` with a visible count (D7, same rule as SYNC-006).
 
 #### BNK-007: Consent lifecycle + reminders + continuity
 - **Effort**: M (~2.5d)
@@ -756,6 +757,7 @@ The effort scale follows BACKLOG §2: XS ≤ 0.5 d, S 0.5–1 d, M 1–3 d, L 3�
 - **Acceptance criteria**:
   - A re-run with identical input writes nothing (row count and `updated_at` unchanged).
   - The user mapping survives a pending→booked upgrade (test).
+  - A bank row in a currency FX does not support is stored with status `ignored`, not rejected, and the connections screen shows a visible count of ignored rows (PO decision D7, 29 Oct 2026).
 
 #### SYNC-007: Freshness read model + UI
 - **Effort**: M (~2d)
