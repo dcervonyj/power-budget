@@ -85,6 +85,30 @@ describe('Registration and bank catalogue hardening (real app)', () => {
       expect(otherIp.statusCode).toBe(400);
     });
 
+    it('answers the 429 in the standard error shape, while normal registrations still get 201 and 409', async () => {
+      const ip = '203.0.113.80';
+      const created = await register('normal@example.com', ip);
+      const duplicate = await register('normal@example.com', ip);
+      const flood: LightMyRequestResponse[] = [];
+      for (const attempt of attemptNumbers(18)) {
+        flood.push(
+          await app.inject({
+            method: 'POST',
+            url: '/auth/register',
+            payload: { email: `shape-${attempt}@example.com` },
+            remoteAddress: ip,
+          }),
+        );
+      }
+      const limited = await register('over-the-limit@example.com', ip);
+
+      expect(created.statusCode).toBe(201);
+      expect(duplicate.statusCode).toBe(409);
+      expect(flood.map((res) => res.statusCode)).toEqual(attemptNumbers(18).map(() => 400));
+      expect(limited.statusCode).toBe(429);
+      expect(limited.json()).toMatchObject({ statusCode: 429, code: 'too_many_requests' });
+    });
+
     it('leaves no partial rows when a write fails mid-registration', async () => {
       const email = 'half-done@example.com';
       await getPool().query(
