@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import type { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import type { FastifyReply } from 'fastify';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import * as Sentry from '@sentry/node';
 import { SentryExceptionFilter, resolveError } from '../SentryExceptionFilter.js';
 import {
@@ -174,12 +174,12 @@ describe('resolveError', () => {
 });
 
 describe('SentryExceptionFilter', () => {
-  const reply = mock<FastifyReply>();
+  const reply = createMock<FastifyReply>();
   const status = reply.status;
   const send = reply.send;
   const headers = reply.headers;
-  const httpHost = mock<HttpArgumentsHost>();
-  const host = mock<ArgumentsHost>();
+  const httpHost = createMock<HttpArgumentsHost>();
+  const host = createMock<ArgumentsHost>();
   const filter = new SentryExceptionFilter();
 
   beforeEach(() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createHmac } from 'node:crypto';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { NotificationRepository } from '../../../domain/notifications/ports.js';
 import { RecordEmailBounceUseCase } from '../../../application/notifications/use-cases/RecordEmailBounceUseCase.js';
 import { RESEND_WEBHOOK_VERIFIER } from '../webhook-tokens.js';
@@ -28,10 +28,10 @@ function nowSeconds(): string {
 
 describe('POST /notifications/bounce (HTTP)', () => {
   let app: HttpTestApp;
-  let repo: ReturnType<typeof mock<NotificationRepository>>;
+  let repo: ReturnType<typeof createMock<NotificationRepository>>;
 
   async function start(secret: string | undefined): Promise<void> {
-    repo = mock<NotificationRepository>();
+    repo = createMock<NotificationRepository>();
     app = await createHttpTestApp({
       controllers: [NotificationsController],
       providers: [

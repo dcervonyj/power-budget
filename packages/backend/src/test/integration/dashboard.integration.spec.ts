@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { join } from 'node:path';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Job } from 'bullmq';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import { uuidv7 } from 'uuidv7';
@@ -310,7 +310,7 @@ describe('Plan and household dashboards (real app, 2-member household)', () => {
     );
     for (const row of pending.rows) {
       await dispatcher.process(
-        mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: row.id } }),
+        createMock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: row.id } }),
       );
     }
 

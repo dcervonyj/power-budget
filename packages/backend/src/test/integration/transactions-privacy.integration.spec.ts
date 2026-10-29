@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { join } from 'node:path';
 import { uuidv7 } from 'uuidv7';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Job } from 'bullmq';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify';
 import type { LightMyRequestResponse } from 'fastify';
@@ -98,7 +98,7 @@ describe('Integration: partner privacy of transactions and connection accounts (
     );
     for (const row of pending.rows) {
       await dispatcher.process(
-        mock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: row.id } }),
+        createMock<Job<DispatchNotificationJobPayload>>({ data: { outboxId: row.id } }),
       );
     }
     const mail = email.sent.at(-1);

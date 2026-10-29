@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, IsoDate, IsoDateTime, PlanId, UserId } from '@power-budget/core';
 import type { PlanActualsView } from '@power-budget/core';
 import type { Plan } from '../../../domain/plans/entities.js';
@@ -57,12 +57,12 @@ function setup(plans: Plan[]): {
   actuals: PlanActualsReader;
   scoped: RunScopedPlanActuals;
 } {
-  const repo = mock<PlanRepository>();
+  const repo = createMock<PlanRepository>();
   repo.list.mockResolvedValue(plans);
-  const actuals = mock<PlanActualsReader>();
+  const actuals = createMock<PlanActualsReader>();
   actuals.read.mockResolvedValue(view());
 
-  const scoped = mock<RunScopedPlanActuals>();
+  const scoped = createMock<RunScopedPlanActuals>();
   scoped.runScoped.mockReturnValue(actuals);
 
   return { reader: new PlanActualsWeeklyDigestSummaryReader(repo, scoped), actuals, scoped };
