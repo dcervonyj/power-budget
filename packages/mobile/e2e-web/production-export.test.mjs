@@ -12,6 +12,8 @@ const MOBILE_DIR = join(import.meta.dirname, '..');
 const GALLERY_DIR = join(MOBILE_DIR, 'dist-gallery');
 // Strings that only exist in the gallery sources.
 const MARKERS = ['gallery-main', 'gallery-index', 'Token swatches', 'EXPO_PUBLIC_GALLERY'];
+// Expo inlines `process.env.EXPO_PUBLIC_*` only in the literal dot form (CLN-089).
+const TEST_SENTRY_DSN = 'https://public@o0.ingest.de.sentry.io/0';
 
 function bundleText(dir) {
   const jsDir = join(dir, '_expo/static/js/web');
@@ -26,11 +28,11 @@ describe('production web export', () => {
   const outDir = mkdtempSync(join(tmpdir(), 'pb-mobile-export-'));
   after(() => rmSync(outDir, { recursive: true, force: true }));
 
-  it('does not contain the gallery', () => {
+  it('does not contain the gallery and inlines the Sentry DSN', () => {
     const { EXPO_PUBLIC_GALLERY: _gallery, ...env } = process.env;
     execFileSync('pnpm', ['exec', 'expo', 'export', '--platform', 'web', '--output-dir', outDir], {
       cwd: MOBILE_DIR,
-      env,
+      env: { ...env, EXPO_PUBLIC_SENTRY_DSN: TEST_SENTRY_DSN },
       stdio: 'inherit',
     });
 
@@ -38,6 +40,7 @@ describe('production web export', () => {
     for (const marker of MARKERS) {
       assert.equal(bundle.includes(marker), false, `production bundle contains "${marker}"`);
     }
+    assert.equal(bundle.includes(TEST_SENTRY_DSN), true, 'production bundle misses the Sentry DSN');
   });
 
   it(

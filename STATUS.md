@@ -1,6 +1,6 @@
 # Power Budget — Status
 
-> Updated: 2026-10-29. Baseline: `master` @ `38f8703`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
+> Updated: 2026-10-30. Baseline: `master` @ `9539cdd`. Repo: [dcervonyj/power-budget](https://github.com/dcervonyj/power-budget).
 > Task list and real per-task status: [`docs/mvp/BACKLOG.md`](docs/mvp/BACKLOG.md) (§0 reality check, §7 v1.1 plan).
 > Interactive plan (Russian): https://claude.ai/artifact/FzFRqju9yeb3b72LANBawa
 > Bank-feed design: [`docs/mvp/plan-banking.md`](docs/mvp/plan-banking.md).
@@ -19,7 +19,8 @@ The product moved from pre-alpha scaffold to a working, deployed, restyled web a
 - Bank v2 foundation: `BankConnector` v2 port and schema (BNK-002, BNK-003, SYNC-001), batched ingest and watermark fixes (CLN-054, CLN-037, CLN-038).
 - AI categorisation, local part only: transaction normalisation (AI-001), merchant memory rules (AI-003), planned item match hints (AI-004).
 - Polish, Ukrainian and Russian translations (UI-I18N).
-- Done 29 Oct: CLN-084 (#328), CLN-085 (#329), CLN-068 (#330), CLN-044 (#331), CLN-063 (#332), CLN-086 (#333, #336–#342), CLN-073 (#334), CLN-087 (#335).
+- Monitoring (D11, HOST-004 partly done, 30 Oct): Sentry in the EU for backend, web and mobile (DSNs set on Render, Cloudflare Pages and in `eas.json`), Better Stack free uptime monitors on `/health` and the web with email alerts; see [`docs/runbooks/monitoring.md`](docs/runbooks/monitoring.md).
+- Done 29 Oct: CLN-084 (#328), CLN-085 (#329), CLN-068 (#330), CLN-044 (#331), CLN-063 (#332), CLN-086 (#333, #336–#342), CLN-073 (#334), CLN-087 (#335), CLN-088 (#343), DSN-051 (#344).
 - Done 28 Oct: CLN-079 (#323), CLN-081 (#324), CLN-083 (#325), CLN-082 (#326), CLN-080 (#327, mobile `Input` error read as the field's accessibility hint).
 
 ## What does not work / gaps
@@ -40,7 +41,7 @@ Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), G
 | Series                                                           | State                                                                              |
 | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups    | Done, except CLN-070 (deferred under D2)                                           |
-| D7 Glass DSN-010 to DSN-050 (web and mobile)                     | Done, except DSN-047 and DSN-048 (phone checks); DSN-051 in progress (separate PR) |
+| D7 Glass DSN-010 to DSN-050 (web and mobile)                     | Done, except DSN-047 and DSN-048 (phone checks) |
 | CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done                                                                               |
 | CLN-077 Dependabot alerts, CLN-028 dependency batch              | Done                                                                               |
 | CLN-079 to CLN-083 (28 Oct)                                      | Done                                                                               |
@@ -50,11 +51,11 @@ Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), G
 
 ## Blocked on PO
 
-Domain (HOST-003, Resend domain, SPK-004); Enable Banking account (SPK-001); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); phone for UI-016 and DSN-047/048 checks; Sentry and uptime accounts (D11); SPK-005 history export and 150 labels; 32 PO guide questions; CLN-015 C14.
+Domain (HOST-003, Resend domain, SPK-004); Enable Banking account (SPK-001); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); phone for UI-016 and DSN-047/048 checks; SPK-005 history export and 150 labels; CLN-015 C14; 9 fact questions on the PO guide that only the PO can answer (plan-02 partner and Enable Banking, plan-05 Wise tokens, plan-06 Gmail and phones, plan-07 PKO products for SPK-001/002/003; plan-16 hours a week; voice-01 to voice-04). The other PO guide questions got their recommended defaults on 30 Oct.
 
 ## PO decisions of 29 Oct
 
-Recorded in [`docs/handoff/audit-2610/SUMMARY.md`](docs/handoff/audit-2610/SUMMARY.md) §4. D1 and D10: plan type selector and weekly/custom periods done (CLN-044). D2: shared-app scaffolding removed (CLN-068); CLN-070 deferred. D3: `*UseCase` suffix stays. D4: money format in core (CLN-063). D5, D6 and D13: `booked` in SYNC-001; export waits for the GDPR processor; CLN-039 and CLN-054 follow SYNC-001. D7: unsupported currencies stored as `ignored` with a visible count. D8: onboarding for every new user (CLN-073). D9: register keeps 409 behind a throttle (CLN-085). D11: Sentry free Developer plan in the EU, with backend, web and mobile projects, plus Better Stack free uptime monitors for `/health` and the web. PO is creating accounts; HOST-004 follows. D12: golevelup `createMock` selected; all specs converted (CLN-086). AI-003 follow-ups F6 and F7 dropped.
+Recorded in [`docs/handoff/audit-2610/SUMMARY.md`](docs/handoff/audit-2610/SUMMARY.md) §4. D1 and D10: plan type selector and weekly/custom periods done (CLN-044). D2: shared-app scaffolding removed (CLN-068); CLN-070 deferred. D3: `*UseCase` suffix stays. D4: money format in core (CLN-063). D5, D6 and D13: `booked` in SYNC-001; export waits for the GDPR processor; CLN-039 and CLN-054 follow SYNC-001. D7: unsupported currencies stored as `ignored` with a visible count. D8: onboarding for every new user (CLN-073). D9: register keeps 409 behind a throttle (CLN-085). D11: Sentry free Developer plan in the EU, with backend, web and mobile projects, plus Better Stack free uptime monitors for `/health` and the web. Set up on 30 Oct (HOST-004 partly done). D12: golevelup `createMock` selected; all specs converted (CLN-086). AI-003 follow-ups F6 and F7 dropped.
 
 ## Task counts
 
