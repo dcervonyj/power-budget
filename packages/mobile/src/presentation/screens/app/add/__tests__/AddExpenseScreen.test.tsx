@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-jest';
 import React from 'react';
 import { AppState } from 'react-native';
 import { act, fireEvent, screen, userEvent, waitFor } from '@testing-library/react-native';
@@ -43,8 +44,8 @@ function money(amountMinor: string): { amountMinor: string; currency: string } {
   return { amountMinor, currency: 'PLN' };
 }
 
-const PLAN = { id: 'plan-1', name: 'October' } as PlanDto;
-const ACCOUNT = { id: 'acc-1', name: 'PKO BP', currency: 'PLN' } as AccountDto;
+const PLAN = createMock<PlanDto>({ id: 'plan-1', name: 'October' });
+const ACCOUNT = createMock<AccountDto>({ id: 'acc-1', name: 'PKO BP', currency: 'PLN' });
 
 // D7 fixture: 11 800 planned, 7 030 spent (6 605 mapped + 425 unplanned), 10 days left on 22 Oct.
 const DASHBOARD: PlanDashboardResponseDto = {

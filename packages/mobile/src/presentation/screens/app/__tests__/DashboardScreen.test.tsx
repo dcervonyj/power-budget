@@ -1,3 +1,4 @@
+import { createMock } from '@golevelup/ts-jest';
 import React from 'react';
 import { act, render, screen, userEvent, waitFor } from '@testing-library/react-native';
 import { IntlProvider } from 'react-intl';
@@ -40,10 +41,10 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: (): unknown => mockNavigation,
 }));
 
-const plan = {
+const plan = createMock<PlanDto>({
   id: 'plan-1',
   name: 'October',
-} as PlanDto;
+});
 
 // Shaped exactly like the backend PlanDashboardResponseDto (no `items`, string minor units).
 const dashboard: PlanDashboardResponseDto = {

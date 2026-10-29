@@ -1,3 +1,5 @@
+import { createMock } from '@golevelup/ts-jest';
+import type { PlanDto, CategoryDto } from '@power-budget/shared-app/contract';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import type { TransactionListItemDto, TransactionPageDto } from '@power-budget/shared-app/contract';
 import { categoriesApi, plansApi } from '../../../../../infrastructure/index.js';
@@ -36,20 +38,24 @@ function item(
   mapped: boolean,
   suggested: string | null = null,
 ): TransactionListItemDto {
-  const row = {
+  return {
     id,
     status: 'booked',
     occurredOn: '2026-10-27',
     description: `Shop ${id}`,
     merchant: null,
     amount: { amountMinor: '-1000', currency: 'PLN' },
-    mapping: mapped ? { plannedItemId: 'item-1', planName: 'October', categoryName: 'Food' } : null,
-    mappingSource: null,
+    mapping: mapped
+      ? createMock<NonNullable<TransactionListItemDto['mapping']>>({
+          plannedItemId: 'item-1',
+          planName: 'October',
+          categoryName: 'Food',
+        })
+      : null,
+    mappingSource: 'none',
     transfer: null,
     suggestedPlannedItemId: suggested,
   };
-
-  return row as unknown as TransactionListItemDto;
 }
 
 function onePage(...items: TransactionListItemDto[]): TransactionPageDto {
@@ -137,7 +143,7 @@ describe('useTransactionList pending changes and stale pages', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     const saving = deferred<undefined>();
-    setMapping.mockReturnValueOnce(saving.promise as never);
+    setMapping.mockReturnValueOnce(saving.promise);
     await act(async () => result.current.confirm('a'));
     expect(result.current.appliedIds.has('a')).toBe(true);
 
@@ -159,7 +165,7 @@ describe('useTransactionList pending changes and stale pages', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     const saving = deferred<undefined>();
-    setMapping.mockReturnValueOnce(saving.promise as never);
+    setMapping.mockReturnValueOnce(saving.promise);
     await act(async () => result.current.confirm('a'));
 
     page.mockResolvedValueOnce(onePage(item('a', true)));
@@ -179,7 +185,7 @@ describe('useTransactionList pending changes and stale pages', () => {
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
     const saving = deferred<undefined>();
-    setMapping.mockReturnValueOnce(saving.promise as never);
+    setMapping.mockReturnValueOnce(saving.promise);
     await act(async () => result.current.confirm('a'));
     page.mockResolvedValueOnce(onePage(item('a', true)));
     await act(async () => result.current.reload());
@@ -268,8 +274,8 @@ describe('useTransactionList supporting loads', () => {
     const { result } = await renderHook(() => useTransactionList());
     await waitFor(() => expect(result.current.status).toBe('ready'));
 
-    const older = deferred<never>();
-    const newer = deferred<never[]>();
+    const older = deferred<CategoryDto[]>();
+    const newer = deferred<CategoryDto[]>();
     jest
       .mocked(categoriesApi.list)
       .mockReturnValueOnce(older.promise)
@@ -294,10 +300,12 @@ describe('useTransactionList month plan and focus reload', () => {
 
   it('reads the dashboard of the plan that covers today', async () => {
     page.mockResolvedValue(onePage(item('a', false)));
-    jest.mocked(plansApi.list).mockResolvedValue([
-      { id: 'past', period: { start: '2000-01-01', end: '2000-01-31' } },
-      { id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } },
-    ] as never);
+    jest
+      .mocked(plansApi.list)
+      .mockResolvedValue([
+        createMock<PlanDto>({ id: 'past', period: { start: '2000-01-01', end: '2000-01-31' } }),
+        createMock<PlanDto>({ id: 'now', period: { start: '2000-01-01', end: '2999-12-31' } }),
+      ]);
     jest.mocked(plansApi.dashboard).mockRejectedValue(new Error('not needed'));
     await renderHook(() => useTransactionList());
 
