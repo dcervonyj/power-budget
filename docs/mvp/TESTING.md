@@ -65,14 +65,14 @@ Total: **167+ tests** across unit + integration layers. This document defines th
 
 ### 2.3 Recommended tooling
 
-| Tool                       | Purpose                                  | Notes                                                            |
-| -------------------------- | ---------------------------------------- | ---------------------------------------------------------------- |
-| `@nestjs/testing`          | Bootstrap NestJS app in tests            | Already a dep via backend                                        |
-| `supertest`                | HTTP assertions against in-memory server | Add as dev dep                                                   |
-| GitHub Actions `services:` | Real Postgres 16 in CI                   | Already present in CI yaml                                       |
-| `pg-mem` (optional)        | In-memory Postgres for unit-speed tests  | Only for schema-validation tests; prefer real PG for integration |
-| Vitest (existing)          | Test runner                              | No change needed                                                 |
-| `vitest-mock-extended`     | Typed port mocks                         | Already in use                                                   |
+| Tool                       | Purpose                                                                       | Notes                                                            |
+| -------------------------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `@nestjs/testing`          | Bootstrap NestJS app in tests                                                 | Already a dep via backend                                        |
+| `supertest`                | HTTP assertions against in-memory server                                      | Add as dev dep                                                   |
+| GitHub Actions `services:` | Real Postgres 16 in CI                                                        | Already present in CI yaml                                       |
+| `pg-mem` (optional)        | In-memory Postgres for unit-speed tests                                       | Only for schema-validation tests; prefer real PG for integration |
+| Vitest (existing)          | Test runner                                                                   | No change needed                                                 |
+| `@golevelup/ts-vitest`     | Typed port mocks: `createMock<T>(overrides)` (`@golevelup/ts-jest` in mobile) | Already in use; replaces `vitest-mock-extended` in new specs     |
 
 **Do not add `testcontainers`** to the backend — the GitHub Actions service container (`postgres:16.4-alpine`) already provides an identical environment and avoids Docker-in-Docker complexity on CI.
 

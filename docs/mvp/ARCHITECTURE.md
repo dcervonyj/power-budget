@@ -253,7 +253,7 @@ These rules apply across the entire codebase (backend and frontend) and are enfo
 11. **Path aliases for cross-layer imports.** Never use relative `../../` across layer boundaries. Use `@web/*` / `@mobile/*` aliases (mapping to `./src/*`).
 12. **Components contain no logic.** If a component has more than rendering + prop-passing, lift to a use case / selector / presenter.
 13. **Props type name: `Props<ComponentName>`.** e.g. `PropsDashboardContent`. No `I` prefix, no `IProps`, no trailing `Props` alone.
-14. **Test mocks: never `any()` matchers or `as any`.** Use `vitest-mock-extended` and pass the exact expected argument.
+14. **Test mocks: never `any()` matchers or `as any`.** Use `createMock<T>(overrides)` from `@golevelup/ts-vitest` (`@golevelup/ts-jest` in mobile) and pass the exact expected argument. Auto-stubbed members return mocks, so stub every value the code under test reads.
 
 ### What we adopt from the reference repo
 

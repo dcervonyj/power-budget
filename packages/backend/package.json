@@ -57,6 +57,7 @@
     "uuidv7": "^1.2.1"
   },
   "devDependencies": {
+    "@golevelup/ts-vitest": "^4.0.1",
     "@nestjs/cli": "^11",
     "@nestjs/testing": "^11.2.7",
     "@swc/core": "^1.16.18",
