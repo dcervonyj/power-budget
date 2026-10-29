@@ -29,13 +29,16 @@ describe('PlansListScreen profile failure', () => {
     settingsStore.profileLoadFailed = true;
   });
 
-  it('shows an error and retries the profile instead of opening the dialog', async () => {
+  it('keeps creation disabled and offers a retry while the profile failed', async () => {
     render(<PlansListScreen />, { wrapper });
 
     await screen.findByText('Failed to load your profile');
-    fireEvent.click(screen.getByRole('button', { name: 'Create new plan' }));
+    const create = screen.getByRole('button', { name: 'Create new plan' });
+    fireEvent.click(create);
 
+    expect(create.hasAttribute('disabled')).toBe(true);
     expect(screen.queryByText('Create plan')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
     await waitFor(() => expect(loadProfile).toHaveBeenCalled());
   });
 
