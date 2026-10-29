@@ -1,11 +1,7 @@
-import * as Sentry from '@sentry/react-native';
+import { initSentry } from './src/infrastructure/errorReporting/initSentry';
 import { registerRootComponent } from 'expo';
 
-Sentry.init({
-  dsn: process.env['EXPO_PUBLIC_SENTRY_DSN'],
-  enableAutoSessionTracking: true,
-  tracesSampleRate: 0.1,
-});
+initSentry(process.env['EXPO_PUBLIC_SENTRY_DSN']);
 
 // DSN-031: `EXPO_PUBLIC_GALLERY=1` swaps the app for the component gallery. Expo inlines the
 // literal at bundle time and Metro drops the dead branch, so a production export (variable
