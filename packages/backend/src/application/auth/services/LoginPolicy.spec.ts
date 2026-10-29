@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId } from '@power-budget/core';
 import type {
   FailedAttemptCounter,
@@ -19,19 +19,19 @@ const USER_ID = UserId.of('01900000-0000-7000-8000-000000000001');
 const HOUSEHOLD_ID = HouseholdId.of('01900000-0000-7000-8000-000000000002');
 
 describe('LoginPolicy', () => {
-  let totp: ReturnType<typeof mock<TotpAuthenticator>>;
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
-  let attemptCounter: ReturnType<typeof mock<FailedAttemptCounter>>;
+  let totp: ReturnType<typeof createMock<TotpAuthenticator>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let jwtIssuer: ReturnType<typeof createMock<JwtAccessTokenIssuer>>;
+  let refreshTokenStore: ReturnType<typeof createMock<RefreshTokenStore>>;
+  let attemptCounter: ReturnType<typeof createMock<FailedAttemptCounter>>;
   let policy: LoginPolicy;
 
   beforeEach(() => {
-    totp = mock<TotpAuthenticator>();
-    householdRepo = mock<HouseholdRepository>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
-    refreshTokenStore = mock<RefreshTokenStore>();
-    attemptCounter = mock<FailedAttemptCounter>();
+    totp = createMock<TotpAuthenticator>();
+    householdRepo = createMock<HouseholdRepository>();
+    jwtIssuer = createMock<JwtAccessTokenIssuer>();
+    refreshTokenStore = createMock<RefreshTokenStore>();
+    attemptCounter = createMock<FailedAttemptCounter>();
     attemptCounter.increment.mockResolvedValue({ attempts: 1, secondsLeft: 900 });
     policy = new LoginPolicy(totp, householdRepo, jwtIssuer, refreshTokenStore, attemptCounter);
   });

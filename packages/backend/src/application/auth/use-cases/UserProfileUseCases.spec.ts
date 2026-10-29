@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { HouseholdId, UserId } from '@power-budget/core';
 import type { UserProfile, UserProfileRepository } from '../../../domain/auth/profile.js';
 import { UserPreferences } from '../../../domain/auth/profile.js';
@@ -21,10 +21,10 @@ const PROFILE: UserProfile = {
   householdBaseCurrency: 'PLN',
 };
 
-let repo: MockProxy<UserProfileRepository>;
+let repo: DeepMocked<UserProfileRepository>;
 
 beforeEach(() => {
-  repo = mock<UserProfileRepository>();
+  repo = createMock<UserProfileRepository>();
 });
 
 describe('GetUserProfileUseCase', () => {

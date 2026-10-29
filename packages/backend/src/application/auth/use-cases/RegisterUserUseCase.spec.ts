@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId, HouseholdId } from '@power-budget/core';
 import type {
   UserRepository,
@@ -31,19 +31,19 @@ function makeUser(overrides: Partial<User> = {}): User {
 }
 
 describe('RegisterUserUseCase', () => {
-  let userRepo: ReturnType<typeof mock<UserRepository>>;
-  let registrationRepo: ReturnType<typeof mock<UserRegistrationRepository>>;
-  let passwordHashing: ReturnType<typeof mock<PasswordHashing>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
+  let userRepo: ReturnType<typeof createMock<UserRepository>>;
+  let registrationRepo: ReturnType<typeof createMock<UserRegistrationRepository>>;
+  let passwordHashing: ReturnType<typeof createMock<PasswordHashing>>;
+  let jwtIssuer: ReturnType<typeof createMock<JwtAccessTokenIssuer>>;
+  let refreshTokenStore: ReturnType<typeof createMock<RefreshTokenStore>>;
   let useCase: RegisterUserUseCase;
 
   beforeEach(() => {
-    userRepo = mock<UserRepository>();
-    registrationRepo = mock<UserRegistrationRepository>();
-    passwordHashing = mock<PasswordHashing>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
-    refreshTokenStore = mock<RefreshTokenStore>();
+    userRepo = createMock<UserRepository>();
+    registrationRepo = createMock<UserRegistrationRepository>();
+    passwordHashing = createMock<PasswordHashing>();
+    jwtIssuer = createMock<JwtAccessTokenIssuer>();
+    refreshTokenStore = createMock<RefreshTokenStore>();
     useCase = new RegisterUserUseCase(
       userRepo,
       registrationRepo,

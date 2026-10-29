@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { Redis } from 'ioredis';
 import { RedisFailedAttemptCounter } from './RedisFailedAttemptCounter.js';
 
 describe('RedisFailedAttemptCounter', () => {
-  let redis: ReturnType<typeof mock<Redis>>;
+  let redis: ReturnType<typeof createMock<Redis>>;
   let counter: RedisFailedAttemptCounter;
 
   beforeEach(() => {
-    redis = mock<Redis>();
+    redis = createMock<Redis>();
     counter = new RedisFailedAttemptCounter(redis);
   });
 

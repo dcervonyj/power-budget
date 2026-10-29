@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { ExecutionContext } from '@nestjs/common';
 import type { HttpArgumentsHost } from '@nestjs/common/interfaces';
 import { UnauthorizedException } from '@nestjs/common';
@@ -32,22 +32,22 @@ function makeHousehold(overrides: Partial<Household> = {}): Household {
 }
 
 describe('AuthController — register', () => {
-  let registerUseCase: ReturnType<typeof mock<RegisterUserUseCase>>;
+  let registerUseCase: ReturnType<typeof createMock<RegisterUserUseCase>>;
   let controller: AuthController;
 
   beforeEach(() => {
-    registerUseCase = mock<RegisterUserUseCase>();
+    registerUseCase = createMock<RegisterUserUseCase>();
 
     // Build controller with all other use cases as mocks
     controller = new AuthController(
       registerUseCase,
-      mock(),
-      mock(),
-      mock(),
-      mock(),
-      mock(),
-      mock(),
-      mock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
     );
   });
 
@@ -84,9 +84,9 @@ describe('JwtAuthGuard', () => {
     const request = {
       headers: { authorization: authHeader },
     };
-    const ctx = mock<ExecutionContext>();
+    const ctx = createMock<ExecutionContext>();
     ctx.switchToHttp.mockReturnValue(
-      mock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) }),
+      createMock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) }),
     );
 
     return ctx;
@@ -146,9 +146,9 @@ describe('JwtAuthGuard', () => {
     const request: Record<string, unknown> = {
       headers: { authorization: `Bearer ${token}` },
     };
-    const ctx = mock<ExecutionContext>();
+    const ctx = createMock<ExecutionContext>();
     ctx.switchToHttp.mockReturnValue(
-      mock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) }),
+      createMock<HttpArgumentsHost>({ getRequest: vi.fn().mockReturnValue(request) }),
     );
 
     const result = guard.canActivate(ctx);
@@ -159,28 +159,28 @@ describe('JwtAuthGuard', () => {
 });
 
 describe('RefreshTokenUseCase wiring — AuthController', () => {
-  let householdRepo: ReturnType<typeof mock<HouseholdRepository>>;
-  let jwtIssuer: ReturnType<typeof mock<JwtAccessTokenIssuer>>;
-  let refreshTokenStore: ReturnType<typeof mock<RefreshTokenStore>>;
+  let householdRepo: ReturnType<typeof createMock<HouseholdRepository>>;
+  let jwtIssuer: ReturnType<typeof createMock<JwtAccessTokenIssuer>>;
+  let refreshTokenStore: ReturnType<typeof createMock<RefreshTokenStore>>;
   let refreshUseCase: RefreshTokenUseCase;
   let controller: AuthController;
 
   beforeEach(() => {
-    householdRepo = mock<HouseholdRepository>();
-    jwtIssuer = mock<JwtAccessTokenIssuer>();
-    refreshTokenStore = mock<RefreshTokenStore>();
+    householdRepo = createMock<HouseholdRepository>();
+    jwtIssuer = createMock<JwtAccessTokenIssuer>();
+    refreshTokenStore = createMock<RefreshTokenStore>();
 
     refreshUseCase = new RefreshTokenUseCase(householdRepo, jwtIssuer, refreshTokenStore);
 
     controller = new AuthController(
-      mock(),
-      mock(),
-      mock(),
-      mock(),
-      mock(),
-      mock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
       refreshUseCase,
-      mock(),
+      createMock(),
     );
   });
 

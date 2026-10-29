@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type { PurgeDeletedHouseholdsUseCase } from '../../../application/auth/use-cases/PurgeDeletedHouseholdsUseCase.js';
 import { HouseholdPurgeCronService } from './HouseholdPurgeCronService.js';
 
 describe('HouseholdPurgeCronService', () => {
   it('runs the purge use case with the current time', async () => {
-    const useCase = mock<PurgeDeletedHouseholdsUseCase>();
+    const useCase = createMock<PurgeDeletedHouseholdsUseCase>();
     useCase.execute.mockResolvedValue({ purged: [], failed: [] });
     const before = Date.now();
 
