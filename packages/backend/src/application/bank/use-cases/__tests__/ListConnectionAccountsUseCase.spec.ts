@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { BankAccountId, BankConnectionId, HouseholdId, UserId } from '@power-budget/core';
 import type {
   BankAccountRepository,
@@ -30,8 +30,8 @@ const account: BankAccount = {
 };
 
 function setup(connection: BankConnection | null) {
-  const connectionRepo = mock<BankConnectionRepository>();
-  const accountRepo = mock<BankAccountRepository>();
+  const connectionRepo = createMock<BankConnectionRepository>();
+  const accountRepo = createMock<BankAccountRepository>();
   connectionRepo.findById.mockResolvedValue(connection);
   accountRepo.listByConnection.mockResolvedValue([account]);
 

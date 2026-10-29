@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import type {
   BankCatalogCache,
   BankConnector,
@@ -23,10 +23,10 @@ const WISE: BankCatalogEntry = {
 };
 
 describe('GetBankCatalogUseCase', () => {
-  let registry: ReturnType<typeof mock<BankConnectorRegistry>>;
-  let gocardless: ReturnType<typeof mock<BankConnector>>;
-  let wise: ReturnType<typeof mock<BankConnector>>;
-  let cache: ReturnType<typeof mock<BankCatalogCache>>;
+  let registry: ReturnType<typeof createMock<BankConnectorRegistry>>;
+  let gocardless: ReturnType<typeof createMock<BankConnector>>;
+  let wise: ReturnType<typeof createMock<BankConnector>>;
+  let cache: ReturnType<typeof createMock<BankCatalogCache>>;
   let useCase: GetBankCatalogUseCase;
 
   function resolveConnector(provider: BankProvider): BankConnector {
@@ -34,10 +34,10 @@ describe('GetBankCatalogUseCase', () => {
   }
 
   beforeEach(() => {
-    registry = mock<BankConnectorRegistry>();
-    gocardless = mock<BankConnector>();
-    wise = mock<BankConnector>();
-    cache = mock<BankCatalogCache>();
+    registry = createMock<BankConnectorRegistry>();
+    gocardless = createMock<BankConnector>();
+    wise = createMock<BankConnector>();
+    cache = createMock<BankCatalogCache>();
     registry.listProviders.mockReturnValue(['gocardless', 'wise_personal']);
     registry.resolve.mockImplementation(resolveConnector);
     useCase = new GetBankCatalogUseCase(registry, cache);

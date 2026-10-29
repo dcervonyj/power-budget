@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { GetTransactionUseCase } from '../GetTransactionUseCase.js';
 import type {
   TransactionRepository,
@@ -23,15 +23,15 @@ const fakeMapping = makeTransactionMapping({ transactionId: txId });
 const fakeTransfer = makeTransfer();
 
 describe('GetTransactionUseCase', () => {
-  let txRepo: ReturnType<typeof mock<TransactionRepository>>;
-  let mappingRepo: ReturnType<typeof mock<MappingRepository>>;
-  let transferRepo: ReturnType<typeof mock<TransferRepository>>;
+  let txRepo: ReturnType<typeof createMock<TransactionRepository>>;
+  let mappingRepo: ReturnType<typeof createMock<MappingRepository>>;
+  let transferRepo: ReturnType<typeof createMock<TransferRepository>>;
   let useCase: GetTransactionUseCase;
 
   beforeEach(() => {
-    txRepo = mock<TransactionRepository>();
-    mappingRepo = mock<MappingRepository>();
-    transferRepo = mock<TransferRepository>();
+    txRepo = createMock<TransactionRepository>();
+    mappingRepo = createMock<MappingRepository>();
+    transferRepo = createMock<TransferRepository>();
     useCase = new GetTransactionUseCase(txRepo, mappingRepo, transferRepo);
   });
 

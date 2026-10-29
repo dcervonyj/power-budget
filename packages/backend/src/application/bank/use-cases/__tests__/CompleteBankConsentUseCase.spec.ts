@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { UserId, HouseholdId, BankConnectionId, EncryptedString } from '@power-budget/core';
 import type {
   BankConnectionRepository,
@@ -45,8 +45,8 @@ function makeConnection(overrides: Partial<BankConnection>): BankConnection {
 
 describe('CompleteBankConsentUseCase', () => {
   let connections: BankConnection[];
-  let connectionRepo: ReturnType<typeof mock<BankConnectionRepository>>;
-  let connector: ReturnType<typeof mock<BankConnector>>;
+  let connectionRepo: ReturnType<typeof createMock<BankConnectionRepository>>;
+  let connector: ReturnType<typeof createMock<BankConnector>>;
   let useCase: CompleteBankConsentUseCase;
 
   function findScoped(id: BankConnectionId, scope: HouseholdScope): Promise<BankConnection | null> {
@@ -66,12 +66,12 @@ describe('CompleteBankConsentUseCase', () => {
         externalConsentRef: 'wise-mallory-ref',
       }),
     ];
-    connectionRepo = mock<BankConnectionRepository>();
+    connectionRepo = createMock<BankConnectionRepository>();
     connectionRepo.findById.mockImplementation(findScoped);
     connectionRepo.findActiveByUserAndBank.mockResolvedValue(null);
-    connector = mock<BankConnector>();
+    connector = createMock<BankConnector>();
     connector.completeConsent.mockResolvedValue({ consentToken: MALLORY_TOKEN, expiresAt: null });
-    const registry = mock<BankConnectorRegistry>();
+    const registry = createMock<BankConnectorRegistry>();
     registry.resolve.mockReturnValue(connector);
     useCase = new CompleteBankConsentUseCase(connectionRepo, registry);
   });
@@ -178,17 +178,17 @@ describe('CompleteBankConsentUseCase', () => {
 
 describe('BankController.completeBankConsent', () => {
   it('scopes completion to the path connection id and the authenticated caller', async () => {
-    const complete = mock<CompleteBankConsentUseCase>();
+    const complete = createMock<CompleteBankConsentUseCase>();
     complete.execute.mockResolvedValue({ connectionId: MALLORY_CONN });
     const controller = new BankController(
-      mock(),
+      createMock(),
       complete,
-      mock(),
-      mock(),
-      mock(),
-      mock(),
-      mock(),
-      mock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
+      createMock(),
     );
 
     await controller.completeBankConsent(MALLORY_CONN, 'code-1', 'wise-alice-ref', {

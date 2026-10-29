@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { MapTransactionUseCase } from '../MapTransactionUseCase.js';
 import type {
   TransactionRepository,
@@ -32,17 +32,17 @@ const baseInput = {
 };
 
 describe('MapTransactionUseCase', () => {
-  let txRepo: ReturnType<typeof mock<TransactionRepository>>;
-  let mappingRepo: ReturnType<typeof mock<MappingRepository>>;
-  let transferRepo: ReturnType<typeof mock<TransferRepository>>;
-  let merchantMemory: ReturnType<typeof mock<LearnMerchantRuleUseCase>>;
+  let txRepo: ReturnType<typeof createMock<TransactionRepository>>;
+  let mappingRepo: ReturnType<typeof createMock<MappingRepository>>;
+  let transferRepo: ReturnType<typeof createMock<TransferRepository>>;
+  let merchantMemory: ReturnType<typeof createMock<LearnMerchantRuleUseCase>>;
   let useCase: MapTransactionUseCase;
 
   beforeEach(() => {
-    txRepo = mock<TransactionRepository>();
-    mappingRepo = mock<MappingRepository>();
-    transferRepo = mock<TransferRepository>();
-    merchantMemory = mock<LearnMerchantRuleUseCase>();
+    txRepo = createMock<TransactionRepository>();
+    mappingRepo = createMock<MappingRepository>();
+    transferRepo = createMock<TransferRepository>();
+    merchantMemory = createMock<LearnMerchantRuleUseCase>();
     useCase = new MapTransactionUseCase(txRepo, mappingRepo, transferRepo, merchantMemory);
   });
 

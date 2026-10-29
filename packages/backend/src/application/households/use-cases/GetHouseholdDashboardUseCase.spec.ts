@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import {
   BankAccountId,
   CategoryId,
@@ -115,14 +115,14 @@ function mapping(txId: string, itemId: string): Mapping {
 
 function setup(table: FxRateTable = new Map()): {
   useCase: GetHouseholdDashboardUseCase;
-  planRepo: ReturnType<typeof mock<PlanRepository>>;
+  planRepo: ReturnType<typeof createMock<PlanRepository>>;
 } {
-  const planRepo = mock<PlanRepository>();
+  const planRepo = createMock<PlanRepository>();
   planRepo.findById.mockResolvedValue(plan());
-  const items = mock<PlannedItemRepository>();
+  const items = createMock<PlannedItemRepository>();
   items.listByPlan.mockResolvedValue([item('item-g', GROCERIES), item('item-o', OLD)]);
   const transactions = [tx('ann-1', -2_000n), tx('bob-1', -500n), tx('elsewhere', -9_999n)];
-  const activity = mock<PlanActivityReader>();
+  const activity = createMock<PlanActivityReader>();
   activity.read.mockResolvedValue({
     transactions,
     owners: new Map([
@@ -138,13 +138,13 @@ function setup(table: FxRateTable = new Map()): {
     ],
     transfers: [],
   });
-  const categories = mock<CategoryRepository>();
+  const categories = createMock<CategoryRepository>();
   categories.list.mockResolvedValue([
     category(GROCERIES),
     category(OLD, { archivedAt: IsoDateTime.of('2026-09-01T00:00:00Z'), householdId: HH }),
     category(UNUSED_OLD, { archivedAt: IsoDateTime.of('2026-09-01T00:00:00Z') }),
   ]);
-  const privacy = mock<CategoryPrivacyRepository>();
+  const privacy = createMock<CategoryPrivacyRepository>();
   privacy.listByHousehold.mockResolvedValue([
     {
       categoryId: GROCERIES,
@@ -154,7 +154,7 @@ function setup(table: FxRateTable = new Map()): {
       updatedAt: IsoDateTime.of('2026-10-01T00:00:00Z'),
     },
   ]);
-  const fxRepo = mock<FxRateRepository>();
+  const fxRepo = createMock<FxRateRepository>();
   fxRepo.getTable.mockResolvedValue(table);
 
   return {

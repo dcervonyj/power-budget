@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import {
   BankAccountId,
   CategoryId,
@@ -126,14 +126,14 @@ function activity(): PlanActivity {
 
 function setup(table: FxRateTable = eurPln()): {
   service: PlanActualsService;
-  fxRepo: ReturnType<typeof mock<FxRateRepository>>;
-  activityReader: ReturnType<typeof mock<PlanActivityReader>>;
+  fxRepo: ReturnType<typeof createMock<FxRateRepository>>;
+  activityReader: ReturnType<typeof createMock<PlanActivityReader>>;
 } {
-  const items = mock<PlannedItemRepository>();
+  const items = createMock<PlannedItemRepository>();
   items.listByPlan.mockResolvedValue([item()]);
-  const activityReader = mock<PlanActivityReader>();
+  const activityReader = createMock<PlanActivityReader>();
   activityReader.read.mockResolvedValue(activity());
-  const fxRepo = mock<FxRateRepository>();
+  const fxRepo = createMock<FxRateRepository>();
   fxRepo.getTable.mockResolvedValue(table);
 
   return {
@@ -216,7 +216,7 @@ describe('PlanActualsService', () => {
   });
 
   it('passes any other error through the FX translation unchanged', () => {
-    const loader = new PlanFxRatesLoader(mock<FxRateRepository>());
+    const loader = new PlanFxRatesLoader(createMock<FxRateRepository>());
     const failure = new Error('connection lost');
 
     expect(

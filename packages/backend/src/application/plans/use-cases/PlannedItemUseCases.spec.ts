@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock, type MockProxy } from 'vitest-mock-extended';
+import { createMock, type DeepMocked } from '@golevelup/ts-vitest';
 import { IsoDateTime, PlanId, PlannedItemId, PlannedItemVersionId } from '@power-budget/core';
 import type {
   AuditLogPort,
@@ -30,18 +30,18 @@ import { ListPlannedItemsUseCase } from './ListPlannedItemsUseCase.js';
 const ARCHIVED = IsoDateTime.of('2026-10-02T00:00:00.000Z');
 const AMOUNT = { amountMinor: 160000n, currency: 'PLN' as const };
 
-let planRepo: MockProxy<PlanRepository>;
-let itemRepo: MockProxy<PlannedItemRepository>;
-let versionRepo: MockProxy<PlannedItemVersionRepository>;
-let categoryRepo: MockProxy<CategoryRepository>;
-let auditLog: MockProxy<AuditLogPort>;
+let planRepo: DeepMocked<PlanRepository>;
+let itemRepo: DeepMocked<PlannedItemRepository>;
+let versionRepo: DeepMocked<PlannedItemVersionRepository>;
+let categoryRepo: DeepMocked<CategoryRepository>;
+let auditLog: DeepMocked<AuditLogPort>;
 
 beforeEach(() => {
-  planRepo = mock<PlanRepository>();
-  itemRepo = mock<PlannedItemRepository>();
-  versionRepo = mock<PlannedItemVersionRepository>();
-  categoryRepo = mock<CategoryRepository>();
-  auditLog = mock<AuditLogPort>();
+  planRepo = createMock<PlanRepository>();
+  itemRepo = createMock<PlannedItemRepository>();
+  versionRepo = createMock<PlannedItemVersionRepository>();
+  categoryRepo = createMock<CategoryRepository>();
+  auditLog = createMock<AuditLogPort>();
 });
 
 describe('AddPlannedItemUseCase', () => {

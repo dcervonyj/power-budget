@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { mock } from 'vitest-mock-extended';
+import { createMock } from '@golevelup/ts-vitest';
 import { PatchTransactionUseCase } from '../PatchTransactionUseCase.js';
 import type { TransactionRepository } from '../../../../domain/transactions/ports.js';
 import { TransactionNotFoundError } from '../../../../domain/transactions/errors.js';
@@ -13,11 +13,11 @@ const userId = UserId.of('01900000-9dff-7fe4-8508-52c20c8876f6');
 const fakeTx = makeTransaction({ id: txId, householdId });
 
 describe('PatchTransactionUseCase', () => {
-  let txRepo: ReturnType<typeof mock<TransactionRepository>>;
+  let txRepo: ReturnType<typeof createMock<TransactionRepository>>;
   let useCase: PatchTransactionUseCase;
 
   beforeEach(() => {
-    txRepo = mock<TransactionRepository>();
+    txRepo = createMock<TransactionRepository>();
     useCase = new PatchTransactionUseCase(txRepo);
   });
 
