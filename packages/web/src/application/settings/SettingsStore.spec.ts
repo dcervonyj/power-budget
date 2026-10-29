@@ -176,8 +176,14 @@ describe('SettingsStore profile (UserProfileDto)', () => {
 
     expect(store.profileLoadFailed).toBe(true);
 
-    mockGet.mockResolvedValueOnce(ok(profile));
-    await store.loadProfile();
+    const retry = deferred<ReturnType<typeof ok<typeof profile>>>();
+    mockGet.mockReturnValueOnce(retry.promise);
+    const pending = store.loadProfile();
+
+    expect(store.profileLoadFailed).toBe(true);
+
+    retry.resolve(ok(profile));
+    await pending;
 
     expect(store.profileLoadFailed).toBe(false);
     expect(store.householdId).toBe(profile.householdId);

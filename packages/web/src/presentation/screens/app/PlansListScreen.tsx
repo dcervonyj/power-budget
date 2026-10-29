@@ -86,7 +86,7 @@ export const PlansListScreen = observer(function PlansListScreen(): React.JSX.El
       plans={plans}
       loading={loading}
       error={error ?? profileError}
-      creating={!settingsStore.profileLoaded}
+      creating={!settingsStore.profileLoaded || settingsStore.profileLoadFailed}
       onCreate={() => {
         // Without the profile the household type and the currency default would be wrong.
         if (settingsStore.profileLoadFailed) {

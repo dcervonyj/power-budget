@@ -112,10 +112,11 @@ export class SettingsStore {
 
   async loadProfile(): Promise<void> {
     const session = this.session;
-    this.profileLoadFailed = false;
     try {
       const res = await this.http.get<UserProfileDto>('/users/me');
       this.applyProfile(session, res.data);
+      // Cleared only by a successful answer, so a retry in flight is still a failed profile.
+      this.clearProfileLoadFailed(session);
     } catch {
       // The screens keep their defaults when the profile is not available.
       this.markProfileLoadFailed(session);
@@ -277,6 +278,12 @@ export class SettingsStore {
   private applyExportDone(session: number): void {
     if (session === this.session) {
       this.isExporting = false;
+    }
+  }
+
+  private clearProfileLoadFailed(session: number): void {
+    if (session === this.session) {
+      this.profileLoadFailed = false;
     }
   }
 
