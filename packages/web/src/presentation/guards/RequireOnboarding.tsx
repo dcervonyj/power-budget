@@ -1,8 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import { FormattedMessage } from 'react-intl';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { onboardingProgress, onboardingService, settingsStore } from '../../composition.js';
 import { ROUTE_PATHS } from '../../infrastructure/navigation/routePaths.js';
+import { LocaleContext } from '../../AppProviders.js';
+import { isSupportedLocale } from '../../application/onboarding/OnboardingOptions.js';
 import { Button } from '../components/Button.js';
 
 type GateState = 'checking' | 'completed' | 'needed' | 'failed';
@@ -19,6 +21,14 @@ function isWizardDestination(pathname: string): boolean {
   );
 }
 
+function cacheLocale(locale: string): void {
+  try {
+    localStorage.setItem('pb_locale', locale);
+  } catch {
+    // Only a device cache; the profile still has it.
+  }
+}
+
 function isOpenFromWizard(pathname: string): boolean {
   return onboardingProgress.isLeftForLink && isWizardDestination(pathname);
 }
@@ -30,6 +40,7 @@ function isOpenFromWizard(pathname: string): boolean {
  */
 export function RequireOnboarding(): React.JSX.Element | null {
   const location = useLocation();
+  const { setLocale } = useContext(LocaleContext);
   const [state, setState] = useState<GateState>('checking');
   const [attempt, setAttempt] = useState(0);
 
@@ -42,6 +53,11 @@ export function RequireOnboarding(): React.JSX.Element | null {
           // The profile is the source of truth for tracked currencies: they are in place before
           // the app renders, also on a browser that has never seen this user.
           settingsStore.hydrateFromProfile(profile);
+          // Same for the language: a completed user on another browser keeps the chosen one.
+          if (profile.localePreference !== null && isSupportedLocale(profile.localePreference)) {
+            setLocale(profile.localePreference);
+            cacheLocale(profile.localePreference);
+          }
           setState(profile.onboardingCompleted ? 'completed' : 'needed');
         }
       },
@@ -55,7 +71,7 @@ export function RequireOnboarding(): React.JSX.Element | null {
     return () => {
       cancelled = true;
     };
-  }, [attempt]);
+  }, [attempt, setLocale]);
 
   if (state === 'checking') {
     return null;

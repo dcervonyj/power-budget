@@ -29,8 +29,11 @@ export function OnboardingScreen({
     const sessionId = getSessionId();
     try {
       await api.complete({ language, baseCurrency });
-      setLocale(language, 'user', sessionId);
-      onCompleted();
+      // Signed out (or another user in) while the save was in flight: it must not open this gate.
+      if (sessionId === getSessionId()) {
+        setLocale(language, 'user', sessionId);
+        onCompleted();
+      }
     } catch {
       setFailed(true);
     } finally {
