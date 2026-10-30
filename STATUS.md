@@ -25,7 +25,7 @@ The product moved from pre-alpha scaffold to a working, deployed, restyled web a
 
 ## What does not work / gaps
 
-- No live bank feed yet: the Enable Banking spike works with the owner's real PKO and Wise accounts (SPK-001 partly done 30 Oct, [`docs/research/eb-aspsp-facts.md`](docs/research/eb-aspsp-facts.md)), but the connector and live sync (BNK-001, SYNC-005), the Wise webhook (SPK-002) and PKO email parsing (SPK-003) are not done.
+- No live bank feed yet: the Enable Banking spike works with the owner's real PKO and Wise accounts (SPK-001 partly done 30 Oct, [`docs/research/eb-aspsp-facts.md`](docs/research/eb-aspsp-facts.md)), and the Wise read-only token and signed `balances#update` webhook work too (SPK-002 partly done 30 Oct, [`docs/research/wise-api-facts.md`](docs/research/wise-api-facts.md)), but the connector and live sync (BNK-001, SYNC-005), the Wise receiver (WISE-001) and PKO email parsing (SPK-003) are not done.
 - LLM categorisation (AI-005 onwards) not started: no Claude API key.
 - No custom domain, so no Resend sender domain and no PKO inbound email (HOST-003, SPK-004).
 - Mobile has no device check (UI-016 needs a phone; it now also covers the VoiceOver/TalkBack check of the `Input` error from CLN-080).
@@ -38,20 +38,20 @@ Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), G
 
 ## Where we are
 
-| Series                                                           | State                                                                              |
-| ---------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups    | Done, except CLN-070 (deferred under D2)                                           |
+| Series                                                           | State                                           |
+| ---------------------------------------------------------------- | ----------------------------------------------- |
+| CLN-001 to CLN-020 audit fixes, CLN-021 to CLN-077 follow-ups    | Done, except CLN-070 (deferred under D2)        |
 | D7 Glass DSN-010 to DSN-050 (web and mobile)                     | Done, except DSN-047 and DSN-048 (phone checks) |
-| CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done                                                                               |
-| CLN-077 Dependabot alerts, CLN-028 dependency batch              | Done                                                                               |
-| CLN-079 to CLN-083 (28 Oct)                                      | Done                                                                               |
-| BNK-002, BNK-003, SYNC-001 (bank v2 foundation)                  | Done                                                                               |
-| AI-001, AI-003, AI-004                                           | Done; AI-005+ blocked                                                              |
-| SYNC-005 live sync, SPK-001/002/003, HOST-003                    | Blocked on PO                                                                      |
+| CLN-074 a-k style audit (no casts, ratchet lint, nullish review) | Done                                            |
+| CLN-077 Dependabot alerts, CLN-028 dependency batch              | Done                                            |
+| CLN-079 to CLN-083 (28 Oct)                                      | Done                                            |
+| BNK-002, BNK-003, SYNC-001 (bank v2 foundation)                  | Done                                            |
+| AI-001, AI-003, AI-004                                           | Done; AI-005+ blocked                           |
+| SYNC-005 live sync, SPK-001/002/003, HOST-003                    | Blocked on PO                                   |
 
 ## Blocked on PO
 
-Domain (HOST-003, Resend domain, SPK-004); partner linking for SPK-001; Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); phone for UI-016 and DSN-047/048 checks; SPK-005 history export and 150 labels; CLN-015 C14; 9 fact questions on the PO guide that only the PO can answer (plan-02 partner and Enable Banking, plan-05 Wise tokens, plan-06 Gmail and phones, plan-07 PKO products for SPK-001/002/003; plan-16 hours a week; voice-01 to voice-04). The other PO guide questions got their recommended defaults on 30 Oct.
+Domain (HOST-003, Resend domain, SPK-004); partner linking for SPK-001; a Wise card payment and the partner's token check (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); phone for UI-016 and DSN-047/048 checks; SPK-005 history export and 150 labels; CLN-015 C14; 9 fact questions on the PO guide that only the PO can answer (plan-02 partner and Enable Banking, plan-05 Wise tokens, plan-06 Gmail and phones, plan-07 PKO products for SPK-001/002/003; plan-16 hours a week; voice-01 to voice-04). The other PO guide questions got their recommended defaults on 30 Oct.
 
 ## PO decisions of 29 Oct
 
