@@ -2372,7 +2372,7 @@ Mostly owner and partner actions, in parallel with P1 and P2: Enable Banking, Wi
 - **Area**: Spike
 - **Phase**: M0
 - **Effort**: S (~1d)
-- **Status**: Planned
+- **Status**: Partly done (2026-10-30): owner's read-only token works for profiles, balances and activities without SCA; `balances#update` subscriptions (schema `4.0.0`) created with a temporary Full token, signed test and real deliveries captured and verified, Full token deleted; facts and fixtures in [`docs/research/wise-api-facts.md`](../research/wise-api-facts.md). Left: a card payment event, delivery after the Full token deletion, the partner's token check.
 - **Needs the owner or partner**: yes
 - **Description**: Both partners check `wise.com → Settings → API tokens` on their personal profiles. With a temporary Full token, create a `balances#update` subscription to a test HTTPS endpoint (on the VPS from HOST-002, or a temporary tunnel). Make a card payment and capture the payload. Revoke the Full token and check that the subscription still delivers. With a read-only token, call `/v1/profiles`, `/v4/profiles/{id}/balances?types=STANDARD` ⚠ and `/v1/profiles/{id}/activities`.
 - **Blocked by**: none
