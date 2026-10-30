@@ -1,0 +1,25 @@
+{
+  "note": "Real delivery for an outgoing cross-currency transfer, 2026-10-30. Values replaced (ids, amounts, reference, currency); field names, order and types kept. The signature does not apply to this body.",
+  "body": {
+    "data": {
+      "resource": {
+        "id": 100001,
+        "profile_id": 200002,
+        "type": "balance-account"
+      },
+      "amount": 12.34,
+      "currency": "PLN",
+      "transaction_type": "debit",
+      "post_transaction_balance_amount": 567.89,
+      "occurred_at": "2026-10-30T00:43:25.619Z",
+      "transfer_reference": "1234567890",
+      "channel_name": "TRANSFER",
+      "balance_id": 100001,
+      "step_id": 3000000001
+    },
+    "subscription_id": "00000000-0000-0000-0000-000000000000",
+    "event_type": "balances#update",
+    "schema_version": "4.0.0",
+    "sent_at": "2026-10-30T00:43:25.678Z"
+  }
+}

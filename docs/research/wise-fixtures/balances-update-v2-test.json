@@ -1,0 +1,9 @@
+{
+  "note": "Wise test notification (dummy data) captured 2026-10-30, signed with the Wise production key. body is the exact raw request body.",
+  "headers": {
+    "x-signature-sha256": "Bk7ysXUnDIpKwm/bsYZzUVj8GmAxGaKOIz9dgWdhcYV07MaIubR2YOOANYGq4yPthjpmzYZtGywULGKNbaplt6xYmiWXsbqga6JzI1vAsWCftTdxJhLU/jrgKrYMt+UOfY7+bfYkta495bSgL36CxlfZO25J5T6UjTdBb6Ho6F1u5Pfd+FgL3ALRJtRPZ/msGbMQHzICVnJ4xFTuPMd8Ia11nO88adxdES9a1TRo8MQPWwrXvupvIUkuU36cVvsXjLa+AFY4ZZ53Ueq0IU2aOWKyMcieWUVm6WPj3jH33XEa+uUpMvMR4V10+/LwlF6rXB9iufd2MqVPqUCZFs92/Q==",
+    "x-test-notification": "true",
+    "content-type": "application/json"
+  },
+  "body": "{\"data\":{\"resource\":{\"id\":0,\"profile_id\":0,\"type\":\"balance-account\"},\"amount\":0.01,\"currency\":\"EUR\",\"transaction_type\":\"credit\",\"occurred_at\":\"2026-10-30T00:41:30Z\",\"transfer_reference\":\"123456789\"},\"subscription_id\":\"00000000-0000-0000-0000-000000000000\",\"event_type\":\"balances#update\",\"schema_version\":\"2.0.0\",\"sent_at\":\"2026-10-30T00:41:30Z\"}"
+}
