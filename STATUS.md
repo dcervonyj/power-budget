@@ -25,7 +25,7 @@ The product moved from pre-alpha scaffold to a working, deployed, restyled web a
 
 ## What does not work / gaps
 
-- No live bank feed: Enable Banking (SPK-001, SYNC-005), Wise (SPK-002) and PKO email parsing (SPK-003) are not done; real descriptors for AI-001 waived until samples arrive.
+- No live bank feed yet: the Enable Banking spike works with the owner's real PKO and Wise accounts (SPK-001 partly done 30 Oct, [`docs/research/eb-aspsp-facts.md`](docs/research/eb-aspsp-facts.md)), but the connector and live sync (BNK-001, SYNC-005), the Wise webhook (SPK-002) and PKO email parsing (SPK-003) are not done.
 - LLM categorisation (AI-005 onwards) not started: no Claude API key.
 - No custom domain, so no Resend sender domain and no PKO inbound email (HOST-003, SPK-004).
 - Mobile has no device check (UI-016 needs a phone; it now also covers the VoiceOver/TalkBack check of the `Input` error from CLN-080).
@@ -51,7 +51,7 @@ Fixed on master: forgeable JWT secret (API refuses to boot without 32+ bytes), G
 
 ## Blocked on PO
 
-Domain (HOST-003, Resend domain, SPK-004); Enable Banking account (SPK-001); Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); phone for UI-016 and DSN-047/048 checks; SPK-005 history export and 150 labels; CLN-015 C14; 9 fact questions on the PO guide that only the PO can answer (plan-02 partner and Enable Banking, plan-05 Wise tokens, plan-06 Gmail and phones, plan-07 PKO products for SPK-001/002/003; plan-16 hours a week; voice-01 to voice-04). The other PO guide questions got their recommended defaults on 30 Oct.
+Domain (HOST-003, Resend domain, SPK-004); partner linking for SPK-001; Wise token (SPK-002); PKO email samples (SPK-003); Claude API key (AI-005+); phone for UI-016 and DSN-047/048 checks; SPK-005 history export and 150 labels; CLN-015 C14; 9 fact questions on the PO guide that only the PO can answer (plan-02 partner and Enable Banking, plan-05 Wise tokens, plan-06 Gmail and phones, plan-07 PKO products for SPK-001/002/003; plan-16 hours a week; voice-01 to voice-04). The other PO guide questions got their recommended defaults on 30 Oct.
 
 ## PO decisions of 29 Oct
 
