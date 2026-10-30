@@ -1,0 +1,23 @@
+{
+  "note": "GET /v1/profiles/{id}/activities?since=occurred_at-5m&until=occurred_at+5m for the event in balances-update-v4-real-anonymised.json, 2026-10-30. Values replaced (ids, names, amounts, currencies, times); field names, order and JSON types kept. resource.id equals the webhook transfer_reference; secondaryAmount is the balance-currency amount that equals the webhook amount.",
+  "response": {
+    "cursor": null,
+    "activities": [
+      {
+        "id": "TU9ORVRBUllfQUNUSVZJVFk6OjEyMzQ1Njc4OTA=",
+        "type": "TRANSFER",
+        "resource": {
+          "type": "TRANSFER",
+          "id": "1234567890"
+        },
+        "title": "<strong>Recipient Name</strong>",
+        "description": "Sent by you",
+        "primaryAmount": "2.90 EUR",
+        "secondaryAmount": "12.34 PLN",
+        "status": "COMPLETED",
+        "createdOn": "2026-10-30T00:43:22.610Z",
+        "updatedOn": "2026-10-30T00:43:25.700Z"
+      }
+    ]
+  }
+}
