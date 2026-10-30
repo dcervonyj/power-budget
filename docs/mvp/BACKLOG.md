@@ -2355,7 +2355,7 @@ Mostly owner and partner actions, in parallel with P1 and P2: Enable Banking, Wi
 - **Area**: Spike
 - **Phase**: M0
 - **Effort**: M (~1.5d)
-- **Status**: Planned
+- **Status**: Partly done (2026-10-30): Production app in restricted mode, owner's PKO and Wise linked, full attended and unattended run; facts in [`docs/research/eb-aspsp-facts.md`](../research/eb-aspsp-facts.md). Left: partner linking and the linked-account cap (EB support email), whether a Wise `PDNG` row keeps its reference when booked, whether PKO shows pending card payments.
 - **Needs the owner or partner**: yes
 - **Description**: The user registers in the EB Control Panel, creates a Production application with an RSA key (`kid` = app id), and links his own PKO and Wise accounts ("Activate by linking accounts"). The partner links hers. Then a throwaway script (based on `enablebanking-api-samples`) runs `GET /aspsps?country=PL`, `/auth` → `/sessions` → accounts → transactions (`strategy=longest`) → balances, attended and unattended.
 - **Blocked by**: none
