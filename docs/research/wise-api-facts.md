@@ -47,6 +47,7 @@ Fixtures (in [`wise-fixtures/`](wise-fixtures)):
 
 - `balances-update-v2-test.json`, `balances-update-v4-test.json`: Wise test notifications (dummy data) with the exact raw body and the real `X-Signature-SHA256`. They verify against the production key and fail when one byte is added. WISE-001 can use them as-is.
 - `balances-update-v4-real-anonymised.json`: the real transfer event with ids, amounts, reference and currency replaced; field names, order and JSON types kept. The signature does not apply to it.
+- `activities-transfer-match-anonymised.json`: the activities response for that event's ±5 min window, anonymised the same way; its `resource.id` equals the webhook `transfer_reference` and its `secondaryAmount` equals the webhook `amount`.
 - `wise-webhook-production.pub`: the production public key from the Wise event-handling guide (RSA 2048).
 
 Check a fixture by hand:
@@ -65,7 +66,7 @@ openssl dgst -sha256 -verify wise-webhook-production.pub -signature /tmp/s /tmp/
 For the real transfer, `activities?since=occurred_at-5m&until=occurred_at+5m` returned exactly one activity (`TRANSFER`, `COMPLETED`, created 3 s before `occurred_at`):
 
 - The webhook `amount` equals the activity's `secondaryAmount`, not `primaryAmount`: for a conversion, `primaryAmount` is the target currency and `secondaryAmount` the balance currency.
-- The webhook `transfer_reference` contains the activity's `resource.id`. Match on that reference first and fall back to amount and currency only when there is no reference (card payments: still to check).
+- The webhook `transfer_reference` equals the activity's `resource.id` (both strings). Match on that reference first and fall back to amount and currency only when there is no reference (card payments: still to check).
 
 ## Still open
 
