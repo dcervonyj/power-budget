@@ -53,7 +53,7 @@
     "otplib": "^13.5.0",
     "pg": "^8.20.0",
     "reflect-metadata": "^0.2",
-    "resend": "^6.34.1",
+    "resend": "^6.35.0",
     "uuidv7": "^1.2.1"
   },
   "devDependencies": {
