@@ -51,7 +51,7 @@
     "jsonwebtoken": "^9.0.3",
     "mjml": "^5.4.1",
     "otplib": "^13.5.0",
-    "pg": "^8.20.0",
+    "pg": "^8.23.1",
     "reflect-metadata": "^0.2",
     "resend": "^6.34.1",
     "uuidv7": "^1.2.1"
@@ -65,7 +65,7 @@
     "@testcontainers/redis": "^12.2.1",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22",
-    "@types/pg": "^8.20.0",
+    "@types/pg": "^8.23.1",
     "@vitest/coverage-v8": "^4.1.11",
     "drizzle-kit": "^0.31.11",
     "testcontainers": "^12.2.1",
