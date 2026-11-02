@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
-    "@formatjs/cli": "^6.16.35",
+    "@formatjs/cli": "^6.16.36",
     "@formatjs/cli-lib": "^8.7.0",
     "@formatjs/icu-messageformat-parser": "3.5.18",
     "@golevelup/ts-vitest": "^4.0.1",
