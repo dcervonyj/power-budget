@@ -60,7 +60,7 @@
     "@golevelup/ts-vitest": "^4.0.1",
     "@nestjs/cli": "^11",
     "@nestjs/testing": "^11.2.7",
-    "@swc/core": "^1.16.18",
+    "@swc/core": "^1.16.20",
     "@testcontainers/postgresql": "^12.2.1",
     "@testcontainers/redis": "^12.2.1",
     "@types/jsonwebtoken": "^9.0.10",
